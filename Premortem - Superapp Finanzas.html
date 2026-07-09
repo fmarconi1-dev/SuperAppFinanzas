@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Premortem — Superapp de Finanzas</title>
+<style>
+  :root{
+    --bg:#0a0e1a; --panel:#121829; --panel2:#0f1524; --line:#1e2842;
+    --tx:#e6ebf5; --muted:#8a95ad; --violet:#8b7bff; --cyan:#48d1d1;
+    --amber:#e0a94a; --red:#e0625f; --green:#4bbf7b;
+    --f1:#8b7bff;--f2:#48d1d1;--f3:#e0a94a;--f4:#e0625f;--f5:#4bbf7b;--f6:#c86bd6;--f7:#5b9dff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif;line-height:1.55;}
+  .wrap{max-width:1040px;margin:0 auto;padding:40px 24px 80px;}
+  h1{font-size:30px;margin:0 0 6px;letter-spacing:-.5px;}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:8px;}
+  .frame{background:linear-gradient(180deg,#141a2e,#0f1422);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:22px 0;font-size:15px;}
+  .frame b{color:var(--violet);}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:38px 0 14px;border-bottom:1px solid var(--line);padding-bottom:8px;}
+  .synth{display:grid;gap:14px;}
+  .scard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;}
+  .scard .tag{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;}
+  .scard h3{margin:6px 0 8px;font-size:17px;}
+  .scard p{margin:0;color:#cdd5e6;font-size:14.5px;}
+  .prob .tag{color:var(--amber);} .dang .tag{color:var(--red);} .hid .tag{color:var(--cyan);}
+  .revised{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:6px 20px;}
+  .revised li{margin:12px 0;color:#cdd5e6;font-size:14.5px;}
+  .revised b{color:var(--green);}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:6px;}
+  .fcard{border:1px solid var(--line);border-radius:12px;padding:15px 16px;background:var(--panel);position:relative;overflow:hidden;}
+  .fcard:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c);}
+  .fcard h4{margin:0 0 8px;font-size:15px;padding-left:6px;}
+  .fcard .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-top:10px;}
+  .fcard p{margin:3px 0 0;font-size:13px;color:#c4cde0;}
+  .meter{display:flex;gap:10px;margin-top:12px;font-size:11px;}
+  .pill{border:1px solid var(--line);border-radius:20px;padding:2px 9px;color:var(--muted);}
+  .pill b{color:var(--tx);}
+  .count{display:flex;gap:20px;flex-wrap:wrap;margin:10px 0 0;color:var(--muted);font-size:13px;}
+  .count b{color:var(--violet);font-size:22px;}
+  footer{margin-top:50px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:16px;}
+  .warnbox{background:#1a1220;border:1px solid #3a1f2e;border-radius:12px;padding:14px 18px;margin:18px 0;color:#f0cdd4;font-size:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Premortem — Superapp de Finanzas</h1>
+  <div class="sub">Unificar Mis-Finanzas-App + Scoring-Inversiones + la lógica de los Excel de cartera/renta fija en una sola app web con login único, monorepo en GitHub, escalable a multiusuario.</div>
+  <div class="count"><span><b>7</b><br>modos de fallo</span><span><b>3</b><br>proyectos a fusionar</span><span><b>1</b><br>desarrollador</span></div>
+
+  <div class="frame"><b>Encuadre.</b> Estamos a 9 de enero de 2027. Pasaron 6 meses desde que arrancaste. La superapp <b>fracasó</b>: quedó a medio integrar, sin publicar de forma estable, y volviste a usar los tres proyectos por separado más el Excel. Miramos hacia atrás para entender por qué murió — antes de escribir una línea de código.</div>
+
+  <h2>Síntesis</h2>
+  <div class="synth">
+    <div class="scard prob"><span class="tag">● Fallo más probable</span>
+      <h3>El refactor de "una sola app" se come el proyecto</h3>
+      <p>Fusionar dos apps Streamlit con carpetas <code>ui/</code> colisionantes y modelos de datos opuestos (SQLite multiusuario privado vs. batch EOD público) es un refactor de semanas. El entusiasmo se agota reescribiendo plumbing en vez de ver valor nuevo, y el monorepo queda peor que los tres proyectos que ya funcionaban.</p>
+    </div>
+    <div class="scard dang"><span class="tag">▲ Fallo más peligroso</span>
+      <h3>Fuga de datos financieros personales al repo público</h3>
+      <p>Al unir los Excel (movimientos del broker, saldos, patrimonio) con un monorepo público que hoy tiene GitHub Actions y Pages, un push descuidado expone tu patrimonio completo. Es de baja probabilidad pero daño irreversible: una vez en el historial de git, ya está indexado.</p>
+    </div>
+    <div class="scard hid"><span class="tag">◆ Supuesto oculto</span>
+      <h3>"Integrar bajo un login" es un beneficio; en realidad es el costo</h3>
+      <p>Das por sentado que unificar es mejor que tener tres cosas que ya andan. Pero los tres proyectos tienen ciclos de vida distintos (una app siempre-encendida, un batch diario gratis, una planilla que actualizás a mano). Forzarlos a un solo runtime puede romper lo que hoy es gratis y estable — el valor de unificar tiene que superar eso, y no es obvio que lo haga.</p>
+    </div>
+  </div>
+
+  <h2>Plan revisado — qué cambiar antes de arrancar</h2>
+  <ul class="revised">
+    <li><b>No "una sola app" de entrada: monorepo con núcleo compartido primero.</b> Un repo <code>superapp/</code> con <code>packages/finanzas</code>, <code>packages/mercado</code>, <code>packages/cartera</code> y un <code>core/</code> común (auth, tema, config). Fase 1 = shell con login único + navegación que embebe las apps casi tal cual. La "app unificada de verdad" es la meta, no el punto de partida.</li>
+    <li><b>Repo PRIVADO desde el commit 0.</b> El código de Scoring puede quedar público, pero el monorepo con cartera es privado. GitHub Actions y Pages funcionan igual en repos privados. Nada de datos (DB, Excel, movimientos) se commitea — <code>.gitignore</code> estricto heredado de Mis-Finanzas + un pre-commit hook que bloquee <code>.xlsx</code> y <code>.db</code>.</li>
+    <li><b>Congelá el alcance del MVP a "integrar lo existente bajo un login".</b> Sin features nuevas hasta que Finanzas + Mercado convivan online con un solo login. La Cartera entra como <em>sección que lee el Excel</em> (Excel-in-the-loop), no como reescritura.</li>
+    <li><b>Renta fija y opciones: Excel-in-the-loop, no portar.</b> La matemática de flujos de fondos/TIRs/B&S ya está validada en tus planillas y tenés la skill de Solidum. La app las lee y muestra; portar a Python se hace después, módulo por módulo, con test de reconciliación fila-a-fila contra el Excel (como ya hiciste en Mis-Finanzas).</li>
+    <li><b>Decidí hosting antes de codear, no después.</b> DonWeb <em>shared</em> no corre Streamlit. Opciones reales: seguir en <b>Fly.io</b> (~USD 2–5/mes, ya lo conocés), <b>Render free/Hobby</b>, o <b>DonWeb Cloud Server/VPS</b> (~$4.600 ARS/mes, pero administrás vos el server). Recomendación: consolidar en Fly.io para el MVP; DonWeb VPS solo si querés todo en infra local/ARS.</li>
+    <li><b>Datos de mercado ARG: definí la fuente antes de prometer la sección Cartera "en vivo".</b> Hoy cargás MEP y precios a mano. Si no hay fuente automatizada confiable para bonos/CEDEARs/ONs, la Cartera arranca con actualización manual asistida (subís el panel), no "tiempo real".</li>
+  </ul>
+
+  <div class="warnbox"><b>Checklist pre-arranque (verificar antes de la primera línea):</b> ① repo privado creado con <code>.gitignore</code> + hook anti-<code>.xlsx/.db</code> probado; ② hosting elegido y una app "hola mundo" desplegada ahí; ③ alcance del MVP escrito y firmado (solo integración, cero features); ④ los tests de reconciliación de Mis-Finanzas corren verdes tras mover el código al monorepo; ⑤ decidido cómo entra el dato de mercado ARG (manual asistido vs. automatizado).</div>
+
+  <h2>Los 7 modos de fallo en detalle</h2>
+  <div class="grid">
+    <div class="fcard" style="--c:var(--f1)"><h4>1 · Refactor de integración subestimado</h4>
+      <p>Ambas apps traen carpeta <code>ui/</code>, estados y estéticas distintas. "Una sola app" implica reescribir routing, estado y auth compartido. El proyecto se estanca en plumbing.</p>
+      <div class="lbl">Supuesto</div><p>Que fusionar es sumar, cuando es reescribir los puntos de contacto.</p>
+      <div class="lbl">Señal temprana</div><p>Semana 3 y todavía no hay un login que lleve a las dos secciones; los commits son todos "refactor".</p>
+      <div class="meter"><span class="pill">Prob <b>Alta</b></span><span class="pill">Daño <b>Alto</b></span></div>
+    </div>
+    <div class="fcard" style="--c:var(--f2)"><h4>2 · Mismatch de modelo de datos</h4>
+      <p>Finanzas = SQLite privado multiusuario. Scoring = JSON público idéntico para todos. Cartera = PII sensible. Bajo un login único se mezclan permisos.</p>
+      <div class="lbl">Supuesto</div><p>Que "un login" implica "un modelo de datos". No: hay datos públicos y datos ultra-privados conviviendo.</p>
+      <div class="lbl">Señal temprana</div><p>Aparece la pregunta "¿el scoring lo ve todo el mundo o por usuario?" y no hay respuesta clara en el diseño.</p>
+      <div class="meter"><span class="pill">Prob <b>Media</b></span><span class="pill">Daño <b>Medio</b></span></div>
+    </div>
+    <div class="fcard" style="--c:var(--f3)"><h4>3 · El deploy se vuelve el cuello de botella</h4>
+      <p>DonWeb shared no corre Streamlit. VPS implica administrar nginx/TLS/systemd/backups. La app queda "casi lista" sin publicar.</p>
+      <div class="lbl">Supuesto</div><p>Que el hosting mencionado (DonWeb) sirve para esta stack. No sirve en su modalidad shared.</p>
+      <div class="lbl">Señal temprana</div><p>Pasás más de un fin de semana peleando con el server en vez de con la app.</p>
+      <div class="meter"><span class="pill">Prob <b>Media-Alta</b></span><span class="pill">Daño <b>Alto</b></span></div>
+    </div>
+    <div class="fcard" style="--c:var(--f4)"><h4>4 · Datos de mercado ARG sin fuente confiable</h4>
+      <p>MEP y precios de bonos/CEDEARs/ONs hoy se cargan a mano. No hay API gratis y estable. La Cartera "en vivo" queda desactualizada y perdés confianza en ella.</p>
+      <div class="lbl">Supuesto</div><p>Que lo que hacés a mano en el Excel se automatiza fácil en la web.</p>
+      <div class="lbl">Señal temprana</div><p>El primer intento de scrapear/consumir precios ARG falla o se rompe a los pocos días.</p>
+      <div class="meter"><span class="pill">Prob <b>Alta</b></span><span class="pill">Daño <b>Medio</b></span></div>
+    </div>
+    <div class="fcard" style="--c:var(--f5)"><h4>5 · Se pierde la lógica validada del Excel</h4>
+      <p>Años de fórmulas afinadas (parser de movimientos, FF de renta fija, TIRs, B&S). Reescribir sin reconciliación fila-a-fila → los números no cuadran y volvés al Excel.</p>
+      <div class="lbl">Supuesto</div><p>Que portar la matemática es traducir fórmulas, no re-validar resultados.</p>
+      <div class="lbl">Señal temprana</div><p>La cartera de la app y la del Excel difieren y no tenés un test que diga cuál está bien.</p>
+      <div class="meter"><span class="pill">Prob <b>Media</b></span><span class="pill">Daño <b>Alto</b></span></div>
+    </div>
+    <div class="fcard" style="--c:var(--f6)"><h4>6 · Alcance infinito / burnout de un solo dev</h4>
+      <p>Un side project, un dev, tres dominios ricos. Sin recorte brutal, el impulso inicial se agota antes del MVP y queda todo a medias.</p>
+      <div class="lbl">Supuesto</div><p>Que el tiempo y las ganas alcanzan para las tres secciones a la vez.</p>
+      <div class="lbl">Señal temprana</div><p>Un mes sin commits, o saltás entre secciones sin terminar ninguna.</p>
+      <div class="meter"><span class="pill">Prob <b>Alta</b></span><span class="pill">Daño <b>Alto</b></span></div>
+    </div>
+    <div class="fcard" style="--c:var(--f7)"><h4>7 · Multiusuario prematuro</h4>
+      <p>Diseñar para SaaS cuando es "en principio para mí" agrega tenancy, aislamiento y costos que retrasan el valor personal. Construís plataforma en vez de herramienta.</p>
+      <div class="lbl">Supuesto</div><p>Que "escalable" hay que construirlo ahora y no dejarlo preparado para después.</p>
+      <div class="lbl">Señal temprana</div><p>Discutís esquemas de billing/planes antes de que la app te sirva a vos todos los días.</p>
+      <div class="meter"><span class="pill">Prob <b>Media</b></span><span class="pill">Daño <b>Medio</b></span></div>
+    </div>
+  </div>
+
+  <footer>Premortem generado el 9 de julio de 2026 · Objeto: superapp que unifica Mis-Finanzas-App, Scoring-Inversiones y la lógica de los Excel de inversiones. 7 modos de fallo analizados. Método Klein (retrospectiva prospectiva).</footer>
+</div>
+</body>
+</html>

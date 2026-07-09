@@ -1,0 +1,36 @@
+# ---- Datos personales / financieros: NUNCA versionar ----
+data/
+*.db
+*.sqlite
+*.sqlite3
+*.xlsx
+*.xls
+*.csv
+backups/
+
+# ---- Secrets / entorno ----
+.env
+.env.*
+!.env.example
+secrets/
+*.key
+*.pem
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# ---- Sistema / editor ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# ---- Excepciones: sí versionar los marcadores ----
+!data/README.md
+!**/.gitkeep

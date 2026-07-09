@@ -1,0 +1,19 @@
+# Candado anti-fuga de datos. Instalar con:  pre-commit install
+# (se configura en Fase 0). Bloquea commitear archivos con datos personales.
+repos:
+  - repo: local
+    hooks:
+      - id: bloquear-datos-financieros
+        name: Bloquear .xlsx / .db / .csv / .env
+        entry: "Se intento commitear un archivo de datos (xlsx/db/csv/env). Prohibido: contiene informacion financiera personal."
+        language: fail
+        files: '\.(xlsx|xls|db|sqlite3?|csv)$|(^|/)\.env($|\.)'
+        exclude: '\.env\.example$'
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: ['--maxkb=2000']
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
