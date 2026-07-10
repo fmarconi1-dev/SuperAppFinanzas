@@ -19,10 +19,3 @@ fly open
 ```
 
 #
- Pendiente para Fase 1
-- [ ] Volumen persistente para la DB (`[mounts]` en fly.toml).
-- [ ] Secrets (`SIGNUP_CODE`, `SESSION_SECRET`) con `fly secrets set`.
-- [ ] Migrar Lugar A y redeploy.
-
-## Dominio
-Opción gratis: **DigitalPlat FreeDomain** (`.dpdns.org`, `.us.kg`, etc.) apuntando al deploy vía Cloudflare DNS. Ej.: `superappfinanzas.dpdns.org`. Ver `docs/HERRAMIENTAS-EVALUADAS.md`. Para uso personal alcanza; si se vuelve comercial, migrar a dominio propio.
