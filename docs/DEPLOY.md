@@ -1,16 +1,21 @@
 # DEPLOY
 
-> Placeholder. Se completa en Fase 0/1, cuando se confirme el hosting y exista `app.py`.
+## Hosting confirmado (MVP): Fly.io
+Ver comparativa y costos en `../PLAN DE TRABAJO - Superapp Finanzas.md` §5. Decisión: consolidar en Fly.io (Mis-Finanzas ya vive ahí).
 
-## Hosting recomendado (MVP): Fly.io
-Ver comparativa y costos en `../PLAN DE TRABAJO - Superapp Finanzas.md` §5.
+## Fase 0 — hola mundo (archivos ya en el repo)
+- `app.py` — Streamlit mínimo, sin lógica.
+- `requirements.txt` — solo `streamlit`.
+- `Dockerfile` — python:3.12-slim, puerto 8080.
+- `fly.toml` — app `superapp-finanzas`, región `gru`, auto-stop, 512 MB.
+- `.dockerignore` — anti-leak: `data/`, `*.xlsx`, `*.db`, `.env` jamás entran a la imagen.
 
-## Pasos (a documentar al ejecutar)
-- [ ] Confirmar app/proyecto de Fly.io.
-- [ ] Dockerfile + fly.toml (heredar de Mis-Finanzas-App).
-- [ ] Volumen persistente para la DB.
-- [ ] Secrets (`SIGNUP_CODE`, `SESSION_SECRET`).
-- [ ] Deploy "hola mundo" (Fase 0) → deploy Lugar A (Fase 1).
+### Cómo deployar (en tu máquina, con flyctl logueado)
+```bash
+cd SuperAppFinanzas
+fly apps create superapp-finanzas   # solo la primera vez; si el nombre está tomado, elegí otro y actualizá fly.toml
+fly deploy
+fly open
+```
 
-## Dominio
-Opción gratis: **DigitalPlat FreeDomain** (`.dpdns.org`, `.us.kg`, etc.) apuntando al deploy vía Cloudflare DNS. Ej.: `superappfinanzas.dpdns.org`. Ver `docs/HERRAMIENTAS-EVALUADAS.md`. Para uso personal alcanza; si se vuelve comercial, migrar a dominio propio.
+#
