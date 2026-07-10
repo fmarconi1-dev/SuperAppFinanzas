@@ -1,0 +1,3 @@
+# Dependencias unificadas de la superapp.
+# Fase 0: solo Streamlit (hola mundo). Se amplía al migrar cada lugar.
+streamlit>=1.40

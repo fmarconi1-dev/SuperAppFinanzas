@@ -1,0 +1,20 @@
+# Superapp de Finanzas — config Fly.io (Fase 0: hola mundo)
+# Si el nombre "superapp-finanzas" está tomado, cambialo acá y en el dashboard.
+app = "superapp-finanzas"
+primary_region = "gru"  # São Paulo, igual que Mis-Finanzas
+
+[build]
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+
+# Fase 1: agregar [mounts] para el volumen persistente de la DB
+# y secrets (SIGNUP_CODE, SESSION_SECRET) con `fly secrets set`.
