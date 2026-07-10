@@ -40,6 +40,7 @@
 - Retirar `radar-financiero` cuando la superapp esté validada unos días (`fly apps destroy radar-financiero`).
 - Franco: borrar `finanzas-prod.db` de la carpeta local (copia de migración, git la ignora).
 - Generar `requirements.lock` para builds reproducibles (ver `docs/DEPLOY.md`).
+- Dominio personalizado (FreeDomain o propio): decisión de Franco, queda para el final — es estético. Pasos en `docs/DEPLOY.md`.
 
 ## 🚩 Bloqueos / decisiones abiertas
 
