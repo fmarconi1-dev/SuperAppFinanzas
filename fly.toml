@@ -1,20 +1,30 @@
-# Superapp de Finanzas — config Fly.io (Fase 0: hola mundo)
-# Si el nombre "superapp-finanzas" está tomado, cambialo acá y en el dashboard.
+# Superapp de Finanzas — config Fly.io (Fase 1: Lugar A migrado)
+# Config heredada del fly.toml probado de radar-financiero.
 app = "superapp-finanzas"
-primary_region = "gru"  # São Paulo, igual que Mis-Finanzas
+primary_region = "gru"  # São Paulo
 
 [build]
 
 [http_service]
-  internal_port = 8080
+  internal_port = 8501
   force_https = true
-  auto_stop_machines = "stop"
+  auto_stop_machines = true
   auto_start_machines = true
   min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "30s"
+    interval = "15s"
+    method = "GET"
+    path = "/_stcore/health"
+    timeout = "5s"
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "512mb"
+  memory = "1gb"   # holgado para pandas/plotly
+  cpu_kind = "shared"
+  cpus = 1
 
-# Fase 1: agregar [mounts] para el volumen persistente de la DB
-# y secrets (SIGNUP_CODE, SESSION_SECRET) con `fly secrets set`.
+[mounts]
+  source = "finanzas_data"   # crear con: fly volumes create finanzas_data -r gru -s 1
+  destination = "/app/data"  # acá viven la DB y los backups

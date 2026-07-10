@@ -1,3 +1,7 @@
-# Dependencias unificadas de la superapp.
-# Fase 0: solo Streamlit (hola mundo). Se amplía al migrar cada lugar.
-streamlit>=1.40
+streamlit==1.58.0
+pandas>=2.0.0
+plotly>=5.18.0
+python-dotenv>=1.0.0
+pytest>=7.4.0
+openpyxl>=3.1.0
+bcrypt>=4.1.0
