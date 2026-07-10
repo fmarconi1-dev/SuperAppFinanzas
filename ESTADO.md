@@ -7,16 +7,16 @@
 
 ## 🧭 Dónde estamos
 
-- **Fase actual:** Fase 0 — Cimientos → **COMPLETADA** ✅. Próxima: Fase 1.
-- **Situación:** Repo publicado en GitHub (`fmarconi1-dev/SuperAppFinanzas`), pre-commit hook instalado y probado, "hola mundo" Streamlit desplegado en Fly.io. **Sin código de aplicación todavía** (el `app.py` actual es solo el hola mundo).
-- **Hosting:** Fly.io confirmado. App `superapp-finanzas`, región `gru`, auto-stop (costo ~0 en reposo). Ver `docs/DEPLOY.md`.
-- **Repo git:** commits `3a72222` (esqueleto) → `8ed32e8` (fix doc truncado) → `083b69a` (hola mundo) → `71a552c` (DEPLOY.md), pusheados a `main`.
+- **Fase actual:** Fase 1 — Lugar A migrado → **COMPLETADA** ✅ (2026-07-10). Próxima: Fase 2 (shell unificado + scoring).
+- **Situación:** Mis-Finanzas-App vive en el monorepo (`core/` compartido + `places/finanzas/`), 97 tests en verde, desplegada en Fly.io con la **DB de producción migrada** desde radar-financiero y verificada por Franco. radar-financiero sigue vivo como respaldo hasta validar la nueva unos días.
+- **Hosting:** Fly.io. App `superapp-finanzas` (gru, 1 GB, auto-stop, volumen `finanzas_data` con snapshots diarios). Sin secrets (radar tampoco tenía; SIGNUP_CODE/SESSION_SECRET opcionales, ver `.env.example`). Ver `docs/DEPLOY.md`.
+- **Repo git:** hasta `8a5087a` (migración Fase 1) + commits de cierre. Verificar push al retomar.
 
 ## 🔵 Tarea en curso
 
 | Tarea | Estado | Autor | Desde |
 |---|---|---|---|
-| Fase 1 — migrar Mis-Finanzas-App al monorepo | 🔵 EN CURSO | Claude (Fable 5) | 2026-07-10 |
+| — (ninguna en curso) | — | — | — |
 
 ## ✅ Hecho hasta ahora
 
@@ -31,11 +31,15 @@
 
 ## ⏭️ Próximo paso concreto
 
-**Fase 1 — migrar Mis-Finanzas-App a `places/finanzas/`** (ver `ROADMAP.md`):
-1. Dar acceso al repo de Mis-Finanzas-App al Claude de la sesión.
-2. Mover el código a `places/finanzas/`; subir auth/db/theme a `core/`.
-3. Tests heredados (reconciliación, KPIs, parsers) en verde tras mover.
-4. Redeploy y verificación.
+**Fase 2 — Shell unificado + Scoring embebido** (ver `ROADMAP.md`):
+1. Dar acceso al repo Scoring-Inversiones al Claude de la sesión.
+2. Navegación con login único entre "lugares" (Finanzas / Inversiones).
+3. Embeber el scoring leyendo el snapshot del batch de GitHub Actions.
+
+**Pendientes menores heredados de Fase 1:**
+- Retirar `radar-financiero` cuando la superapp esté validada unos días (`fly apps destroy radar-financiero`).
+- Franco: borrar `finanzas-prod.db` de la carpeta local (copia de migración, git la ignora).
+- Generar `requirements.lock` para builds reproducibles (ver `docs/DEPLOY.md`).
 
 ## 🚩 Bloqueos / decisiones abiertas
 

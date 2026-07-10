@@ -4,6 +4,18 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-07-10 — Fase 1 cerrada: Mis-Finanzas vive en el monorepo, con datos de producción
+**Autor:** Claude (Fable 5), con Franco.
+- **Migración de código** (~7.000 LOC): lógica de negocio a `places/finanzas/core`, vistas a `places/finanzas/views`, helpers a `places/finanzas/helpers`; auth/db/theme subieron a `core/` compartido. Imports re-cableados con `core.db` como módulo plano (los tests monkeypatchean sus atributos — no convertirlo en paquete).
+- **Tests:** 97/97 en verde (reconciliación, KPIs, parsers, premortems, backup). Los CSV ancla (`Diario.csv`/`Mensual.csv`) viven solo en local, ignorados por git.
+- **Deploy:** Dockerfile/fly.toml/entrypoint heredados de la config probada de radar-financiero (puerto 8501, volumen `finanzas_data` 1 GB con snapshots, health check). Máquinas del hola mundo destruidas.
+- **Datos:** DB de producción copiada de radar-financiero → superapp-finanzas vía backup consistente de sqlite + `fly ssh sftp get/put` (el shell sftp interactivo se come caracteres en Windows; usar `fly ssh sftp put` directo). Verificado por Franco: mismos números.
+- radar-financiero queda vivo como respaldo hasta validar la superapp unos días.
+**Por qué:** Fase 1 del roadmap — mover sin reescribir, con los tests como gate y sin arrancar de cero en datos.
+**Estado al cierre:** Fase 1 ✅. Próximo: Fase 2 (shell unificado + scoring embebido; requiere acceso al repo Scoring-Inversiones).
+
+---
+
 ## 2026-07-10 — Fase 0 cerrada: repo publicado, hook probado, hola mundo en Fly.io
 **Autor:** Claude (Fable 5), con Franco.
 - Primer commit del esqueleto (`3a72222`, 53 archivos, cero datos) pusheado a `fmarconi1-dev/SuperAppFinanzas`.

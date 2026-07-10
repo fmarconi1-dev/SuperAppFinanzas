@@ -13,9 +13,12 @@ Repo privado, `.gitignore` + pre-commit hook anti-`.xlsx/.db` (probado), estruct
 - ✅ Fly.io confirmado + hola mundo Streamlit desplegado (app `superapp-finanzas`).
 **Salida:** repo vivo y deploy vacío funcionando. ✔
 
-## ⬜ Fase 1 — Lugar A migrado (Finanzas Personales)
+## ✅ Fase 1 — Lugar A migrado (Finanzas Personales) (cerrada 2026-07-10)
 Mover Mis-Finanzas-App a `places/finanzas/`, subir auth/db/theme a `core/`, tests verdes, desplegar.
-**Salida:** la app actual, igual pero dentro del monorepo, online.
+- ✅ Código migrado y re-cableado (`core/` compartido + `places/finanzas/`).
+- ✅ 97 tests heredados en verde.
+- ✅ Desplegada en Fly.io con la DB de producción migrada desde radar-financiero; verificada por Franco.
+**Salida:** la app actual, igual pero dentro del monorepo, online. ✔
 
 ## ⬜ Fase 2 — Shell unificado + Scoring (Lugar B.2)
 Navegación con login único entre lugares. Embeber el scoring leyendo el snapshot del batch (GitHub Actions).

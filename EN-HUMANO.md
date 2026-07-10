@@ -9,6 +9,23 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 10 de julio de 2026 (tarde) — Tu app de gastos ya vive en la casa nueva, con todas tus cosas
+
+**Qué se hizo (en criollo):**
+La mudanza completa, en un solo día:
+- Todo el código de tu app de gastos de siempre se mudó adentro del proyecto nuevo. No se reescribió nada: se movió con cuidado y se volvió a conectar cada pieza.
+- Antes de dar nada por bueno, corrimos las 97 pruebas automáticas que verifican que las cuentas den igual que siempre. Pasaron todas.
+- La app quedó publicada en internet en su nueva dirección (superapp-finanzas.fly.dev), y le mudamos también **tus datos reales** desde la app vieja. Entraste, te logueaste y comprobaste que está todo.
+- La app vieja sigue encendida como red de seguridad; en unos días, si todo anda bien, se apaga.
+
+**Para qué te sirve:**
+Ya no tenés dos mundos separados: tu app de gastos vive dentro de la futura superapp, funcionando igual que siempre y con tus datos al día. Sobre esta base se van a ir sumando las secciones de inversiones.
+
+**Qué sigue:**
+La Fase 2: armar la "entrada única" — un solo login que te lleve a Finanzas o a Inversiones — y traer el tablero de scoring de acciones que ya generás automáticamente.
+
+---
+
 ## 10 de julio de 2026 — Los cimientos quedaron terminados
 
 **Qué se hizo (en criollo):**
