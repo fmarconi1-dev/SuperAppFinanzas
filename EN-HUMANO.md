@@ -9,6 +9,23 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 10 de julio de 2026 — Los cimientos quedaron terminados
+
+**Qué se hizo (en criollo):**
+Se cerró todo lo que faltaba de la etapa de preparación:
+- Todo el proyecto quedó guardado en tu GitHub (tu "caja fuerte" de código en internet, visible solo para vos).
+- Se instaló y **se puso a prueba** el candado anti-accidentes: intentamos a propósito subir una planilla de Excel y el sistema la rechazó, como debía. Ese candado funciona tanto desde acá como desde el programa que usás vos en Windows.
+- Se publicó una página de prueba en internet (un simple "hola mundo") para confirmar que el "terreno" donde va a vivir la app funciona. Vos mismo verificaste que se ve bien. Cuando nadie la mira, no gasta prácticamente nada.
+- Hubo un par de sustos técnicos porque la carpeta vive en OneDrive (que a veces sincroniza a medias), pero se detectaron y arreglaron sin perder nada, y quedó anotado cómo evitarlos.
+
+**Para qué te sirve:**
+Ya no hay riesgo de que tus datos de plata se suban por error, y ya existe el lugar en internet donde va a vivir la app. La obra puede empezar.
+
+**Qué sigue:**
+La Fase 1: mudar tu app actual de finanzas personales adentro de este proyecto nuevo, sin cambiarle nada, y verificar que todos sus números sigan dando igual.
+
+---
+
 ## 9 de julio de 2026 — Armamos los cimientos del proyecto
 
 **Qué se hizo (en criollo):**

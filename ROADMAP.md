@@ -5,13 +5,13 @@ Cada fase termina con **algo usable y desplegado**. No se pasa a la siguiente si
 
 ---
 
-## 🔵 Fase 0 — Cimientos
+## ✅ Fase 0 — Cimientos (cerrada 2026-07-10)
 Repo privado, `.gitignore` + pre-commit hook anti-`.xlsx/.db` (probado), estructura de carpetas, documentos de gobierno, hosting elegido con un "hola mundo" desplegado.
 - ✅ Estructura de carpetas + bitácoras + READMEs + documentos de gobierno.
-- ⬜ `git init` + repo privado en GitHub + primer commit.
-- ⬜ Pre-commit hook instalado y probado.
-- ⬜ Hosting confirmado + deploy "hola mundo".
-**Salida:** repo vivo y deploy vacío funcionando.
+- ✅ Repo en GitHub (`fmarconi1-dev/SuperAppFinanzas`) + primer commit pusheado.
+- ✅ Pre-commit hook instalado y probado (bloqueó un `.xlsx` de prueba; doble capa, ver ESTADO).
+- ✅ Fly.io confirmado + hola mundo Streamlit desplegado (app `superapp-finanzas`).
+**Salida:** repo vivo y deploy vacío funcionando. ✔
 
 ## ⬜ Fase 1 — Lugar A migrado (Finanzas Personales)
 Mover Mis-Finanzas-App a `places/finanzas/`, subir auth/db/theme a `core/`, tests verdes, desplegar.
