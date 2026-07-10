@@ -16,7 +16,7 @@
 
 | Tarea | Estado | Autor | Desde |
 |---|---|---|---|
-| — (ninguna en curso) | — | — | — |
+| Fase 1 — migrar Mis-Finanzas-App al monorepo | 🔵 EN CURSO | Claude (Fable 5) | 2026-07-10 |
 
 ## ✅ Hecho hasta ahora
 
