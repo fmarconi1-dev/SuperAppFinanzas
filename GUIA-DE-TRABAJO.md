@@ -57,4 +57,6 @@ Este proyecto lo van a llevar adelante **varias conversaciones con Claude (u otr
 ## Qué NO hacer
 
 - No empezar por "la app unificada perfecta". Se construye por capas (ver ROADMAP Fase 0→1→2…).
-- No meter el cálculo del scoring dentro del servido
+- No meter el cálculo del scoring dentro del servidor web: sigue siendo batch en GitHub Actions.
+- No prometer "mercado en vivo / tiempo real" hasta resolver la fuente de datos ARG (`docs/DATOS-MERCADO-ARG.md`).
+- No escalar a multiusuario/SaaS antes de que la app te sirva a diario a vos (Fase 7, opcional).
