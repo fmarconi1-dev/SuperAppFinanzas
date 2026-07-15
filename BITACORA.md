@@ -4,6 +4,16 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-07-15 — Fase 2: un solo login, dos lugares, scoring adentro
+**Autor:** Claude (Fable 5), con Franco.
+- **Shell unificado:** `app.py` ahora es auth gate + `st.navigation` (barra superior) entre 🏠 Finanzas (`places/finanzas/home.py`, la app original intacta) y 📈 Inversiones (`places/inversiones/home.py`, estructura triple con placeholders honestos para F3/F5).
+- **Scoring embebido (ADR-0002):** el batch NO se migró — sigue corriendo en el repo público con su cron y su tablero en Pages. La superapp lee el `data.json` publicado con caché 15 min + fallback local + estado de error con retry. Vista nativa Cosmic Slate: KPIs, filtros, scores como barras, cambios de categoría, links a Yahoo (skill `ui-ux-web-moderno` aplicada).
+- **Tests:** 101 en verde (4 nuevos para el lector de snapshot, sin red).
+**Por qué:** Fase 2 del roadmap; consumir el snapshot en vez de mover el batch mantiene vivo el tablero público y no arriesga lo que ya funciona.
+**Estado al cierre:** código completo y commiteado; falta `fly deploy` + verificación visual de Franco. Próximo: Fase 3 (Cartera) o grupo familiar D2.
+
+---
+
 ## 2026-07-10 — Fase 1 cerrada: Mis-Finanzas vive en el monorepo, con datos de producción
 **Autor:** Claude (Fable 5), con Franco.
 - **Migración de código** (~7.000 LOC): lógica de negocio a `places/finanzas/core`, vistas a `places/finanzas/views`, helpers a `places/finanzas/helpers`; auth/db/theme subieron a `core/` compartido. Imports re-cableados con `core.db` como módulo plano (los tests monkeypatchean sus atributos — no convertirlo en paquete).

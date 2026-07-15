@@ -9,6 +9,22 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 15 de julio de 2026 — Una sola puerta de entrada, y el tablero de acciones adentro
+
+**Qué se hizo (en criollo):**
+- Ahora la app tiene **una sola puerta**: te logueás una vez y arriba aparecen dos secciones — tus gastos de siempre y una nueva sección de Inversiones.
+- Adentro de Inversiones ya vive tu **tablero de scoring de acciones**: las 100 empresas con sus puntajes, filtros y las "triple corona". La app no calcula nada: le pide los datos ya cocinados al robot que corre solo todas las noches en GitHub. Si un día ese servicio no responde, la app muestra la última copia guardada y avisa — no se rompe.
+- Las secciones de Cartera y Mercado en vivo ya tienen su lugar reservado, con un cartel claro de "llega en Fase 3/5" (sin promesas vacías).
+- Todo pasó por las pruebas automáticas: 101 en verde.
+
+**Para qué te sirve:**
+Es la primera vez que la "superapp" se siente superapp: un login, dos mundos. Y el tablero de acciones que antes vivía en una página aparte ahora está integrado con tu día a día financiero.
+
+**Qué sigue:**
+Publicar esta versión en internet (un comando tuyo) y elegir el próximo paso: la cartera de inversiones (Fase 3) o terminar el espacio familiar de gastos compartidos.
+
+---
+
 ## 10 de julio de 2026 (tarde) — Tu app de gastos ya vive en la casa nueva, con todas tus cosas
 
 **Qué se hizo (en criollo):**

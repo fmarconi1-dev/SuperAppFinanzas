@@ -3,12 +3,12 @@
 > **Este es el archivo más importante para retomar el trabajo.** Se lee primero y se actualiza último, cada sesión.
 > Antes de editar código, actualizá la tabla "Tarea en curso". Al cerrar, dejá el "Próximo paso concreto".
 
-<!-- ultima_actualizacion: 2026-07-10 · autor: Claude (Fable 5) · sesión de cierre de Fase 0 -->
+<!-- ultima_actualizacion: 2026-07-15 · autor: Claude (Fable 5) · sesión de Fase 2 -->
 
 ## 🧭 Dónde estamos
 
-- **Fase actual:** Fase 1 — Lugar A migrado → **COMPLETADA** ✅ (2026-07-10). Próxima: Fase 2 (shell unificado + scoring).
-- **Situación:** Mis-Finanzas-App vive en el monorepo (`core/` compartido + `places/finanzas/`), 97 tests en verde, desplegada en Fly.io con la **DB de producción migrada** desde radar-financiero y verificada por Franco. radar-financiero sigue vivo como respaldo hasta validar la nueva unos días.
+- **Fase actual:** Fase 2 — Shell unificado + Scoring → **COMPLETADA en código** ✅ (2026-07-15). Falta el redeploy de Franco (`fly deploy`) y su verificación visual. Próxima: Fase 3 (Cartera) o grupo familiar D2 (a elección de Franco, ver MEJORAS).
+- **Situación:** Superapp con **login único y dos lugares**: 🏠 Finanzas (la app original intacta) y 📈 Inversiones (Scoring embebido leyendo el snapshot de GitHub Pages — ADR-0002; Cartera y Mercado como placeholders de F3/F5). 101 tests en verde. radar-financiero sigue vivo como respaldo.
 - **Hosting:** Fly.io. App `superapp-finanzas` (gru, 1 GB, auto-stop, volumen `finanzas_data` con snapshots diarios). Sin secrets (radar tampoco tenía; SIGNUP_CODE/SESSION_SECRET opcionales, ver `.env.example`). Ver `docs/DEPLOY.md`.
 - **Repo git:** hasta `8a5087a` (migración Fase 1) + commits de cierre. Verificar push al retomar.
 
@@ -31,10 +31,8 @@
 
 ## ⏭️ Próximo paso concreto
 
-**Fase 2 — Shell unificado + Scoring embebido** (ver `ROADMAP.md`):
-1. Dar acceso al repo Scoring-Inversiones al Claude de la sesión.
-2. Navegación con login único entre "lugares" (Finanzas / Inversiones).
-3. Embeber el scoring leyendo el snapshot del batch de GitHub Actions.
+1. **Cerrar Fase 2:** Franco pushea y corre `fly deploy`; verificación visual (login → dos lugares → scoring con datos).
+2. Elegir la próxima: **Fase 3 — Cartera** (necesita `Inversiones.xlsx` y `Renta fija ARG.xlsx` accesibles) o **grupo familiar D2** (ver `MEJORAS.md`).
 
 **Pendientes menores heredados de Fase 1:**
 - Retirar `radar-financiero` cuando la superapp esté validada unos días (`fly apps destroy radar-financiero`).

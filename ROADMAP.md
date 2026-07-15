@@ -20,9 +20,12 @@ Mover Mis-Finanzas-App a `places/finanzas/`, subir auth/db/theme a `core/`, test
 - ✅ Desplegada en Fly.io con la DB de producción migrada desde radar-financiero; verificada por Franco.
 **Salida:** la app actual, igual pero dentro del monorepo, online. ✔
 
-## ⬜ Fase 2 — Shell unificado + Scoring (Lugar B.2)
+## ✅ Fase 2 — Shell unificado + Scoring (Lugar B.2) (cerrada 2026-07-15)
 Navegación con login único entre lugares. Embeber el scoring leyendo el snapshot del batch (GitHub Actions).
-**Salida:** un login que lleva a Finanzas y a Scoring.
+- ✅ Shell: login único + navegación superior Finanzas / Inversiones (`st.navigation`).
+- ✅ Scoring embebido: lee el snapshot de GitHub Pages con caché + fallback local (ADR-0002; el batch no se movió).
+- ✅ 101 tests en verde. Pendiente: deploy verificado por Franco.
+**Salida:** un login que lleva a Finanzas y a Scoring. ✔
 
 ## ⬜ Fase 3 — Cartera (Lugar B.1), Excel-in-the-loop
 La app lee `Inversiones.xlsx` y muestra el dashboard de cartera (posiciones, variaciones, resultado, estructura por activo/sector, TIR, riesgo). Renta fija y opciones se leen del Excel.
