@@ -55,6 +55,15 @@ def _df_empresas(snapshot: dict) -> pd.DataFrame:
     return pd.DataFrame(filas)
 
 
+def _fecha_corta(generado: str) -> str:
+    """'2026-07-14 22:57' → '14/07/2026'. Si no parsea, devuelve tal cual."""
+    try:
+        from datetime import datetime
+        return datetime.strptime(generado.strip(), "%Y-%m-%d %H:%M").strftime("%d/%m/%Y")
+    except (ValueError, AttributeError):
+        return generado
+
+
 def _render_metodologia(snapshot: dict) -> None:
     """Popover '?' con la metodología de scores y categorías."""
     cf = snapshot.get("corte_fundamental", 70)
@@ -131,7 +140,7 @@ def render() -> None:
             )
         else:
             st.caption(
-                f"Snapshot generado {generado} · batch diario en GitHub Actions · "
+                f"Actualización al día {_fecha_corta(generado)} · "
                 f"[tablero público]({TABLERO_PUBLICO})"
             )
     with ayuda:
