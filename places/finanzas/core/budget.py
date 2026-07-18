@@ -1,4 +1,4 @@
-"""Lógica Previsión vs Realidad por mes, filtrada por user_id."""
+"""Lógica Previsión vs Realidad por mes, filtrada por workspace (D2)."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import pandas as pd
 
 from places.finanzas.core.categorizer import efective_grupo
 from core.auth.current_user import require_current_user_id
+from core.workspaces import resolve_workspace_id
 from core.db import backup_db
 from places.finanzas.core.metrics import load_categorias_full, load_categorias_map
 
@@ -21,9 +22,10 @@ def previsiones_anuales(
     conn: sqlite3.Connection, anio: int, user_id: Optional[int] = None
 ) -> pd.DataFrame:
     uid = _uid(user_id)
+    wid = resolve_workspace_id(conn, uid)
     return pd.read_sql_query(
         "SELECT motivo, mes, monto_previsto FROM presupuesto "
-        "WHERE anio = ? AND user_id = ? ORDER BY motivo, mes",
+        "WHERE anio = ? AND workspace_id = ? ORDER BY motivo, mes",
         conn, params=[anio, uid],
     )
 
@@ -35,6 +37,7 @@ def realidad_mensual(
     user_id: Optional[int] = None,
 ) -> pd.DataFrame:
     uid = _uid(user_id)
+    wid = resolve_workspace_id(conn, uid)
     return pd.read_sql_query(
         """
         SELECT motivo,
@@ -43,10 +46,10 @@ def realidad_mensual(
         FROM transacciones
         WHERE strftime('%Y', fecha) = ?
           AND strftime('%m', fecha) = ?
-          AND user_id = ?
+          AND workspace_id = ?
         GROUP BY motivo
         """,
-        conn, params=[str(anio), f"{mes:02d}", uid],
+        conn, params=[str(anio), f"{mes:02d}", wid],
     )
 
 
@@ -68,13 +71,14 @@ def realidad_mensual_efectiva(
     Ingreso por el lado desahorro).
     """
     uid = _uid(user_id)
+    wid = resolve_workspace_id(conn, uid)
     cats_full = load_categorias_full(conn, user_id=uid)
 
     txns = pd.read_sql_query(
         "SELECT motivo, pasivos, ingresos FROM transacciones "
         "WHERE strftime('%Y', fecha) = ? AND strftime('%m', fecha) = ? "
-        "  AND user_id = ?",
-        conn, params=[str(anio), f"{mes:02d}", uid],
+        "  AND workspace_id = ?",
+        conn, params=[str(anio), f"{mes:02d}", wid],
     )
     if txns.empty:
         return pd.DataFrame(columns=["motivo", "grupo", "monto_real"])
@@ -99,13 +103,14 @@ def comparativa_mes(
     user_id: Optional[int] = None,
 ) -> pd.DataFrame:
     uid = _uid(user_id)
+    wid = resolve_workspace_id(conn, uid)
     if categorias is None:
         categorias = load_categorias_map(conn, user_id=uid)
 
     prev = pd.read_sql_query(
         "SELECT motivo, monto_previsto FROM presupuesto "
-        "WHERE anio = ? AND mes = ? AND user_id = ?",
-        conn, params=[anio, mes, uid],
+        "WHERE anio = ? AND mes = ? AND workspace_id = ?",
+        conn, params=[anio, mes, wid],
     )
     # La previsión se asocia al grupo "base" del motivo (la regla dual sólo
     # aplica a la realidad: se presupuesta el lado pasivo de "Inversiones").
@@ -143,16 +148,17 @@ def meses_con_datos(
 ) -> list[tuple[int, int]]:
     """(anio, mes) que tienen al menos una transacción del usuario activo."""
     uid = _uid(user_id)
+    wid = resolve_workspace_id(conn, uid)
     rows = conn.execute(
         """
         SELECT DISTINCT
             CAST(strftime('%Y', fecha) AS INTEGER) AS anio,
             CAST(strftime('%m', fecha) AS INTEGER) AS mes
         FROM transacciones
-        WHERE user_id = ?
+        WHERE workspace_id = ?
         ORDER BY anio, mes
         """,
-        (uid,),
+        (wid,),
     ).fetchall()
     return [(r["anio"], r["mes"]) for r in rows]
 
@@ -175,6 +181,7 @@ def previsiones_editor(
     data_editor.
     """
     uid = _uid(user_id)
+    wid = resolve_workspace_id(conn, uid)
     grupos_excl = ",".join("?" for _ in _GRUPOS_NO_PRESUPUESTABLES)
     motivos_excl = ",".join("?" for _ in _MOTIVOS_NO_PRESUPUESTABLES)
     rows = conn.execute(
@@ -184,10 +191,10 @@ def previsiones_editor(
         FROM categorias c
         LEFT JOIN presupuesto p
           ON p.motivo  = c.motivo
-         AND p.user_id = c.user_id
+         AND p.workspace_id = c.workspace_id
          AND p.anio    = ?
          AND p.mes     = ?
-        WHERE c.user_id = ?
+        WHERE c.workspace_id = ?
           AND c.grupo  NOT IN ({grupos_excl})
           AND c.motivo NOT IN ({motivos_excl})
         ORDER BY
@@ -200,7 +207,7 @@ def previsiones_editor(
           END,
           c.motivo
         """,
-        (anio, mes, uid, *_GRUPOS_NO_PRESUPUESTABLES, *_MOTIVOS_NO_PRESUPUESTABLES),
+        (anio, mes, wid, *_GRUPOS_NO_PRESUPUESTABLES, *_MOTIVOS_NO_PRESUPUESTABLES),
     ).fetchall()
     return [dict(r) for r in rows]
 
@@ -215,6 +222,7 @@ def upsert_presupuesto(
 ) -> None:
     """Crea o actualiza la previsión del usuario para (motivo, anio, mes)."""
     uid = _uid(user_id)
+    wid = resolve_workspace_id(conn, uid)
     motivo = motivo.strip()
     if not motivo:
         raise ValueError("El motivo no puede estar vacío.")
@@ -223,11 +231,11 @@ def upsert_presupuesto(
     if not (1 <= int(mes) <= 12):
         raise ValueError("El mes debe estar entre 1 y 12.")
     conn.execute(
-        "INSERT INTO presupuesto (motivo, anio, mes, monto_previsto, user_id) "
-        "VALUES (?, ?, ?, ?, ?) "
-        "ON CONFLICT(motivo, anio, mes, user_id) DO UPDATE SET "
+        "INSERT INTO presupuesto (motivo, anio, mes, monto_previsto, user_id, workspace_id) "
+        "VALUES (?, ?, ?, ?, ?, ?) "
+        "ON CONFLICT(motivo, anio, mes, workspace_id) DO UPDATE SET "
         "    monto_previsto = excluded.monto_previsto",
-        (motivo, int(anio), int(mes), float(monto), uid),
+        (motivo, int(anio), int(mes), float(monto), uid, wid),
     )
     backup_db()
 
@@ -241,10 +249,11 @@ def delete_presupuesto(
 ) -> None:
     """Borra la previsión del usuario para (motivo, anio, mes)."""
     uid = _uid(user_id)
+    wid = resolve_workspace_id(conn, uid)
     conn.execute(
         "DELETE FROM presupuesto "
-        "WHERE motivo = ? AND anio = ? AND mes = ? AND user_id = ?",
-        (motivo, int(anio), int(mes), uid),
+        "WHERE motivo = ? AND anio = ? AND mes = ? AND workspace_id = ?",
+        (motivo, int(anio), int(mes), wid),
     )
     backup_db()
 
@@ -262,6 +271,7 @@ def copiar_previsto_a_anio(
     Hace un único backup al final (no 12).
     """
     uid = _uid(user_id)
+    wid = resolve_workspace_id(conn, uid)
     motivo = motivo.strip()
     if not motivo:
         raise ValueError("El motivo no puede estar vacío.")
@@ -269,11 +279,11 @@ def copiar_previsto_a_anio(
         raise ValueError("El monto previsto no puede ser negativo.")
     for mes in range(1, 13):
         conn.execute(
-            "INSERT INTO presupuesto (motivo, anio, mes, monto_previsto, user_id) "
-            "VALUES (?, ?, ?, ?, ?) "
-            "ON CONFLICT(motivo, anio, mes, user_id) DO UPDATE SET "
+            "INSERT INTO presupuesto (motivo, anio, mes, monto_previsto, user_id, workspace_id) "
+            "VALUES (?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(motivo, anio, mes, workspace_id) DO UPDATE SET "
             "    monto_previsto = excluded.monto_previsto",
-            (motivo, int(anio), mes, float(monto), uid),
+            (motivo, int(anio), mes, float(monto), uid, wid),
         )
     backup_db()
     return 12

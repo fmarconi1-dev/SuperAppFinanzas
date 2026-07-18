@@ -44,19 +44,25 @@ def db(tmp_path, monkeypatch):
     conn.close()
 
 
+from core.workspaces import ensure_personal_workspace
+
+
 def _insert_cat(conn, motivo, grupo, sub=None, user_id=1):
+    # D2: las filas del dominio llevan workspace_id (personal del usuario).
+    wid = ensure_personal_workspace(conn, user_id)
     conn.execute(
-        "INSERT INTO categorias (motivo, grupo, subcategoria, user_id) "
-        "VALUES (?, ?, ?, ?)",
-        (motivo, grupo, sub, user_id),
+        "INSERT INTO categorias (motivo, grupo, subcategoria, user_id, workspace_id) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (motivo, grupo, sub, user_id, wid),
     )
 
 
 def _insert_txn(conn, fecha, motivo, pasivos=0.0, ingresos=0.0, user_id=1):
+    wid = ensure_personal_workspace(conn, user_id)
     conn.execute(
-        "INSERT INTO transacciones (fecha, pasivos, ingresos, motivo, user_id) "
-        "VALUES (?, ?, ?, ?, ?)",
-        (fecha, pasivos, ingresos, motivo, user_id),
+        "INSERT INTO transacciones (fecha, pasivos, ingresos, motivo, user_id, workspace_id) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (fecha, pasivos, ingresos, motivo, user_id, wid),
     )
 
 
@@ -74,8 +80,9 @@ class TestComparativaMesRegladual:
         # VENTA de activos (lado ingreso → regla dual → Ingreso/Desahorro).
         _insert_txn(conn, "2026-06-20", "Inversiones", ingresos=450_000)
         conn.execute(
-            "INSERT INTO presupuesto (motivo, anio, mes, monto_previsto, user_id) "
-            "VALUES ('Inversiones', 2026, 6, 300000, 1)"
+            "INSERT INTO presupuesto (motivo, anio, mes, monto_previsto, user_id, workspace_id) "
+            "VALUES ('Inversiones', 2026, 6, 300000, 1, ?)",
+            (ensure_personal_workspace(conn, 1),),
         )
 
     def test_venta_de_inversiones_aparece_como_ingreso(self, db):

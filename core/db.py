@@ -474,6 +474,87 @@ def _migrate(conn: sqlite3.Connection) -> None:
                 (subcat, motivo),
             )
 
+        # ============================================================
+        # M8 (D2 cutover): PKs con scope de workspace.
+        # ============================================================
+        # El modelo D2 permite que un mismo usuario tenga el mismo motivo /
+        # presupuesto / clave de config en su workspace personal Y en uno
+        # familiar. Las PKs multi-usuario de M5 — (motivo, user_id), etc. —
+        # lo impedían. Se reconstruyen las 3 tablas (patrón de M5) con PK
+        # por workspace. `user_id` se conserva como autor de la fila.
+        # Idempotente: solo si la PK vieja sigue vigente. Corre después del
+        # backfill M6, así todas las filas ya tienen workspace_id.
+
+        def _sql_de(tabla: str) -> str:
+            row = cur.execute(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name=?",
+                (tabla,),
+            ).fetchone()
+            return (row["sql"] or "") if row else ""
+
+        if "workspace_id" not in _sql_de("categorias").split("PRIMARY KEY")[-1]:
+            cur.execute("""
+                CREATE TABLE categorias_m8 (
+                    motivo        TEXT NOT NULL,
+                    grupo         TEXT NOT NULL CHECK (grupo IN (
+                        'Ingreso', 'Gasto Fijo', 'Gasto Variable', 'Inversion',
+                        'Flujo Capital', 'Saldo Inicial', 'Sin categorizar'
+                    )),
+                    subcategoria  TEXT,
+                    user_id       INTEGER NOT NULL,
+                    workspace_id  INTEGER REFERENCES workspaces(id),
+                    PRIMARY KEY (motivo, workspace_id)
+                )
+            """)
+            cur.execute(
+                "INSERT INTO categorias_m8 (motivo, grupo, subcategoria, user_id, workspace_id) "
+                "SELECT motivo, grupo, subcategoria, user_id, workspace_id FROM categorias"
+            )
+            cur.execute("DROP TABLE categorias")
+            cur.execute("ALTER TABLE categorias_m8 RENAME TO categorias")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_categorias_user ON categorias(user_id)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_categorias_workspace ON categorias(workspace_id)")
+
+        if "workspace_id" not in _sql_de("presupuesto").split("PRIMARY KEY")[-1]:
+            cur.execute("""
+                CREATE TABLE presupuesto_m8 (
+                    motivo         TEXT NOT NULL,
+                    anio           INTEGER NOT NULL,
+                    mes            INTEGER NOT NULL CHECK (mes BETWEEN 1 AND 12),
+                    monto_previsto REAL NOT NULL,
+                    user_id        INTEGER NOT NULL,
+                    workspace_id   INTEGER REFERENCES workspaces(id),
+                    PRIMARY KEY (motivo, anio, mes, workspace_id)
+                )
+            """)
+            cur.execute(
+                "INSERT INTO presupuesto_m8 (motivo, anio, mes, monto_previsto, user_id, workspace_id) "
+                "SELECT motivo, anio, mes, monto_previsto, user_id, workspace_id FROM presupuesto"
+            )
+            cur.execute("DROP TABLE presupuesto")
+            cur.execute("ALTER TABLE presupuesto_m8 RENAME TO presupuesto")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_presupuesto_user ON presupuesto(user_id)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_presupuesto_workspace ON presupuesto(workspace_id)")
+
+        if "workspace_id" not in _sql_de("configuracion").split("PRIMARY KEY")[-1]:
+            cur.execute("""
+                CREATE TABLE configuracion_m8 (
+                    clave        TEXT NOT NULL,
+                    valor        TEXT NOT NULL,
+                    user_id      INTEGER NOT NULL,
+                    workspace_id INTEGER REFERENCES workspaces(id),
+                    PRIMARY KEY (clave, workspace_id)
+                )
+            """)
+            cur.execute(
+                "INSERT INTO configuracion_m8 (clave, valor, user_id, workspace_id) "
+                "SELECT clave, valor, user_id, workspace_id FROM configuracion"
+            )
+            cur.execute("DROP TABLE configuracion")
+            cur.execute("ALTER TABLE configuracion_m8 RENAME TO configuracion")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_configuracion_user ON configuracion(user_id)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_configuracion_workspace ON configuracion(workspace_id)")
+
         cur.execute("COMMIT")
     except Exception:
         cur.execute("ROLLBACK")
@@ -524,19 +605,27 @@ def set_config(
     clave: str,
     valor: str,
     user_id: Optional[int] = None,
+    workspace_id: Optional[int] = None,
 ) -> None:
-    """UPSERT en `configuracion` filtrando por (clave, user_id).
+    """UPSERT en `configuracion` con scope de workspace (D2).
+
+    `workspace_id` explícito manda; si no, se resuelve del contexto activo
+    (fallback: workspace personal del usuario). `user_id` queda como autor.
 
     NO hace commit — eso queda a cargo del caller. Importante para no romper
     transacciones externas (caso típico: `core/ingest.py` que hace BEGIN/COMMIT
     explícito alrededor del bulk insert + set_config).
     El context manager de `connect()` y los `with conn:` commitean al salir.
     """
+    from core.workspaces import resolve_workspace_id  # import diferido (evita ciclos)
+
     uid = _resolve_user_id(user_id)
+    wid = workspace_id if workspace_id is not None else resolve_workspace_id(conn, uid)
     conn.execute(
-        "INSERT INTO configuracion (clave, valor, user_id) VALUES (?, ?, ?) "
-        "ON CONFLICT(clave, user_id) DO UPDATE SET valor = excluded.valor",
-        (clave, str(valor), uid),
+        "INSERT INTO configuracion (clave, valor, user_id, workspace_id) "
+        "VALUES (?, ?, ?, ?) "
+        "ON CONFLICT(clave, workspace_id) DO UPDATE SET valor = excluded.valor",
+        (clave, str(valor), uid, wid),
     )
 
 
@@ -545,12 +634,17 @@ def get_config(
     clave: str,
     default: str = "",
     user_id: Optional[int] = None,
+    workspace_id: Optional[int] = None,
 ) -> str:
-    """Lee `clave` para el usuario activo. Devuelve `default` si no existe."""
-    uid = _resolve_user_id(user_id)
+    """Lee `clave` en el workspace activo. Devuelve `default` si no existe."""
+    from core.workspaces import resolve_workspace_id  # import diferido (evita ciclos)
+
+    wid = workspace_id if workspace_id is not None else resolve_workspace_id(
+        conn, _resolve_user_id(user_id)
+    )
     row = conn.execute(
-        "SELECT valor FROM configuracion WHERE clave = ? AND user_id = ?",
-        (clave, uid),
+        "SELECT valor FROM configuracion WHERE clave = ? AND workspace_id = ?",
+        (clave, wid),
     ).fetchone()
     return row["valor"] if row else default
 

@@ -22,6 +22,7 @@ from typing import Optional
 import pandas as pd
 
 from core.auth.current_user import require_current_user_id
+from core.workspaces import resolve_workspace_id
 from places.finanzas.core.metrics import (
     compute_kpis,
     fondo_emergencia_usd,
@@ -75,9 +76,10 @@ def _hoja_diario(conn: sqlite3.Connection, writer: pd.ExcelWriter, uid: int) -> 
 
 def _hoja_mensual(conn: sqlite3.Connection, writer: pd.ExcelWriter, uid: int) -> None:
     """Tabla pivot tipo Excel: motivo en filas, meses en columnas (PREVISIÓN | REALIDAD)."""
+    wid = resolve_workspace_id(conn, uid)
     prev = pd.read_sql_query(
-        "SELECT motivo, anio, mes, monto_previsto FROM presupuesto WHERE user_id = ?",
-        conn, params=(uid,),
+        "SELECT motivo, anio, mes, monto_previsto FROM presupuesto WHERE workspace_id = ?",
+        conn, params=(wid,),
     )
     if prev.empty:
         pd.DataFrame(columns=["Motivo"]).to_excel(writer, sheet_name="Mensual", index=False)
@@ -91,10 +93,10 @@ def _hoja_mensual(conn: sqlite3.Connection, writer: pd.ExcelWriter, uid: int) ->
                SUM(pasivos)  AS pasivos,
                SUM(ingresos) AS ingresos
         FROM transacciones
-        WHERE user_id = ?
+        WHERE workspace_id = ?
         GROUP BY motivo, anio, mes
         """,
-        conn, params=(uid,),
+        conn, params=(wid,),
     )
 
     cats_full = load_categorias_full(conn, user_id=uid)

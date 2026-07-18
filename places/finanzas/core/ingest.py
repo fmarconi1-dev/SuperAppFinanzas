@@ -33,6 +33,7 @@ from typing import Iterable, Optional
 # Soportamos correr como `python -m places.finanzas.core.ingest` o `python core/ingest.py`.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from core.workspaces import ensure_personal_workspace
 from core.db import (
     connect,
     init_db,
@@ -97,6 +98,7 @@ def import_diario(
     diario_path: Path, conn, user_id: int = _DEFAULT_INGEST_USER_ID
 ) -> ImportResult:
     """Lee Diario.csv y popula `transacciones` + `configuracion.saldo_inicial_caja`."""
+    wid = ensure_personal_workspace(conn, user_id)
     rows = _read_csv_rows(diario_path)
     if len(rows) < 2:
         raise ValueError(f"{diario_path} no tiene datos (sólo {len(rows)} filas)")
@@ -126,7 +128,7 @@ def import_diario(
         pasivos = parse_currency(pasivos_raw)
         ingresos = parse_currency(ingresos_raw)
 
-        transacciones.append((fecha.isoformat(), pasivos, ingresos, motivo, user_id))
+        transacciones.append((fecha.isoformat(), pasivos, ingresos, motivo, user_id))  # wid se agrega al insertar
 
     if saldo_inicial is None:
         saldo_inicial = 0.0
@@ -138,11 +140,12 @@ def import_diario(
     cur.execute("BEGIN")
     try:
         cur.executemany(
-            "INSERT INTO transacciones (fecha, pasivos, ingresos, motivo, user_id) "
-            "VALUES (?, ?, ?, ?, ?)",
-            transacciones,
+            "INSERT INTO transacciones (fecha, pasivos, ingresos, motivo, user_id, workspace_id) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            [t + (wid,) for t in transacciones],
         )
-        set_config(conn, "saldo_inicial_caja", f"{saldo_inicial:.2f}", user_id=user_id)
+        set_config(conn, "saldo_inicial_caja", f"{saldo_inicial:.2f}",
+                   user_id=user_id, workspace_id=wid)
         cur.execute("COMMIT")
     except Exception:
         cur.execute("ROLLBACK")
@@ -181,6 +184,7 @@ def import_mensual(
         para enero...diciembre (12 meses, paso 2).
       - Filas con motivo vacío o que empiezan con TOTAL/Diferencia/SALDO se ignoran.
     """
+    wid = ensure_personal_workspace(conn, user_id)
     rows = _read_csv_rows(mensual_path)
 
     header_idx = None
@@ -213,9 +217,9 @@ def import_mensual(
                     continue
                 cur.execute(
                     "INSERT OR REPLACE INTO presupuesto "
-                    "(motivo, anio, mes, monto_previsto, user_id) "
-                    "VALUES (?, ?, ?, ?, ?)",
-                    (motivo, anio, mes, monto, user_id),
+                    "(motivo, anio, mes, monto_previsto, user_id, workspace_id) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (motivo, anio, mes, monto, user_id, wid),
                 )
                 insertadas += 1
         cur.execute("COMMIT")
@@ -238,6 +242,7 @@ def init_categorias(
     (set legacy con Haberes Fundación/SBT/UCEMA — útil para el seed CLI de
     Franco). Para usuarios nuevos vía signup, pasar DEFAULT_CATEGORIAS_NEW_USER.
     """
+    wid = ensure_personal_workspace(conn, user_id)
     if defaults is None:
         defaults = DEFAULT_CATEGORIAS
 
@@ -247,11 +252,11 @@ def init_categorias(
     try:
         for motivo, (grupo, subcat) in defaults.items():
             cur.execute(
-                "INSERT INTO categorias (motivo, grupo, subcategoria, user_id) "
-                "VALUES (?, ?, ?, ?) "
-                "ON CONFLICT(motivo, user_id) DO UPDATE SET "
+                "INSERT INTO categorias (motivo, grupo, subcategoria, user_id, workspace_id) "
+                "VALUES (?, ?, ?, ?, ?) "
+                "ON CONFLICT(motivo, workspace_id) DO UPDATE SET "
                 "    subcategoria = COALESCE(categorias.subcategoria, excluded.subcategoria)",
-                (motivo, grupo, subcat, user_id),
+                (motivo, grupo, subcat, user_id, wid),
             )
             if cur.rowcount > 0:
                 nuevas += 1

@@ -16,7 +16,7 @@
 
 | Tarea | Estado | Autor | Desde |
 |---|---|---|---|
-| — (ninguna en curso) | — | — | — |
+| Grupo familiar D2 — Cutover (adelanto de Fase 4) | 🔵 EN CURSO | Claude (Fable 5) | 2026-07-17 |
 
 ## ✅ Hecho hasta ahora
 

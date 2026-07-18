@@ -39,6 +39,7 @@ from places.finanzas.core.categorizer import (
     efective_grupo,
 )
 from core.auth.current_user import require_current_user_id
+from core.workspaces import resolve_workspace_id
 from core.db import get_config
 
 
@@ -72,8 +73,8 @@ def load_transactions(
     uid = _uid(user_id)
     df = pd.read_sql_query(
         "SELECT id, fecha, pasivos, ingresos, motivo, comentario "
-        "FROM transacciones WHERE user_id = ? ORDER BY fecha, id",
-        conn, params=(uid,),
+        "FROM transacciones WHERE workspace_id = ? ORDER BY fecha, id",
+        conn, params=(resolve_workspace_id(conn, uid),),
     )
     if not df.empty:
         df["fecha"] = pd.to_datetime(df["fecha"])
@@ -86,7 +87,8 @@ def load_categorias_map(
     """Mapping {motivo: grupo} del usuario activo. Devuelve {} si no hay categorías."""
     uid = _uid(user_id)
     rows = conn.execute(
-        "SELECT motivo, grupo FROM categorias WHERE user_id = ?", (uid,)
+        "SELECT motivo, grupo FROM categorias WHERE workspace_id = ?",
+        (resolve_workspace_id(conn, uid),)
     ).fetchall()
     return {row["motivo"]: row["grupo"] for row in rows}
 
@@ -97,8 +99,8 @@ def load_categorias_full(
     """Mapping {motivo: (grupo, subcategoria)} del usuario activo. {} si está vacío."""
     uid = _uid(user_id)
     rows = conn.execute(
-        "SELECT motivo, grupo, subcategoria FROM categorias WHERE user_id = ?",
-        (uid,),
+        "SELECT motivo, grupo, subcategoria FROM categorias WHERE workspace_id = ?",
+        (resolve_workspace_id(conn, uid),),
     ).fetchall()
     return {r["motivo"]: (r["grupo"], r["subcategoria"]) for r in rows}
 
@@ -120,8 +122,8 @@ def saldo_cuenta_corriente(
     uid = _uid(user_id)
     row = conn.execute(
         "SELECT COALESCE(SUM(ingresos - pasivos), 0) AS delta "
-        "FROM transacciones WHERE user_id = ?",
-        (uid,),
+        "FROM transacciones WHERE workspace_id = ?",
+        (resolve_workspace_id(conn, uid),),
     ).fetchone()
     return saldo_inicial(conn, user_id=uid) + float(row["delta"])
 
