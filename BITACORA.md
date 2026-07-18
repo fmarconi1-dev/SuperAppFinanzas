@@ -4,6 +4,17 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-07-17 (tarde) — Incidente en producción y resolución mismo día
+**Autor:** Claude (Fable 5), con Franco.
+- **Síntoma:** tras deployar D2, la app mostró onboarding como usuario nuevo (datos "desaparecidos") y luego crash de migración (UNIQUE en configuracion_new).
+- **Causa raíz:** el guard de M4 ("¿la PK contiene user_id?") daba falso tras M8 (PK por workspace) → M4 se re-ejecutó, reconstruyó las tablas **descartando `workspace_id`** y desvinculó todas las filas. El crash posterior fue por duplicados escritos en la ventana rota.
+- **Resolución:** guard de M4 corregido (exige tabla no-post-D2) + **M8.5**: reparación idempotente que re-vincula filas huérfanas al workspace personal de su usuario, prefiriendo el dato original ante duplicados. Deploy verificado por Franco: datos restaurados por completo.
+- **Autocrítica:** el test de idempotencia original corría sobre DB vacía y no detectaba la desvinculación. Se agregaron 2 tests de regresión que reproducen el incidente (doble migración con datos + estado roto). Suite final: **114 en verde**. Lecciones anotadas en `ESTADO.md`.
+- Los datos nunca estuvieron en riesgo real: `user_id` intacto en cada fila + snapshots diarios del volumen + radar-financiero como respaldo.
+**Estado al cierre:** D2 en producción, verificado. Próximo: Fase 3 (Cartera).
+
+---
+
 ## 2026-07-17 — Grupo familiar D2: gastos compartidos completos (código)
 **Autor:** Claude (Fable 5), con Franco.
 - Cutover completo del modelo de datos a **workspaces**: migración M8 (PKs por workspace), `core/workspaces.py`, contextvar, y refactor de todas las queries del dominio (`user_id` queda como autor). Sin switcher, todo cae al espacio personal → cero cambio de comportamiento.

@@ -3,12 +3,12 @@
 > **Este es el archivo más importante para retomar el trabajo.** Se lee primero y se actualiza último, cada sesión.
 > Antes de editar código, actualizá la tabla "Tarea en curso". Al cerrar, dejá el "Próximo paso concreto".
 
-<!-- ultima_actualizacion: 2026-07-15 · autor: Claude (Fable 5) · sesión de Fase 2 -->
+<!-- ultima_actualizacion: 2026-07-17 · autor: Claude (Fable 5) · cierre: D2 + incidente resuelto -->
 
 ## 🧭 Dónde estamos
 
-- **Fase actual:** Fase 2 ✅ + **Grupo familiar D2 completo en código** ✅ (2026-07-17, adelanto de Fase 4). Falta el redeploy de Franco y su verificación visual de ambos. Próxima: Fase 3 — Cartera.
-- **Situación:** Superapp con **login único y dos lugares**: 🏠 Finanzas (la app original intacta) y 📈 Inversiones (Scoring embebido leyendo el snapshot de GitHub Pages — ADR-0002; Cartera y Mercado como placeholders de F3/F5). 101 tests en verde. radar-financiero sigue vivo como respaldo.
+- **Fase actual:** Fase 2 ✅ + **Grupo familiar D2 desplegado y verificado** ✅ (2026-07-17). Próxima: **Fase 3 — Cartera**.
+- **Situación:** Superapp en producción con login único, dos lugares (Finanzas + Inversiones/Scoring), y **espacios compartidos** (grupo familiar D2) funcionando. 114 tests en verde. Incidente de migración del 17/7 resuelto (ver Nota post-incidente). radar-financiero sigue vivo como respaldo.
 - **Hosting:** Fly.io. App `superapp-finanzas` (gru, 1 GB, auto-stop, volumen `finanzas_data` con snapshots diarios). Sin secrets (radar tampoco tenía; SIGNUP_CODE/SESSION_SECRET opcionales, ver `.env.example`). Ver `docs/DEPLOY.md`.
 - **Repo git:** hasta `8a5087a` (migración Fase 1) + commits de cierre. Verificar push al retomar.
 
@@ -31,12 +31,14 @@
 
 ## ⏭️ Próximo paso concreto
 
-1. **Deploy pendiente (Franco):** push + `fly deploy`. Verificar: (a) tablero de scoring con las correcciones; (b) grupo familiar — crear espacio en Configuración, código de invitación, que Agustina se una, badge esmeralda, firmar como, y que Personal ≠ Familiar en el Dashboard.
-2. Próxima fase: **Fase 3 — Cartera** (necesita acceso a `Inversiones.xlsx` y `Renta fija ARG.xlsx`).
+**Fase 3 — Cartera (Excel-in-the-loop)**, ver `ROADMAP.md`:
+1. Franco da acceso a la carpeta con `Inversiones.xlsx` y `Renta fija ARG.xlsx`.
+2. `places/inversiones/cartera/` lee el Excel y arma el dashboard (posiciones, estructura, TIR de renta fija).
+3. Gate obligatorio: `tests/test_cartera_recon.py` — cartera app == Excel, fila por fila.
+4. Revisar antes `docs/HERRAMIENTAS-EVALUADAS.md` (lightweight-charts para gráficos) y `docs/DATOS-MERCADO-ARG.md`.
 
-**Pendientes menores heredados de Fase 1:**
+**Pendientes menores:**
 - Retirar `radar-financiero` cuando la superapp esté validada unos días (`fly apps destroy radar-financiero`).
-- Franco: borrar `finanzas-prod.db` de la carpeta local (copia de migración, git la ignora).
 - Generar `requirements.lock` para builds reproducibles (ver `docs/DEPLOY.md`).
 - Dominio personalizado (FreeDomain o propio): decisión de Franco, queda para el final — es estético. Pasos en `docs/DEPLOY.md`.
 
@@ -44,6 +46,10 @@
 
 - Fuente de datos de mercado ARG: 🟢 candidatos en `gauss314/skills` (`bcra-macro`, `data912`, `byma`, `mae`). Se valida y elige en Fase 5. Ver `docs/DATOS-MERCADO-ARG.md`.
 - Nombre de la app Fly: `superapp-finanzas`. **Fly no permite renombrar apps**; si se quiere otro nombre, crear app nueva y redeployar **antes** de crear el volumen de la DB (Fase 1), o resolverlo con dominio propio (FreeDomain).
+
+## ⚠️ Nota post-incidente: migraciones (17/7/2026)
+
+M4 (PK con user_id) se re-disparó tras M8 (PK con workspace_id) porque su guard solo miraba la PK: reconstruyó las tablas descartando `workspace_id` y desvinculó los datos en producción. Resuelto: guard de M4 exige tabla no-post-D2, y M8.5 repara filas huérfanas (idempotente, prefiere el dato original ante duplicados). **Lecciones para futuras migraciones:** (1) los guards de migraciones viejas deben seguir siendo correctos frente a esquemas futuros; (2) los tests de idempotencia deben correr CON datos y verificar vínculos, no solo que no crashee. Tests de regresión en `tests/test_workspaces_d2.py`.
 
 ## ⚠️ Nota operativa: git + OneDrive
 

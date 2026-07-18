@@ -26,3 +26,6 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
 - **UI:** badge de modo (violeta Personal / esmeralda Familiar), switcher en sidebar, sección "Espacio compartido" en Configuración, "Firmar como" en Transacciones (etiqueta cosmética), badge grande en modo familiar, onboarding evaluado contra el personal.
 - **Tests:** 11 nuevos (código único, join/leave, firma, Personal ≠ Familiar). Suite total: 112 en verde.
 - **Riesgos premortem #5:** mitigados (badge por color+texto, callbacks vía session_state, label declarado cosmético, refactor verificado con grep de filtros residuales).
+
+## 2026-07-17 (tarde) — Incidente de migración D2 resuelto
+- M4 re-disparada post-M8 desvinculaba workspaces en producción. Guard corregido + reparación M8.5 + 2 tests de regresión (ver BITACORA global y nota en ESTADO.md). Verificado por Franco en producción: datos restaurados. Suite: 114 en verde.

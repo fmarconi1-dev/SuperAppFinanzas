@@ -9,6 +9,19 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 17 de julio de 2026 (cierre) — Un susto, la lección, y todo funcionando
+
+**Qué pasó (en criollo):**
+Al publicar los espacios compartidos, la app pareció "olvidar" tus datos: te trató como usuario nuevo. El motivo: una regla vieja del sistema de actualización de la base chocó con la nueva y desenchufó tus datos de su lugar (sin borrarlos — siempre estuvieron ahí, más los backups diarios). Se encontró la causa, se arregló, y se agregó un mecanismo que repara solo ese enganche si algo parecido volviera a pasar. También quedaron dos pruebas automáticas que simulan exactamente este accidente para que no se repita jamás. Verificaste que está todo de vuelta y andando.
+
+**Para qué te sirve:**
+Además del arreglo, el sistema quedó más robusto que antes del susto: 114 pruebas en verde y una lección registrada para los próximos cambios de base de datos.
+
+**Qué sigue:**
+La Fase 3: tu cartera de inversiones dentro de la app, leyendo tus Excel, con la regla de oro de que cada número tiene que coincidir exactamente con la planilla.
+
+---
+
 ## 17 de julio de 2026 — Los gastos compartidos con Agustina, listos
 
 **Qué se hizo (en criollo):**
