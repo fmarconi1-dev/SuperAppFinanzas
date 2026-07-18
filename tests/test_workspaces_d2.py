@@ -153,3 +153,73 @@ def test_ensure_personal_idempotente(db):
     a = ensure_personal_workspace(db, 1)
     b = ensure_personal_workspace(db, 1)
     assert a == b
+
+
+# ---------- Regresión del incidente de producción (2026-07-17) ----------
+# M4 se re-disparaba después de M8 (su guard miraba "PK contiene user_id"),
+# reconstruía las tablas descartando workspace_id y desvinculaba TODO.
+# Además, filas duplicadas escritas en la ventana rota hacían crashear la
+# migración con UNIQUE constraint. Estos tests reproducen ambos modos.
+
+
+def test_migrar_dos_veces_con_datos_no_desvincula(db, tmp_path, monkeypatch):
+    """init_db repetido sobre una DB con datos: nada queda con workspace NULL."""
+    insert_transaction(db, date(2026, 7, 1), "Super", pasivos=100, user_id=1)
+    db.commit()
+    db.close()
+
+    init_db()  # segunda corrida completa de _migrate sobre la misma DB
+    conn = connect()
+    try:
+        for tabla in ("transacciones", "categorias", "configuracion"):
+            nulos = conn.execute(
+                f"SELECT COUNT(*) AS n FROM {tabla} WHERE workspace_id IS NULL"
+            ).fetchone()["n"]
+            assert nulos == 0, f"{tabla} quedó con {nulos} filas desvinculadas"
+        # Y la PK sigue siendo por workspace (M4 no debe re-dispararse).
+        sql = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE name='configuracion'"
+        ).fetchone()["sql"]
+        assert "workspace_id" in sql.split("PRIMARY KEY")[-1]
+        # Los datos siguen visibles por las queries del dominio.
+        assert len(load_transactions(conn, user_id=1)) == 1
+    finally:
+        conn.close()
+
+
+def test_reparacion_relinkea_filas_huerfanas(db):
+    """Simula el estado roto de producción: filas con workspace_id NULL y un
+    duplicado scoped escrito en la ventana rota. La migración debe reparar
+    sin crashear, prefiriendo el dato original."""
+    ws = ensure_personal_workspace(db, 1)
+    insert_transaction(db, date(2026, 7, 1), "Super", pasivos=100, user_id=1)
+    # Estado roto: todo desvinculado + duplicado scoped de configuracion.
+    for tabla in ("transacciones", "categorias", "configuracion"):
+        db.execute(f"UPDATE {tabla} SET workspace_id = NULL")
+    db.execute(
+        "INSERT INTO configuracion (clave, valor, user_id, workspace_id) "
+        "VALUES ('saldo_inicial_caja', '999', 1, ?)", (ws,),
+    )
+    db.execute(
+        "INSERT OR REPLACE INTO configuracion (clave, valor, user_id, workspace_id) "
+        "VALUES ('saldo_inicial_caja', '123.45', 1, NULL)",
+    )
+    db.commit()
+    db.close()
+
+    init_db()  # no debe crashear y debe reparar
+    conn = connect()
+    try:
+        nulos = conn.execute(
+            "SELECT COUNT(*) AS n FROM configuracion WHERE workspace_id IS NULL"
+        ).fetchone()["n"]
+        assert nulos == 0
+        # Gana el valor original (la fila NULL), no el duplicado de la ventana rota.
+        valor = conn.execute(
+            "SELECT valor FROM configuracion "
+            "WHERE clave='saldo_inicial_caja' AND workspace_id = ?", (ws,),
+        ).fetchone()["valor"]
+        assert valor == "123.45"
+        assert len(load_transactions(conn, user_id=1)) == 1
+    finally:
+        conn.close()

@@ -147,7 +147,15 @@ def _migrate(conn: sqlite3.Connection) -> None:
             info = cur.execute(f"PRAGMA table_info({table})").fetchall()
             return any(r["name"] == "user_id" and r["pk"] > 0 for r in info)
 
-        if not _pk_has_user_id("categorias"):
+        def _es_post_d2(table: str) -> bool:
+            """True si la tabla ya pasó por M8 (PK por workspace). M4 no debe
+            tocarla: re-ejecutarse descartaría la columna workspace_id.
+            (Incidente de producción 2026-07-17: M4 se re-disparó post-M8 y
+            desvinculó todas las filas de sus workspaces.)"""
+            info = cur.execute(f"PRAGMA table_info({table})").fetchall()
+            return any(r["name"] == "workspace_id" for r in info)
+
+        if not _pk_has_user_id("categorias") and not _es_post_d2("categorias"):
             cur.execute("""
                 CREATE TABLE categorias_new (
                     motivo        TEXT NOT NULL,
@@ -170,7 +178,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
                 "CREATE INDEX IF NOT EXISTS idx_categorias_user ON categorias(user_id)"
             )
 
-        if not _pk_has_user_id("presupuesto"):
+        if not _pk_has_user_id("presupuesto") and not _es_post_d2("presupuesto"):
             cur.execute("""
                 CREATE TABLE presupuesto_new (
                     motivo         TEXT NOT NULL,
@@ -191,7 +199,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
                 "CREATE INDEX IF NOT EXISTS idx_presupuesto_user ON presupuesto(user_id)"
             )
 
-        if not _pk_has_user_id("configuracion"):
+        if not _pk_has_user_id("configuracion") and not _es_post_d2("configuracion"):
             cur.execute("""
                 CREATE TABLE configuracion_new (
                     clave   TEXT NOT NULL,
@@ -484,6 +492,49 @@ def _migrate(conn: sqlite3.Connection) -> None:
         # por workspace. `user_id` se conserva como autor de la fila.
         # Idempotente: solo si la PK vieja sigue vigente. Corre después del
         # backfill M6, así todas las filas ya tienen workspace_id.
+
+        # --- M8.5: reparación de filas desvinculadas -----------------
+        # Si alguna fila del dominio quedó con workspace_id NULL (incidente
+        # del 2026-07-17: M4 re-disparada post-M8 descartó la columna), se
+        # re-vincula al workspace personal de su usuario. Si en el medio la
+        # app escribió una fila duplicada scoped (defaults de onboarding),
+        # gana la fila ORIGINAL (la NULL: trae los datos históricos reales).
+        # Idempotente: sin filas NULL no hace nada.
+        personales = {
+            r["user_id"]: r["ws"]
+            for r in cur.execute("""
+                SELECT wm.user_id AS user_id, w.id AS ws
+                FROM workspace_members wm
+                JOIN workspaces w ON w.id = wm.workspace_id
+                WHERE w.kind = 'personal'
+            """)
+        }
+        for uid_rep, ws_rep in personales.items():
+            # configuracion: borrar el duplicado scoped, conservar el original.
+            cur.execute("""
+                DELETE FROM configuracion WHERE workspace_id = ? AND clave IN (
+                    SELECT clave FROM configuracion
+                    WHERE user_id = ? AND workspace_id IS NULL
+                )""", (ws_rep, uid_rep))
+            # categorias: ídem por motivo.
+            cur.execute("""
+                DELETE FROM categorias WHERE workspace_id = ? AND motivo IN (
+                    SELECT motivo FROM categorias
+                    WHERE user_id = ? AND workspace_id IS NULL
+                )""", (ws_rep, uid_rep))
+            # presupuesto: ídem por (motivo, anio, mes).
+            cur.execute("""
+                DELETE FROM presupuesto AS p WHERE p.workspace_id = ? AND EXISTS (
+                    SELECT 1 FROM presupuesto q
+                    WHERE q.user_id = ? AND q.workspace_id IS NULL
+                      AND q.motivo = p.motivo AND q.anio = p.anio AND q.mes = p.mes
+                )""", (ws_rep, uid_rep))
+            for tabla in ("transacciones", "categorias", "presupuesto", "configuracion"):
+                cur.execute(
+                    f"UPDATE {tabla} SET workspace_id = ? "
+                    f"WHERE user_id = ? AND workspace_id IS NULL",
+                    (ws_rep, uid_rep),
+                )
 
         def _sql_de(tabla: str) -> str:
             row = cur.execute(
