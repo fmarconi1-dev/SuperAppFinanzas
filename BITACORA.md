@@ -4,6 +4,17 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-07-17 — Grupo familiar D2: gastos compartidos completos (código)
+**Autor:** Claude (Fable 5), con Franco.
+- Cutover completo del modelo de datos a **workspaces**: migración M8 (PKs por workspace), `core/workspaces.py`, contextvar, y refactor de todas las queries del dominio (`user_id` queda como autor). Sin switcher, todo cae al espacio personal → cero cambio de comportamiento.
+- UI completa: badge por modo (violeta/esmeralda), switcher en sidebar, "Espacio compartido" en Configuración (crear con código de un solo uso visible, unirse, salir), "Firmar como" en Transacciones.
+- 11 tests nuevos; suite total **112 en verde**. Riesgos del premortem #5 mitigados.
+- En la misma sesión: correcciones del tablero de scoring pedidas por Franco (categorías Resto/señal, filtros persistentes, popover de metodología, encabezado simple, NU y SATL → USA en el repo Scoring).
+**Por qué:** D1 ya estaba en producción y la feature es de uso real con Agustina; se adelantó de Fase 4 con alcance cerrado.
+**Estado al cierre:** código completo y commiteado; falta deploy + verificación de Franco. Próximo: Fase 3 (Cartera).
+
+---
+
 ## 2026-07-15 — Fase 2: un solo login, dos lugares, scoring adentro
 **Autor:** Claude (Fable 5), con Franco.
 - **Shell unificado:** `app.py` ahora es auth gate + `st.navigation` (barra superior) entre 🏠 Finanzas (`places/finanzas/home.py`, la app original intacta) y 📈 Inversiones (`places/inversiones/home.py`, estructura triple con placeholders honestos para F3/F5).

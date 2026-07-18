@@ -7,7 +7,7 @@
 
 ## 🧭 Dónde estamos
 
-- **Fase actual:** Fase 2 — Shell unificado + Scoring → **COMPLETADA en código** ✅ (2026-07-15). Falta el redeploy de Franco (`fly deploy`) y su verificación visual. Próxima: Fase 3 (Cartera) o grupo familiar D2 (a elección de Franco, ver MEJORAS).
+- **Fase actual:** Fase 2 ✅ + **Grupo familiar D2 completo en código** ✅ (2026-07-17, adelanto de Fase 4). Falta el redeploy de Franco y su verificación visual de ambos. Próxima: Fase 3 — Cartera.
 - **Situación:** Superapp con **login único y dos lugares**: 🏠 Finanzas (la app original intacta) y 📈 Inversiones (Scoring embebido leyendo el snapshot de GitHub Pages — ADR-0002; Cartera y Mercado como placeholders de F3/F5). 101 tests en verde. radar-financiero sigue vivo como respaldo.
 - **Hosting:** Fly.io. App `superapp-finanzas` (gru, 1 GB, auto-stop, volumen `finanzas_data` con snapshots diarios). Sin secrets (radar tampoco tenía; SIGNUP_CODE/SESSION_SECRET opcionales, ver `.env.example`). Ver `docs/DEPLOY.md`.
 - **Repo git:** hasta `8a5087a` (migración Fase 1) + commits de cierre. Verificar push al retomar.
@@ -16,7 +16,7 @@
 
 | Tarea | Estado | Autor | Desde |
 |---|---|---|---|
-| Grupo familiar D2 — Cutover (adelanto de Fase 4) | 🔵 EN CURSO | Claude (Fable 5) | 2026-07-17 |
+| — (ninguna en curso) | — | — | — |
 
 ## ✅ Hecho hasta ahora
 
@@ -31,8 +31,8 @@
 
 ## ⏭️ Próximo paso concreto
 
-1. **Cerrar Fase 2:** Franco pushea y corre `fly deploy`; verificación visual (login → dos lugares → scoring con datos).
-2. Elegir la próxima: **Fase 3 — Cartera** (necesita `Inversiones.xlsx` y `Renta fija ARG.xlsx` accesibles) o **grupo familiar D2** (ver `MEJORAS.md`).
+1. **Deploy pendiente (Franco):** push + `fly deploy`. Verificar: (a) tablero de scoring con las correcciones; (b) grupo familiar — crear espacio en Configuración, código de invitación, que Agustina se una, badge esmeralda, firmar como, y que Personal ≠ Familiar en el Dashboard.
+2. Próxima fase: **Fase 3 — Cartera** (necesita acceso a `Inversiones.xlsx` y `Renta fija ARG.xlsx`).
 
 **Pendientes menores heredados de Fase 1:**
 - Retirar `radar-financiero` cuando la superapp esté validada unos días (`fly apps destroy radar-financiero`).

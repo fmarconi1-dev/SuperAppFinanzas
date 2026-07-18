@@ -40,7 +40,7 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 
 > Heredar y revisar el `MEJORAS.md` del repo original `Mis-Finanzas-App` al llegar a la Fase 4. Pegar acá los ítems vigentes.
 
-- 🔴 📋 **Grupo familiar — D2 Cutover** (gastos compartidos entre usuarios en la misma DB). D1 "Shadow" ya está en producción y **migró al monorepo con la Fase 1** (tablas `workspaces`/`workspace_members`, backfill, 15 tests de invariante, workspaces Franco y Agustina creados). Falta D2: queries filtrando por `workspace_id`, UI crear/unirse/salir en Configuración, badge de modo Personal/Familiar, dropdown "firmar como". Plan detallado y riesgos del premortem #5 en el `MEJORAS.md` del repo original (sección D2).
+- 🔴 ✅ **Grupo familiar — D2 Cutover** (hecho 2026-07-17) (gastos compartidos entre usuarios en la misma DB). D1 "Shadow" ya está en producción y **migró al monorepo con la Fase 1** (tablas `workspaces`/`workspace_members`, backfill, 15 tests de invariante, workspaces Franco y Agustina creados). Falta D2: queries filtrando por `workspace_id`, UI crear/unirse/salir en Configuración, badge de modo Personal/Familiar, dropdown "firmar como". Plan detallado y riesgos del premortem #5 en el `MEJORAS.md` del repo original (sección D2).
 - 🟡 💡 Portar el backlog de UX pendiente del repo original.
 - 🟢 💡 _(agregar a medida que surjan)_
 

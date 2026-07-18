@@ -9,6 +9,24 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 17 de julio de 2026 — Los gastos compartidos con Agustina, listos
+
+**Qué se hizo (en criollo):**
+- La app ahora tiene **espacios**: tu espacio personal de siempre, y espacios compartidos que podés crear para manejar una caja en común (la casa, un viaje). Cada espacio tiene sus propios gastos, categorías y presupuesto — nada se mezcla.
+- Para invitar a alguien generás un **código** (se muestra una sola vez, como una llave) y la otra persona lo usa para unirse desde su propia cuenta.
+- Un **cartel de color** te dice siempre dónde estás parado: violeta = personal, verde = compartido. Así no cargás un gasto en el lugar equivocado — el error más probable según el ensayo de fracaso que hicimos.
+- Al cargar un gasto en un espacio compartido podés **firmar** quién lo hizo.
+- Todo respaldado por pruebas automáticas: 112 en verde, incluyendo una que verifica que tu espacio personal y el compartido nunca se contaminan entre sí.
+- Yapa: las correcciones que pediste del tablero de acciones (categorías más claras, filtros que no se resetean, el botón "?" con la metodología, y NU/SATL bien clasificadas).
+
+**Para qué te sirve:**
+Vos y Agus pueden anotar los gastos de la casa en un solo lugar, viendo quién cargó qué, sin renunciar cada uno a sus finanzas personales privadas.
+
+**Qué sigue:**
+Publicar todo esto en internet (tu comando de deploy), probarlo entre los dos, y después la Fase 3: tu cartera de inversiones en la app.
+
+---
+
 ## 15 de julio de 2026 — Una sola puerta de entrada, y el tablero de acciones adentro
 
 **Qué se hizo (en criollo):**
