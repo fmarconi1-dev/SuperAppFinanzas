@@ -17,6 +17,7 @@ load_dotenv()
 from core.auth import get_user_by_id, login
 from core.auth.current_user import set_current_user_id
 from core.auth.session_tokens import QUERY_PARAM, verify_token
+from core import workspaces_ui
 from core.db import connect, init_db
 from core.theme._responsive import apply_responsive_css
 from core.theme._styles import apply_design_system_css
@@ -69,7 +70,15 @@ def main() -> None:
         return
 
     set_current_user_id(st.session_state["current_user_id"])
+
+    # Workspace activo (grupo familiar D2): resolver y bajar al contextvar.
+    with connect() as conn:
+        workspaces_ui.activar_desde_sesion(conn)
+
     login.render_logout_button()
+    with st.sidebar:
+        with connect() as conn:
+            workspaces_ui.render_switcher_sidebar(conn)
 
     # Navegación entre lugares (barra superior).
     paginas = [

@@ -19,6 +19,7 @@ import pandas as pd
 import streamlit as st
 
 from places.finanzas.core.categorizer import efective_grupo
+from core.workspaces import list_members
 from core.db import connect
 from places.finanzas.core.metrics import load_categorias_full
 from places.finanzas.core.parsers import parse_expression
@@ -210,6 +211,21 @@ def _form_alta_edicion(motivos: list[str]) -> None:
                     value="", key="form_motivo_nuevo",
                     placeholder="Ej: Suscripciones, Regalos…",
                 )
+            firma_val = None
+            if st.session_state.get("active_workspace_kind") == "familiar":
+                with connect() as conn:
+                    etiquetas = [
+                        m["member_label"]
+                        for m in list_members(
+                            conn, st.session_state["active_workspace_id"]
+                        )
+                    ]
+                propia = st.session_state.get("active_member_label")
+                idx_firma = etiquetas.index(propia) if propia in etiquetas else 0
+                firma_val = st.selectbox(
+                    "Firmar como", etiquetas, index=idx_firma, key="form_firmar_como",
+                    help="Quién cargó este movimiento (etiqueta informativa).",
+                )
             comentario_val = st.text_input(
                 "Comentario (opcional)",
                 value=comentario_default if not st.session_state.get("form_comentario") else st.session_state.get("form_comentario"),
@@ -261,6 +277,7 @@ def _form_alta_edicion(motivos: list[str]) -> None:
                 conn, fecha_val, motivo_final,
                 pasivos=pasivos, ingresos=ingresos,
                 comentario=comentario_val or None,
+                member_label=firma_val,
             )
             msg = (f"✅ {tipo_val} de {fmt_ars(importe_val)} en «{motivo_final}»"
                    f"{expr_evaluada}")

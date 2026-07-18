@@ -22,6 +22,13 @@ from places.finanzas.core.categorias import (
     motivos_sin_uso,
     update_categoria,
 )
+from core.workspaces import (
+    create_family_workspace,
+    join_family_workspace,
+    leave_family_workspace,
+    list_members,
+    list_user_workspaces,
+)
 from core.db import backup_db, connect, get_db_path, get_config, set_config
 from places.finanzas.core.export import export_xlsx
 from places.finanzas.core.metrics import load_categorias_full
@@ -179,6 +186,90 @@ def _borrar_sin_uso(db_path) -> None:
                 st.error(str(e))
 
 
+def _espacio_compartido(db_path) -> None:
+    """Sección D2: crear/unirse/salir de espacios compartidos (familiares)."""
+    uid = st.session_state["current_user_id"]
+
+    st.subheader("Espacio compartido")
+    st.caption(
+        "Compartí una misma caja con otra persona (gastos del hogar, viajes). "
+        "Cada espacio tiene sus propias transacciones, categorías y presupuesto. "
+        "El nombre con el que firmás es una etiqueta informativa, no una cuenta."
+    )
+
+    with connect(db_path) as conn:
+        espacios = [w for w in list_user_workspaces(conn, uid) if w["kind"] == "familiar"]
+
+    # --- Espacios actuales ---
+    for w in espacios:
+        with st.expander(f"👥 {w['nombre']} · {w['miembros']} miembro(s)"):
+            with connect(db_path) as conn:
+                miembros = list_members(conn, w["id"])
+            for m in miembros:
+                es_vos = " (vos)" if m["user_id"] == uid else ""
+                st.markdown(f"- **{m['member_label']}**{es_vos} · desde {m['joined_en'][:10]}")
+            confirmar = st.checkbox(
+                "Quiero salir de este espacio", key=f"ws_leave_chk_{w['id']}",
+                help="Tus transacciones cargadas en el espacio quedan en el espacio.",
+            )
+            if st.button("Salir del espacio", key=f"ws_leave_{w['id']}",
+                         disabled=not confirmar):
+                with connect(db_path) as conn:
+                    leave_family_workspace(conn, w["id"], user_id=uid)
+                if st.session_state.get("active_workspace_id") == w["id"]:
+                    st.session_state["active_workspace_id"] = None
+                st.toast(f"Saliste de «{w['nombre']}»", icon="👋")
+                st.rerun()
+
+    col_crear, col_unirse = st.columns(2)
+
+    # --- Crear ---
+    with col_crear:
+        st.markdown("**Crear un espacio nuevo**")
+        with st.form("ws_crear", clear_on_submit=True):
+            nombre = st.text_input("Nombre", placeholder="Ej: Casa, Viaje 2027…")
+            if st.form_submit_button("Crear espacio", type="primary"):
+                try:
+                    with connect(db_path) as conn:
+                        ws_id, code = create_family_workspace(conn, nombre, user_id=uid)
+                    st.session_state["ws_nuevo_code"] = (ws_id, nombre.strip(), code)
+                except ValueError as e:
+                    st.error(str(e))
+        if st.session_state.get("ws_nuevo_code"):
+            ws_id, nombre_ws, code = st.session_state["ws_nuevo_code"]
+            st.success(f"Espacio «{nombre_ws}» creado. Código de invitación:")
+            st.code(code)
+            st.warning(
+                "Guardalo ahora: por seguridad no se vuelve a mostrar. "
+                "Pasáselo a quien quieras invitar.", icon="🔑",
+            )
+            if st.button("Listo, lo guardé", key="ws_code_ok"):
+                st.session_state.pop("ws_nuevo_code", None)
+                st.session_state["active_workspace_id"] = ws_id
+                st.rerun()
+
+    # --- Unirse ---
+    with col_unirse:
+        st.markdown("**Unirme con un código**")
+        with st.form("ws_unirse", clear_on_submit=True):
+            code_in = st.text_input("Código de invitación")
+            label_in = st.text_input(
+                "Firmar como (opcional)",
+                placeholder="Tu nombre en el espacio; por defecto, tu nombre real",
+            )
+            if st.form_submit_button("Unirme"):
+                try:
+                    with connect(db_path) as conn:
+                        ws_id = join_family_workspace(
+                            conn, code_in, member_label=label_in or None, user_id=uid
+                        )
+                    st.session_state["active_workspace_id"] = ws_id
+                    st.toast("¡Ya estás adentro!", icon="👥")
+                    st.rerun()
+                except (LookupError, ValueError) as e:
+                    st.error(str(e))
+
+
 def render() -> None:
     render_tour_panel("configuracion")
     db_path = get_db_path()
@@ -283,3 +374,9 @@ def render() -> None:
         file_name=f"mis-finanzas-{datetime.now():%Y%m%d-%H%M}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
+
+    st.divider()
+
+    # ---------- Espacio compartido (grupo familiar D2) ----------
+
+    _espacio_compartido(db_path)
