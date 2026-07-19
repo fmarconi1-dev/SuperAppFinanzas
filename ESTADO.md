@@ -16,7 +16,7 @@
 
 | Tarea | Estado | Autor | Desde |
 |---|---|---|---|
-| — (ninguna en curso) | — | — | — |
+| Fase 3a — Cartera nativa (ingest + posiciones + KPIs) | 🔵 EN CURSO | Claude (Fable 5) | 2026-07-19 |
 
 ## ✅ Hecho hasta ahora
 
