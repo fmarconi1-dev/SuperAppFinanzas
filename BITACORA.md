@@ -4,6 +4,17 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-07-19 — Fase 3a diseñada: cartera nativa (handoff listo para construir)
+**Autor:** Claude (Fable 5), con Franco.
+- Se estudió `Inversiones.xlsx` a fondo y se decidió el **giro a cartera nativa** (ADR-0003): DB propia de movimientos con mecánica tipo Transacciones — import del histórico, carga recurrente del archivo del broker con dedupe, alta manual — en lugar del espejo Excel-in-the-loop. El Excel pasa a ser **oráculo de reconciliación**.
+- Decisiones cerradas con Franco: TC MEP histórico por operación (BCRA) · costo promedio ponderado · precios automáticos (data912/BYMA/BCRA/yahoo vía gauss314/skills, caché + override manual) · Cartera visible solo para Franco (generalizable) · renta fija fuera de cartera (futura sección de análisis de mercado).
+- **Hallazgos en el Excel:** el broker cambió el formato del export y la planilla no procesa 31 movimientos desde el 20/5/2026 (avisado); 2 celdas #REF! con reparación indicada. El parser nativo soportará ambos formatos → la app quedará más al día que el Excel.
+- Spec completa del parser (12 categorías, espejos, sintéticos, cauciones) documentada en `ESTADO.md`.
+**Por qué:** Franco quiere actualización cotidiana sin depender del Excel; el LEEME de la planilla documenta la lógica lo bastante bien como para portarla con red de reconciliación.
+**Estado al cierre:** diseño completo, cero código de cartera aún. La próxima sesión arranca construyendo el parser (necesita acceso a la carpeta "Cartera personal").
+
+---
+
 ## 2026-07-17 (tarde) — Incidente en producción y resolución mismo día
 **Autor:** Claude (Fable 5), con Franco.
 - **Síntoma:** tras deployar D2, la app mostró onboarding como usuario nuevo (datos "desaparecidos") y luego crash de migración (UNIQUE en configuracion_new).

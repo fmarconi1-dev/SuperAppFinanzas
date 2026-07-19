@@ -9,6 +9,21 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 19 de julio de 2026 — La cartera de inversiones ya tiene plano de obra
+
+**Qué se hizo (en criollo):**
+- Estudiamos tu Excel de inversiones a fondo y definimos juntos cómo va a vivir la cartera en la app: **igual que tus gastos** — la app guarda cada movimiento, vos cargás lo nuevo subiendo el archivo que te da el broker (o a mano), y ella calcula posiciones, rendimientos y ganancias. Los precios los va a buscar sola al mercado, con la opción de corregirlos a mano si hace falta.
+- Antes de confiar en ningún número, la app se va a **examinar contra tu planilla**: sus cuentas tienen que dar exactamente lo mismo que tu Excel. Recién ahí se avanza.
+- De paso, el estudio encontró dos cosas en tu Excel: **desde el 20 de mayo tu planilla no está sumando los movimientos nuevos** (el broker cambió el formato del archivo y las fórmulas no lo reconocen — 31 movimientos afuera, incluidas compras de junio), y dos celdas rotas con arreglo de 10 segundos ya indicado. La app nueva va a entender ambos formatos, así que va a estar más al día que la planilla.
+
+**Para qué te sirve:**
+Cuando esté construida, actualizar tu cartera será subir un archivo — sin fórmulas, sin pegar paneles — y vas a ver de verdad cuánto rindió cada cosa (con el dólar de cada fecha, no el de hoy).
+
+**Qué sigue:**
+La próxima sesión construye la primera pieza: el lector de movimientos del broker, con sus pruebas. Todo el plano quedó escrito para retomar sin perder nada.
+
+---
+
 ## 17 de julio de 2026 (cierre) — Un susto, la lección, y todo funcionando
 
 **Qué pasó (en criollo):**

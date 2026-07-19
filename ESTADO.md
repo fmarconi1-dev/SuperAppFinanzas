@@ -3,11 +3,11 @@
 > **Este es el archivo más importante para retomar el trabajo.** Se lee primero y se actualiza último, cada sesión.
 > Antes de editar código, actualizá la tabla "Tarea en curso". Al cerrar, dejá el "Próximo paso concreto".
 
-<!-- ultima_actualizacion: 2026-07-17 · autor: Claude (Fable 5) · cierre: D2 + incidente resuelto -->
+<!-- ultima_actualizacion: 2026-07-19 · autor: Claude (Fable 5) · handoff: Fase 3a diseñada, lista para construir -->
 
 ## 🧭 Dónde estamos
 
-- **Fase actual:** Fase 2 ✅ + **Grupo familiar D2 desplegado y verificado** ✅ (2026-07-17). Próxima: **Fase 3 — Cartera**.
+- **Fase actual:** **Fase 3a — Cartera nativa, DISEÑADA y lista para construir** (2026-07-19). Diseño cerrado en `docs/decisiones/ADR-0003-cartera-nativa.md`; los Excel ya fueron estudiados a fondo.
 - **Situación:** Superapp en producción con login único, dos lugares (Finanzas + Inversiones/Scoring), y **espacios compartidos** (grupo familiar D2) funcionando. 114 tests en verde. Incidente de migración del 17/7 resuelto (ver Nota post-incidente). radar-financiero sigue vivo como respaldo.
 - **Hosting:** Fly.io. App `superapp-finanzas` (gru, 1 GB, auto-stop, volumen `finanzas_data` con snapshots diarios). Sin secrets (radar tampoco tenía; SIGNUP_CODE/SESSION_SECRET opcionales, ver `.env.example`). Ver `docs/DEPLOY.md`.
 - **Repo git:** hasta `8a5087a` (migración Fase 1) + commits de cierre. Verificar push al retomar.
@@ -31,11 +31,22 @@
 
 ## ⏭️ Próximo paso concreto
 
-**Fase 3 — Cartera (Excel-in-the-loop)**, ver `ROADMAP.md`:
-1. Franco da acceso a la carpeta con `Inversiones.xlsx` y `Renta fija ARG.xlsx`.
-2. `places/inversiones/cartera/` lee el Excel y arma el dashboard (posiciones, estructura, TIR de renta fija).
-3. Gate obligatorio: `tests/test_cartera_recon.py` — cartera app == Excel, fila por fila.
-4. Revisar antes `docs/HERRAMIENTAS-EVALUADAS.md` (lightweight-charts para gráficos) y `docs/DATOS-MERCADO-ARG.md`.
+**Fase 3a — Cartera NATIVA (construir; diseño cerrado en ADR-0003).** Pedir a Franco acceso a la carpeta "Cartera personal" (contiene `Inversiones.xlsx`). Orden de construcción:
+
+1. **Parser del broker** (`places/inversiones/cartera/parser.py`) + tests. Spec relevada del Excel:
+   - **Formato viejo** (8 cols): Operación | Concertación | Liquidación | Descripción | Monto | Cantidad | Precio | Moneda. ⚠️ la col Moneda es poco confiable (hay compras ARS marcadas USD); inferir de la descripción/ticker (sufijo D = USD) y magnitudes.
+   - **Formato nuevo** (desde ~mayo 2026, filas 2-32 del crudo): SIN columna Operación — arranca en Concertación; el tipo se infiere (monto<0+cantidad>0=compra; monto>0+cantidad<0=venta; "CC |"=caución; sin cantidad y monto chico=dividendo/retención según signo).
+   - **12 categorías** (según `Movimientos Procesado`): COMPRA, VENTA, DIVIDENDO, RETENCION, RENTA, AMORTIZACION, CAUCION_COL, CAUCION_VTO, REMUNERACION, DEPOSITO, RETIRO, OTROS.
+   - **Reglas del LEEME**: dividendos solo línea USD (la espejo ARS negativa se ignora); bonos ARS y USD dividen precio por 100; saldos iniciales sintéticos en crudo filas 525-528 (NO descartar); ticker se extrae de "TICKER | Descripción".
+   - Dedupe por hash (fecha+operación+descripción+monto) para la carga recurrente.
+2. **Modelo de datos**: tabla `mov_cartera` (migración M9; scope por usuario — solo Franco ve Cartera, configurable) con TC MEP histórico congelado por fila; tabla de mapping tipo hoja Config; caché de precios.
+3. **`core/market_data/`**: MEP histórico y actual (BCRA oficial), precios ARG (data912/byma), CEDEARs/BTC (yahoo). Capa por proveedor + caché + override manual. Referencia: `gauss314/skills`.
+4. **Posiciones + KPIs + vista** (promedio ponderado, como el Excel) en pestaña Cartera.
+5. **Gate `tests/test_cartera_recon.py`**: correr el motor SOLO sobre las filas que el Excel procesó (hasta 19/5/2026) → cantidades y costos ARS deben calzar EXACTOS contra `Resumen Cartera`; USD se reconcilia en modo "MEP actual" (metodología del Excel). Después importar el resto.
+
+⚠️ **Hallazgo clave (avisado a Franco):** el broker cambió el formato del export y el Excel NO procesa los movimientos desde el 20/5/2026 — hay 31 filas (compras NBIS/ASML, cauciones, dividendos) fuera del Total Cartera de la planilla. Nuestro parser debe manejar ambos formatos; la app quedará más al día que el Excel.
+⚠️ El Excel tiene 2 celdas `#REF!` (Resumen Cartera L4/P4), heridas por una fila borrada del crudo. Reparación indicada a Franco: eliminar la fila 32 de `Movimientos Procesado`. Verificar si lo hizo antes de reconciliar dividendos de GGAL.
+3b (siguiente): realized PnL por trade, cauciones/dividendos como rendimientos, análisis sector (reusar sector del snapshot de scoring) y tipo de renta. Renta fija (`Renta fija ARG.xlsx`) NO va en cartera: queda para una futura sección de análisis de mercado (está en MEJORAS).
 
 **Pendientes menores:**
 - Retirar `radar-financiero` cuando la superapp esté validada unos días (`fly apps destroy radar-financiero`).
