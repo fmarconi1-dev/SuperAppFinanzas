@@ -3,7 +3,7 @@
 > **Este es el archivo más importante para retomar el trabajo.** Se lee primero y se actualiza último, cada sesión.
 > Antes de editar código, actualizá la tabla "Tarea en curso". Al cerrar, dejá el "Próximo paso concreto".
 
-<!-- ultima_actualizacion: 2026-07-23 · autor: Claude (Opus 4.8) · handoff: Fase 3a paso 1 (parser del broker) hecho y testeado; sigue paso 2 (modelo de datos M9) -->
+<!-- ultima_actualizacion: 2026-07-23 · autor: Claude (Opus 4.8) · handoff: Fase 3a pasos 1 (parser) y 2 (modelo M9) hechos; Excel-oráculo actualizado y reconciliado 20/20 vs broker; sigue el ingest + market_data -->
 
 ## 🧭 Dónde estamos
 
@@ -33,7 +33,13 @@
 
 **Fase 3a — Cartera NATIVA (construir; diseño cerrado en ADR-0003).** Orden de construcción (5 pasos):
 
-> **Paso 1 ✅ HECHO (2026-07-23).** Parser del broker construido y testeado: `places/inversiones/cartera/parser.py` (rescatado del borrador untracked, 3 arreglos) + `places/inversiones/cartera/__init__.py` + `tests/test_cartera_parser.py` (43 tests). Suite completa **157 en verde**. Commiteado en `fase-3a/cartera-nativa` (pendiente de push por Franco). **Próximo: paso 2 (modelo de datos M9).** Detalle en `places/inversiones/cartera/bitacora_de_trabajo.md`.
+> **Paso 1 ✅ HECHO (2026-07-23).** Parser del broker construido y testeado: `places/inversiones/cartera/parser.py` (rescatado del borrador untracked, 3 arreglos) + `places/inversiones/cartera/__init__.py` + `tests/test_cartera_parser.py` (43 tests).
+>
+> **Excel-oráculo actualizado y reconciliado (2026-07-23).** Franco pasó el export completo de inviu + la Tenencia del broker al 24/7. Se reconstruyó `Inversiones.xlsx` (respaldo del original en "Inversiones - respaldo pre-2026-07-23.xlsx"): crudo = export + saldos sintéticos + ajuste de ratio SPY (+70, confirmado); Procesado con fórmulas 1:1 y **columna Moneda alineada**; Config con SATL/UNH/CEG; Resumen corregido (salteaba NBIS, duplicaba GGALX); MEP=1519,725, BTC=65877. **Recalculado con LibreOffice: 20/20 posiciones EXACTAS vs broker.** El parser reprodujo 19/20 solo con movimientos+seeds (la brecha SPY es el ajuste de ratio externo) → validación fuerte del motor.
+>
+> **Paso 2 ✅ HECHO (2026-07-23).** Modelo de datos **M9** (aditivo, `core/db.py`): `cartera_instrumentos`, `cartera_movimientos` (con `tc_mep` NULL hasta paso 3, `UNIQUE(user_id, hash_dedupe)`), `cartera_precios_cache` — **scope por user_id** (la cartera es personal). `tests/test_cartera_db.py` (8 tests). Suite **165 en verde**.
+>
+> **Próximo: ingest** (parsear el export → cargar `cartera_movimientos` + poblar `cartera_instrumentos` desde Config) con `tests/test_cartera_recon.py` contra el Excel, y luego **paso 3 (`core/market_data`)** para congelar el MEP histórico por fila. Todo commiteado en `fase-3a/cartera-nativa` (pendiente de push por Franco). Detalle en la bitácora del módulo.
 
 1. **Parser del broker** (`places/inversiones/cartera/parser.py`) + tests. ✅ HECHO. Spec relevada del Excel:
    - **Formato viejo** (8 cols): Operación | Concertación | Liquidación | Descripción | Monto | Cantidad | Precio | Moneda. ⚠️ la col Moneda es poco confiable (hay compras ARS marcadas USD); inferir de la descripción/ticker (sufijo D = USD) y magnitudes.

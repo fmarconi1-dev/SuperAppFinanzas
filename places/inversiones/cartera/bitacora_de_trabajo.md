@@ -8,7 +8,7 @@
 
 ## Estado del módulo
 **Fase de implementación:** Fase 3a / 6
-**Situación:** 🔵 En curso — parser del broker construido y testeado (paso 1/5 de la 3a)
+**Situación:** 🔵 En curso — parser (paso 1) + modelo de datos M9 (paso 2, esquema) hechos; Excel-oráculo actualizado y reconciliado 20/20 contra el broker
 
 ## Registro
 
@@ -27,3 +27,10 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
 - **Hallazgo nuevo en el Excel:** la columna **Moneda** de `Movimientos Procesado` (col F) está **desalineada ~30 filas** (lee la moneda de otra operación) — explica en parte la etiqueta de moneda poco confiable. **No afecta cantidades** (Resumen usa Δ Cantidad); toca costos de compras solo donde la moneda mal leída se voltea (raro: las compras son casi todas ARS). El parser **infiere** la moneda → inmune. A tratar como divergencia documentada en el recon (paso 5). Fila 32 de `Movimientos Procesado`: **confirmado que ya fue borrada** — no queda ningún `#REF!` en el libro.
 - **Decisión menor (llamada de Franco):** el hash de dedupe usa `fecha+categoría+descripción+monto+cantidad` (categoría es estable entre formatos; cantidad desempata) en vez de `+operación`.
 - **Estado:** paso 1/5 cerrado. Suite completa **157 en verde**. Commit local en `fase-3a/cartera-nativa` (pendiente de push por Franco vía GitHub Desktop). **Próximo:** paso 2 — modelo de datos (migración **M9**: tabla `mov_cartera` con TC MEP histórico congelado por fila, scope por usuario, mapping tipo `Config`, caché de precios).
+
+## 2026-07-23 — Excel-oráculo actualizado + reconciliado 20/20 + modelo de datos M9 (paso 2)
+- **Autor:** Claude (Opus 4.8), con Franco.
+- **Excel-oráculo al día:** Franco pasó el export completo de inviu (movimientos "Todos", formato viejo con Operación, 580 filas hasta 14/7) + la Tenencia del broker al 24/7. Se reconstruyó `Inversiones.xlsx` (respaldo del original guardado): crudo = export + 4 saldos sintéticos + **ajuste de ratio de SPY (+70)** (confirmado por Franco: reajuste de conversión del CEDEAR); fórmulas de `Movimientos Procesado` regeneradas 1:1 con la **columna Moneda alineada** (arregla el desfase ~30 filas); Config con tickers nuevos (SATL, UNH, CEG); Resumen corregido (salteaba NBIS, duplicaba GGALX); Apoyo MEP=1519,725 y BTC=65877 (cierre 22/7). Recalculado con LibreOffice: **las 20 posiciones calzan EXACTO** contra la Tenencia del broker. Los `#NAME?` de Apoyo son del add-in `_xll.TiposCambioBD` (preexistentes; andan en Excel de Franco).
+- **Reconciliación clave:** el parser (nuestro motor) procesó el export real y reprodujo 19/20 posiciones solo con los movimientos + saldos sintéticos; la única brecha (SPY) es el ajuste de ratio externo. Es la validación más fuerte posible del parser: contra la tenencia real del broker.
+- **M9 (paso 2, esquema):** migración aditiva en `core/db.py` con 3 tablas **scope por user_id** (la cartera es personal, no workspace): `cartera_instrumentos` (mapa tipo Config), `cartera_movimientos` (salida del parser; `tc_mep` NULL hasta paso 3; `UNIQUE(user_id, hash_dedupe)` para carga idempotente) y `cartera_precios_cache`. `tests/test_cartera_db.py` (8 tests: creación, idempotencia de init_db, dedupe en reimport, aislamiento por usuario, PKs). Suite **165 en verde**.
+- **Estado:** parser (paso 1) + esquema M9 (paso 2) cerrados. **Próximo:** ingest (parsear el export → cargar `cartera_movimientos` + poblar `cartera_instrumentos` desde Config) con `tests/test_cartera_recon.py` contra el Excel, y luego `core/market_data` (paso 3) para congelar el MEP histórico.

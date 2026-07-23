@@ -101,6 +101,9 @@ def _migrate(conn: sqlite3.Connection) -> None:
       M1 (Fase 2): user_id en tablas de datos + usuario local.
       M2 (Fase 2b): columna `subcategoria` en `categorias` para jerarquía
                     macro/sub (ej: Inversion → Ahorro vs Activos financieros).
+      M3–M8.5 (Fase 3/D2): reclasificaciones + scope por user_id y luego por
+                    workspace_id (grupo familiar) — ver bloques abajo.
+      M9 (Fase 3a): tablas de cartera nativa (aditivas, scope por user_id).
     """
     cur = conn.cursor()
     cur.execute("BEGIN")
@@ -605,6 +608,97 @@ def _migrate(conn: sqlite3.Connection) -> None:
             cur.execute("ALTER TABLE configuracion_m8 RENAME TO configuracion")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_configuracion_user ON configuracion(user_id)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_configuracion_workspace ON configuracion(workspace_id)")
+
+        # ============================================================
+        # M9 (Fase 3a): Cartera nativa — tablas propias, scope por usuario.
+        # ============================================================
+        # La cartera de inversiones es PERSONAL de cada usuario (no se comparte
+        # como los gastos familiares del modelo D2): se scopea por `user_id`,
+        # no por `workspace_id`. Hoy solo la usa Franco; el esquema es
+        # generalizable a otros usuarios sin cambios.
+        #
+        # Estas 3 tablas son ADITIVAS: `CREATE TABLE IF NOT EXISTS` idempotente,
+        # no tocan ninguna tabla de finanzas ni de workspaces → migración de
+        # bajo riesgo (a diferencia de M4–M8, que reconstruían tablas).
+        #
+        #   * cartera_instrumentos  — mapa de tickers (equivalente a Config!G:N
+        #     del Excel): base ↔ variante USD, categoría de activo, panel de
+        #     precios, moneda de cotización, divisor.
+        #   * cartera_movimientos   — un movimiento parseado por fila (salida
+        #     del parser de `places/inversiones/cartera/parser.py`). `tc_mep`
+        #     queda NULL hasta que market_data (paso 3) congele el MEP histórico
+        #     de cada fecha. `hash_dedupe` + UNIQUE hace idempotente la carga
+        #     recurrente (re-importar el mismo export no duplica).
+        #   * cartera_precios_cache — precios de valuación (auto + override),
+        #     con fecha y fuente; base para "precio automático con caché".
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS cartera_instrumentos (
+                ticker            TEXT NOT NULL,
+                user_id           INTEGER NOT NULL,
+                ticker_usd        TEXT,
+                descripcion       TEXT,
+                categoria_activo  TEXT,
+                panel_precio      TEXT,
+                moneda_cotiz      TEXT NOT NULL DEFAULT 'ARS',
+                divisor_usd       REAL,
+                activo            INTEGER NOT NULL DEFAULT 1,
+                PRIMARY KEY (ticker, user_id)
+            )
+        """)
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cartera_instr_user "
+            "ON cartera_instrumentos(user_id)"
+        )
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS cartera_movimientos (
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id             INTEGER NOT NULL,
+                fecha_concertacion  TEXT NOT NULL,
+                fecha_liquidacion   TEXT,
+                categoria           TEXT NOT NULL,
+                descripcion         TEXT NOT NULL,
+                monto               REAL NOT NULL DEFAULT 0,
+                cantidad            REAL NOT NULL DEFAULT 0,
+                precio              REAL NOT NULL DEFAULT 0,
+                moneda              TEXT NOT NULL,
+                ticker_crudo        TEXT,
+                ticker_base         TEXT,
+                operacion_original  TEXT,
+                formato             TEXT,
+                es_instrumento      INTEGER NOT NULL DEFAULT 0,
+                es_espejo           INTEGER NOT NULL DEFAULT 0,
+                es_saldo_inicial    INTEGER NOT NULL DEFAULT 0,
+                precio_normalizado  REAL,
+                tc_mep              REAL,
+                hash_dedupe         TEXT NOT NULL,
+                creado_en           TEXT NOT NULL DEFAULT (datetime('now')),
+                UNIQUE (user_id, hash_dedupe)
+            )
+        """)
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cartera_mov_user "
+            "ON cartera_movimientos(user_id)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cartera_mov_ticker "
+            "ON cartera_movimientos(user_id, ticker_base)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cartera_mov_fecha "
+            "ON cartera_movimientos(fecha_concertacion)"
+        )
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS cartera_precios_cache (
+                ticker          TEXT NOT NULL,
+                fecha           TEXT NOT NULL,
+                precio          REAL NOT NULL,
+                moneda          TEXT NOT NULL DEFAULT 'ARS',
+                fuente          TEXT,
+                es_override     INTEGER NOT NULL DEFAULT 0,
+                actualizado_en  TEXT NOT NULL DEFAULT (datetime('now')),
+                PRIMARY KEY (ticker, fecha, moneda)
+            )
+        """)
 
         cur.execute("COMMIT")
     except Exception:

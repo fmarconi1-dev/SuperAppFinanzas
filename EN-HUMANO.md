@@ -9,6 +9,21 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 23 de julio de 2026 (tarde) — Tu Excel al día, cuadrado con el broker, y la "memoria" de la app lista
+
+**Qué se hizo (en criollo):**
+- Actualizamos tu `Inversiones.xlsx` con el resumen completo de movimientos que bajaste de inviu y lo dejamos **cuadrado con lo que el broker dice que tenés hoy**: las 20 posiciones coinciden exactas. (Guardé tu Excel viejo como respaldo por las dudas.) De paso salieron a la luz y se arreglaron dos cositas de la planilla: una columna de moneda que estaba corrida y un ticker (NBIS) que no aparecía. El único ajuste "a mano" fue SPY, por el cambio de conversión del CEDEAR que vos confirmaste. Le puse el dólar MEP del día y el Bitcoin al cierre de ayer.
+- Lo más importante: el "lector" que hicimos ayer procesó tus movimientos REALES y reprodujo solo él 19 de 20 posiciones — la prueba más fuerte de que calcula bien.
+- Y arrancamos la app: construimos la **"memoria"** donde va a vivir tu cartera (las tablas de la base de datos), separada y privada, con una traba para que no se dupliquen movimientos si volvés a subir el mismo archivo.
+
+**Para qué te sirve:**
+Ya tenés un punto de partida confiable y actualizado, y la app tiene dónde guardar tu cartera. A partir de acá, actualizarla va a ser subir el archivo del broker y listo.
+
+**Qué sigue:**
+Cargar de verdad tus movimientos en esa memoria (con una prueba que compara contra el Excel), y después conectar los precios de mercado para poner el dólar de cada fecha.
+
+---
+
 ## 23 de julio de 2026 — El lector de tu cartera ya está hecho y probado
 
 **Qué se hizo (en criollo):**
