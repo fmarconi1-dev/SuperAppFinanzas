@@ -4,11 +4,11 @@
 > Formato de cada entrada: `fecha · autor (Claude+modelo / Franco) · qué se hizo · por qué · estado`.
 > Regla: no cerrar una sesión sin dejar la entrada acá y actualizar `/ESTADO.md` en la raíz.
 
-<!-- ultima_actualizacion: — -->
+<!-- ultima_actualizacion: 2026-07-23 -->
 
 ## Estado del módulo
-**Fase de implementación:** Fase 3 / 6
-**Situación:** ⬜ No iniciado
+**Fase de implementación:** Fase 3a / 6
+**Situación:** 🔵 En curso — parser del broker construido y testeado (paso 1/5 de la 3a)
 
 ## Registro
 
@@ -19,3 +19,11 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
 - **Qué:** se estudió `Inversiones.xlsx` completo (LEEME, Cartera, Resumen Cartera, General, Config, Apoyo, Movimientos Crudo/Procesado) y se decidió con Franco el giro a **cartera nativa** (DB propia, mecánica tipo Transacciones) en vez de Excel-in-the-loop → `docs/decisiones/ADR-0003-cartera-nativa.md`. Decisiones: TC histórico por operación (BCRA), costo promedio ponderado, precios automáticos vía gauss314/skills con caché+override, alcance 3a = import + carga recurrente + posiciones + KPIs.
 - **Hallazgos:** (1) el broker cambió el formato del export en mayo 2026 y el Excel no procesa 31 movimientos desde el 20/5 — el parser nativo debe soportar ambos formatos; (2) dos `#REF!` en Resumen Cartera por una fila huérfana (reparación indicada: eliminar fila 32 de Movimientos Procesado); (3) columna Moneda del formato viejo poco confiable.
 - **Estado:** diseño cerrado y spec del parser documentada en `ESTADO.md`. Próximo: construir el parser con tests.
+
+## 2026-07-23 — Parser del broker construido y testeado (paso 1/5 de la Fase 3a)
+- **Autor:** Claude (Opus 4.8), con Franco.
+- **Qué:** se rescató el borrador `parser.py` (estaba sin commitear y no compilaba) y se completó. **3 arreglos:** (1) `SyntaxError` en la línea 196 — un carácter árabe (tatweel, U+0640) incrustado en el literal numérico, probable artefacto de sync OneDrive; (2) el espejo de dividendos/renta ahora se aparea por `(fecha, ticker_base)` contra la línea USD de ingreso, **tolerante a la categoría**, para cubrir el **formato nuevo** (donde la pata base ARS se infiere RETENCION y la pata USD DIVIDENDO/RENTA, así que exigir misma categoría las dejaba sin aparear y contaba el espejo como retención real); (3) la detección del saldo inicial sintético buscaba `"(saldo inicial"` con paréntesis y se comía la fila del `"Saldo inicial sintetico (cubre AE38 + BITCOIN)"`. Se agregó `__init__.py` al paquete y `tests/test_cartera_parser.py` (**43 tests**: detección de formato, 12 categorías viejo + inferencia nuevo, moneda inferida —Cedear base/D, bono hard-dollar, ARS/100, BITCOIN, etiqueta mal puesta—, precio /100, saldos iniciales, espejo viejo **y** nuevo, GGAL ARS de una línea no-espejo, dedupe con contador, loader CSV).
+- **Verificado contra el Excel:** el mapeo de columnas de **ambos** formatos calza con el crudo real (nuevo = filas 2-32, arranca en Concertación; viejo = 33-568, con Operación); `MAPA_OPERACION == Config!A5:B16` (12 categorías); la reclasificación Vencimiento→AMORTIZACION nunca dispara (97/97 vencimientos son cauciones).
+- **Hallazgo nuevo en el Excel:** la columna **Moneda** de `Movimientos Procesado` (col F) está **desalineada ~30 filas** (lee la moneda de otra operación) — explica en parte la etiqueta de moneda poco confiable. **No afecta cantidades** (Resumen usa Δ Cantidad); toca costos de compras solo donde la moneda mal leída se voltea (raro: las compras son casi todas ARS). El parser **infiere** la moneda → inmune. A tratar como divergencia documentada en el recon (paso 5). Fila 32 de `Movimientos Procesado`: **confirmado que ya fue borrada** — no queda ningún `#REF!` en el libro.
+- **Decisión menor (llamada de Franco):** el hash de dedupe usa `fecha+categoría+descripción+monto+cantidad` (categoría es estable entre formatos; cantidad desempata) en vez de `+operación`.
+- **Estado:** paso 1/5 cerrado. Suite completa **157 en verde**. Commit local en `fase-3a/cartera-nativa` (pendiente de push por Franco vía GitHub Desktop). **Próximo:** paso 2 — modelo de datos (migración **M9**: tabla `mov_cartera` con TC MEP histórico congelado por fila, scope por usuario, mapping tipo `Config`, caché de precios).

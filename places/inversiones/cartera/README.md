@@ -1,6 +1,6 @@
 # B.1 — Dashboard de Cartera
 
-**Estado:** ⬜ No iniciado · **Se implementa en:** Fase 3 (Excel-in-the-loop) · Fase 6 (portar)
+**Estado:** 🔵 En curso (Fase 3a — cartera nativa; ver ADR-0003) · paso 1/5 hecho: `parser.py` + tests
 
 Web-ización de `Inversiones.xlsx`, `Renta fija ARG.xlsx` y `opciones argy.xlsx`.
 Arranca **leyendo los Excel** (no reescribe la matemática). Módulos previstos:

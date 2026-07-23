@@ -27,10 +27,13 @@ Navegación con login único entre lugares. Embeber el scoring leyendo el snapsh
 - ✅ 101 tests en verde. Pendiente: deploy verificado por Franco.
 **Salida:** un login que lleva a Finanzas y a Scoring. ✔
 
-## ⬜ Fase 3 — Cartera (Lugar B.1), Excel-in-the-loop
-La app lee `Inversiones.xlsx` y muestra el dashboard de cartera (posiciones, variaciones, resultado, estructura por activo/sector, TIR, riesgo). Renta fija y opciones se leen del Excel.
-**Gate:** `tests/test_cartera_recon.py` (cartera app == Excel, fila por fila).
-**Salida:** la cartera online, con los mismos números que la planilla.
+## 🔵 Fase 3 — Cartera (Lugar B.1) — **giro a NATIVA** (ADR-0003)
+El plan original (Excel-in-the-loop) se reemplazó por **cartera nativa**: DB propia de movimientos, el Excel pasa a oráculo de reconciliación. **Fase 3a** = import + carga recurrente con dedupe + alta manual + posiciones + KPIs (5 pasos). **3b** = realized PnL, cauciones/dividendos como rendimientos, análisis sector/tipo de renta.
+- 🔵 **3a paso 1 ✅ (2026-07-23):** parser del broker (ambos formatos) + 43 tests. Suite 157 en verde.
+- ⬜ 3a paso 2: modelo de datos (migración M9, `mov_cartera` con TC MEP histórico por fila).
+- ⬜ 3a pasos 3-5: `core/market_data/` (precios + caché + override) · posiciones + KPIs + vista · gate `tests/test_cartera_recon.py`.
+**Gate:** `tests/test_cartera_recon.py` (cartera app == Excel, fila por fila; cantidades y costos ARS exactos).
+**Salida:** la cartera online, con los mismos números que la planilla y más al día que ella.
 
 ## ⬜ Fase 4 — Mejoras del Lugar A
 Ejecutar el backlog de `MEJORAS.md` sobre Finanzas Personales (incluye lo heredado del `MEJORAS.md` de Mis-Finanzas).

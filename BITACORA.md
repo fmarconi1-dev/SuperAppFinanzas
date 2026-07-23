@@ -4,6 +4,17 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-07-23 — Fase 3a, paso 1: parser del broker construido y testeado
+**Autor:** Claude (Opus 4.8), con Franco.
+- Se **rescató y completó** el borrador `places/inversiones/cartera/parser.py` (estaba untracked y no compilaba). 3 arreglos: `SyntaxError` de la línea 196 (carácter U+0640 incrustado, probable sync OneDrive); espejo de dividendos/renta apareado por `(fecha, ticker_base)` tolerante a categoría para cubrir el **formato nuevo**; detección de saldo inicial sintético sin el paréntesis. Se agregó `__init__.py` y `tests/test_cartera_parser.py` (**43 tests**).
+- **Verificado contra el Excel** (crudo real): mapeo de columnas de ambos formatos, `MAPA_OPERACION == Config!A5:B16`, patrones de espejo viejo/nuevo.
+- **Hallazgo nuevo:** la col Moneda de `Movimientos Procesado` está **desalineada ~30 filas** (lee la moneda de otra operación); no afecta cantidades del recon y el parser infiere la moneda → app inmune. Fila 32 de Procesado ya borrada por Franco (sin `#REF!`).
+- **Estado:** suite completa **157 en verde**. Commit local en `fase-3a/cartera-nativa`, pendiente de push (GitHub Desktop).
+**Por qué:** es el cimiento de la carga recurrente; sin un parser con red de tests, todo el recon posterior queda sobre arena.
+**Próximo:** paso 2 — modelo de datos (migración M9, `mov_cartera`).
+
+---
+
 ## 2026-07-19 — Fase 3a diseñada: cartera nativa (handoff listo para construir)
 **Autor:** Claude (Fable 5), con Franco.
 - Se estudió `Inversiones.xlsx` a fondo y se decidió el **giro a cartera nativa** (ADR-0003): DB propia de movimientos con mecánica tipo Transacciones — import del histórico, carga recurrente del archivo del broker con dedupe, alta manual — en lugar del espejo Excel-in-the-loop. El Excel pasa a ser **oráculo de reconciliación**.
