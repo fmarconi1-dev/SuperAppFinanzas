@@ -3,7 +3,7 @@
 > **Este es el archivo más importante para retomar el trabajo.** Se lee primero y se actualiza último, cada sesión.
 > Antes de editar código, actualizá la tabla "Tarea en curso". Al cerrar, dejá el "Próximo paso concreto".
 
-<!-- ultima_actualizacion: 2026-07-19 · autor: Claude (Fable 5) · handoff: Fase 3a diseñada, lista para construir -->
+<!-- ultima_actualizacion: 2026-07-23 · autor: Claude (Opus 4.8) · handoff: Fase 3a paso 1 (parser del broker) hecho y testeado; sigue paso 2 (modelo de datos M9) -->
 
 ## 🧭 Dónde estamos
 
@@ -31,9 +31,11 @@
 
 ## ⏭️ Próximo paso concreto
 
-**Fase 3a — Cartera NATIVA (construir; diseño cerrado en ADR-0003).** Pedir a Franco acceso a la carpeta "Cartera personal" (contiene `Inversiones.xlsx`). Orden de construcción:
+**Fase 3a — Cartera NATIVA (construir; diseño cerrado en ADR-0003).** Orden de construcción (5 pasos):
 
-1. **Parser del broker** (`places/inversiones/cartera/parser.py`) + tests. Spec relevada del Excel:
+> **Paso 1 ✅ HECHO (2026-07-23).** Parser del broker construido y testeado: `places/inversiones/cartera/parser.py` (rescatado del borrador untracked, 3 arreglos) + `places/inversiones/cartera/__init__.py` + `tests/test_cartera_parser.py` (43 tests). Suite completa **157 en verde**. Commiteado en `fase-3a/cartera-nativa` (pendiente de push por Franco). **Próximo: paso 2 (modelo de datos M9).** Detalle en `places/inversiones/cartera/bitacora_de_trabajo.md`.
+
+1. **Parser del broker** (`places/inversiones/cartera/parser.py`) + tests. ✅ HECHO. Spec relevada del Excel:
    - **Formato viejo** (8 cols): Operación | Concertación | Liquidación | Descripción | Monto | Cantidad | Precio | Moneda. ⚠️ la col Moneda es poco confiable (hay compras ARS marcadas USD); inferir de la descripción/ticker (sufijo D = USD) y magnitudes.
    - **Formato nuevo** (desde ~mayo 2026, filas 2-32 del crudo): SIN columna Operación — arranca en Concertación; el tipo se infiere (monto<0+cantidad>0=compra; monto>0+cantidad<0=venta; "CC |"=caución; sin cantidad y monto chico=dividendo/retención según signo).
    - **12 categorías** (según `Movimientos Procesado`): COMPRA, VENTA, DIVIDENDO, RETENCION, RENTA, AMORTIZACION, CAUCION_COL, CAUCION_VTO, REMUNERACION, DEPOSITO, RETIRO, OTROS.
@@ -45,7 +47,9 @@
 5. **Gate `tests/test_cartera_recon.py`**: correr el motor SOLO sobre las filas que el Excel procesó (hasta 19/5/2026) → cantidades y costos ARS deben calzar EXACTOS contra `Resumen Cartera`; USD se reconcilia en modo "MEP actual" (metodología del Excel). Después importar el resto.
 
 ⚠️ **Hallazgo clave (avisado a Franco):** el broker cambió el formato del export y el Excel NO procesa los movimientos desde el 20/5/2026 — hay 31 filas (compras NBIS/ASML, cauciones, dividendos) fuera del Total Cartera de la planilla. Nuestro parser debe manejar ambos formatos; la app quedará más al día que el Excel.
-⚠️ El Excel tiene 2 celdas `#REF!` (Resumen Cartera L4/P4), heridas por una fila borrada del crudo. Reparación indicada a Franco: eliminar la fila 32 de `Movimientos Procesado`. Verificar si lo hizo antes de reconciliar dividendos de GGAL.
+✅ Los 2 `#REF!` (Resumen Cartera L4/P4) están **resueltos**: Franco ya borró la fila 32 de `Movimientos Procesado` (verificado 2026-07-23 — no queda ningún `#REF!` en el libro; las fórmulas saltan de `Crudo!B62` a `B64`).
+
+⚠️ **Hallazgo nuevo (2026-07-23): la columna Moneda de `Movimientos Procesado` (col F) está desalineada ~30 filas** — lee la moneda de otra operación (p. ej. un dividendo JPM real `USD.C` queda etiquetado `ARS`). Explica en parte la "columna Moneda poco confiable". **No afecta las cantidades** del recon (Resumen usa Δ Cantidad, col N); toca costos de compras solo donde la moneda mal leída se voltea (raro: las compras son casi todas ARS; los USD son dividendos/cauciones, que no son compras). El parser **infiere** la moneda, así que la app es inmune y más correcta que el Excel. En el paso 5 se reconcilia contra la moneda **corregida** (releída de la fila alineada) y se documenta la divergencia. Franco puede querer arreglar la col F de su Excel aparte (no se toca sin permiso).
 3b (siguiente): realized PnL por trade, cauciones/dividendos como rendimientos, análisis sector (reusar sector del snapshot de scoring) y tipo de renta. Renta fija (`Renta fija ARG.xlsx`) NO va en cartera: queda para una futura sección de análisis de mercado (está en MEJORAS).
 
 **Pendientes menores:**

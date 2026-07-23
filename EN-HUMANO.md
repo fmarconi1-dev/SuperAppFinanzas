@@ -9,6 +9,21 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 23 de julio de 2026 — El lector de tu cartera ya está hecho y probado
+
+**Qué se hizo (en criollo):**
+- Construimos la **primera pieza** de la cartera nueva: el "lector" que entiende el archivo que te da el broker. Sabe leer los **dos formatos** que usa tu broker (el viejo y el nuevo que apareció en mayo), reconoce cada tipo de movimiento (compra, venta, dividendo, caución, renta…), saca el ticker, y descifra si algo está en pesos o en dólares **sin fiarse de la etiqueta del archivo** (que a veces miente).
+- Le pusimos **43 pruebas automáticas** que verifican que todo eso salga bien, con ejemplos calcados de tu propia planilla. Todo el proyecto quedó en verde (157 pruebas).
+- Un detalle fino: encontré que en tu Excel la columna que dice la **moneda** está corrida ~30 filas (lee el dato de otra operación) — por eso algunos dividendos en dólares figuran como pesos. La app nueva no usa esa columna, la deduce sola, así que queda más precisa que la planilla. Y confirmé que la **fila 32 que tenías que borrar ya la borraste**: las dos celdas rotas quedaron sanas.
+
+**Para qué te sirve:**
+Es el cimiento para que, más adelante, actualizar la cartera sea subir un archivo y listo. Esta pieza es la que garantiza que ni un movimiento se lea mal.
+
+**Qué sigue:**
+La próxima pieza es la **memoria**: dónde y cómo la app guarda esos movimientos (con el dólar de cada fecha congelado), para después calcular posiciones y rendimientos.
+
+---
+
 ## 19 de julio de 2026 — La cartera de inversiones ya tiene plano de obra
 
 **Qué se hizo (en criollo):**
