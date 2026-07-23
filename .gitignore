@@ -31,6 +31,11 @@ Thumbs.db
 .idea/
 .vscode/
 
+# ---- OneDrive: papelera de basura de git que el sandbox no puede borrar ----
+# (locks/tmp_obj huérfanos que se mueven acá para que Franco borre la carpeta
+#  a mano antes de cada push; ver nota operativa en ESTADO.md)
+Borrar/
+
 # ---- Excepciones: sí versionar los marcadores ----
 !data/README.md
 !**/.gitkeep
