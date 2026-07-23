@@ -8,7 +8,7 @@
 
 ## Estado del módulo
 **Fase de implementación:** Fase 3a / 6
-**Situación:** 🔵 En curso — parser (paso 1) + modelo de datos M9 (paso 2, esquema) hechos; Excel-oráculo actualizado y reconciliado 20/20 contra el broker
+**Situación:** 🔵 En curso — parser (paso 1) + modelo M9 + ingest + reconciliación hechos; Excel-oráculo actualizado y reconciliado 20/20 contra el broker. Sigue market_data (paso 3)
 
 ## Registro
 
@@ -34,3 +34,12 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
 - **Reconciliación clave:** el parser (nuestro motor) procesó el export real y reprodujo 19/20 posiciones solo con los movimientos + saldos sintéticos; la única brecha (SPY) es el ajuste de ratio externo. Es la validación más fuerte posible del parser: contra la tenencia real del broker.
 - **M9 (paso 2, esquema):** migración aditiva en `core/db.py` con 3 tablas **scope por user_id** (la cartera es personal, no workspace): `cartera_instrumentos` (mapa tipo Config), `cartera_movimientos` (salida del parser; `tc_mep` NULL hasta paso 3; `UNIQUE(user_id, hash_dedupe)` para carga idempotente) y `cartera_precios_cache`. `tests/test_cartera_db.py` (8 tests: creación, idempotencia de init_db, dedupe en reimport, aislamiento por usuario, PKs). Suite **165 en verde**.
 - **Estado:** parser (paso 1) + esquema M9 (paso 2) cerrados. **Próximo:** ingest (parsear el export → cargar `cartera_movimientos` + poblar `cartera_instrumentos` desde Config) con `tests/test_cartera_recon.py` contra el Excel, y luego `core/market_data` (paso 3) para congelar el MEP histórico.
+
+## 2026-07-23 — Ingest + posiciones + gate de reconciliación
+- **Autor:** Claude (Opus 4.8), con Franco.
+- **Qué:** se cerró la carga de la cartera nativa.
+  - `places/inversiones/cartera/ingest.py`: `instrumentos_desde_config` (mapa para el parser), `cargar_instrumentos_en_db` (UPSERT de Config→`cartera_instrumentos`) e `importar_movimientos` (INSERT OR IGNORE con dedupe por `hash_dedupe`; re-importar el mismo export no duplica; devuelve (insertados, saltados)).
+  - `places/inversiones/cartera/posiciones.py`: cálculo de posiciones portando la lógica de `Resumen Cartera` (Cant Comprada/Vendida/Actual por `ticker_base`, sobre COMPRA/VENTA con es_instrumento). Puro; `posiciones()` sobre objetos del parser, `posiciones_desde_db()` sobre la tabla.
+  - `tests/test_cartera_ingest.py` (5 tests, sintéticos, CI): dedupe en reimport, aislamiento por usuario, posiciones, carga de instrumentos.
+  - `tests/test_cartera_recon.py` (**gate**): parte del crudo del Excel → parser → posiciones y exige que cada ticker calce con `Resumen Cartera`. **Verificado: reconcilia exacto contra el Excel recalculado.** Se saltea con mensaje claro si el Excel no está o no fue recalculado (sin valores cacheados) → no rompe CI; corre local con `CARTERA_XLSX`.
+- **Estado:** suite **170 passed, 1 skipped** (el recon, que corre local). Ingest cerrado. **Próximo:** `core/market_data` (paso 3) — MEP histórico (BCRA) para congelar `tc_mep` por fila + precios ARG (data912/byma) y CEDEARs/BTC (yahoo), con caché + override; después posiciones+KPIs+vista (paso 4).

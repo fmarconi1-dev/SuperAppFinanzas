@@ -7,9 +7,10 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 ## 2026-07-23 (tarde) — Excel-oráculo actualizado + reconciliado 20/20 + modelo M9
 **Autor:** Claude (Opus 4.8), con Franco.
 - Franco pasó el export completo de inviu + la Tenencia del broker. Se reconstruyó `Inversiones.xlsx` (con respaldo): export + saldos sintéticos + ajuste de ratio SPY (+70); Procesado con Moneda alineada; Config + Resumen corregidos; MEP/BTC al día. **Recalc con LibreOffice: 20/20 posiciones exactas vs broker.** El parser reprodujo 19/20 solo con movimientos → validación fuerte del motor.
-- **M9** (aditiva, `core/db.py`): tablas `cartera_instrumentos`, `cartera_movimientos` (dedupe por `UNIQUE(user_id, hash_dedupe)`, `tc_mep` para paso 3), `cartera_precios_cache`; scope por user_id. `tests/test_cartera_db.py` (8). Suite **165 en verde**.
+- **M9** (aditiva, `core/db.py`): tablas `cartera_instrumentos`, `cartera_movimientos` (dedupe por `UNIQUE(user_id, hash_dedupe)`, `tc_mep` para paso 3), `cartera_precios_cache`; scope por user_id. `tests/test_cartera_db.py` (8).
+- **Ingest** (`ingest.py` + `posiciones.py`): carga de instrumentos desde Config + import de movimientos con dedupe; posiciones portando `Resumen Cartera`. Gate `tests/test_cartera_recon.py` **reconcilia exacto** contra el Excel (verificado con recalc; skip elegante sin Excel/caché). `tests/test_cartera_ingest.py` (5). Suite **170 passed, 1 skipped**.
 - Convención `Borrar/` para basura de git del mount OneDrive (gitignoreada).
-**Próximo:** ingest (parser → DB) con recon contra el Excel, luego `core/market_data`.
+**Próximo:** `core/market_data` (paso 3) — MEP histórico + precios ARG/CEDEARs/BTC con caché + override.
 
 ---
 

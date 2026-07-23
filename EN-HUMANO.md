@@ -9,6 +9,19 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 23 de julio de 2026 (noche) — La app ya carga tu cartera y se autoexamina contra el Excel
+
+**Qué se hizo (en criollo):**
+Enseñamos a la app a **cargar tus movimientos en su memoria** (leyendo el archivo del broker) sin duplicar nada si subís el mismo archivo dos veces, y a **calcular cuántas unidades tenés de cada cosa**. Lo más importante: dejamos una prueba automática que agarra los movimientos, calcula las tenencias por su cuenta, y **las compara contra tu planilla** — y dan idénticas. Es la "regla de oro" del proyecto funcionando: la app no vale hasta que sus números coinciden con el Excel.
+
+**Para qué te sirve:**
+Es la garantía de que, cuando la cartera esté en pantalla, los números van a ser los de siempre — verificados, no inventados.
+
+**Qué sigue:**
+Conectar los precios de mercado: el dólar MEP de cada fecha (para valuar con el cambio correcto) y las cotizaciones de acciones/CEDEARs/bonos.
+
+---
+
 ## 23 de julio de 2026 (tarde) — Tu Excel al día, cuadrado con el broker, y la "memoria" de la app lista
 
 **Qué se hizo (en criollo):**
