@@ -47,7 +47,13 @@
 >
 > **Rendimiento completo ✅ HECHO (2026-07-23, a pedido de Franco — adelanta parte de 3b).** Las amortizaciones son rendimiento y no se computaban ($6.345.528 en flujos afuera), y las 6 letras vencidas figuraban con cantidad residual. Ahora: **cierre de vencidos** usando la señal del propio Excel (`Config!L = NO`, sin heurísticas) y **rendimiento completo** (realizado en ventas + no realizado + amortizaciones/rentas/dividendos) **en ARS y en USD al MEP del día de cada operación**. ⚠️ Bug corregido en el camino: la amortización devuelve **capital + interés** — sin descontar el capital, las letras daban ~100-113%; se agregó `costo_amortizado_*`. Tras el fix, cada letra reproduce exactamente el cálculo manual (S15G5 +3,8% ARS / **−3,6% USD**).
 >
-> **Números reales:** invertido $33.203.225 (US$25.219) → **resultado $10.398.493 (US$4.273) = +31,3% en pesos, +16,9% en dólares**. Sin posiciones sin precio. Suite **206 passed, 1 skipped** + **recon verde**.
+> ⚠️ **CORREGIDO (mismo día, lo detectó Franco).** Los primeros números (+31,3% / +16,9% sobre US$25.219 "invertidos") **eran incorrectos**. Tres errores: (1) el denominador era la suma de todas las compras — capital *rotado*, que cuenta la misma plata cada vez que se reinvierte — en vez del **capital aportado** (depósitos − retiros); (2) los **saldos iniciales sintéticos están en USD** (las 3 compras suman exacto el depósito que las cubre) y se tomaban como ARS, subvaluando el capital inicial ~1.000×; (3) **la suma por instrumento no sirve como total de cartera**: al pasar importes USD a pesos con el TC de cada fecha, la devaluación infla el resultado — verificado en pesos (sin efecto FX): $9,92M por componentes contra $2,27M por patrimonio.
+>
+> **Método adoptado: patrimonio** (el único verificable; es el que define el panel `General` del Excel): `resultado = (tenencia + efectivo) − (depósitos − retiros)`, cada aporte al MEP de su fecha. `saldos_efectivo()` reconstruye el cash y se contrastó contra el broker (ARS $27.530 vs $26.069; USD 72 vs 54,5).
+>
+> **Números correctos:** capital aportado $13.162.628 (**US$11.338**) · patrimonio hoy $15.544.931 (US$10.137) → **+$2.382.303 (+18,1%) en pesos, −US$1.201 (−10,6%) en dólares**. Suite **209 passed, 1 skipped** + **recon verde**.
+>
+> 🧭 **Lección para quien siga:** todo agregado de una cartera bimonetaria debe contrastarse contra una identidad contable independiente (patrimonio vs aportes) **antes** de mostrarse. Sumar operación por operación parece razonable y da resultados muy equivocados.
 >
 > 📌 **Nota para el gate:** `tests/test_cartera_recon.py` llama a `posiciones()` **sin** instrumentos a propósito — compara el plano que calcula el Excel (cantidades brutas). El cierre de vencidos es una capa deliberada por encima de la planilla; pasar instrumentos ahí haría fallar el recon por la mejora, no por un error.
 >

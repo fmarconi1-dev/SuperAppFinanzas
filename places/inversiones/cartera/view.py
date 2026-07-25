@@ -29,9 +29,13 @@ from places.inversiones.cartera.ingest import (
     congelar_tc_mep,
     importar_movimientos,
 )
-from places.inversiones.cartera.kpis import kpis_de, valuar
+from places.inversiones.cartera.kpis import completar_patrimonio, kpis_de, valuar
 from places.inversiones.cartera.parser import Instrumento, parse_archivo_excel
-from places.inversiones.cartera.posiciones import posiciones_desde_db
+from places.inversiones.cartera.posiciones import (
+    capital_aportado,
+    posiciones_desde_db,
+    saldos_efectivo,
+)
 
 #: Usuarios habilitados a ver Cartera (ADR-0003: "solo Franco por ahora,
 #: generalizable"). Cada usuario ve SU cartera; la lista solo controla el
@@ -265,6 +269,10 @@ def render(user_id: int | None = None) -> None:
 
     valuadas = valuar(posiciones, _resolver, instrumentos, mep_actual=mep)
     k = kpis_de(valuadas, mep)
+    with connect() as conn:
+        capital = capital_aportado(conn, uid)
+        cash_ars, cash_usd = saldos_efectivo(conn, uid)
+    completar_patrimonio(k, capital, cash_ars, cash_usd, mep)
 
     # ---- KPIs -----------------------------------------------------------
     tono = "positivo" if k.resultado_ars >= 0 else "negativo"
@@ -300,35 +308,40 @@ def render(user_id: int | None = None) -> None:
         )
 
     # ---- Rendimiento histórico total (incluye lo cobrado y lo vendido) ---
-    st.markdown("#### Rendimiento total")
+    st.markdown("#### Cómo te fue en total")
     st.caption(
-        "Todo lo invertido desde el inicio: resultado de las ventas + "
-        "amortizaciones, rentas y dividendos cobrados + lo no realizado de la "
-        "tenencia actual. En dólares, cada operación se convierte al MEP del "
-        "día en que se hizo."
+        "Lo que hoy vale todo (tenencia + efectivo) contra el capital que "
+        "realmente aportaste (depósitos − retiros). Cada aporte se convierte "
+        "al MEP del día en que se hizo, así el rendimiento en dólares refleja "
+        "el tipo de cambio real de cada movimiento."
     )
     tot_ars, tot_usd = k.resultado_total_ars, k.resultado_total_usd
     r1, r2, r3, r4 = st.columns(4)
     with r1:
-        st.html(_kpi_card("Invertido (histórico)", _fmt(k.invertido_ars, 0, "$"),
-                          f"US$ {_fmt(k.invertido_usd, 0)} al TC de cada compra"))
+        st.html(_kpi_card("Capital aportado", _fmt(k.aportado_ars, 0, "$"),
+                          f"US$ {_fmt(k.aportado_usd, 0)} al TC de cada aporte"))
     with r2:
+        st.html(_kpi_card("Patrimonio hoy", _fmt(k.patrimonio_ars, 0, "$"),
+                          f"US$ {_fmt(k.patrimonio_usd, 0)} · tenencia + efectivo"))
+    with r3:
         st.html(_kpi_card(
             "Resultado en pesos",
             f"{'+' if tot_ars >= 0 else '−'}{_fmt(abs(tot_ars), 0, '$')}",
             f"{'▲' if tot_ars >= 0 else '▼'} {_fmt(k.rendimiento_total_pct, 1)}%",
             "positivo" if tot_ars >= 0 else "negativo"))
-    with r3:
+    with r4:
         st.html(_kpi_card(
             "Resultado en dólares",
             f"{'+' if tot_usd >= 0 else '−'}US$ {_fmt(abs(tot_usd), 0)}",
             f"{'▲' if tot_usd >= 0 else '▼'} {_fmt(k.rendimiento_total_usd_pct, 1)}%"
-            " · MEP de cada fecha",
+            " · el número que importa",
             "positivo" if tot_usd >= 0 else "negativo"))
-    with r4:
-        st.html(_kpi_card("Cobrado (rentas y amortiz.)",
-                          _fmt(k.flujos_ars, 0, "$"),
-                          f"US$ {_fmt(k.flujos_usd, 0)} · dividendos incluidos"))
+    st.caption(
+        f"Cobrado en el camino: {_fmt(k.flujos_ars, 0, '$')} de amortizaciones, "
+        f"rentas y dividendos (ya incluido arriba). El resultado por ticker de "
+        "la tabla no suma al total: al convertir dólares a pesos, la "
+        "devaluación infla los resultados individuales."
+    )
 
     # ---- Tabla de posiciones -------------------------------------------
     st.markdown("#### Posiciones")

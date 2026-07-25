@@ -338,9 +338,18 @@ def _parse_fila(celdas: list, idx: dict[str, Instrumento]) -> Movimiento | None:
     es_instrumento = _es_instrumento(categoria, ticker_crudo, idx)
     es_saldo_inicial = "saldo inicial" in _norm(descripcion)
 
-    moneda = _inferir_moneda(
-        categoria, ticker_crudo, inst, monto, moneda_decl, advertencias,
-    )
+    if es_saldo_inicial:
+        # Los saldos iniciales sintéticos están denominados en USD: sus
+        # precios lo delatan (AE38D 0,6158 de paridad; BTC 98.094,78; GGAL
+        # 4,49 — imposible en pesos) y las compras iniciales suman EXACTO el
+        # depósito sintético que las cubre, así que todo el bloque comparte
+        # moneda. El export no trae la columna Moneda en esas filas, y
+        # tratarlas como ARS subvaluaba el capital inicial ~1.000 veces.
+        moneda = "USD"
+    else:
+        moneda = _inferir_moneda(
+            categoria, ticker_crudo, inst, monto, moneda_decl, advertencias,
+        )
 
     precio_norm = None
     if precio and inst is not None and inst.divide_por_100:

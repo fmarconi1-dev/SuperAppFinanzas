@@ -227,7 +227,7 @@ def test_dividendos_suman_al_rendimiento():
     assert v.rendimiento_pct == pytest.approx(18.0)
 
 
-def test_kpis_totales_del_rendimiento_completo():
+def test_kpis_componentes_del_rendimiento():
     from places.inversiones.cartera.posiciones import _InstrumentoMin
     filas = [
         # viva: compra 10 @100, vale 110 → +100 no realizado
@@ -243,8 +243,50 @@ def test_kpis_totales_del_rendimiento_completo():
     assert k.flujos_ars == pytest.approx(1050.0)
     assert k.costo_amortizado_ars == pytest.approx(1000.0)
     assert k.no_realizado_ars == pytest.approx(100.0)
-    assert k.resultado_total_ars == pytest.approx(150.0)   # 100 + 50
-    assert k.rendimiento_total_pct == pytest.approx(7.5)   # 150 / 2000
-    # La tenencia viva sigue midiéndose aparte.
+    # La tenencia viva se mide aparte del rendimiento total.
     assert k.valor_total_ars == pytest.approx(1100.0)
     assert k.resultado_ars == pytest.approx(100.0)
+
+
+# ---------------------------------------------------------------------------
+# Rendimiento total: método del patrimonio (el único verificable)
+# ---------------------------------------------------------------------------
+
+class _Cap:
+    """Stub de CapitalAportado."""
+    def __init__(self, ars, usd):
+        self.neto_ars, self.neto_usd = ars, usd
+
+
+def test_rendimiento_total_por_patrimonio():
+    """Aportó $1.000 (US$1 a TC 1000) y hoy tiene $1.200 con MEP 1200:
+    ganó 20% en pesos y 0% en dólares."""
+    from places.inversiones.cartera.kpis import completar_patrimonio
+    pos = {"A": Posicion("A", cant_comprada=10, costo_ars_compras=1000.0)}
+    k = kpis_de(valuar(pos, _resolver_fijo({"A": 120.0}), mep_actual=1200.0), mep=1200.0)
+    completar_patrimonio(k, _Cap(1000.0, 1.0), cash_ars=0.0, cash_usd=0.0, mep=1200.0)
+    assert k.patrimonio_ars == pytest.approx(1200.0)
+    assert k.patrimonio_usd == pytest.approx(1.0)
+    assert k.resultado_total_ars == pytest.approx(200.0)
+    assert k.rendimiento_total_pct == pytest.approx(20.0)
+    assert k.resultado_total_usd == pytest.approx(0.0)      # en dólares, empató
+    assert k.rendimiento_total_usd_pct == pytest.approx(0.0)
+
+
+def test_patrimonio_suma_el_efectivo_de_las_dos_monedas():
+    from places.inversiones.cartera.kpis import completar_patrimonio
+    k = kpis_de([], mep=1000.0)
+    completar_patrimonio(k, _Cap(0.0, 0.0), cash_ars=5000.0, cash_usd=10.0, mep=1000.0)
+    assert k.patrimonio_ars == pytest.approx(15000.0)   # 5000 + 10×1000
+    assert k.patrimonio_usd == pytest.approx(15.0)      # 10 + 5000/1000
+
+
+def test_perdida_en_dolares_con_ganancia_en_pesos():
+    """El caso real de Franco: sube en pesos, baja en dólares."""
+    from places.inversiones.cartera.kpis import completar_patrimonio
+    pos = {"A": Posicion("A", cant_comprada=10, costo_ars_compras=1000.0)}
+    k = kpis_de(valuar(pos, _resolver_fijo({"A": 118.0}), mep_actual=1500.0), mep=1500.0)
+    completar_patrimonio(k, _Cap(1000.0, 1.0), cash_ars=0.0, cash_usd=0.0, mep=1500.0)
+    assert k.resultado_total_ars > 0        # +18% en pesos
+    assert k.resultado_total_usd < 0        # pero perdió en dólares
+    assert k.rendimiento_total_usd_pct == pytest.approx(-21.33, rel=1e-2)

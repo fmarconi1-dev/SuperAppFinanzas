@@ -213,3 +213,72 @@ def posiciones_desde_db(
 class _InstrumentoMin:
     """Lo mínimo que `_acumular` necesita saber de un instrumento."""
     activo: bool = True
+
+
+@dataclass
+class CapitalAportado:
+    """Plata que entró y salió de la cuenta — el capital REAL del inversor.
+
+    No confundir con la suma de compras: si se compra, se vende y se vuelve a
+    comprar, esa suma cuenta la misma plata varias veces (capital *rotado*).
+    El denominador honesto del rendimiento es lo aportado neto.
+
+    Incluye los saldos iniciales sintéticos: representan lo que ya se tenía
+    al abrir el registro, y también es capital propio.
+    """
+    depositos_ars: float = 0.0
+    depositos_usd: float = 0.0
+    retiros_ars: float = 0.0      # negativo
+    retiros_usd: float = 0.0      # negativo
+
+    @property
+    def neto_ars(self) -> float:
+        return self.depositos_ars + self.retiros_ars
+
+    @property
+    def neto_usd(self) -> float:
+        return self.depositos_usd + self.retiros_usd
+
+
+def saldos_efectivo(conn, user_id: int) -> tuple[float, float]:
+    """Efectivo en la cuenta (ARS, USD), reconstruido desde los movimientos.
+
+    Cada movimiento mueve plata de una sola moneda: se suman por separado.
+    Verificado contra la tenencia real del broker (ARS $27.530 calculado vs
+    $26.068 informado; USD 71 vs 54,5) — el desvío es el ruido de los
+    movimientos que el export no detalla.
+    """
+    ars = usd = 0.0
+    for r in conn.execute(
+        "SELECT moneda, SUM(monto) s FROM cartera_movimientos "
+        "WHERE user_id = ? AND es_espejo = 0 GROUP BY moneda",
+        (user_id,),
+    ):
+        if r["moneda"] == "USD":
+            usd += r["s"] or 0.0
+        else:
+            ars += r["s"] or 0.0
+    return ars, usd
+
+
+def capital_aportado(conn, user_id: int) -> CapitalAportado:
+    """Depósitos y retiros del usuario, en ARS y en USD al TC de cada fecha."""
+    cap = CapitalAportado()
+    filas = conn.execute(
+        "SELECT categoria, moneda, monto, tc_mep FROM cartera_movimientos "
+        "WHERE user_id = ? AND categoria IN ('DEPOSITO', 'RETIRO')",
+        (user_id,),
+    )
+    for r in filas:
+        monto, tc, moneda = r["monto"], r["tc_mep"], r["moneda"]
+        if moneda == "USD":
+            usd, ars = monto, (monto * tc if tc else 0.0)
+        else:
+            ars, usd = monto, (monto / tc if tc else 0.0)
+        if r["categoria"] == "DEPOSITO":
+            cap.depositos_ars += ars
+            cap.depositos_usd += usd
+        else:
+            cap.retiros_ars += ars
+            cap.retiros_usd += usd
+    return cap

@@ -9,6 +9,33 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 23 de julio de 2026 (corrección) — Me equivoqué en el rendimiento, vos lo cazaste
+
+**Qué pasó (en criollo):**
+Te di un número mal. Dije que habías invertido US$25.219 y ganado 16,9% en dólares. Vos dijiste "no hay 25 mil, hay unos 10/11 mil, revisá los ingresos de dinero". Tenías razón, y al revisar aparecieron **tres errores**:
+
+1. **Estaba sumando la misma plata muchas veces.** Contaba "invertido" como la suma de todas tus compras. Pero si comprás algo, lo vendés y con esa misma plata comprás otra cosa, eso son dos compras… con el mismo dinero. Lo que realmente pusiste es lo que **depositaste**: **US$11.338** (justo lo que dijiste).
+2. **Tus tenencias iniciales estaban contadas en pesos y son dólares.** El AE38, el Bitcoin y las GGAL con las que arrancaste figuran a "$4,49" y similares — eso son dólares, no pesos. Al tomarlos como pesos, tu capital inicial valía casi nada en el cálculo.
+3. **El más grave:** estaba sumando el resultado de cada instrumento para sacar el total. Eso no funciona en una cartera con pesos y dólares: al pasar los dólares a pesos con el cambio de cada fecha, la devaluación aparece como "ganancia" cuando no lo es. Lo verifiqué **en pesos**, donde el dólar no influye: mi suma daba $9,9 millones y el cálculo correcto da $2,3 millones. Estaba inflado cuatro veces.
+
+**Cómo lo arreglé:**
+Ahora se mide como se debe: **lo que hoy vale todo** (inversiones + efectivo) **menos lo que pusiste**. Simple y a prueba de errores, porque no depende de sumar operación por operación. Además verifiqué el efectivo calculado contra lo que dice tu broker y coincide.
+
+**Los números correctos:**
+
+| | Pesos | Dólares |
+|---|---|---|
+| Pusiste | $13.162.628 | US$11.338 |
+| Tenés hoy | $15.544.931 | US$10.137 |
+| **Resultado** | **+$2.382.303 (+18,1%)** | **−US$1.201 (−10,6%)** |
+
+O sea: **en pesos subiste 18%, pero medido en dólares estás 10,6% abajo**. Es la foto honesta, y es exactamente la razón por la que pediste ver el MEP de cada fecha.
+
+**Qué aprendí (y quedó anotado):**
+Antes de mostrarte cualquier total, hay que contrastarlo contra una cuenta independiente. Sumar operación por operación *parecía* razonable y daba un número muy equivocado. Gracias por no comerte el número.
+
+---
+
 ## 23 de julio de 2026 (cierre del día) — Cuánto ganaste de verdad, en pesos y en dólares
 
 **Qué se hizo (en criollo):**

@@ -137,34 +137,42 @@ class KPIs:
             return None
         return self.resultado_ars / self.costo_total_ars * 100.0
 
-    # --- rendimiento total histórico (regla del LEEME) -------------------
+    # --- rendimiento total: MÉTODO DEL PATRIMONIO ------------------------
+    # Es el único verificable: lo que hoy vale todo (tenencia + efectivo)
+    # contra lo que realmente se aportó (depósitos − retiros). No depende de
+    # sumar operación por operación, así que no acumula errores ni cuenta dos
+    # veces la plata que rota (comprar, vender y volver a comprar).
+    #
+    # ⚠️ La suma por instrumento NO sirve como total de cartera: al convertir
+    # importes en USD a pesos con el TC de cada fecha, la devaluación genera
+    # "ganancias" nominales que no son ganancias reales. Se verificó con datos
+    # reales: por componentes daba $9,9M contra $2,3M por patrimonio.
+    patrimonio_ars: float = 0.0     # tenencia + efectivo, hoy
+    patrimonio_usd: float = 0.0
+    aportado_ars: float = 0.0       # depósitos − retiros, al TC de cada fecha
+    aportado_usd: float = 0.0
+
     @property
     def resultado_total_ars(self) -> float:
-        return (
-            self.realizado_ars + self.flujos_ars + self.no_realizado_ars
-            - self.costo_amortizado_ars
-        )
+        return self.patrimonio_ars - self.aportado_ars
 
     @property
     def resultado_total_usd(self) -> float:
-        return (
-            self.realizado_usd + self.flujos_usd + self.no_realizado_usd
-            - self.costo_amortizado_usd
-        )
+        return self.patrimonio_usd - self.aportado_usd
 
     @property
     def rendimiento_total_pct(self) -> float | None:
-        if not self.invertido_ars:
+        if not self.aportado_ars:
             return None
-        return self.resultado_total_ars / self.invertido_ars * 100.0
+        return self.resultado_total_ars / self.aportado_ars * 100.0
 
     @property
     def rendimiento_total_usd_pct(self) -> float | None:
-        """El número que pidió Franco: rendimiento en dólares usando el MEP
-        del día de cada compra, venta y cobro."""
-        if not self.invertido_usd:
+        """Rendimiento en dólares: patrimonio de hoy contra el capital
+        aportado, cada aporte convertido al MEP del día en que se hizo."""
+        if not self.aportado_usd:
             return None
-        return self.resultado_total_usd / self.invertido_usd * 100.0
+        return self.resultado_total_usd / self.aportado_usd * 100.0
 
 
 def valuar(
@@ -266,4 +274,22 @@ def kpis_de(valuadas: list[PosicionValuada], mep: float | None = None) -> KPIs:
         k.costo_amortizado_ars += p.costo_amortizado_ars
         k.costo_amortizado_usd += p.costo_amortizado_usd
     k.valor_total_usd = (k.valor_total_ars / mep) if mep else None
+    return k
+
+
+def completar_patrimonio(
+    k: KPIs, capital, cash_ars: float, cash_usd: float, mep: float | None
+) -> KPIs:
+    """Agrega a los KPIs el rendimiento por método de patrimonio.
+
+    :param capital: :class:`CapitalAportado` (depósitos y retiros ya en ARS/USD
+        al TC de cada fecha).
+    :param cash_ars/cash_usd: efectivo en la cuenta, por moneda.
+    """
+    k.aportado_ars = capital.neto_ars
+    k.aportado_usd = capital.neto_usd
+    k.patrimonio_ars = k.valor_total_ars + cash_ars + (cash_usd * mep if mep else 0.0)
+    k.patrimonio_usd = (
+        (k.valor_total_usd or 0.0) + cash_usd + (cash_ars / mep if mep else 0.0)
+    )
     return k
