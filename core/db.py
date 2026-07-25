@@ -104,6 +104,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
       M3–M8.5 (Fase 3/D2): reclasificaciones + scope por user_id y luego por
                     workspace_id (grupo familiar) — ver bloques abajo.
       M9 (Fase 3a): tablas de cartera nativa (aditivas, scope por user_id).
+      M10 (Fase 3a): foto de tenencia del broker (los movimientos no alcanzan
+                    para reconstruir la cartera: ver comentario del bloque).
     """
     cur = conn.cursor()
     cur.execute("BEGIN")
@@ -687,6 +689,48 @@ def _migrate(conn: sqlite3.Connection) -> None:
             "CREATE INDEX IF NOT EXISTS idx_cartera_mov_fecha "
             "ON cartera_movimientos(fecha_concertacion)"
         )
+        # ============================================================
+        # M10 (Fase 3a): foto de tenencia del broker.
+        # ============================================================
+        # El export de movimientos NO alcanza para reconstruir la cartera:
+        #   * ajustes de ratio de CEDEAR (SPY) no generan movimiento;
+        #   * pagarés/cheques ("Compra cheque") traen el monto pero NO la
+        #     cantidad — en la cartera de Franco eso era el 35% del total.
+        # Por eso se guarda la tenencia informada por el broker: los
+        # movimientos aportan el histórico (costos, aportes, rendimiento) y
+        # esta tabla la foto actual (cantidades y precios de referencia).
+        # La diferencia entre ambas ES la reconciliación contra el custodio.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS cartera_tenencia (
+                user_id          INTEGER NOT NULL,
+                fecha_valuacion  TEXT NOT NULL,
+                ticker           TEXT NOT NULL,
+                nombre           TEXT,
+                cantidad         REAL NOT NULL DEFAULT 0,
+                precio           REAL,
+                moneda           TEXT NOT NULL DEFAULT 'ARS',
+                tipo_activo      TEXT,
+                costo_ppc        REAL,
+                PRIMARY KEY (user_id, fecha_valuacion, ticker)
+            )
+        """)
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cartera_tenencia_user "
+            "ON cartera_tenencia(user_id, fecha_valuacion)"
+        )
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS cartera_tenencia_meta (
+                user_id          INTEGER NOT NULL,
+                fecha_valuacion  TEXT NOT NULL,
+                mep              REAL,
+                ccl              REAL,
+                efectivo_ars     REAL NOT NULL DEFAULT 0,
+                efectivo_usd     REAL NOT NULL DEFAULT 0,
+                importado_en     TEXT NOT NULL DEFAULT (datetime('now')),
+                PRIMARY KEY (user_id, fecha_valuacion)
+            )
+        """)
+
         cur.execute("""
             CREATE TABLE IF NOT EXISTS cartera_precios_cache (
                 ticker          TEXT NOT NULL,

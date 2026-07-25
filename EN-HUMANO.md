@@ -9,6 +9,31 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 23 de julio de 2026 (corrección 2) — Faltaba el 35% de tu cartera: el pagaré
+
+**Qué pasó (en criollo):**
+Me dijiste "en dólares hay 15.489, como dice en las tenencias" y tenías razón: yo mostraba US$10.047. **Faltaba tu pagaré** (`#UMV060770008`): 5.500 unidades que valen **US$5.359** — más de un tercio de tu cartera.
+
+¿Por qué faltaba? Porque el archivo de **movimientos** del broker registra la compra del pagaré con el monto que pagaste, pero **sin decir cuántas unidades compraste**. Sin ese dato es imposible saber cuánto tenés. Lo mismo pasó con el ajuste de SPY: el broker cambió la relación del CEDEAR sin generar ningún movimiento.
+
+**La conclusión importante:** el archivo de movimientos **solo no alcanza** para armar tu cartera. Ahora la app usa **dos archivos**: el de movimientos (que aporta la historia: qué pagaste, cuánto depositaste, cuánto rendiste) y el de **tenencias** (que aporta la foto de hoy: qué tenés exactamente). Y compara ambos: esa comparación es el control de que nada se escape.
+
+También marcaste bien lo del **Bitcoin**: como está fuera del broker, no aparece en el archivo de tenencias. La app lo contempla — si algo no está en la tenencia pero sí en tus movimientos, lo conserva.
+
+**Los números, ahora completos:**
+
+| | Pesos | Dólares |
+|---|---|---|
+| Pusiste | $13.162.628 | US$11.338 |
+| Tenés hoy | $23.946.439 | US$15.757 |
+| **Resultado** | **+$10.783.811 (+81,9%)** | **+US$4.419 (+39,0%)** |
+
+(Incluye el Bitcoin, US$192, que el broker no ve.)
+
+**De regalo, la comparación encontró un error en tu Excel:** tenés **ASML** marcado como "Activo en cartera = NO", pero el broker dice que tenés 15. Conviene corregirlo en la planilla.
+
+---
+
 ## 23 de julio de 2026 (corrección) — Me equivoqué en el rendimiento, vos lo cazaste
 
 **Qué pasó (en criollo):**

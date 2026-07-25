@@ -44,6 +44,11 @@ class Posicion:
     #: (vencido/canjeado): su tenencia ya no existe aunque los movimientos
     #: históricos sigan en la DB.
     activo: bool = True
+    #: Cantidad informada por el broker en su export de Tenencias. Cuando
+    #: está presente **manda sobre lo derivado de movimientos**: hay
+    #: posiciones que el flujo de movimientos no permite reconstruir
+    #: (pagarés sin cantidad, ajustes de ratio de CEDEAR sin movimiento).
+    cant_broker: float | None = None
 
     @property
     def cant_remanente(self) -> float:
@@ -52,9 +57,15 @@ class Posicion:
 
     @property
     def cant_actual(self) -> float:
-        """Unidades en cartera. Un instrumento vencido no tiene tenencia:
-        amortizó (devolvió el capital) sin registrar una venta que descuente
-        cantidad — el broker manda AMORTIZACION con cantidad 0."""
+        """Unidades en cartera.
+
+        Precedencia: la tenencia del broker (si se importó) → lo derivado de
+        movimientos. Un instrumento vencido no tiene tenencia: amortizó
+        (devolvió el capital) sin registrar una venta que descuente cantidad
+        — el broker manda AMORTIZACION con cantidad 0.
+        """
+        if self.cant_broker is not None:
+            return self.cant_broker
         if not self.activo:
             return 0.0
         return self.cant_remanente

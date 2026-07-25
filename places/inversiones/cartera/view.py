@@ -36,6 +36,12 @@ from places.inversiones.cartera.posiciones import (
     posiciones_desde_db,
     saldos_efectivo,
 )
+from places.inversiones.cartera.tenencias import (
+    comparar_con_movimientos,
+    guardar_foto,
+    parse_tenencias,
+    ultima_foto,
+)
 
 #: Usuarios habilitados a ver Cartera (ADR-0003: "solo Franco por ahora,
 #: generalizable"). Cada usuario ve SU cartera; la lista solo controla el
@@ -72,6 +78,31 @@ def _mep_actual() -> tuple[float | None, str]:
 def _precio_btc_usd() -> float | None:
     """BTC no cotiza en el mercado local: se toma de yahoo, en USD."""
     return precio_yahoo("BTC-USD")
+
+
+def _aplicar_tenencia(posiciones: dict, foto, instrumentos: dict) -> dict:
+    """Cruza las posiciones derivadas de movimientos con la foto del broker.
+
+    * Ticker **en la tenencia** → manda la cantidad del broker (cubre pagarés
+      sin cantidad y ajustes de ratio que no generan movimiento).
+    * Ticker **ausente** de la tenencia → se conserva lo derivado de
+      movimientos: hay tenencias reales fuera del broker (el **Bitcoin**, que
+      no está en inviu). Las posiciones cerradas ya dan 0 por su marca de
+      instrumento inactivo, así que no ensucian.
+    """
+    from places.inversiones.cartera.posiciones import Posicion
+
+    fusionadas = dict(posiciones)
+    for t in foto.posiciones:
+        p = fusionadas.get(t.ticker)
+        if p is None:
+            # Posición que los movimientos no conocen (p. ej. el pagaré):
+            # se crea con la cantidad del broker. Sin costo derivable: su
+            # "resultado" queda en 0 hasta que haya de dónde sacarlo.
+            p = Posicion(t.ticker)
+            fusionadas[t.ticker] = p
+        p.cant_broker = t.cantidad
+    return fusionadas
 
 
 def _instrumentos_de_db(conn, user_id: int) -> dict[str, Instrumento]:
@@ -204,11 +235,12 @@ def render(user_id: int | None = None) -> None:
         return
 
     with connect() as conn:
-        posiciones = posiciones_desde_db(conn, uid)
         instrumentos = _instrumentos_de_db(conn, uid)
+        posiciones = posiciones_desde_db(conn, uid, instrumentos or None)
         hay_movimientos = conn.execute(
             "SELECT 1 FROM cartera_movimientos WHERE user_id = ? LIMIT 1", (uid,)
         ).fetchone() is not None
+        foto = ultima_foto(conn, uid)
 
     with st.expander("Cargar movimientos del broker", expanded=not hay_movimientos):
         archivo = st.file_uploader(
@@ -217,6 +249,14 @@ def render(user_id: int | None = None) -> None:
             key="cartera_upload",
             help="inviu → Movimientos → Todos → Exportar. Reimportar el mismo "
                  "archivo no duplica nada.",
+        )
+        archivo_ten = st.file_uploader(
+            "Tenencia del broker (.xlsx) — opcional pero recomendado",
+            type=["xlsx"],
+            key="cartera_upload_tenencia",
+            help="inviu → Tenencias → Exportar. Necesaria para las posiciones "
+                 "que los movimientos no permiten derivar: pagarés/cheques (que "
+                 "no traen cantidad) y ajustes de ratio de CEDEARs.",
         )
         col_a, col_b = st.columns([1, 2])
         with col_a:
@@ -227,6 +267,21 @@ def render(user_id: int | None = None) -> None:
                 with st.spinner("Procesando el export…"):
                     _procesar_carga(archivo, uid)
                 st.rerun()
+            if st.button(
+                "Importar tenencia", key="cartera_btn_tenencia",
+                disabled=archivo_ten is None, use_container_width=True,
+            ):
+                try:
+                    nueva = parse_tenencias(archivo_ten)
+                    with connect() as conn:
+                        n = guardar_foto(conn, nueva, uid)
+                    st.success(
+                        f"Tenencia al {nueva.fecha_valuacion:%d/%m/%Y} importada: "
+                        f"{n} posiciones.", icon=":material/check_circle:")
+                    st.rerun()
+                except Exception as exc:  # noqa: BLE001 — se muestra al usuario
+                    st.error(f"No se pudo leer la tenencia: {exc}",
+                             icon=":material/error:")
         with col_b:
             excel = st.text_input(
                 "Ruta del Excel para el mapa de instrumentos (opcional)",
@@ -267,11 +322,21 @@ def render(user_id: int | None = None) -> None:
                 divide_por_100=bool(inst and inst.divide_por_100),
             )
 
+    # La tenencia del broker manda sobre las cantidades: hay posiciones que
+    # los movimientos no permiten derivar (pagarés sin cantidad, ajustes de
+    # ratio). Los movimientos siguen aportando costos e histórico.
+    difs = []
+    if foto is not None:
+        difs = comparar_con_movimientos(foto, posiciones)
+        posiciones = _aplicar_tenencia(posiciones, foto, instrumentos)
+
     valuadas = valuar(posiciones, _resolver, instrumentos, mep_actual=mep)
     k = kpis_de(valuadas, mep)
     with connect() as conn:
         capital = capital_aportado(conn, uid)
         cash_ars, cash_usd = saldos_efectivo(conn, uid)
+    if foto is not None:
+        cash_ars, cash_usd = foto.efectivo_ars, foto.efectivo_usd
     completar_patrimonio(k, capital, cash_ars, cash_usd, mep)
 
     # ---- KPIs -----------------------------------------------------------
@@ -299,6 +364,36 @@ def render(user_id: int | None = None) -> None:
     with c4:
         st.html(_kpi_card("Costo invertido", _fmt(k.costo_total_ars, 0, "$"),
                           "costo promedio ponderado"))
+
+    if foto is not None:
+        st.caption(
+            f"Posiciones según la tenencia del broker al "
+            f"{foto.fecha_valuacion:%d/%m/%Y}"
+            + (f" · {len(difs)} diferencia(s) contra los movimientos" if difs else
+               " · coincide con los movimientos")
+        )
+        if difs:
+            with st.expander(f"Reconciliación contra el broker ({len(difs)})"):
+                st.caption(
+                    "Diferencias entre lo que informa el broker y lo que se "
+                    "puede derivar de los movimientos. Son esperables en "
+                    "pagarés (el movimiento no trae cantidad), ajustes de "
+                    "ratio de CEDEARs y tenencias fuera del broker (Bitcoin)."
+                )
+                st.dataframe(
+                    pd.DataFrame(difs).rename(columns={
+                        "ticker": "Ticker", "broker": "Broker",
+                        "movimientos": "Movimientos", "diferencia": "Diferencia"}),
+                    hide_index=True, use_container_width=True,
+                )
+    else:
+        st.info(
+            "Subí también la **tenencia del broker** para que las posiciones "
+            "sean exactas: hay activos que los movimientos no permiten "
+            "reconstruir (pagarés y cheques no traen cantidad, y los ajustes "
+            "de ratio de CEDEARs no generan movimiento).",
+            icon=":material/info:",
+        )
 
     if k.posiciones_sin_precio:
         st.warning(

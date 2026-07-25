@@ -55,6 +55,12 @@
 >
 > 🧭 **Lección para quien siga:** todo agregado de una cartera bimonetaria debe contrastarse contra una identidad contable independiente (patrimonio vs aportes) **antes** de mostrarse. Sumar operación por operación parece razonable y da resultados muy equivocados.
 >
+> ⚠️ **HALLAZGO ESTRUCTURAL (M10): el export de movimientos NO alcanza para reconstruir la cartera.** Franco detectó que faltaba el 35% del total. Dos casos probados: (1) el **pagaré `#UMV060770008`** — su movimiento (`Compra cheque`) trae el monto pero **no la cantidad**, y la posición real vale **US$5.359**; (2) los **ajustes de ratio de CEDEAR** (SPY) no generan movimiento. **Solución: dos fuentes complementarias** — movimientos = histórico (costos, aportes, rendimiento); **tenencia del broker = foto actual** (cantidades y precios). Su diferencia **es** la reconciliación contra el custodio. Implementado en `tenencias.py` + **M10** (`cartera_tenencia`, `cartera_tenencia_meta`) + `Posicion.cant_broker` (manda sobre lo derivado; si el ticker **no** está en la tenencia se conserva lo derivado, porque hay tenencias fuera del broker: **el Bitcoin**).
+>
+> **Números con las dos fuentes:** patrimonio **US$15.757** (posiciones US$15.685 incl. BTC + efectivo US$72) vs tenencia del broker US$15.575 (sin BTC). Aportado US$11.338 → **+US$4.419 (+39,0%) en dólares · +$10.783.811 (+81,9%) en pesos**. Suite **218 passed, 1 skipped** + recon verde.
+>
+> 📌 **Para Franco:** la reconciliación detectó que **ASML** está marcado `Activo en cartera = NO` en `Config` del Excel pero el broker informa 15 unidades — conviene corregirlo en la planilla.
+>
 > 📌 **Nota para el gate:** `tests/test_cartera_recon.py` llama a `posiciones()` **sin** instrumentos a propósito — compara el plano que calcula el Excel (cantidades brutas). El cierre de vencidos es una capa deliberada por encima de la planilla; pasar instrumentos ahí haría fallar el recon por la mejora, no por un error.
 >
 > **Próximo: paso 5 — recon en USD modo "MEP actual"** (metodología del Excel) para cerrar la Fase 3a. Después: **merge a `main` + `fly deploy`** para verla online (hoy el trabajo vive en `fase-3a/cartera-nativa`, que Fly no despliega). Pendiente de 3b: amortizaciones **parciales** (bonos vivos que amortizan en cuotas, ej. AE38 a futuro) — hoy se cuentan como flujo sin reducir tenencia.

@@ -84,3 +84,18 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
 - La tabla por ticker se conserva como **detalle**, con la advertencia explícita en la vista de que no suma al total.
 - **Estado:** suite **209 passed, 1 skipped** + recon verde. `tests/test_cartera_kpis.py` (21, incluidos 3 del método patrimonio).
 - **Lección:** todo agregado de una cartera bimonetaria necesita contrastarse contra una identidad contable independiente (patrimonio vs aportes) antes de mostrarse. Sumar operación por operación parece razonable y da resultados muy equivocados.
+
+## 2026-07-23 — Import de Tenencias del broker (M10): los movimientos NO alcanzan
+- **Autor:** Claude (Opus 4.8). **Franco volvió a objetar:** *"en dólares hay 15.489,19, como dice en las tenencias"* — mi total daba US$10.047. Tenía razón otra vez.
+- **Causa raíz (hallazgo estructural):** el export de **movimientos no permite reconstruir la cartera**. Dos casos probados con datos reales:
+  1. **Pagaré `#UMV060770008`** — el movimiento (`Compra cheque`, 6/7/2026) trae el monto pagado (US$5.032,12) pero **no la cantidad**. La posición real (5.500 a $1.480,86 = **US$5.359**) era el **35% de la cartera** y faltaba por completo.
+  2. **Ajuste de ratio de CEDEAR (SPY)** — el broker cambia la relación y ajusta el saldo **sin postear movimiento** (ya lo habíamos parcheado a mano en el Excel).
+- **Solución — dos fuentes complementarias** (como cualquier sistema serio de cartera): los **movimientos** dan el histórico (costos, aportes, rendimiento) y la **tenencia del broker** la foto actual (cantidades y precios de referencia). Su diferencia **es** la reconciliación contra el custodio.
+  - `tenencias.py`: parser del export (bloques por tipo de activo, cabecera con fecha y TC), `guardar_foto`/`ultima_foto` y `comparar_con_movimientos`.
+  - **M10**: tablas `cartera_tenencia` + `cartera_tenencia_meta` (aditivas, scope por usuario, idempotentes por fecha).
+  - `Posicion.cant_broker`: cuando hay foto, **manda sobre lo derivado de movimientos**. Si un ticker **no** está en la tenencia se conserva lo derivado — hay tenencias reales fuera del broker: **el Bitcoin** (lo advirtió Franco: *"¿no faltan los 250 dólares del BTC?"*).
+  - Vista: uploader de tenencia + panel de reconciliación con las diferencias.
+- **Resultado con datos reales:** patrimonio **US$15.757** (posiciones US$15.685 incl. BTC US$192 + efectivo US$72) contra tenencia del broker US$15.575 (sin BTC). Aportado US$11.338 → **+US$4.419 (+39,0%) en dólares · +$10.783.811 (+81,9%) en pesos**.
+- **La reconciliación encontró un dato desactualizado en el Excel:** **ASML** figura como `Activo en cartera = NO` en `Config` pero el broker informa 15 unidades. Conviene corregirlo en la planilla.
+- **Pendiente menor:** el total del broker que calculo (US$15.575,14) difiere de los US$15.489,19 que reporta Franco en ~US$86 (0,6%); ninguna combinación de efectivo/posiciones lo explica exactamente — probablemente precios de otro momento del día. No afecta las conclusiones.
+- **Estado:** `tests/test_cartera_tenencias.py` (9). Suite **218 passed, 1 skipped** + recon verde.
