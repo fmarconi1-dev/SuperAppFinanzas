@@ -26,6 +26,7 @@ __all__ = [
     "instrumentos_desde_config",
     "cargar_instrumentos_en_db",
     "importar_movimientos",
+    "congelar_tc_mep",
 ]
 
 # Índices 0-based de las columnas de Config (G..N).
@@ -147,3 +148,47 @@ def importar_movimientos(
         conn.execute("ROLLBACK")
         raise
     return insertados, saltados
+
+
+def congelar_tc_mep(conn, serie_mep: dict[str, float], user_id: int,
+                    solo_faltantes: bool = True) -> tuple[int, list[str]]:
+    """Graba en cada movimiento el MEP de SU fecha (ADR-0003 / ADR-0004).
+
+    El TC queda **congelado por fila**: una caída futura de la fuente no
+    altera los movimientos ya importados. Para fechas sin cotización
+    (fin de semana, feriado) se usa el último día hábil anterior.
+
+    :param serie_mep: ``{'YYYY-MM-DD': valor}`` (inyectada: esta función no
+        toca la red; la trae `core.market_data.serie_mep_con_fallback`).
+    :param solo_faltantes: si es True (default) solo completa filas con
+        ``tc_mep`` NULL → idempotente y no pisa lo ya congelado.
+    :return: ``(actualizados, fechas_sin_dato)``.
+    """
+    from core.market_data.mep import mep_para_fecha  # import diferido
+
+    sql = (
+        "SELECT id, fecha_concertacion FROM cartera_movimientos WHERE user_id = ?"
+    )
+    if solo_faltantes:
+        sql += " AND tc_mep IS NULL"
+    filas = conn.execute(sql, (user_id,)).fetchall()
+
+    actualizados = 0
+    sin_dato: list[str] = []
+    conn.execute("BEGIN")
+    try:
+        for fila in filas:
+            tc = mep_para_fecha(serie_mep, fila["fecha_concertacion"])
+            if tc is None:
+                sin_dato.append(fila["fecha_concertacion"])
+                continue
+            conn.execute(
+                "UPDATE cartera_movimientos SET tc_mep = ? WHERE id = ?",
+                (float(tc), fila["id"]),
+            )
+            actualizados += 1
+        conn.execute("COMMIT")
+    except Exception:
+        conn.execute("ROLLBACK")
+        raise
+    return actualizados, sorted(set(sin_dato))

@@ -8,7 +8,7 @@
 
 ## Estado del módulo
 **Fase de implementación:** Fase 3a / 6
-**Situación:** 🔵 En curso — parser (paso 1) + modelo M9 + ingest + reconciliación hechos; Excel-oráculo actualizado y reconciliado 20/20 contra el broker. Sigue market_data (paso 3)
+**Situación:** 🔵 En curso — pasos 1, 2 y 3 hechos (parser · modelo M9 + ingest + recon · market_data con MEP histórico y precios). Sigue el paso 4: posiciones + KPIs + vista
 
 ## Registro
 
@@ -43,3 +43,14 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
   - `tests/test_cartera_ingest.py` (5 tests, sintéticos, CI): dedupe en reimport, aislamiento por usuario, posiciones, carga de instrumentos.
   - `tests/test_cartera_recon.py` (**gate**): parte del crudo del Excel → parser → posiciones y exige que cada ticker calce con `Resumen Cartera`. **Verificado: reconcilia exacto contra el Excel recalculado.** Se saltea con mensaje claro si el Excel no está o no fue recalculado (sin valores cacheados) → no rompe CI; corre local con `CARTERA_XLSX`.
 - **Estado:** suite **170 passed, 1 skipped** (el recon, que corre local). Ingest cerrado. **Próximo:** `core/market_data` (paso 3) — MEP histórico (BCRA) para congelar `tc_mep` por fila + precios ARG (data912/byma) y CEDEARs/BTC (yahoo), con caché + override; después posiciones+KPIs+vista (paso 4).
+
+## 2026-07-23 — `core/market_data`: MEP histórico + precios (paso 3)
+- **Autor:** Claude (Opus 4.8), con Franco.
+- **⚠️ Hallazgo que corrigió una decisión cerrada:** el ADR-0003 fijó el TC histórico "vía BCRA", pero **el BCRA no publica el MEP** — su API sirve el mayorista A3500 (1.480,86 vs MEP 1.521,9 al 22/7; ~3% de brecha, subvaluaría las compras en USD). Se relevaron alternativas y **Franco eligió `argentinadatos` (MEP bolsa)** → **`docs/decisiones/ADR-0004-fuente-mep-historico.md`**. Verificado antes de decidir: cubre **419/419 días hábiles** del historial, sin faltantes.
+- **Qué se construyó** (`core/market_data/`, con `fetch` inyectable → tests sin red):
+  - `mep.py`: descarga y parseo de la serie (usa precio de **venta**), `mep_para_fecha` con **último hábil anterior** (finde/feriado), caché en `cartera_precios_cache` (ticker `MEP`), `serie_mep_con_fallback` (proveedor → caché si cae) y `set_override_mep`.
+  - `precios.py`: `precios_arg` (data912: acciones/CEDEARs/bonos; cae al mid si no hay cierre; un panel caído no tumba al resto), `precio_yahoo` (BTC/exterior), caché + `set_override_precio` y `resolver_precio` con precedencia **override → caché → proveedor**. **Normaliza bonos /100** (data912 sirve AE38 = 127.360 donde el broker muestra 1.262,6).
+  - `ingest.congelar_tc_mep`: graba el MEP de la fecha de cada operación en `cartera_movimientos.tc_mep`; **idempotente** (solo filas NULL) y no pisa lo ya congelado.
+- **Verificación real (humo contra APIs vivas):** serie de 2.826 puntos; **585 movimientos del Excel importados y TC congelado en las 585 filas, cero fechas sin dato**; 1.204 símbolos ARG vivos; AE38 resuelto en 1.273,6 (coherente con 1.262,6 del broker) y BTC vía yahoo.
+- `tests/test_market_data.py` (**18 tests**, sin red): parseo, último hábil, caché, fallback con fuente caída, override que gana, mid de puntas, panel caído, normalización /100, precedencia, congelado idempotente y reporte de fechas sin dato. Suite **188 passed, 1 skipped**.
+- **Estado:** paso 3 cerrado. **Próximo:** paso 4 — posiciones + KPIs + **vista de Cartera** (con `ui-ux-web-moderno`, obligatoria en UI), y paso 5: recon en USD modo "MEP actual" (metodología del Excel) además del histórico.

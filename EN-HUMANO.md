@@ -9,6 +9,21 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 23 de julio de 2026 (cierre) — La app ya sabe buscar precios y el dólar de cada fecha
+
+**Qué se hizo (en criollo):**
+- Conectamos la app al mercado: ya trae sola los **precios** de tus acciones, CEDEARs y bonos, y el de Bitcoin. Con tres redes de seguridad: guarda una copia de lo último que vio (si la fuente se cae, sigue funcionando), y podés **corregir cualquier precio a mano** — tu valor siempre gana.
+- Y lo más importante: le pusimos a **cada una de tus 585 operaciones el dólar MEP del día en que la hiciste**. Quedó grabado a fuego: aunque mañana cambie la fuente de datos, tus operaciones viejas no se tocan. Probado de punta a punta con tus datos reales: las 585, sin una sola fecha sin cotización.
+- **Apareció un problema y lo resolvimos con vos:** habíamos anotado que el dólar MEP histórico lo daba el Banco Central... y resulta que **el Banco Central no publica el MEP** (publica el mayorista, que va un 3% abajo y te subvaluaría las compras). Te lo planteé, elegiste otra fuente, y quedó documentado.
+
+**Para qué te sirve:**
+Es la diferencia entre "tengo 45 CEDEARs de Google" y "valen tanto, y me rindieron tanto". Además, valuar con el dólar de cada fecha es más fiel que lo que hace hoy tu Excel (que usa el dólar de hoy para todo, incluso para compras de 2024).
+
+**Qué sigue:**
+La pantalla de Cartera: ver todo esto en la app, con el botón para subir el archivo del broker.
+
+---
+
 ## 23 de julio de 2026 (noche) — La app ya carga tu cartera y se autoexamina contra el Excel
 
 **Qué se hizo (en criollo):**

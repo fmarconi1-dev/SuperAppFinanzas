@@ -3,7 +3,7 @@
 > **Este es el archivo más importante para retomar el trabajo.** Se lee primero y se actualiza último, cada sesión.
 > Antes de editar código, actualizá la tabla "Tarea en curso". Al cerrar, dejá el "Próximo paso concreto".
 
-<!-- ultima_actualizacion: 2026-07-23 · autor: Claude (Opus 4.8) · handoff: Fase 3a pasos 1 (parser) y 2 (modelo M9) hechos; Excel-oráculo actualizado y reconciliado 20/20 vs broker; sigue el ingest + market_data -->
+<!-- ultima_actualizacion: 2026-07-23 · autor: Claude (Opus 4.8) · handoff: Fase 3a pasos 1, 2 y 3 hechos (parser · M9+ingest+recon · market_data con MEP histórico); sigue el paso 4 (posiciones+KPIs+vista) -->
 
 ## 🧭 Dónde estamos
 
@@ -41,7 +41,9 @@
 >
 > **Ingest + reconciliación ✅ HECHO (2026-07-23).** `places/inversiones/cartera/ingest.py` (instrumentos desde Config + `importar_movimientos` con dedupe) y `posiciones.py` (portan `Resumen Cartera`). Gate `tests/test_cartera_recon.py`: parte del crudo del Excel → parser → posiciones y **reconcilia exacto contra `Resumen Cartera`** (verificado con el Excel recalculado; se saltea sin romper CI si no hay Excel/caché — corre local con `CARTERA_XLSX`). `tests/test_cartera_ingest.py` (5). Suite **170 passed, 1 skipped**.
 >
-> **Próximo: paso 3 — `core/market_data`.** MEP histórico (BCRA) para congelar `tc_mep` por fila + precios ARG (data912/byma) y CEDEARs/BTC (yahoo), con capa por proveedor + caché + override (ref. `gauss314/skills`). Después paso 4 (posiciones+KPIs+vista) y paso 5 (recon USD en modo MEP histórico). Todo commiteado en `fase-3a/cartera-nativa` (pendiente de push por Franco). Detalle en la bitácora del módulo.
+> **Paso 3 ✅ HECHO (2026-07-23).** `core/market_data/` con `fetch` inyectable (tests sin red): `mep.py` (serie histórica, último hábil anterior, caché, fallback, override) y `precios.py` (data912 ARG + yahoo BTC, caché, override, **bonos /100**), más `ingest.congelar_tc_mep` (idempotente). **⚠️ El BCRA NO publica MEP** (sirve el mayorista A3500: 1.480,86 vs MEP 1.521,9 al 22/7) → supuesto del ADR-0003 corregido en **ADR-0004**: fuente `argentinadatos` (elegida por Franco; cubre 419/419 días hábiles del historial). **Humo real: 585 movimientos del Excel importados con TC congelado en las 585 filas, cero fechas sin dato.** `tests/test_market_data.py` (18). Suite **188 passed, 1 skipped**.
+>
+> **Próximo: paso 4 — posiciones + KPIs + vista de Cartera** (skill `ui-ux-web-moderno` obligatoria en UI; incluye el upload del export del broker para que la cartera exista en la app). Después paso 5: recon en USD modo "MEP actual" (metodología del Excel) además del histórico. Todo commiteado en `fase-3a/cartera-nativa`. Detalle en la bitácora del módulo.
 
 1. **Parser del broker** (`places/inversiones/cartera/parser.py`) + tests. ✅ HECHO. Spec relevada del Excel:
    - **Formato viejo** (8 cols): Operación | Concertación | Liquidación | Descripción | Monto | Cantidad | Precio | Moneda. ⚠️ la col Moneda es poco confiable (hay compras ARS marcadas USD); inferir de la descripción/ticker (sufijo D = USD) y magnitudes.

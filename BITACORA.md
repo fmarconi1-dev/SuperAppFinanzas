@@ -4,6 +4,16 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-07-23 (cierre) — Fase 3a paso 3: `core/market_data` (MEP histórico + precios)
+**Autor:** Claude (Opus 4.8), con Franco.
+- **Hallazgo que corrigió una decisión cerrada:** el ADR-0003 asumía el MEP histórico "vía BCRA", pero **el BCRA no publica MEP** (sirve el mayorista A3500: 1.480,86 vs MEP 1.521,9 al 22/7). Se presentaron alternativas y Franco eligió **`argentinadatos`** → **ADR-0004**. Verificado antes de decidir: 419/419 días hábiles del historial cubiertos.
+- **`core/market_data/`** (fetch inyectable, tests sin red): `mep.py` (serie, último hábil anterior, caché, fallback, override) + `precios.py` (data912 ARG, yahoo BTC, precedencia override→caché→proveedor, bonos /100) + `ingest.congelar_tc_mep` idempotente.
+- **Humo real contra APIs vivas:** 585 movimientos del Excel importados con **TC congelado en las 585 filas, cero fechas sin dato**; 1.204 símbolos ARG; AE38 = 1.273,6 (broker: 1.262,6). `tests/test_market_data.py` (18). Suite **188 passed, 1 skipped**.
+**Por qué:** sin TC histórico y precios automáticos, la cartera no puede valuarse ni superar al Excel (que usa un único MEP actual para todo).
+**Próximo:** paso 4 — posiciones + KPIs + vista de Cartera (con upload del export).
+
+---
+
 ## 2026-07-23 (tarde) — Excel-oráculo actualizado + reconciliado 20/20 + modelo M9
 **Autor:** Claude (Opus 4.8), con Franco.
 - Franco pasó el export completo de inviu + la Tenencia del broker. Se reconstruyó `Inversiones.xlsx` (con respaldo): export + saldos sintéticos + ajuste de ratio SPY (+70); Procesado con Moneda alineada; Config + Resumen corregidos; MEP/BTC al día. **Recalc con LibreOffice: 20/20 posiciones exactas vs broker.** El parser reprodujo 19/20 solo con movimientos → validación fuerte del motor.
