@@ -9,6 +9,30 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 23 de julio de 2026 (cierre del día) — Cuánto ganaste de verdad, en pesos y en dólares
+
+**Qué se hizo (en criollo):**
+Vos marcaste algo que faltaba: **las amortizaciones de las letras son ganancia** y no se estaban contando. Tenías razón — había **$6.345.528** cobrados (vencimientos de letras, rentas de bonos y dividendos) que la app ignoraba. Ahora se cuentan, y las letras vencidas dejaron de figurar como si todavía las tuvieras (uso la marca "Activo en cartera = NO" de tu propio Excel para saber cuáles vencieron).
+
+Y como pediste, el rendimiento ahora se calcula **también en dólares**, convirtiendo cada compra y cada cobro al MEP **del día en que ocurrió**. Ahí aparece lo interesante:
+
+- **En pesos: +$10.398.493 (+31,3%)**
+- **En dólares: +US$4.273 (+16,9%)**
+
+Sobre $33,2 millones invertidos (US$25.219) desde que arrancaste.
+
+El caso que mejor muestra por qué importa: la letra **S15G5 ganó 3,8% en pesos… pero perdió 3,6% en dólares**. Sin mirar el dólar de cada fecha, eso no se ve.
+
+**Un error que encontré y corregí:** al principio las letras mostraban 100% y 113% de rendimiento. El motivo: cuando una letra vence te devuelve **el capital más el interés**, y yo estaba contando todo como ganancia. Corregido: ahora se descuenta el capital que pusiste. Verifiqué cada letra contra un cálculo hecho aparte y dan idénticas.
+
+**Para qué te sirve:**
+Es la diferencia entre creer que ganaste 31% y saber que, medido en dólares, ganaste 17%. En Argentina esa distinción es todo.
+
+**Qué sigue:**
+La verificación final contra el Excel y subirla al servidor.
+
+---
+
 ## 23 de julio de 2026 (final) — Tu cartera ya se ve en la app
 
 **Qué se hizo (en criollo):**

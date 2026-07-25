@@ -74,6 +74,13 @@ def test_posiciones_reconcilian_con_resumen_cartera(excel):
     movimientos = parse_archivo_excel(
         excel, hoja="Movimientos Crudo", instrumentos=instrumentos
     )
+    # IMPORTANTE: `posiciones()` se llama SIN instrumentos a propósito.
+    # Así se compara el mismo plano que calcula el Excel: cantidades brutas
+    # (compradas − vendidas). El cierre de posiciones vencidas —que la app
+    # aplica cuando Config marca el instrumento como inactivo— es una capa
+    # propia y deliberada por encima del Excel: la planilla deja las letras
+    # amortizadas con cantidad residual. Pasar `instrumentos` acá haría fallar
+    # el recon por esa mejora, no por un error.
     pos = posiciones(movimientos)
 
     difs = []

@@ -4,6 +4,17 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-07-23 (cierre del día) — Rendimiento completo ARS/USD + cierre de vencidos
+**Autor:** Claude (Opus 4.8), a pedido de Franco (decisión suya de adelantar parte de 3b).
+- **Franco detectó** que las amortizaciones son rendimiento y no se computaban: **$6.345.528** en flujos cobrados quedaban afuera, y 6 letras vencidas figuraban con cantidad residual. Pidió además medir el rendimiento **en dólares con el MEP del día de compra y de cobro**.
+- **Cierre de vencidos sin heurísticas:** se usa `Config!L "Activo en cartera" = NO` del propio Excel. **Rendimiento completo** según el LEEME (realizado + no realizado + dividendos + amortizaciones), en ARS y USD al TC congelado de cada fecha.
+- ⚠️ **Bug corregido:** la amortización devuelve capital + interés; contarla entera daba ~100-113% de rendimiento en las letras. Se agregó `costo_amortizado_*` (PPC × unidades vencidas). Post-fix, cada letra reproduce exactamente el cálculo manual independiente.
+- **Números reales:** invertido $33,2M (US$25.219) → **+$10.398.493 (+31,3%) en pesos · +US$4.273 (+16,9%) en dólares**. Caso ilustrativo: S15G5 +3,8% en pesos pero **−3,6% en dólares**.
+- Vista con bloque "Rendimiento total" + columna `Rend. US$ %` + toggle de posiciones cerradas. Recon **verde** (documentado que compara el plano bruto del Excel; el cierre de vencidos es capa propia). Suite **206 passed, 1 skipped**.
+**Pendiente 3b:** amortizaciones parciales de bonos vivos (hoy suman como flujo sin reducir tenencia).
+
+---
+
 ## 2026-07-23 (final) — Fase 3a paso 4: la Cartera ya vive en la app
 **Autor:** Claude (Opus 4.8), con Franco. Skill `ui-ux-web-moderno` aplicada.
 - **Vista de Cartera** cableada en la pestaña (reemplaza el cartel de "Fase 3"): KPI cards con tokens Cosmic Slate (tabular-nums; ganancia/pérdida con signo+flecha+color, nunca color solo), tabla es-AR, **upload del export del broker** con dedupe + congelado de TC en el mismo flujo, carga de instrumentos desde Config, caché de 5 min, estados empty/error. Scope por usuario (`CARTERA_USER_IDS`).

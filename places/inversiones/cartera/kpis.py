@@ -28,21 +28,77 @@ class PosicionValuada:
     precio: float | None            # precio de mercado (ARS, ya normalizado)
     origen_precio: str              # proveedor | cache | override | sin_dato
     valor_ars: float | None
-    costo_ars: float                # a costo promedio ponderado
+    costo_ars: float                # costo de la TENENCIA (promedio ponderado)
     ppc_ars: float | None
+    # --- componentes del rendimiento (regla del LEEME) -------------------
+    invertido_ars: float = 0.0      # costo total invertido (histórico)
+    invertido_usd: float = 0.0      # ídem al TC de cada compra
+    realizado_ars: float = 0.0      # resultado de las ventas ya hechas
+    realizado_usd: float = 0.0
+    flujos_ars: float = 0.0         # amortizaciones + rentas + dividendos
+    flujos_usd: float = 0.0
+    valor_usd_actual: float | None = None   # tenencia valuada al MEP de hoy
+    costo_usd_tenencia: float = 0.0         # costo de la tenencia en USD hist.
+    cerrada: bool = False           # vencida/canjeada: ya no hay tenencia
+    #: Costo del capital que amortizó al vencer. La amortización devuelve
+    #: capital + interés, así que hay que descontarlo para medir rendimiento
+    #: (igual que el costo se descuenta en una venta).
+    costo_amortizado_ars: float = 0.0
+    costo_amortizado_usd: float = 0.0
 
+    # --- no realizado (posición viva) ------------------------------------
     @property
-    def resultado_ars(self) -> float | None:
+    def no_realizado_ars(self) -> float | None:
         if self.valor_ars is None:
             return None
         return self.valor_ars - self.costo_ars
 
     @property
+    def no_realizado_usd(self) -> float | None:
+        if self.valor_usd_actual is None:
+            return None
+        return self.valor_usd_actual - self.costo_usd_tenencia
+
+    # --- rendimiento total: realizado + no realizado + flujos ------------
+    @property
+    def resultado_ars(self) -> float | None:
+        """Resultado total: ventas + cobros + no realizado − capital amortizado.
+
+        Si la posición está cerrada no hay componente no realizado: todo el
+        retorno ya se cobró.
+        """
+        nr = self.no_realizado_ars
+        if nr is None and not self.cerrada:
+            return None
+        return (
+            self.realizado_ars + self.flujos_ars + (nr or 0.0)
+            - self.costo_amortizado_ars
+        )
+
+    @property
+    def resultado_usd(self) -> float | None:
+        nr = self.no_realizado_usd
+        if nr is None and not self.cerrada:
+            return None
+        return (
+            self.realizado_usd + self.flujos_usd + (nr or 0.0)
+            - self.costo_amortizado_usd
+        )
+
+    @property
     def rendimiento_pct(self) -> float | None:
         r = self.resultado_ars
-        if r is None or not self.costo_ars:
+        if r is None or not self.invertido_ars:
             return None
-        return r / self.costo_ars * 100.0
+        return r / self.invertido_ars * 100.0
+
+    @property
+    def rendimiento_usd_pct(self) -> float | None:
+        """Rendimiento en dólares: usa el MEP del día de cada operación."""
+        r = self.resultado_usd
+        if r is None or not self.invertido_usd:
+            return None
+        return r / self.invertido_usd * 100.0
 
     def valor_usd(self, mep: float | None) -> float | None:
         if self.valor_ars is None or not mep:
@@ -54,12 +110,25 @@ class PosicionValuada:
 class KPIs:
     valor_total_ars: float = 0.0
     valor_total_usd: float | None = None
-    costo_total_ars: float = 0.0
+    costo_total_ars: float = 0.0     # costo de la tenencia viva
     posiciones_valuadas: int = 0
     posiciones_sin_precio: int = 0
+    # Rendimiento total de la cartera (incluye lo ya cobrado y lo vendido).
+    invertido_ars: float = 0.0
+    invertido_usd: float = 0.0
+    realizado_ars: float = 0.0
+    realizado_usd: float = 0.0
+    flujos_ars: float = 0.0
+    flujos_usd: float = 0.0
+    no_realizado_ars: float = 0.0
+    no_realizado_usd: float = 0.0
+    costo_amortizado_ars: float = 0.0   # capital devuelto por vencimientos
+    costo_amortizado_usd: float = 0.0
 
+    # --- no realizado (lo que se ve en la tenencia de hoy) ---------------
     @property
     def resultado_ars(self) -> float:
+        """Resultado NO realizado de la tenencia viva (el que 'se mueve' hoy)."""
         return self.valor_total_ars - self.costo_total_ars
 
     @property
@@ -68,12 +137,42 @@ class KPIs:
             return None
         return self.resultado_ars / self.costo_total_ars * 100.0
 
+    # --- rendimiento total histórico (regla del LEEME) -------------------
+    @property
+    def resultado_total_ars(self) -> float:
+        return (
+            self.realizado_ars + self.flujos_ars + self.no_realizado_ars
+            - self.costo_amortizado_ars
+        )
+
+    @property
+    def resultado_total_usd(self) -> float:
+        return (
+            self.realizado_usd + self.flujos_usd + self.no_realizado_usd
+            - self.costo_amortizado_usd
+        )
+
+    @property
+    def rendimiento_total_pct(self) -> float | None:
+        if not self.invertido_ars:
+            return None
+        return self.resultado_total_ars / self.invertido_ars * 100.0
+
+    @property
+    def rendimiento_total_usd_pct(self) -> float | None:
+        """El número que pidió Franco: rendimiento en dólares usando el MEP
+        del día de cada compra, venta y cobro."""
+        if not self.invertido_usd:
+            return None
+        return self.resultado_total_usd / self.invertido_usd * 100.0
+
 
 def valuar(
     posiciones: dict,
     resolver,
     instrumentos: dict | None = None,
     solo_con_tenencia: bool = True,
+    mep_actual: float | None = None,
 ) -> list[PosicionValuada]:
     """Valúa cada posición con el precio que devuelva `resolver(ticker, inst)`.
 
@@ -82,17 +181,30 @@ def valuar(
         Se inyecta para no atar este módulo a la red ni a la DB.
     :param instrumentos: ``{ticker: Instrumento}`` para categoría de activo y
         la regla de bonos ``/100``.
-    :param solo_con_tenencia: omite las posiciones cerradas (cantidad 0).
+    :param solo_con_tenencia: si es True, las posiciones sin tenencia (vendidas
+        o vencidas) igual se devuelven cuando tuvieron resultado — su
+        rendimiento ya realizado forma parte del total —, marcadas con
+        ``cerrada=True``.
+    :param mep_actual: para valuar la tenencia de hoy en dólares.
     """
     instrumentos = instrumentos or {}
     out: list[PosicionValuada] = []
     for ticker, pos in posiciones.items():
         cant = pos.cant_actual
-        if solo_con_tenencia and abs(cant) < 1e-9:
-            continue
+        cerrada = abs(cant) < 1e-9
+        # Realizado en ventas, a costo promedio ponderado (regla del Excel).
+        vendidas = -pos.cant_vendida
+        realizado_ars = pos.ingreso_ars_ventas - (pos.ppc_ars or 0.0) * vendidas
+        realizado_usd = pos.ingreso_usd_ventas - (pos.ppc_usd_hist or 0.0) * vendidas
+        if cerrada and solo_con_tenencia:
+            # Sin tenencia: se muestra solo si dejó rendimiento (ventas/cobros).
+            if abs(realizado_ars) < 1e-9 and abs(pos.flujos_ars) < 1e-9:
+                continue
+
         inst = instrumentos.get(ticker)
-        precio, origen = resolver(ticker, inst)
+        precio, origen = (None, "cerrada") if cerrada else resolver(ticker, inst)
         valor = precio * cant if isinstance(precio, (int, float)) else None
+        costo_usd_ten = pos.costo_usd_posicion
         out.append(
             PosicionValuada(
                 ticker=ticker,
@@ -103,6 +215,17 @@ def valuar(
                 valor_ars=valor,
                 costo_ars=pos.costo_ars_posicion,
                 ppc_ars=pos.ppc_ars,
+                invertido_ars=pos.costo_ars_compras,
+                invertido_usd=pos.costo_usd_hist,
+                realizado_ars=realizado_ars,
+                realizado_usd=realizado_usd,
+                flujos_ars=pos.flujos_ars,
+                flujos_usd=pos.flujos_usd,
+                valor_usd_actual=(valor / mep_actual) if (valor and mep_actual) else None,
+                costo_usd_tenencia=costo_usd_ten,
+                cerrada=cerrada,
+                costo_amortizado_ars=pos.costo_amortizado_ars,
+                costo_amortizado_usd=pos.costo_amortizado_usd,
             )
         )
     out.sort(key=lambda p: (p.valor_ars is None, -(p.valor_ars or 0)))
@@ -110,15 +233,37 @@ def valuar(
 
 
 def kpis_de(valuadas: list[PosicionValuada], mep: float | None = None) -> KPIs:
-    """Totales de cartera. Solo suma costo de lo que tiene precio, para que
-    el rendimiento no compare peras (valor parcial) con manzanas (costo total)."""
+    """Totales de cartera.
+
+    Dos planos, deliberadamente separados:
+
+      * **tenencia viva** (`valor_total_ars`, `resultado_ars`): solo lo que
+        tiene precio hoy — el costo de lo que no se pudo valuar tampoco suma,
+        para no comparar valor parcial contra costo total;
+      * **rendimiento total** (`resultado_total_*`): invertido, realizado en
+        ventas, flujos cobrados y no realizado, en ARS y en USD al TC de cada
+        fecha. Incluye posiciones ya cerradas (vencidas o vendidas).
+    """
     k = KPIs()
     for p in valuadas:
+        # Plano 1: tenencia viva valuada.
         if p.valor_ars is None:
-            k.posiciones_sin_precio += 1
-            continue
-        k.posiciones_valuadas += 1
-        k.valor_total_ars += p.valor_ars
-        k.costo_total_ars += p.costo_ars
+            if not p.cerrada:
+                k.posiciones_sin_precio += 1
+        else:
+            k.posiciones_valuadas += 1
+            k.valor_total_ars += p.valor_ars
+            k.costo_total_ars += p.costo_ars
+            k.no_realizado_ars += p.no_realizado_ars or 0.0
+            k.no_realizado_usd += p.no_realizado_usd or 0.0
+        # Plano 2: rendimiento histórico total.
+        k.invertido_ars += p.invertido_ars
+        k.invertido_usd += p.invertido_usd
+        k.realizado_ars += p.realizado_ars
+        k.realizado_usd += p.realizado_usd
+        k.flujos_ars += p.flujos_ars
+        k.flujos_usd += p.flujos_usd
+        k.costo_amortizado_ars += p.costo_amortizado_ars
+        k.costo_amortizado_usd += p.costo_amortizado_usd
     k.valor_total_usd = (k.valor_total_ars / mep) if mep else None
     return k

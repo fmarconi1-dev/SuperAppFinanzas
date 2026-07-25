@@ -28,9 +28,9 @@ def _resolver_fijo(precios: dict):
 def test_ppc_y_costo_de_posicion():
     # 10 @ 100 y 5 @ 110 → PPC 103,33; vendo 4 → quedan 11.
     filas = [
-        (True, "COMPRA", "GGAL", 10, -1000, "ARS", None),
-        (True, "COMPRA", "GGAL", 5, -550, "ARS", None),
-        (True, "VENTA", "GGAL", -4, 460, "ARS", None),
+        (True, "COMPRA", "GGAL", 10, -1000, "ARS", None, False),
+        (True, "COMPRA", "GGAL", 5, -550, "ARS", None, False),
+        (True, "VENTA", "GGAL", -4, 460, "ARS", None, False),
     ]
     pos = _acumular(filas)["GGAL"]
     assert pos.cant_actual == 11
@@ -41,8 +41,8 @@ def test_ppc_y_costo_de_posicion():
 def test_costo_usd_usa_tc_de_cada_fecha():
     # misma plata nominal, dos TC muy distintos → el costo USD los respeta.
     filas = [
-        (True, "COMPRA", "GGAL", 10, -1000, "ARS", 1000.0),   # US$1
-        (True, "COMPRA", "GGAL", 10, -1000, "ARS", 500.0),    # US$2
+        (True, "COMPRA", "GGAL", 10, -1000, "ARS", 1000.0, False),   # US$1
+        (True, "COMPRA", "GGAL", 10, -1000, "ARS", 500.0, False),    # US$2
     ]
     pos = _acumular(filas)["GGAL"]
     assert pos.costo_usd_hist == pytest.approx(3.0)
@@ -50,10 +50,34 @@ def test_costo_usd_usa_tc_de_cada_fecha():
 
 
 def test_compra_denominada_en_usd():
-    filas = [(True, "COMPRA", "AE38", 100, -500, "USD", 1000.0)]
+    filas = [(True, "COMPRA", "AE38", 100, -500, "USD", 1000.0, False)]
     pos = _acumular(filas)["AE38"]
     assert pos.costo_usd_hist == pytest.approx(500.0)
     assert pos.costo_ars_compras == pytest.approx(500_000.0)  # 500 × TC
+
+
+def test_espejo_de_dividendo_no_suma_flujo():
+    filas = [
+        (True, "DIVIDENDO", "TSM", 0, 0.76, "USD", 1000.0, False),
+        (True, "DIVIDENDO", "TSM", 0, -4.53, "ARS", 1000.0, True),  # espejo
+    ]
+    pos = _acumular(filas)["TSM"]
+    assert pos.flujos_usd == pytest.approx(0.76)
+    assert pos.flujos_ars == pytest.approx(760.0)  # solo la línea USD, a TC
+
+
+def test_instrumento_vencido_cierra_la_posicion():
+    from places.inversiones.cartera.posiciones import _InstrumentoMin
+    filas = [
+        (True, "COMPRA", "S15G5", 1000, -1000, "ARS", 1000.0, False),
+        (True, "AMORTIZACION", "S15G5", 0, 1100, "ARS", 1000.0, False),
+    ]
+    pos = _acumular(filas, {"S15G5": _InstrumentoMin(activo=False)})["S15G5"]
+    assert pos.cant_actual == 0          # venció: ya no hay tenencia
+    assert pos.cant_remanente == 1000    # pero las unidades se compraron
+    assert pos.cant_amortizada == 1000
+    assert pos.costo_amortizado_ars == pytest.approx(1000.0)
+    assert pos.flujos_ars == pytest.approx(1100.0)
 
 
 # ---------------------------------------------------------------------------
@@ -70,14 +94,23 @@ def test_valuar_calcula_valor_resultado_y_rendimiento():
     assert v.rendimiento_pct == pytest.approx(50.0)
 
 
-def test_valuar_omite_posiciones_cerradas():
+def test_valuar_omite_cerradas_sin_resultado_pero_conserva_las_que_rindieron():
     pos = {
+        # Vendida entera: sin tenencia, PERO dejó resultado realizado → se
+        # conserva, porque su rendimiento forma parte del total de la cartera.
         "GGAL": Posicion("GGAL", cant_comprada=10, cant_vendida=-10,
-                         costo_ars_compras=1000.0),
+                         costo_ars_compras=1000.0, ingreso_ars_ventas=1500.0),
+        # Sin tenencia y sin resultado (ej. canje neutro): se omite.
+        "RUIDO": Posicion("RUIDO", cant_comprada=5, cant_vendida=-5),
         "SPY": Posicion("SPY", cant_comprada=5, costo_ars_compras=500.0),
     }
-    tickers = [v.ticker for v in valuar(pos, _resolver_fijo({"SPY": 120.0}))]
-    assert tickers == ["SPY"]
+    v = valuar(pos, _resolver_fijo({"SPY": 120.0}))
+    tickers = {x.ticker for x in v}
+    assert tickers == {"SPY", "GGAL"}
+    ggal = next(x for x in v if x.ticker == "GGAL")
+    assert ggal.cerrada is True
+    assert ggal.resultado_ars == pytest.approx(500.0)   # 1500 − costo 1000
+    assert ggal.rendimiento_pct == pytest.approx(50.0)
 
 
 def test_valuar_sin_precio_no_rompe():
@@ -145,3 +178,73 @@ def test_kpis_sin_mep_no_calcula_usd():
 def test_kpis_vacios_no_dividen_por_cero():
     k = kpis_de([], mep=1500.0)
     assert k.valor_total_ars == 0 and k.rendimiento_pct is None
+
+
+# ---------------------------------------------------------------------------
+# Rendimiento completo: realizado + flujos + no realizado − capital amortizado
+# ---------------------------------------------------------------------------
+
+def test_letra_vencida_rinde_el_interes_no_el_capital():
+    """Una letra que amortiza devuelve capital + interés: el rendimiento es
+    el interés, no el total cobrado (bug detectado con datos reales)."""
+    from places.inversiones.cartera.posiciones import _InstrumentoMin
+    filas = [
+        (True, "COMPRA", "S15G5", 1000, -1000, "ARS", 1000.0, False),
+        (True, "AMORTIZACION", "S15G5", 0, 1050, "ARS", 1000.0, False),
+    ]
+    pos = _acumular(filas, {"S15G5": _InstrumentoMin(activo=False)})
+    v = valuar(pos, _resolver_fijo({}))[0]
+    assert v.cerrada is True
+    assert v.resultado_ars == pytest.approx(50.0)      # 1050 − 1000, no 1050
+    assert v.rendimiento_pct == pytest.approx(5.0)
+
+
+def test_rendimiento_usd_usa_el_mep_de_cada_fecha():
+    """Compra con MEP 1000 y amortiza con MEP 1400: gana en pesos y pierde
+    en dólares. Es el caso real de S15G5."""
+    from places.inversiones.cartera.posiciones import _InstrumentoMin
+    filas = [
+        (True, "COMPRA", "LETRA", 1000, -1000, "ARS", 1000.0, False),   # US$1
+        (True, "AMORTIZACION", "LETRA", 0, 1200, "ARS", 1400.0, False),  # US$0,857
+    ]
+    pos = _acumular(filas, {"LETRA": _InstrumentoMin(activo=False)})
+    v = valuar(pos, _resolver_fijo({}))[0]
+    assert v.resultado_ars == pytest.approx(200.0)          # +20% en pesos
+    assert v.rendimiento_pct == pytest.approx(20.0)
+    assert v.resultado_usd < 0                              # pero pierde en USD
+    assert v.rendimiento_usd_pct == pytest.approx(-14.2857, rel=1e-3)
+
+
+def test_dividendos_suman_al_rendimiento():
+    pos = {
+        "GGAL": Posicion("GGAL", cant_comprada=10, costo_ars_compras=1000.0,
+                         flujos_ars=80.0),
+    }
+    v = valuar(pos, _resolver_fijo({"GGAL": 110.0}))[0]
+    # no realizado (1100−1000) + dividendos (80)
+    assert v.no_realizado_ars == pytest.approx(100.0)
+    assert v.resultado_ars == pytest.approx(180.0)
+    assert v.rendimiento_pct == pytest.approx(18.0)
+
+
+def test_kpis_totales_del_rendimiento_completo():
+    from places.inversiones.cartera.posiciones import _InstrumentoMin
+    filas = [
+        # viva: compra 10 @100, vale 110 → +100 no realizado
+        (True, "COMPRA", "VIVA", 10, -1000, "ARS", 1000.0, False),
+        # vencida: compra 1000, amortiza 1050 → +50
+        (True, "COMPRA", "VENC", 1000, -1000, "ARS", 1000.0, False),
+        (True, "AMORTIZACION", "VENC", 0, 1050, "ARS", 1000.0, False),
+    ]
+    pos = _acumular(filas, {"VENC": _InstrumentoMin(activo=False)})
+    k = kpis_de(valuar(pos, _resolver_fijo({"VIVA": 110.0}), mep_actual=1000.0),
+                mep=1000.0)
+    assert k.invertido_ars == pytest.approx(2000.0)
+    assert k.flujos_ars == pytest.approx(1050.0)
+    assert k.costo_amortizado_ars == pytest.approx(1000.0)
+    assert k.no_realizado_ars == pytest.approx(100.0)
+    assert k.resultado_total_ars == pytest.approx(150.0)   # 100 + 50
+    assert k.rendimiento_total_pct == pytest.approx(7.5)   # 150 / 2000
+    # La tenencia viva sigue midiéndose aparte.
+    assert k.valor_total_ars == pytest.approx(1100.0)
+    assert k.resultado_ars == pytest.approx(100.0)

@@ -123,6 +123,10 @@ class Instrumento:
     ticker_usd: str | None = None  # variante USD (sufijo D), p. ej. "TSMD"
     categoria_activo: str = ""   # Acciones / Bonos / Cedears / Letras / ONs / Cripto
     moneda_cotiz: str = "ARS"    # "ARS", "USD", "ARS/100", "USD/100"
+    #: ``Config!L`` ("Activo en cartera"). False = instrumento vencido o
+    #: retirado: su tenencia ya no existe (amortizó / se canjeó), aunque los
+    #: movimientos históricos sigan en la DB.
+    activo: bool = True
 
     @property
     def divide_por_100(self) -> bool:

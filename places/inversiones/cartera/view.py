@@ -263,7 +263,7 @@ def render(user_id: int | None = None) -> None:
                 divide_por_100=bool(inst and inst.divide_por_100),
             )
 
-    valuadas = valuar(posiciones, _resolver, instrumentos)
+    valuadas = valuar(posiciones, _resolver, instrumentos, mep_actual=mep)
     k = kpis_de(valuadas, mep)
 
     # ---- KPIs -----------------------------------------------------------
@@ -299,21 +299,60 @@ def render(user_id: int | None = None) -> None:
             icon=":material/warning:",
         )
 
+    # ---- Rendimiento histórico total (incluye lo cobrado y lo vendido) ---
+    st.markdown("#### Rendimiento total")
+    st.caption(
+        "Todo lo invertido desde el inicio: resultado de las ventas + "
+        "amortizaciones, rentas y dividendos cobrados + lo no realizado de la "
+        "tenencia actual. En dólares, cada operación se convierte al MEP del "
+        "día en que se hizo."
+    )
+    tot_ars, tot_usd = k.resultado_total_ars, k.resultado_total_usd
+    r1, r2, r3, r4 = st.columns(4)
+    with r1:
+        st.html(_kpi_card("Invertido (histórico)", _fmt(k.invertido_ars, 0, "$"),
+                          f"US$ {_fmt(k.invertido_usd, 0)} al TC de cada compra"))
+    with r2:
+        st.html(_kpi_card(
+            "Resultado en pesos",
+            f"{'+' if tot_ars >= 0 else '−'}{_fmt(abs(tot_ars), 0, '$')}",
+            f"{'▲' if tot_ars >= 0 else '▼'} {_fmt(k.rendimiento_total_pct, 1)}%",
+            "positivo" if tot_ars >= 0 else "negativo"))
+    with r3:
+        st.html(_kpi_card(
+            "Resultado en dólares",
+            f"{'+' if tot_usd >= 0 else '−'}US$ {_fmt(abs(tot_usd), 0)}",
+            f"{'▲' if tot_usd >= 0 else '▼'} {_fmt(k.rendimiento_total_usd_pct, 1)}%"
+            " · MEP de cada fecha",
+            "positivo" if tot_usd >= 0 else "negativo"))
+    with r4:
+        st.html(_kpi_card("Cobrado (rentas y amortiz.)",
+                          _fmt(k.flujos_ars, 0, "$"),
+                          f"US$ {_fmt(k.flujos_usd, 0)} · dividendos incluidos"))
+
     # ---- Tabla de posiciones -------------------------------------------
     st.markdown("#### Posiciones")
+    ver_cerradas = st.checkbox(
+        "Mostrar posiciones cerradas (vencidas o vendidas)",
+        value=False, key="cartera_ver_cerradas",
+        help="Ya no tienen tenencia, pero su rendimiento cuenta en el total.",
+    )
+    filas = [p for p in valuadas if ver_cerradas or not p.cerrada]
     df = pd.DataFrame([
         {
             "Ticker": p.ticker,
             "Tipo": p.categoria_activo,
+            "Estado": "cerrada" if p.cerrada else "abierta",
             "Cantidad": p.cantidad,
             "PPC": p.ppc_ars,
             "Precio": p.precio,
             "Valor": p.valor_ars,
             "Resultado": p.resultado_ars,
             "Rend. %": p.rendimiento_pct,
+            "Rend. US$ %": p.rendimiento_usd_pct,
             "Precio de": p.origen_precio,
         }
-        for p in valuadas
+        for p in filas
     ])
     st.dataframe(
         df,
@@ -324,11 +363,18 @@ def render(user_id: int | None = None) -> None:
             "PPC": st.column_config.NumberColumn(format="$ %.2f"),
             "Precio": st.column_config.NumberColumn(format="$ %.2f"),
             "Valor": st.column_config.NumberColumn(format="$ %.0f"),
-            "Resultado": st.column_config.NumberColumn(format="$ %.0f"),
+            "Resultado": st.column_config.NumberColumn(
+                format="$ %.0f",
+                help="Ventas + cobros + no realizado, menos el capital que amortizó",
+            ),
             "Rend. %": st.column_config.NumberColumn(format="%.1f%%"),
+            "Rend. US$ %": st.column_config.NumberColumn(
+                format="%.1f%%",
+                help="Rendimiento en dólares, al MEP del día de cada operación",
+            ),
             "Precio de": st.column_config.TextColumn(
                 help="proveedor = precio en vivo · cache = último conocido · "
-                     "override = fijado a mano"
+                     "override = fijado a mano · cerrada = sin tenencia"
             ),
         },
     )

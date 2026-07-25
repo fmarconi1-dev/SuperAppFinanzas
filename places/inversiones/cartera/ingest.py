@@ -56,6 +56,8 @@ def instrumentos_desde_config(ruta_excel) -> dict[str, Instrumento]:
             ticker_usd=str(fila[_H]).strip() if fila[_H] else None,
             categoria_activo=str(fila[_J] or "").strip(),
             moneda_cotiz=str(fila[_M] or "ARS").strip(),
+            # Config!L "Activo en cartera": NO = vencido/canjeado (sin tenencia).
+            activo=str(fila[_L]).strip().upper() != "NO",
         )
     return insts
 

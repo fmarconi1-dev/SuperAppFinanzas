@@ -22,6 +22,13 @@ from dataclasses import dataclass
 __all__ = ["Posicion", "posiciones", "posiciones_desde_db"]
 
 
+#: Flujos cobrados que son rendimiento del instrumento (regla del LEEME:
+#: "Rendimiento = Realizado en ventas + No realizado + Dividendos +
+#: Amortizaciones / Costo total invertido"). Los espejos ARS de dividendo se
+#: excluyen antes de llegar acá.
+CATEGORIAS_FLUJO = ("AMORTIZACION", "RENTA", "DIVIDENDO")
+
+
 @dataclass
 class Posicion:
     ticker: str
@@ -29,10 +36,47 @@ class Posicion:
     cant_vendida: float = 0.0
     costo_ars_compras: float = 0.0   # Σ -monto de compras en ARS
     costo_usd_hist: float = 0.0      # Σ -monto/TC de SU fecha (ADR-0003/0004)
+    ingreso_ars_ventas: float = 0.0  # Σ monto de ventas (ARS)
+    ingreso_usd_ventas: float = 0.0  # ídem al TC de cada venta
+    flujos_ars: float = 0.0          # amortizaciones + rentas + dividendos
+    flujos_usd: float = 0.0          # ídem al TC de cada cobro
+    #: False cuando el instrumento está marcado inactivo en Config
+    #: (vencido/canjeado): su tenencia ya no existe aunque los movimientos
+    #: históricos sigan en la DB.
+    activo: bool = True
+
+    @property
+    def cant_remanente(self) -> float:
+        """Unidades compradas menos vendidas, sin considerar vencimientos."""
+        return round(self.cant_comprada + self.cant_vendida, 8)
 
     @property
     def cant_actual(self) -> float:
-        return round(self.cant_comprada + self.cant_vendida, 8)
+        """Unidades en cartera. Un instrumento vencido no tiene tenencia:
+        amortizó (devolvió el capital) sin registrar una venta que descuente
+        cantidad — el broker manda AMORTIZACION con cantidad 0."""
+        if not self.activo:
+            return 0.0
+        return self.cant_remanente
+
+    @property
+    def cant_amortizada(self) -> float:
+        """Unidades que se cerraron por vencimiento (no por venta)."""
+        return 0.0 if self.activo else self.cant_remanente
+
+    @property
+    def costo_amortizado_ars(self) -> float:
+        """Costo del capital que amortizó al vencer.
+
+        La amortización devuelve **capital + interés**: para medir rendimiento
+        hay que restarle el capital que se había invertido en esas unidades,
+        igual que se descuenta el costo en una venta.
+        """
+        return (self.ppc_ars or 0.0) * self.cant_amortizada
+
+    @property
+    def costo_amortizado_usd(self) -> float:
+        return (self.ppc_usd_hist or 0.0) * self.cant_amortizada
 
     @property
     def ppc_ars(self) -> float | None:
@@ -60,55 +104,112 @@ class Posicion:
         return (ppc or 0.0) * self.cant_actual
 
 
-def _acumular(filas) -> dict[str, Posicion]:
+def _acumular(filas, instrumentos: dict | None = None) -> dict[str, Posicion]:
     """Núcleo del cálculo. `filas`: iterable de tuplas
-    (es_instrumento, categoria, ticker_base, cantidad, monto, moneda, tc_mep)."""
+    (es_instrumento, categoria, ticker_base, cantidad, monto, moneda, tc_mep,
+     es_espejo).
+
+    Cada importe se acumula en ARS y en USD **al TC de su propia fecha**
+    (ADR-0003/0004): así el rendimiento en dólares refleja el tipo de cambio
+    del día de cada compra, venta y cobro.
+    """
+    instrumentos = instrumentos or {}
     pos: dict[str, Posicion] = {}
-    for es_inst, categoria, base, cantidad, monto, moneda, tc in filas:
-        if not es_inst or categoria not in ("COMPRA", "VENTA"):
-            continue
+
+    def _p(base: str) -> Posicion:
         p = pos.get(base)
         if p is None:
-            p = pos[base] = Posicion(base)
+            inst = instrumentos.get(base)
+            p = pos[base] = Posicion(
+                base, activo=True if inst is None else bool(getattr(inst, "activo", True))
+            )
+        return p
+
+    for es_inst, categoria, base, cantidad, monto, moneda, tc, es_espejo in filas:
+        if not es_inst or es_espejo:
+            continue
         if categoria == "COMPRA":
+            p = _p(base)
             p.cant_comprada += cantidad
             if moneda == "ARS":
                 p.costo_ars_compras += -monto
-                # Costo en USD al TC congelado de esa fecha (si ya se congeló).
                 if tc:
                     p.costo_usd_hist += -monto / tc
             else:  # compra ya denominada en USD
                 p.costo_usd_hist += -monto
                 if tc:
                     p.costo_ars_compras += -monto * tc
-        else:  # VENTA (cantidad negativa)
-            p.cant_vendida += cantidad
+        elif categoria == "VENTA":
+            p = _p(base)
+            p.cant_vendida += cantidad          # negativa
+            if moneda == "ARS":
+                p.ingreso_ars_ventas += monto
+                if tc:
+                    p.ingreso_usd_ventas += monto / tc
+            else:
+                p.ingreso_usd_ventas += monto
+                if tc:
+                    p.ingreso_ars_ventas += monto * tc
+        elif categoria in CATEGORIAS_FLUJO:
+            # Cobros del instrumento: amortización (capital), renta (cupón) y
+            # dividendos. Son rendimiento, no cambian la cantidad.
+            p = _p(base)
+            if moneda == "ARS":
+                p.flujos_ars += monto
+                if tc:
+                    p.flujos_usd += monto / tc
+            else:
+                p.flujos_usd += monto
+                if tc:
+                    p.flujos_ars += monto * tc
     return pos
 
 
-def posiciones(movimientos) -> dict[str, Posicion]:
+def posiciones(movimientos, instrumentos: dict | None = None) -> dict[str, Posicion]:
     """Posiciones desde objetos :class:`Movimiento` del parser.
 
-    Los objetos del parser no tienen TC (se congela al importar), así que el
-    costo en USD queda en 0 salvo las compras ya denominadas en USD.
+    Los objetos del parser no tienen TC (se congela al importar), así que los
+    importes en USD quedan en 0 salvo los ya denominados en USD.
     """
     return _acumular(
-        (m.es_instrumento, m.categoria, m.ticker_base, m.cantidad, m.monto,
-         m.moneda, getattr(m, "tc_mep", None))
-        for m in movimientos
+        ((m.es_instrumento, m.categoria, m.ticker_base, m.cantidad, m.monto,
+          m.moneda, getattr(m, "tc_mep", None), m.es_espejo)
+         for m in movimientos),
+        instrumentos,
     )
 
 
-def posiciones_desde_db(conn, user_id: int) -> dict[str, Posicion]:
-    """Posiciones desde `cartera_movimientos` para un usuario."""
+def posiciones_desde_db(
+    conn, user_id: int, instrumentos: dict | None = None
+) -> dict[str, Posicion]:
+    """Posiciones desde `cartera_movimientos` para un usuario.
+
+    Si no se pasan `instrumentos`, se leen de `cartera_instrumentos` para
+    saber cuáles están vencidos/inactivos (columna `activo`).
+    """
+    if instrumentos is None:
+        instrumentos = {
+            r["ticker"]: _InstrumentoMin(bool(r["activo"]))
+            for r in conn.execute(
+                "SELECT ticker, activo FROM cartera_instrumentos WHERE user_id = ?",
+                (user_id,),
+            )
+        }
     filas = conn.execute(
         "SELECT es_instrumento, categoria, ticker_base, cantidad, monto, moneda, "
-        "       tc_mep "
+        "       tc_mep, es_espejo "
         "FROM cartera_movimientos WHERE user_id = ?",
         (user_id,),
     )
     return _acumular(
-        (bool(r["es_instrumento"]), r["categoria"], r["ticker_base"],
-         r["cantidad"], r["monto"], r["moneda"], r["tc_mep"])
-        for r in filas
+        ((bool(r["es_instrumento"]), r["categoria"], r["ticker_base"],
+          r["cantidad"], r["monto"], r["moneda"], r["tc_mep"],
+          bool(r["es_espejo"])) for r in filas),
+        instrumentos,
     )
+
+
+@dataclass(frozen=True)
+class _InstrumentoMin:
+    """Lo mínimo que `_acumular` necesita saber de un instrumento."""
+    activo: bool = True
