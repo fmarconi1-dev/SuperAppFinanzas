@@ -9,6 +9,22 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 23 de julio de 2026 (final) — Tu cartera ya se ve en la app
+
+**Qué se hizo (en criollo):**
+- Construimos la **pantalla de Cartera**. Entrás a Inversiones → Cartera, **subís el archivo del broker** y ves: cuánto vale tu cartera en pesos y en dólares, cuánto ganaste o perdiste, y la tabla de posiciones con cantidad, precio promedio de compra, precio de hoy y rendimiento de cada una.
+- Podés volver a subir el mismo archivo cuantas veces quieras: los movimientos repetidos se ignoran solos.
+- **Probado con tus datos reales de punta a punta:** valor **$15.490.098** (unos **US$10.101**), **+19,8%** sobre lo invertido, 23 posiciones valuadas con precios en vivo. Tu Bitcoin también entra (se cotiza aparte, porque no cotiza en el mercado local).
+- Detalle que vale la pena que sepas: hay **6 letras y bonos en pesos que ya vencieron** y quedan figurando con cantidad, porque el sistema registra el vencimiento como "amortización" y no como venta. Tu Excel arrastra exactamente lo mismo. No afectan los totales (no tienen precio), y lo vamos a limpiar en la próxima etapa.
+
+**Para qué te sirve:**
+Es el objetivo de todo esto: dejar de abrir la planilla para saber cómo viene tu cartera.
+
+**Qué sigue:**
+Una última verificación de los dólares contra el Excel, y después subirla al servidor para que la puedas usar desde cualquier lado.
+
+---
+
 ## 23 de julio de 2026 (cierre) — La app ya sabe buscar precios y el dólar de cada fecha
 
 **Qué se hizo (en criollo):**

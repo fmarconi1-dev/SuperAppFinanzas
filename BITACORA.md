@@ -4,6 +4,16 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-07-23 (final) — Fase 3a paso 4: la Cartera ya vive en la app
+**Autor:** Claude (Opus 4.8), con Franco. Skill `ui-ux-web-moderno` aplicada.
+- **Vista de Cartera** cableada en la pestaña (reemplaza el cartel de "Fase 3"): KPI cards con tokens Cosmic Slate (tabular-nums; ganancia/pérdida con signo+flecha+color, nunca color solo), tabla es-AR, **upload del export del broker** con dedupe + congelado de TC en el mismo flujo, carga de instrumentos desde Config, caché de 5 min, estados empty/error. Scope por usuario (`CARTERA_USER_IDS`).
+- **Lógica:** costo promedio ponderado + costo USD a TC histórico (`posiciones.py`), valuación y totales (`kpis.py`; el costo de lo que no tiene precio no entra a los totales). `tests/test_cartera_kpis.py` (12). Suite **200 passed, 1 skipped**.
+- **Verificado end-to-end con datos reales:** $15.490.098 / US$10.101 · +19,8% · 23 posiciones valuadas; BTC vía yahoo.
+- ⚠️ **Para 3b:** 6 letras/bonos en pesos vencidos quedan con cantidad residual (el vencimiento entra como AMORTIZACION y solo VENTA resta). El Excel arrastra lo mismo; no cotizan → no ensucian totales.
+**Próximo:** paso 5 (recon USD modo "MEP actual") para cerrar 3a, luego merge a `main` + `fly deploy`.
+
+---
+
 ## 2026-07-23 (cierre) — Fase 3a paso 3: `core/market_data` (MEP histórico + precios)
 **Autor:** Claude (Opus 4.8), con Franco.
 - **Hallazgo que corrigió una decisión cerrada:** el ADR-0003 asumía el MEP histórico "vía BCRA", pero **el BCRA no publica MEP** (sirve el mayorista A3500: 1.480,86 vs MEP 1.521,9 al 22/7). Se presentaron alternativas y Franco eligió **`argentinadatos`** → **ADR-0004**. Verificado antes de decidir: 419/419 días hábiles del historial cubiertos.

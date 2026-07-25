@@ -8,7 +8,7 @@
 
 ## Estado del módulo
 **Fase de implementación:** Fase 3a / 6
-**Situación:** 🔵 En curso — pasos 1, 2 y 3 hechos (parser · modelo M9 + ingest + recon · market_data con MEP histórico y precios). Sigue el paso 4: posiciones + KPIs + vista
+**Situación:** 🟢 Fase 3a funcional — pasos 1 a 4 hechos (parser · M9+ingest+recon · market_data · **vista de Cartera con upload**). La cartera ya vive en la app. Falta el paso 5 (recon USD modo MEP actual) para cerrar la fase
 
 ## Registro
 
@@ -54,3 +54,11 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
 - **Verificación real (humo contra APIs vivas):** serie de 2.826 puntos; **585 movimientos del Excel importados y TC congelado en las 585 filas, cero fechas sin dato**; 1.204 símbolos ARG vivos; AE38 resuelto en 1.273,6 (coherente con 1.262,6 del broker) y BTC vía yahoo.
 - `tests/test_market_data.py` (**18 tests**, sin red): parseo, último hábil, caché, fallback con fuente caída, override que gana, mid de puntas, panel caído, normalización /100, precedencia, congelado idempotente y reporte de fechas sin dato. Suite **188 passed, 1 skipped**.
 - **Estado:** paso 3 cerrado. **Próximo:** paso 4 — posiciones + KPIs + **vista de Cartera** (con `ui-ux-web-moderno`, obligatoria en UI), y paso 5: recon en USD modo "MEP actual" (metodología del Excel) además del histórico.
+
+## 2026-07-23 — Vista de Cartera: la cartera ya vive en la app (paso 4)
+- **Autor:** Claude (Opus 4.8), con Franco. Skill `ui-ux-web-moderno` aplicada (obligatoria en UI).
+- **Lógica:** `posiciones.py` extendido con **costo promedio ponderado** (`ppc_ars`, `costo_ars_posicion`) y **costo USD con TC histórico** (`costo_usd_hist` usa el `tc_mep` congelado de cada compra → la vista fiel que el Excel no tiene). `kpis.py`: `valuar()` (precio inyectable, omite posiciones cerradas, tolera falta de precio) y `kpis_de()` (totales; **excluye del costo lo que no tiene precio** para no comparar valor parcial contra costo total). `tests/test_cartera_kpis.py` (12).
+- **Vista** (`view.py`, cableada en la pestaña Cartera reemplazando el cartel de "Fase 3"): KPI cards en HTML propio con los tokens **Cosmic Slate** (`--cs-*`, sin hex ad-hoc), cifras **tabular-nums** en fuente mono, ganancia/pérdida con **signo + flecha + color** (nunca color solo), tabla con formato es-AR vía `column_config`, **upload del export del broker** (dedupe + congelado del TC en el mismo flujo), carga del mapa de instrumentos desde la hoja Config, botón de refresco y caché de 5 min para no pegarle a las APIs en cada rerun. Estados **empty** (con instrucción de dónde sacar el export), **error** (archivo no reconocido) y aviso de posiciones sin precio. Scope por usuario (`CARTERA_USER_IDS`, default solo Franco — ADR-0003).
+- **Verificación end-to-end con datos reales** (no solo tests): flujo completo Excel → parser → DB → TC congelado → precios vivos → KPIs. Resultado: **valor $15.490.098 / US$10.101 · +19,8% · 23 posiciones valuadas**. BTC resuelto por yahoo (0,003 × $98.117.440 = $294.352).
+- **⚠️ Hallazgo (para 3b):** 6 letras/bonos en pesos ya vencidos (S15G5, T15D5, S16E6, TTM26, S17A6, T2X5) quedan con **cantidad residual** porque el vencimiento se registra como `AMORTIZACION` y solo `VENTA` resta cantidad. El Excel arrastra lo mismo (por eso el recon pasa). No cotizan → sin precio, no ensucian los totales. Se resuelve al tratar amortizaciones en **3b**. Ídem `GGALX` (ticker viejo del canje, cantidad −100 compensada por el saldo sintético de GGAL).
+- **Estado:** suite **200 passed, 1 skipped**. **Próximo:** paso 5 (recon USD en modo "MEP actual" para cerrar 3a) y luego merge a `main` + `fly deploy` para verla online.
