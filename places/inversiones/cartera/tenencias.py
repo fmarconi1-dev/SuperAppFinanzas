@@ -31,6 +31,9 @@ __all__ = [
     "guardar_foto",
     "ultima_foto",
     "comparar_con_movimientos",
+    "set_tenencia_manual",
+    "tenencias_manuales",
+    "FECHA_MANUAL",
 ]
 
 _PREFIJO_TIPO = "Tipo de Activo:"
@@ -275,3 +278,44 @@ def comparar_con_movimientos(foto: FotoCartera, posiciones: dict) -> list[dict]:
             })
     difs.sort(key=lambda d: -abs(d["diferencia"]))
     return difs
+
+
+#: Fecha reservada para las tenencias cargadas a mano (activos fuera del
+#: broker). Se usa una fecha propia para no mezclarlas con las fotos del
+#: custodio ni perderlas al reimportar una tenencia.
+FECHA_MANUAL = "manual"
+
+
+def set_tenencia_manual(
+    conn, user_id: int, ticker: str, cantidad: float,
+    nombre: str = "", tipo_activo: str = "Externo",
+) -> None:
+    """Registra la cantidad de un activo que el broker no informa.
+
+    Caso real: el **Bitcoin** de Franco vive en Binance, así que no aparece en
+    la tenencia de inviu. Su cantidad real (0,00316847) no se puede derivar de
+    los movimientos — el Excel solo tenía el saldo inicial (0,003), que
+    subvaluaba la posición.
+    """
+    conn.execute(
+        "INSERT INTO cartera_tenencia (user_id, fecha_valuacion, ticker, "
+        " nombre, cantidad, precio, moneda, tipo_activo, costo_ppc) "
+        "VALUES (?, ?, ?, ?, ?, NULL, 'ARS', ?, NULL) "
+        "ON CONFLICT(user_id, fecha_valuacion, ticker) DO UPDATE SET "
+        "  cantidad = excluded.cantidad, nombre = excluded.nombre, "
+        "  tipo_activo = excluded.tipo_activo",
+        (user_id, FECHA_MANUAL, ticker, nombre or ticker, float(cantidad),
+         tipo_activo),
+    )
+
+
+def tenencias_manuales(conn, user_id: int) -> dict[str, float]:
+    """Cantidades cargadas a mano (activos fuera del broker)."""
+    return {
+        r["ticker"]: r["cantidad"]
+        for r in conn.execute(
+            "SELECT ticker, cantidad FROM cartera_tenencia "
+            "WHERE user_id = ? AND fecha_valuacion = ?",
+            (user_id, FECHA_MANUAL),
+        )
+    }

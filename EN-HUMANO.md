@@ -9,6 +9,29 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 23 de julio de 2026 (cierre) — El Bitcoin: no era el precio, era la cantidad
+
+**Qué pasó (en criollo):**
+Me marcaste que tu Bitcoin vale US$203,04 y la app mostraba US$192. Yo sospechaba del precio… y era la **cantidad**: tu Excel tenía 0,003 BTC (el saldo inicial de cuando arrancaste), pero en realidad tenés **0,00316847**. Un 5% más. Con la cantidad real: **US$202,91**, o sea 13 centavos de tu número — pura variación del precio en el rato que pasó.
+
+Ahora la app tiene un lugar para **activos que están fuera del broker** (tu BTC en Binance): cargás la cantidad una vez y el precio lo busca sola. Y no se borra cuando subís una tenencia nueva.
+
+También ajusté algo importante: cuando subís la tenencia, la app usa **los precios de tu broker** en vez de los del mercado en vivo. Así los totales coinciden con lo que ves en tu cuenta, en lugar de diferir por unos pesos según el momento.
+
+**Y resolví el misterio de los US$86** que no cerraban: el archivo de tenencias del broker tiene, adentro, una fórmula mal armada — calcula los montos con una columna que viene vacía. O sea que el "Total" del archivo daría cero. Tus 15.489 salen de la **pantalla** del broker (precios de ese instante), y yo sumo los precios que quedaron congelados en el archivo. Son dos fotos de momentos distintos: 0,55% de diferencia.
+
+**Tu foto final:**
+
+| | Pesos | Dólares |
+|---|---|---|
+| Aportaste | $13.162.628 | US$11.338 |
+| Tenés hoy | — | **US$15.778** |
+| **Resultado** | **+$10.815.664 (+82,2%)** | **+US$4.440 (+39,2%)** |
+
+**Qué anoté para más adelante:** traer tu tenencia de Binance automáticamente (solo lectura — la app nunca opera por vos), así no tenés que cargar la cantidad a mano.
+
+---
+
 ## 23 de julio de 2026 (corrección 2) — Faltaba el 35% de tu cartera: el pagaré
 
 **Qué pasó (en criollo):**

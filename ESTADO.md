@@ -61,6 +61,16 @@
 >
 > 📌 **Para Franco:** la reconciliación detectó que **ASML** está marcado `Activo en cartera = NO` en `Config` del Excel pero el broker informa 15 unidades — conviene corregirlo en la planilla.
 >
+> ✅ **Bitcoin cerrado (3ª objeción de Franco, también correcta):** su posición vale US$203,04 y la app mostraba US$192. **La causa era la CANTIDAD, no el precio**: el Excel solo tenía el saldo inicial (0,003) y la tenencia real es **0,00316847** (Binance). Con la cantidad correcta: US$202,91 (13 centavos de diferencia por el movimiento del precio). Se agregaron **tenencias manuales** (`set_tenencia_manual`, fecha reservada `"manual"`) para activos fuera del custodio: mandan sobre los movimientos y no se pisan al reimportar la foto del broker.
+>
+> **Precios: precedencia override → broker → cripto/yahoo → mercado vivo/caché.** Con tenencia importada se usan los precios del broker, así los totales coinciden con lo que Franco ve.
+>
+> 🔍 **Los US$86 de diferencia — explicados:** las fórmulas del export de tenencias calculan con la columna **C (Cantidad)**, que viene **vacía**, no con la **E (Disponibles)**. El "Total" del propio archivo daría 0 → los 15.489 que ve Franco vienen de la **pantalla del broker** (precios en vivo), no del archivo. Nuestra suma es correcta para los precios congelados del export. Decisión de Franco: ruido de precios aceptable (0,55%).
+>
+> **Números finales del día:** patrimonio **US$15.778** (broker US$15.575 + BTC US$203) · aportado US$11.338 → **+US$4.440 (+39,2%) en dólares · +$10.815.664 (+82,2%) en pesos**. Suite **221 passed, 1 skipped** + recon verde.
+>
+> 💡 **En MEJORAS:** traer la tenencia de cripto directo de **Binance** (read-only — el agente no opera) y las **amortizaciones parciales** de bonos vivos (hoy suman como flujo sin reducir tenencia; con vencimiento total ya funciona).
+>
 > 📌 **Nota para el gate:** `tests/test_cartera_recon.py` llama a `posiciones()` **sin** instrumentos a propósito — compara el plano que calcula el Excel (cantidades brutas). El cierre de vencidos es una capa deliberada por encima de la planilla; pasar instrumentos ahí haría fallar el recon por la mejora, no por un error.
 >
 > **Próximo: paso 5 — recon en USD modo "MEP actual"** (metodología del Excel) para cerrar la Fase 3a. Después: **merge a `main` + `fly deploy`** para verla online (hoy el trabajo vive en `fase-3a/cartera-nativa`, que Fly no despliega). Pendiente de 3b: amortizaciones **parciales** (bonos vivos que amortizan en cuotas, ej. AE38 a futuro) — hoy se cuentan como flujo sin reducir tenencia.

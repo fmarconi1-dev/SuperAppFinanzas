@@ -141,3 +141,44 @@ def test_sin_dato_del_broker_se_usa_lo_derivado():
     p = Posicion("BITCOIN", cant_comprada=0.003)
     assert p.cant_broker is None
     assert p.cant_actual == pytest.approx(0.003)
+
+
+# ---------------------------------------------------------------------------
+# Tenencias manuales: activos fuera del broker
+# ---------------------------------------------------------------------------
+
+def test_tenencia_manual_para_activo_fuera_del_broker(db):
+    """El BTC vive en Binance: no está en la tenencia de inviu y su cantidad
+    real (0,00316847) no se deriva de los movimientos, que solo conocen el
+    saldo inicial (0,003) — eso subvaluaba la posición un 5%."""
+    from places.inversiones.cartera.tenencias import (
+        set_tenencia_manual, tenencias_manuales,
+    )
+    set_tenencia_manual(db, 1, "BITCOIN", 0.00316847, "Bitcoin (Binance)", "Cripto")
+    db.commit()
+    assert tenencias_manuales(db, 1) == {"BITCOIN": pytest.approx(0.00316847)}
+
+
+def test_tenencia_manual_es_idempotente_y_actualizable(db):
+    from places.inversiones.cartera.tenencias import (
+        set_tenencia_manual, tenencias_manuales,
+    )
+    set_tenencia_manual(db, 1, "BITCOIN", 0.003)
+    set_tenencia_manual(db, 1, "BITCOIN", 0.00316847)   # se actualiza
+    db.commit()
+    assert tenencias_manuales(db, 1)["BITCOIN"] == pytest.approx(0.00316847)
+    n = db.execute(
+        "SELECT COUNT(*) c FROM cartera_tenencia WHERE user_id=1"
+    ).fetchone()["c"]
+    assert n == 1
+
+
+def test_manual_no_se_pisa_al_importar_una_foto_del_broker(db):
+    """La foto del broker no debe borrar los activos externos."""
+    from places.inversiones.cartera.tenencias import (
+        set_tenencia_manual, tenencias_manuales,
+    )
+    set_tenencia_manual(db, 1, "BITCOIN", 0.00316847)
+    db.commit()
+    guardar_foto(db, parse_filas_tenencias(FILAS), user_id=1)
+    assert "BITCOIN" in tenencias_manuales(db, 1)

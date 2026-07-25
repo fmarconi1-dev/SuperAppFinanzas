@@ -22,7 +22,13 @@ import pandas as pd
 import streamlit as st
 
 from core.db import connect
-from core.market_data import precio_yahoo, precios_arg, resolver_precio
+from core.market_data import (
+    leer_precio_cache,
+    precio_yahoo,
+    precios_arg,
+    resolver_precio,
+    set_override_precio,
+)
 from core.market_data.mep import mep_para_fecha, serie_mep_con_fallback
 from places.inversiones.cartera.ingest import (
     cargar_instrumentos_en_db,
@@ -40,6 +46,8 @@ from places.inversiones.cartera.tenencias import (
     comparar_con_movimientos,
     guardar_foto,
     parse_tenencias,
+    set_tenencia_manual,
+    tenencias_manuales,
     ultima_foto,
 )
 
@@ -309,14 +317,29 @@ def render(user_id: int | None = None) -> None:
     precios = _precios_cacheados()
     mep, origen_mep = _mep_actual()
 
+    precios_broker = (
+        {t.ticker: t.precio for t in foto.posiciones if t.precio}
+        if foto is not None else {}
+    )
+
     def _resolver(ticker: str, inst) -> tuple[float | None, str]:
         with connect() as conn:
-            # Cripto: no cotiza en el mercado local → yahoo (USD) pasado a ARS
-            # por el MEP, para que conviva con el resto de la cartera.
+            # 1) Override manual: siempre gana (incluida la cripto).
+            manual = leer_precio_cache(conn, ticker)
+            if manual is not None and manual[1]:
+                return manual[0], "override"
+            # 2) Precio del broker: cuando hay tenencia importada, es el que
+            #    usa la valuación oficial de esa fecha. Así los totales de la
+            #    app coinciden con lo que muestra el broker, en vez de diferir
+            #    por unos pesos según el momento del feed en vivo.
+            if ticker in precios_broker:
+                return precios_broker[ticker], "broker"
+            # 3) Cripto: no cotiza en el mercado local → yahoo (USD) a ARS.
             if inst is not None and inst.categoria_activo == "Cripto":
                 btc = _precio_btc_usd()
                 if btc and mep:
                     return btc * mep, "proveedor"
+            # 4) Mercado en vivo / caché.
             return resolver_precio(
                 conn, ticker, precios_proveedor=precios,
                 divide_por_100=bool(inst and inst.divide_por_100),
@@ -329,6 +352,18 @@ def render(user_id: int | None = None) -> None:
     if foto is not None:
         difs = comparar_con_movimientos(foto, posiciones)
         posiciones = _aplicar_tenencia(posiciones, foto, instrumentos)
+
+    # Tenencias cargadas a mano: activos que no están en el broker (el BTC
+    # vive en Binance). Mandan sobre lo derivado de movimientos, que solo
+    # conoce el saldo inicial.
+    with connect() as conn:
+        manuales = tenencias_manuales(conn, uid)
+    for tk, cant in manuales.items():
+        p = posiciones.get(tk)
+        if p is None:
+            from places.inversiones.cartera.posiciones import Posicion
+            p = posiciones[tk] = Posicion(tk)
+        p.cant_broker = cant
 
     valuadas = valuar(posiciones, _resolver, instrumentos, mep_actual=mep)
     k = kpis_de(valuadas, mep)
@@ -488,9 +523,64 @@ def render(user_id: int | None = None) -> None:
     )
 
     st.caption(
-        "Valuación a precio de mercado; costo a promedio ponderado. El dólar de "
-        "cada operación queda congelado a la fecha en que se hizo."
+        "Cuando hay tenencia importada se usan los precios del broker (misma "
+        "valuación que ves en tu cuenta); si no, precios de mercado. Costo a "
+        "promedio ponderado y dólar congelado a la fecha de cada operación."
     )
+
+    with st.expander("Activos fuera del broker (cripto, otras cuentas)"):
+        st.caption(
+            "Cantidades que el broker no informa porque el activo está en otro "
+            "lado (por ejemplo Bitcoin en Binance). El precio se busca solo; "
+            "vos solo mantenés la cantidad."
+        )
+        e1, e2, e3 = st.columns([2, 2, 1])
+        with e1:
+            tk_ext = st.text_input("Ticker", value="BITCOIN",
+                                   key="cartera_ext_ticker")
+        with e2:
+            cant_ext = st.number_input(
+                "Cantidad", min_value=0.0, step=0.00001, format="%.8f",
+                key="cartera_ext_cant")
+        with e3:
+            st.write("")
+            if st.button("Guardar", key="cartera_btn_ext",
+                         disabled=not (tk_ext and cant_ext)):
+                with connect() as conn:
+                    set_tenencia_manual(conn, uid, tk_ext.strip().upper(),
+                                        cant_ext)
+                    conn.commit()
+                st.success(f"Tenencia de {tk_ext.upper()} actualizada.",
+                           icon=":material/check_circle:")
+                st.rerun()
+        if manuales:
+            st.caption("Cargadas: " + " · ".join(
+                f"{t} {c:g}" for t, c in manuales.items()))
+
+    with st.expander("Corregir un precio a mano"):
+        st.caption(
+            "Útil para lo que no cotiza en el mercado local (Bitcoin) o si un "
+            "precio automático no refleja tu valuación. El precio manual gana "
+            "sobre cualquier fuente."
+        )
+        c1, c2, c3 = st.columns([2, 2, 1])
+        with c1:
+            tk_ov = st.selectbox(
+                "Activo", [p.ticker for p in valuadas], key="cartera_ov_ticker")
+        with c2:
+            val_ov = st.number_input(
+                "Precio (en pesos, por unidad)", min_value=0.0, step=100.0,
+                format="%.2f", key="cartera_ov_precio")
+        with c3:
+            st.write("")
+            if st.button("Fijar", key="cartera_btn_override", disabled=not val_ov):
+                with connect() as conn:
+                    set_override_precio(conn, tk_ov, val_ov)
+                    conn.commit()
+                st.success(f"Precio de {tk_ov} fijado.",
+                           icon=":material/check_circle:")
+                st.rerun()
+
     if st.button("Actualizar precios", key="cartera_btn_refrescar"):
         _precios_cacheados.clear()
         _mep_actual.clear()
