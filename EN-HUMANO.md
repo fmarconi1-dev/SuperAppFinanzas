@@ -9,6 +9,26 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 23 de julio de 2026 — ¿En cuánto tiempo? 19,6 meses, y la tasa anual real
+
+**Qué se hizo (en criollo):**
+Preguntaste en cuánto tiempo lograste ese rendimiento. Va con un detalle importante: como fuiste poniendo plata **en 24 momentos distintos** entre diciembre de 2024 y julio de 2026, no sirve dividir el acumulado por los años. La plata que pusiste el mes pasado no estuvo trabajando lo mismo que la de hace un año y medio.
+
+La medida que corresponde se llama **TIR**: pondera cuánto tiempo estuvo invertido cada aporte.
+
+**Tu foto temporal:**
+
+- **Período:** del 5/12/2024 al 24/7/2026 → **596 días (19,6 meses, 1,63 años)**
+- **Acumulado:** +39,2% en dólares · +82,2% en pesos
+- **Tasa anual (TIR):** **26,0% anual en dólares** · **53,6% anual en pesos**
+
+Para que se entienda por qué importa: si dividiéramos el acumulado por los años daría 22,4% anual, subestimando tu resultado — porque ignora que buena parte del capital entró hace poco y aun así rindió.
+
+**Para qué te sirve:**
+26% anual en dólares es un número comparable: podés medirlo contra un plazo fijo, contra el S&P 500 o contra cualquier alternativa. El "+39% acumulado" solo, no.
+
+---
+
 ## 23 de julio de 2026 (cierre) — El Bitcoin: no era el precio, era la cantidad
 
 **Qué pasó (en criollo):**

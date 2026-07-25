@@ -151,6 +151,18 @@ class KPIs:
     patrimonio_usd: float = 0.0
     aportado_ars: float = 0.0       # depósitos − retiros, al TC de cada fecha
     aportado_usd: float = 0.0
+    # --- horizonte temporal ---------------------------------------------
+    dias: int = 0                   # del primer aporte a la valuación
+    tir_ars: float | None = None    # tasa anual efectiva (pondera cada aporte)
+    tir_usd: float | None = None
+
+    @property
+    def anios(self) -> float:
+        return self.dias / 365.0
+
+    @property
+    def meses(self) -> float:
+        return self.dias / 30.44
 
     @property
     def resultado_total_ars(self) -> float:
@@ -278,18 +290,35 @@ def kpis_de(valuadas: list[PosicionValuada], mep: float | None = None) -> KPIs:
 
 
 def completar_patrimonio(
-    k: KPIs, capital, cash_ars: float, cash_usd: float, mep: float | None
+    k: KPIs, capital, cash_ars: float, cash_usd: float, mep: float | None,
+    flujos=None, fecha_valuacion=None,
 ) -> KPIs:
     """Agrega a los KPIs el rendimiento por método de patrimonio.
 
     :param capital: :class:`CapitalAportado` (depósitos y retiros ya en ARS/USD
         al TC de cada fecha).
     :param cash_ars/cash_usd: efectivo en la cuenta, por moneda.
+    :param flujos: ``[(fecha, ars, usd), ...]`` de aportes/retiros (signo del
+        inversor). Con esto se calcula la **TIR**: el rendimiento acumulado
+        solo no dice nada sin el tiempo, y anualizarlo dividiendo por los años
+        sería incorrecto porque cada aporte estuvo invertido un plazo distinto.
+    :param fecha_valuacion: fecha del patrimonio final.
     """
+    from places.inversiones.cartera.posiciones import tir  # evita ciclo
+
     k.aportado_ars = capital.neto_ars
     k.aportado_usd = capital.neto_usd
     k.patrimonio_ars = k.valor_total_ars + cash_ars + (cash_usd * mep if mep else 0.0)
     k.patrimonio_usd = (
         (k.valor_total_usd or 0.0) + cash_usd + (cash_ars / mep if mep else 0.0)
     )
+
+    if flujos and fecha_valuacion is not None:
+        fechas = [f for f, _, _ in flujos]
+        if fechas:
+            k.dias = (fecha_valuacion - min(fechas)).days
+            k.tir_ars = tir([(f, a) for f, a, _ in flujos]
+                            + [(fecha_valuacion, k.patrimonio_ars)])
+            k.tir_usd = tir([(f, u) for f, _, u in flujos]
+                            + [(fecha_valuacion, k.patrimonio_usd)])
     return k

@@ -39,6 +39,7 @@ from places.inversiones.cartera.kpis import completar_patrimonio, kpis_de, valua
 from places.inversiones.cartera.parser import Instrumento, parse_archivo_excel
 from places.inversiones.cartera.posiciones import (
     capital_aportado,
+    flujos_de_capital,
     posiciones_desde_db,
     saldos_efectivo,
 )
@@ -370,9 +371,14 @@ def render(user_id: int | None = None) -> None:
     with connect() as conn:
         capital = capital_aportado(conn, uid)
         cash_ars, cash_usd = saldos_efectivo(conn, uid)
+        flujos = flujos_de_capital(conn, uid)
     if foto is not None:
         cash_ars, cash_usd = foto.efectivo_ars, foto.efectivo_usd
-    completar_patrimonio(k, capital, cash_ars, cash_usd, mep)
+    fecha_val = (
+        foto.fecha_valuacion if foto is not None
+        else pd.Timestamp.today().date()
+    )
+    completar_patrimonio(k, capital, cash_ars, cash_usd, mep, flujos, fecha_val)
 
     # ---- KPIs -----------------------------------------------------------
     tono = "positivo" if k.resultado_ars >= 0 else "negativo"
@@ -438,7 +444,10 @@ def render(user_id: int | None = None) -> None:
         )
 
     # ---- Rendimiento histórico total (incluye lo cobrado y lo vendido) ---
-    st.markdown("#### Cómo te fue en total")
+    periodo = (
+        f" · {k.meses:.0f} meses ({k.anios:.1f} años)" if k.dias else ""
+    )
+    st.markdown(f"#### Cómo te fue en total{periodo}")
     st.caption(
         "Lo que hoy vale todo (tenencia + efectivo) contra el capital que "
         "realmente aportaste (depósitos − retiros). Cada aporte se convierte "
@@ -466,11 +475,28 @@ def render(user_id: int | None = None) -> None:
             f"{'▲' if tot_usd >= 0 else '▼'} {_fmt(k.rendimiento_total_usd_pct, 1)}%"
             " · el número que importa",
             "positivo" if tot_usd >= 0 else "negativo"))
+    if k.tir_usd is not None or k.tir_ars is not None:
+        t1, t2 = st.columns(2)
+        with t1:
+            st.html(_kpi_card(
+                "Rendimiento anual en dólares",
+                f"{_fmt((k.tir_usd or 0) * 100, 1)}%",
+                "TIR: pondera cuánto tiempo estuvo invertido cada aporte",
+                "positivo" if (k.tir_usd or 0) >= 0 else "negativo"))
+        with t2:
+            st.html(_kpi_card(
+                "Rendimiento anual en pesos",
+                f"{_fmt((k.tir_ars or 0) * 100, 1)}%",
+                f"acumulado en {k.meses:.0f} meses",
+                "positivo" if (k.tir_ars or 0) >= 0 else "negativo"))
+
     st.caption(
         f"Cobrado en el camino: {_fmt(k.flujos_ars, 0, '$')} de amortizaciones, "
         f"rentas y dividendos (ya incluido arriba). El resultado por ticker de "
         "la tabla no suma al total: al convertir dólares a pesos, la "
-        "devaluación infla los resultados individuales."
+        "devaluación infla los resultados individuales. La tasa anual es la "
+        "TIR, no el acumulado dividido por los años: cada aporte estuvo "
+        "invertido un plazo distinto."
     )
 
     # ---- Tabla de posiciones -------------------------------------------

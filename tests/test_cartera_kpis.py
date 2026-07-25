@@ -290,3 +290,59 @@ def test_perdida_en_dolares_con_ganancia_en_pesos():
     assert k.resultado_total_ars > 0        # +18% en pesos
     assert k.resultado_total_usd < 0        # pero perdió en dólares
     assert k.rendimiento_total_usd_pct == pytest.approx(-21.33, rel=1e-2)
+
+
+# ---------------------------------------------------------------------------
+# TIR: el rendimiento acumulado no dice nada sin el tiempo
+# ---------------------------------------------------------------------------
+
+def test_tir_casos_conocidos():
+    from datetime import date
+    from places.inversiones.cartera.posiciones import tir
+    # 100 → 110 en un año = 10% anual
+    assert tir([(date(2025, 1, 1), -100), (date(2026, 1, 1), 110)]) == \
+        pytest.approx(0.10, abs=1e-3)
+    # 100 → 121 en dos años = 10% anual (capitalizado, no 10,5%)
+    assert tir([(date(2024, 1, 1), -100), (date(2026, 1, 1), 121)]) == \
+        pytest.approx(0.10, abs=1e-3)
+    # pérdida
+    assert tir([(date(2025, 1, 1), -100), (date(2026, 1, 1), 90)]) == \
+        pytest.approx(-0.10, abs=1e-3)
+
+
+def test_tir_pondera_cuando_entro_cada_aporte():
+    """Dos aportes iguales, uno al principio y otro casi al final: la TIR
+    debe ser mayor que el rendimiento acumulado simple, porque la mitad del
+    capital estuvo invertida poco tiempo."""
+    from datetime import date
+    from places.inversiones.cartera.posiciones import tir
+    flujos = [
+        (date(2025, 1, 1), -100),    # estuvo 1 año
+        (date(2025, 12, 1), -100),   # estuvo 1 mes
+        (date(2026, 1, 1), 220),     # patrimonio final
+    ]
+    r = tir(flujos)
+    acumulado = 220 / 200 - 1        # +10% sobre el total aportado
+    assert r > acumulado             # la TIR anualizada es mayor
+
+
+def test_tir_devuelve_none_sin_solucion():
+    from datetime import date
+    from places.inversiones.cartera.posiciones import tir
+    assert tir([]) is None
+    assert tir([(date(2025, 1, 1), -100)]) is None          # un solo flujo
+    assert tir([(date(2025, 1, 1), -100),
+                (date(2026, 1, 1), -50)]) is None           # todos negativos
+
+
+def test_kpis_calculan_periodo_y_tir():
+    from datetime import date
+    from places.inversiones.cartera.kpis import completar_patrimonio
+    pos = {"A": Posicion("A", cant_comprada=10, costo_ars_compras=1000.0)}
+    k = kpis_de(valuar(pos, _resolver_fijo({"A": 110.0}), mep_actual=1000.0), mep=1000.0)
+    flujos = [(date(2025, 1, 1), -1000.0, -1.0)]
+    completar_patrimonio(k, _Cap(1000.0, 1.0), 0.0, 0.0, 1000.0,
+                         flujos, date(2026, 1, 1))
+    assert k.dias == 365
+    assert k.anios == pytest.approx(1.0)
+    assert k.tir_ars == pytest.approx(0.10, abs=1e-3)   # 1000 → 1100 en un año

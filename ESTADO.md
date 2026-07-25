@@ -71,6 +71,8 @@
 >
 > 💡 **En MEJORAS:** traer la tenencia de cripto directo de **Binance** (read-only — el agente no opera) y las **amortizaciones parciales** de bonos vivos (hoy suman como flujo sin reducir tenencia; con vencimiento total ya funciona).
 >
+> ⏱️ **Horizonte temporal + TIR (2026-07-23).** El acumulado no dice nada sin el tiempo, y anualizarlo dividiendo por los años sería incorrecto: hubo **24 aportes** entre 12/2024 y 07/2026, cada uno invertido un plazo distinto. Se implementó `flujos_de_capital()` + `tir()` (XIRR por **bisección** — Newton diverge con flujos irregulares), validada contra casos conocidos. **Período: 05/12/2024 → 24/07/2026 = 596 días (19,6 meses).** Acumulado +39,2% USD → **TIR 26,0% anual en dólares · 53,6% anual en pesos** (el CAGR simple daría 22,4%, subestimando). Suite **225 passed, 1 skipped**.
+>
 > 📌 **Nota para el gate:** `tests/test_cartera_recon.py` llama a `posiciones()` **sin** instrumentos a propósito — compara el plano que calcula el Excel (cantidades brutas). El cierre de vencidos es una capa deliberada por encima de la planilla; pasar instrumentos ahí haría fallar el recon por la mejora, no por un error.
 >
 > **Próximo: paso 5 — recon en USD modo "MEP actual"** (metodología del Excel) para cerrar la Fase 3a. Después: **merge a `main` + `fly deploy`** para verla online (hoy el trabajo vive en `fase-3a/cartera-nativa`, que Fly no despliega). Pendiente de 3b: amortizaciones **parciales** (bonos vivos que amortizan en cuotas, ej. AE38 a futuro) — hoy se cuentan como flujo sin reducir tenencia.

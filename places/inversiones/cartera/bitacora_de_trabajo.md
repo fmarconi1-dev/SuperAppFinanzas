@@ -109,3 +109,12 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
 - **Números finales:** subtotal broker US$15.575,14 + BTC US$202,91 = **patrimonio US$15.778** · aportado US$11.337,74 → **+US$4.440 (+39,2%) en dólares · +$10.815.664 (+82,2%) en pesos**.
 - **Anotado en MEJORAS:** traer la tenencia de cripto directo de **Binance** (read-only; el agente no opera) y las amortizaciones parciales de bonos vivos.
 - **Estado:** `tests/test_cartera_tenencias.py` (12). Suite **221 passed, 1 skipped** + recon verde.
+
+## 2026-07-23 — Horizonte temporal y TIR (pedido de Franco)
+- **Autor:** Claude (Opus 4.8). Franco: *"¿podemos poner en cuánto tiempo fue ese rendimiento acumulado?"*.
+- **Por qué no alcanza con dividir por los años:** hubo **24 aportes** repartidos entre 12/2024 y 07/2026, así que cada peso estuvo invertido un plazo distinto. La medida correcta es la **TIR** (equivalente a XIRR): la tasa anual que iguala el valor presente de todos los aportes con el patrimonio final.
+- **Implementación** (`posiciones.py`): `flujos_de_capital()` (aportes/retiros con fecha y signo del inversor) y `tir()` por **bisección** — se eligió bisección sobre Newton-Raphson porque con flujos irregulares (aportes de tamaños muy distintos) Newton diverge. Devuelve `None` si no hay cambio de signo o hay un solo flujo. `KPIs` expone `dias`, `anios`, `meses`, `tir_ars` y `tir_usd`; `completar_patrimonio()` los calcula.
+- **Validado contra casos conocidos:** 100→110 en 1 año = 10%; 100→121 en 2 años = 10% (capitalizado, no 10,5%); pérdida −10%. Más un test que verifica que la TIR es **mayor** que el acumulado simple cuando parte del capital entró tarde.
+- **Resultado con datos reales:** período **05/12/2024 → 24/07/2026 = 596 días (19,6 meses / 1,63 años)**. Acumulado +39,2% USD / +82,2% ARS → **TIR 26,0% anual en dólares · 53,6% anual en pesos**. (El CAGR simple daría 22,4%, subestimando: no reconoce que buena parte del capital entró después.)
+- Vista: el título muestra el período y se agregaron dos KPI cards con la tasa anual.
+- **Estado:** `tests/test_cartera_kpis.py` (25). Suite **225 passed, 1 skipped** + recon verde.

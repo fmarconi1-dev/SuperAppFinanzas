@@ -18,8 +18,12 @@ Módulo puro: no toca la DB. `posiciones()` opera sobre objetos del parser;
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date, datetime
 
-__all__ = ["Posicion", "posiciones", "posiciones_desde_db"]
+__all__ = [
+    "Posicion", "posiciones", "posiciones_desde_db", "CapitalAportado",
+    "capital_aportado", "saldos_efectivo", "flujos_de_capital", "tir",
+]
 
 
 #: Flujos cobrados que son rendimiento del instrumento (regla del LEEME:
@@ -293,3 +297,77 @@ def capital_aportado(conn, user_id: int) -> CapitalAportado:
             cap.retiros_ars += ars
             cap.retiros_usd += usd
     return cap
+
+
+# ---------------------------------------------------------------------------
+# Horizonte temporal y TIR (rendimiento anualizado)
+# ---------------------------------------------------------------------------
+
+def flujos_de_capital(conn, user_id: int) -> list[tuple[date, float, float]]:
+    """Aportes y retiros con su fecha: ``[(fecha, ars, usd), ...]``.
+
+    Signo desde la óptica del inversor: aportar es **negativo** (sale del
+    bolsillo) y retirar es **positivo**, que es lo que espera el cálculo de TIR.
+    """
+    filas = []
+    for r in conn.execute(
+        "SELECT fecha_concertacion f, categoria, moneda, monto, tc_mep "
+        "FROM cartera_movimientos "
+        "WHERE user_id = ? AND categoria IN ('DEPOSITO', 'RETIRO') "
+        "ORDER BY fecha_concertacion",
+        (user_id,),
+    ):
+        monto, tc = r["monto"], r["tc_mep"]
+        if r["moneda"] == "USD":
+            usd, ars = monto, (monto * tc if tc else 0.0)
+        else:
+            ars, usd = monto, (monto / tc if tc else 0.0)
+        try:
+            f = datetime.strptime(r["f"][:10], "%Y-%m-%d").date()
+        except (TypeError, ValueError):
+            continue
+        # Un depósito entra a la cartera → para el inversor es flujo negativo.
+        filas.append((f, -ars, -usd))
+    return filas
+
+
+def tir(flujos: list[tuple[date, float]], tasa_min: float = -0.9999,
+        tasa_max: float = 100.0) -> float | None:
+    """TIR anualizada (equivalente a XIRR) por bisección.
+
+    `flujos`: ``[(fecha, monto), ...]`` con signos desde la óptica del
+    inversor — aportes negativos, valor final positivo. Devuelve la tasa
+    anual efectiva, o ``None`` si no hay solución (todos los flujos del
+    mismo signo, un solo flujo, etc.).
+
+    Se usa bisección en vez de Newton porque no diverge: con flujos
+    irregulares (aportes de muy distinto tamaño) Newton se escapa.
+    """
+    if len(flujos) < 2:
+        return None
+    if not (any(m < 0 for _, m in flujos) and any(m > 0 for _, m in flujos)):
+        return None
+
+    f0 = min(f for f, _ in flujos)
+
+    def vpn(tasa: float) -> float:
+        total = 0.0
+        for f, monto in flujos:
+            anios = (f - f0).days / 365.0
+            total += monto / ((1.0 + tasa) ** anios)
+        return total
+
+    lo, hi = tasa_min, tasa_max
+    v_lo, v_hi = vpn(lo), vpn(hi)
+    if v_lo * v_hi > 0:          # sin cambio de signo: no hay raíz en el rango
+        return None
+    for _ in range(200):
+        mid = (lo + hi) / 2.0
+        v_mid = vpn(mid)
+        if abs(v_mid) < 1e-9:
+            return mid
+        if v_lo * v_mid < 0:
+            hi, v_hi = mid, v_mid
+        else:
+            lo, v_lo = mid, v_mid
+    return (lo + hi) / 2.0
