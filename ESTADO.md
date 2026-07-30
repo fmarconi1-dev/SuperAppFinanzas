@@ -3,21 +3,21 @@
 > **Este es el archivo más importante para retomar el trabajo.** Se lee primero y se actualiza último, cada sesión.
 > Antes de editar código, actualizá la tabla "Tarea en curso". Al cerrar, dejá el "Próximo paso concreto".
 
-<!-- ultima_actualizacion: 2026-07-30 · autor: Claude (Opus 4.8) · handoff: Fase 3a pasos 1-4 hechos + consolidación al 30/7 (dedupe OK, pagaré con tasa devengada). Falta paso 5 (recon USD modo MEP actual) + merge a main + deploy -->
+<!-- ultima_actualizacion: 2026-07-30 · autor: Claude (Opus 4.8) · handoff: Fase 3a CERRADA Y EN PRODUCCIÓN (v11, verificada por Franco: "funciona perfecto"). Próximo: Fase 3b -->
 
 ## 🧭 Dónde estamos
 
-- **Fase actual:** **Fase 3a — Cartera nativa, DISEÑADA y lista para construir** (2026-07-19). Diseño cerrado en `docs/decisiones/ADR-0003-cartera-nativa.md`; los Excel ya fueron estudiados a fondo.
-- **Situación:** Superapp en producción con login único, dos lugares (Finanzas + Inversiones/Scoring), y **espacios compartidos** (grupo familiar D2) funcionando. 114 tests en verde. Incidente de migración del 17/7 resuelto (ver Nota post-incidente). radar-financiero sigue vivo como respaldo.
-- **Hosting:** Fly.io. App `superapp-finanzas` (gru, 1 GB, auto-stop, volumen `finanzas_data` con snapshots diarios). Sin secrets (radar tampoco tenía; SIGNUP_CODE/SESSION_SECRET opcionales, ver `.env.example`). Ver `docs/DEPLOY.md`.
-- **Repo git:** hasta `8a5087a` (migración Fase 1) + commits de cierre. Verificar push al retomar.
+- **Fase actual:** **Fase 3a — Cartera nativa, COMPLETA Y EN PRODUCCIÓN** (2026-07-30, release **v11** verificada por Franco usando la app). Diseño en `docs/decisiones/ADR-0003-cartera-nativa.md` + `ADR-0004` (fuente MEP).
+- **Situación:** Superapp en producción con login único, dos lugares (Finanzas + Inversiones/Scoring), **espacios compartidos** (grupo familiar D2) y **Cartera nativa** funcionando. **249 tests en verde** (3 skipped: el gate de recon necesita `CARTERA_XLSX`). Incidente de migración del 17/7 resuelto (ver Nota post-incidente). radar-financiero sigue vivo como respaldo.
+- **Hosting:** Fly.io. App `superapp-finanzas` (gru, 1 GB, auto-stop, volumen `finanzas_data` con snapshots diarios). Sin secrets (radar tampoco tenía; SIGNUP_CODE/SESSION_SECRET opcionales, ver `.env.example`). Ver `docs/DEPLOY.md`. Uso real medido: **152 MB al arrancar, import en 2,2 s** — holgado en 1 GB.
+- **Repo git:** hasta **`2c6dc13`** (fix de los dos bugs del 30/7), pusheado y sincronizado con `origin/main`.
 
 ## 🔵 Tarea en curso
 
 | Tarea | Estado | Autor | Desde |
 |---|---|---|---|
-| Fase 3a — Cartera nativa (ingest + posiciones + KPIs + recon) | ✅ **COMPLETA** (2026-07-30) | Claude (Fable 5 → Opus 4.8) | 2026-07-19 |
-| Merge a `main` + `fly deploy` de la Fase 3a | 🔵 SIGUIENTE | — | — |
+| Fase 3a — Cartera nativa (ingest + posiciones + KPIs + recon + export) | ✅ **CERRADA Y DESPLEGADA** (2026-07-30, v11) | Claude (Fable 5 → Opus 4.8) | 2026-07-19 |
+| Fase 3b — Rendimientos finos (ver detalle abajo) | 🔵 SIGUIENTE | — | — |
 
 ## ✅ Hecho hasta ahora
 
@@ -107,7 +107,27 @@
 ✅ Los 2 `#REF!` (Resumen Cartera L4/P4) están **resueltos**: Franco ya borró la fila 32 de `Movimientos Procesado` (verificado 2026-07-23 — no queda ningún `#REF!` en el libro; las fórmulas saltan de `Crudo!B62` a `B64`).
 
 ⚠️ **Hallazgo nuevo (2026-07-23): la columna Moneda de `Movimientos Procesado` (col F) está desalineada ~30 filas** — lee la moneda de otra operación (p. ej. un dividendo JPM real `USD.C` queda etiquetado `ARS`). Explica en parte la "columna Moneda poco confiable". **No afecta las cantidades** del recon (Resumen usa Δ Cantidad, col N); toca costos de compras solo donde la moneda mal leída se voltea (raro: las compras son casi todas ARS; los USD son dividendos/cauciones, que no son compras). El parser **infiere** la moneda, así que la app es inmune y más correcta que el Excel. En el paso 5 se reconcilia contra la moneda **corregida** (releída de la fila alineada) y se documenta la divergencia. Franco puede querer arreglar la col F de su Excel aparte (no se toca sin permiso).
-3b (siguiente): realized PnL por trade, cauciones/dividendos como rendimientos, análisis sector (reusar sector del snapshot de scoring) y tipo de renta. Renta fija (`Renta fija ARG.xlsx`) NO va en cartera: queda para una futura sección de análisis de mercado (está en MEJORAS).
+### 🐛 Cierre del 30/7: dos bugs que Franco encontró usando la app en producción
+
+Los detectó él, no los tests — la única forma de encontrarlos era **reimportar en el orden en que se usa la app de verdad**.
+
+1. **`ticker_base` se guardaba al importar y quedaba mal grabado.** Franco importó los movimientos **sin** el mapa de instrumentos: las variantes en dólares no se plegaron (`SPYD` como posición aparte de `SPY`). Lo grave es que **reimportar con el Excel NO lo corregía**: el dedupe salta las filas ya existentes, así que el error se volvía permanente — 37 posiciones en vez de 22, variantes D sueltas, cantidades negativas en los tickers base y costo inflado. → **`ingest.remapear_tickers_base()`**: al cargar el Excel repara las filas ya importadas (65 en la cartera de Franco), idempotente.
+2. **`view._instrumentos_de_db` no leía la columna `activo`.** Todo quedaba como vigente, así que las letras vencidas y GGALX seguían figurando "abierta" con su cantidad residual (el vencimiento entra como AMORTIZACION y no descuenta unidades). → una línea.
+
+**Antes → después:** 37 → **22** posiciones · 9 → **0** sin precio · patrimonio US$14.794 → **US$15.742** · resultado +28,3% → **+36,5%** · TIR 19,2% → **24,4%**. 4 tests de regresión en `test_cartera_ingest.py`.
+
+🧭 **Lección:** guardar un valor **derivado** en el momento del import es una trampa si el import puede correr sin todo el contexto — el dedupe después impide que se autocorrija. O se deriva al leer, o hay una reparación explícita.
+
+⚠️ **Falso positivo de deploy (anotado para no perder tiempo de nuevo):** `fly deploy` avisó *"The app is not listening on the expected address"* y solo mostró `/.fly/hallpass` escuchando. **La app estaba perfecta** (`fly status` → `started`, check passing; `/_stcore/health` → `ok`). Es una carrera de tiempos: Fly mira el puerto durante el arranque y `grace_period` está en `"30s"`. Antes de tocar código: `fly status` + `fly releases` + el health endpoint. Si molesta, subir `grace_period` a `"60s"` en `fly.toml` (1 línea, sin efecto en runtime).
+
+### ⏭️ Fase 3b — Rendimientos finos (siguiente)
+
+- **Amortizaciones parciales** de bonos vivos: hoy suman como flujo sin reducir tenencia (con vencimiento total ya funciona). Es la más importante.
+- **Realized PnL por trade** (hoy el resultado realizado es agregado).
+- **Cauciones y dividendos como rendimientos** con su propia tasa.
+- **Análisis por sector** (reusar el sector del snapshot de scoring) y por **tipo de renta**.
+- Renta fija (`Renta fija ARG.xlsx`) NO va en cartera: futura sección de análisis de mercado (está en MEJORAS).
+- Pendiente de Franco (opcional): feedback sobre el formato del **export a Excel** de la cartera.
 
 **Pendientes menores:**
 - Retirar `radar-financiero` cuando la superapp esté validada unos días (`fly apps destroy radar-financiero`).
