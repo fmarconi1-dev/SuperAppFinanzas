@@ -226,3 +226,29 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
 - **Barrido preventivo de precios anómalos** (cada precio contra la mediana de su ticker, factor >8×): **12 filas** salen marcadas y **11 son legítimas** — son las compras denominadas en USD, donde el precio está en dólares (AAL US$9 contra $10.400, SPY US$35 contra $42.522, etc.).
 - 📌 **Candidato pendiente, NO tocado — `TTM26`.** La compra del 4/2/2026 de **17.395 nominales por $17,78** (precio 0,00102) contra otra compra del **mismo día** a 1,458. Si el precio correcto fuera ~1,40, el costo del bono pasaría de $633.940 a $658.275 y su resultado de **+13,3% a +9,1%**. No se toca sin que Franco lo confirme con el broker: el +13,3% es el número que él validó a mano el 23/7.
 - **Estado:** `tests/test_cartera_ingest.py` (**16 tests**). Suite **276 passed, 3 skipped**.
+
+## 2026-07-30 — Fase 3b, punto 3: la plata quieta (cauciones, dividendos, cuenta remunerada)
+- **Autor:** Claude (Opus 5), con Franco. Skill `ui-ux-web-moderno` aplicada.
+- **`rendimientos.py` (módulo puro).** Las cauciones **no son instrumentos** (`es_instrumento = False`, pseudo-ticker `CC`), así que hasta ahora eran invisibles: ni figuraban en la tabla de posiciones ni tenían tasa. El interés estaba dentro del efectivo pero sin nombre.
+- **Cómo vienen los datos (relevado sobre los 585 movimientos reales, no supuesto):** la colocación (`CAUCION_COL`, monto negativo) y su vencimiento (`CAUCION_VTO`, positivo) **comparten la fecha de concertación**; lo que cambia es la de liquidación, y esa diferencia **es el plazo**. **101 pares, cero huérfanas, todas en ARS.** Plazos reales: 1 día (77), 2 (1), 3 (21), 5 (2).
+- ⚠️ **La tasa va ponderada por capital y tiempo**, no es el promedio de las TNA. Promediarlas le daría el mismo peso a una caución de $20.000 por un día que a una de $2,7 millones por cinco. La medida correcta es `interés total / (Σ capital × días / 365)`. En los datos de Franco casi coinciden (25,60% vs 25,37%), pero el test sintético muestra el caso donde el promedio simple da **48%** y la tasa real es **5,3%**.
+- **Identidad contable independiente (la lección de 3a), en test y verificada con datos reales:** sin importar cómo se apareen las patas, la plata que las cauciones dejaron en la cuenta es la **suma neta de todos sus movimientos**. Da **$33.365,31** por las dos vías → el apareo es correcto.
+- **Casos que no se inventan:** una colocación sin vencimiento queda `abierta` (está viva o el export se cortó) y **no** se le calcula tasa; un vencimiento sin colocación se descarta (sin capital no hay tasa); si algún día hubiera varias el mismo día, se aparean ordenadas por monto.
+- **Dividendos netos de retención** por instrumento (`dividendos_por_ticker`), respetando la regla del LEEME de ignorar el espejo en pesos. **Cuenta remunerada** (`total_remuneracion`).
+- **Vista — "La plata quieta":** 3 KPI cards (interés de cauciones con su TNA, dividendos netos, cuenta remunerada), tabla de cauciones por año, tabla de dividendos por instrumento con el % retenido, y un expander con las 101 cauciones. **Aclara explícitamente que es atribución, no plata nueva**: ya está todo dentro del patrimonio.
+- **Números reales (dic-2024 → jul-2026):**
+
+  | | |
+  |---|---:|
+  | Cauciones | **101** · interés **$33.365,31** (US$24,19) |
+  | TNA ponderada | **25,60%** — 2024: 24,48% · 2025: 29,31% · 2026: 21,38% |
+  | Capital rotado | $37.792.222 (no es capital propio: se recoloca casi todos los días) |
+  | Dividendos | 62 cobros · bruto **$89.086,78** · retención **−$5.190,66** · neto **$83.896,12** |
+  | Cuenta remunerada | 41 acreditaciones · **$3.300,98** |
+  | **Total de la caja** | **$120.562,41** |
+
+- **Retenciones muy distintas según el papel:** GGAL **10,9%**, TGNO4 y BMA **7,1%**, y los CEDEARs que pagan en dólares **0%**. Antes esto no se veía en ningún lado.
+- 🔎 **Señal de que los datos son buenos:** las TNA más altas de toda la serie (hasta 105% anual) son todas de **octubre 2025**, el mes de las elecciones legislativas — el apretón de liquidez pre-electoral quedó registrado solo. Ojo igual: en montos chicos y plazos de un día, unos pesos de redondeo mueven la TNA individual decenas de puntos; por eso la representativa es la ponderada.
+- **Doble camino verificado:** los módulos puros y los adaptadores de DB (`cauciones_desde_db`, `flujos_caja_desde_db`) dan **exactamente los mismos números** sobre los 585 movimientos importados a una base real.
+- **Estado:** `tests/test_cartera_rendimientos.py` (**19 tests**). Suite **295 passed, 3 skipped**.
+- **Próximo:** punto 4 de la 3b — análisis por sector (reusando el snapshot de scoring) y por tipo de renta.

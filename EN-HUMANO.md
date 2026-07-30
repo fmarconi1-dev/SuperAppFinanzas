@@ -9,6 +9,37 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 30 de julio de 2026 — Cuánto te rindió la plata quieta
+
+**Qué se hizo (en criollo):**
+Hasta ahora la app te mostraba cómo venían tus acciones y bonos, pero no decía nada de la plata que tenés parada. Y vos la hacés trabajar: colocaste **101 cauciones** desde diciembre de 2024, casi una por día hábil.
+
+Ahora hay una sección nueva, **"La plata quieta"**, con tres números:
+
+| | |
+|---|---:|
+| Interés de cauciones | **$33.365** — al **25,6% anual** |
+| Dividendos cobrados (netos) | **$83.896** |
+| Cuenta remunerada | **$3.301** |
+| **Total** | **$120.562** |
+
+**Importante: esto no es plata nueva.** Ya estaba adentro de tu patrimonio — el interés de las cauciones engordó tu efectivo y los dividendos ya contaban en cada papel. Lo que cambia es que ahora **sabés de dónde viene**.
+
+**Sobre la tasa del 25,6%:** es la tasa de verdad, ponderada por cuánta plata pusiste y por cuántos días. No es el promedio de las 101 tasas, que sería tramposo: una caución de $20.000 por un día no puede pesar lo mismo que una de $2,7 millones por cinco. Por año te fue así: **24,5% en 2024, 29,3% en 2025 y 21,4% en 2026** — las tasas bajaron.
+
+**Un detalle lindo:** las tasas más altas de toda tu serie, algunas arriba del 100% anual, son todas de **octubre de 2025** — el mes de las elecciones. El apretón de plata pre-electoral quedó grabado en tus propios movimientos sin que nadie lo anotara.
+
+**Y algo que no se veía:** de tus dividendos te retuvieron **$5.190**. La retención cambia mucho según el papel: a GGAL le sacaron el **10,9%**, a TGNO4 y BMA el **7,1%**, y a los CEDEARs que pagan en dólares, **nada**.
+
+**Para qué te sirve:**
+Para saber si te conviene tener plata en caución o moverla a otra cosa: ahora tenés la tasa real para comparar contra un plazo fijo o una letra. Y para ver cuánto te comen las retenciones.
+
+**Qué sigue:**
+El último punto de esta fase: ver la cartera **por sector y por tipo de renta** (cuánto tenés en renta fija, cuánto en variable, cuánto en dólares).
+
+
+---
+
 ## 30 de julio de 2026 (arreglo) — El ASML quedó limpio, y ahora podés corregir errores del broker
 
 **Qué se hizo (en criollo):**
