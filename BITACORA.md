@@ -4,6 +4,41 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-07-30 — Corrección de movimientos del broker (ASML resuelto)
+**Autor:** Claude (Opus 5), con Franco.
+- Franco confirmó la causa del +22.754% de ASML: **el broker le sacó dos ceros** (compró a $6.010, el archivo decía $60,10). Corregido **en la app y en el Excel**; la venta pasa a +$69.803 (+128,5% ARS / +80,2% USD en 250 días) y es la mejor operación de la cartera.
+- **`parser.clave_dedupe()`/`hash_dedupe()`** centralizan la regla de identidad de un movimiento; **`ingest.corregir_movimiento()`** corrige y **recalcula el hash**, para que reimportar el Excel corregido dedupee en vez de duplicar. Las dos rutas (con y sin corrección en la app) están congeladas en tests. Expander nuevo en la vista.
+- Excel corregido con **edición quirúrgica sobre el XML**, no round-trip de openpyxl (le borra formato condicional y extensiones a un libro de 16 hojas). Respaldo previo guardado.
+- **Barrido preventivo** de precios anómalos: 12 filas marcadas, 11 legítimas (compras en USD). Queda **TTM26** (17.395 nominales por $17,78) como candidato para que Franco chequee con el broker.
+**Por qué:** un dato malo del custodio deforma el costo sin avisar; y arreglar solo el Excel duplicaba la operación.
+**Estado al cierre:** 276 passed, 3 skipped. Commit listo para que Franco pushee.
+
+---
+
+## 2026-07-30 — Fase 3b paso 2: el resultado por operación (ADR-0005)
+**Autor:** Claude (Opus 5), con Franco. Skill `ui-ux-web-moderno` aplicada.
+- **ADR-0005**: el realizado se mide con el **PPC vigente al vender**, no con el promedio de toda la historia. Se mantiene costo promedio ponderado (FIFO sigue en MEJORAS); el gate de recon (cantidades + costos USD) no se toca.
+- **El realizado y el costo del remanente van juntos**: enchufar solo uno rompía la identidad `costo liberado + costo remanente = total comprado`. Test de la identidad incluido.
+- **Vista**: sección "Operaciones cerradas" — 45 ventas, 38 ganadoras, con PPC del día, resultado ARS/USD y días de tenencia. Mejor: AE38 +97,7% en 578 días.
+- **Verificado end-to-end**: valor de cartera idéntico → **patrimonio, aportado, resultado total y TIR intactos**. No realizado $2,83M → $3,26M; rendimiento sobre costo 13,4% → 15,8%.
+- 🔎 **Para Franco**: la compra de ASML del 16/5/2025 figura como 9 unidades a **$60,10** contra una venta a $13.840 (+22.754%). Ensucia el PPC actual (11.677 contra los 18.647 reales). Chequear con inviu. Se agregó la guarda `sospechosa` (>1.000%) para que un dato malo no se muestre como el mejor trade.
+**Por qué:** el resultado agregado no dice en qué acertaste; y una compra posterior no puede cambiar lo que ganaste en una venta anterior.
+**Estado al cierre:** 271 passed, 3 skipped. Commit listo para que Franco pushee.
+
+---
+
+## 2026-07-30 — Arranca la Fase 3b: la línea de tiempo de la cartera
+**Autor:** Claude (Opus 5), con Franco.
+- Se detectó que los **cuatro** puntos de la Fase 3b comparten una limitación estructural: `posiciones.py` **agrega sin orden temporal**, así que el resultado realizado de una venta se mide contra el PPC de toda la historia, incluidas las compras posteriores. Decisión de Franco: construir la línea de tiempo una sola vez y apoyar los cuatro puntos ahí.
+- **`places/inversiones/cartera/ledger.py`**: motor cronológico puro con **PPC móvil**, una `Realizacion` por cierre (costo liberado al PPC vigente, resultado ARS/USD, días de tenencia) y las retenciones separadas de los dividendos. 17 tests. Aditivo: todavía no cambia nada de lo que ve el usuario.
+- **Medido sobre el crudo real:** el realizado en pesos cambia en 8 tickers, $3.297.014 → $3.145.965 (−4,6%). Patrimonio, TIR y gate de recon inmunes.
+- **Dato de dominio adoptado (Franco):** en Argentina la amortización va por **precio**, nunca por nominales.
+- **Supuesto corregido con datos reales:** AE38 no amortizó el 9/7/2026 (fue solo cupón, misma tasa por nominal que los anteriores). Primera amortización: **9/7/2027**. AN29 es bullet. Ningún instrumento de la cartera amortiza parcialmente antes de julio 2027.
+**Por qué:** sin cronología no hay resultado por operación honesto, y los otros tres puntos de la fase se apoyan en lo mismo.
+**Estado al cierre:** commit listo para que Franco pushee. Falta ADR-0005 y cablear el motor a la vista.
+
+---
+
 ## 2026-07-30 — FASE 3a COMPLETA: la cartera nativa reconcilia y está lista para deploy
 **Autor:** Claude (Opus 4.8), con Franco.
 - **Consolidación real:** dedupe verificado en producción (de 586 movimientos, 580 ya estaban, entraron 6). Tenencia al 29/7 importada.

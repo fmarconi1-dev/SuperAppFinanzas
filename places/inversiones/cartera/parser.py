@@ -51,6 +51,8 @@ __all__ = [
     "MAPA_OPERACION",
     "Instrumento",
     "Movimiento",
+    "clave_dedupe",
+    "hash_dedupe",
     "parse_filas",
     "parse_archivo_excel",
     "parse_archivo_csv",
@@ -168,13 +170,8 @@ class Movimiento:
     hash_dedupe: str = ""
 
     def _clave_dedupe(self) -> str:
-        return "|".join([
-            self.fecha_concertacion.isoformat(),
-            self.categoria,
-            self.descripcion.strip(),
-            f"{self.monto:.2f}",
-            f"{self.cantidad:.6f}",
-        ])
+        return clave_dedupe(self.fecha_concertacion, self.categoria,
+                            self.descripcion, self.monto, self.cantidad)
 
 
 # ---------------------------------------------------------------------------
@@ -551,6 +548,35 @@ def _marcar_espejos(movimientos: list[Movimiento]) -> None:
             m.es_espejo = True
 
 
+def clave_dedupe(fecha, categoria: str, descripcion: str, monto: float,
+                 cantidad: float) -> str:
+    """La regla de identidad de un movimiento, en **un solo lugar**.
+
+    Vive acá y no en cada llamador porque cualquier corrección posterior de un
+    movimiento ya importado tiene que producir **exactamente** el hash que
+    generaría re-parsear el archivo corregido. Si no, el dedupe no lo
+    reconoce, la reimportación lo inserta de nuevo y quedan los dos — la
+    misma trampa que costó los dos bugs del 30/7.
+    """
+    fecha_txt = fecha.isoformat() if hasattr(fecha, "isoformat") else str(fecha)[:10]
+    return "|".join([
+        fecha_txt,
+        categoria,
+        (descripcion or "").strip(),
+        f"{monto:.2f}",
+        f"{cantidad:.6f}",
+    ])
+
+
+def hash_dedupe(fecha, categoria: str, descripcion: str, monto: float,
+                cantidad: float, ocurrencia: int = 0) -> str:
+    """Hash de dedupe de un movimiento. `ocurrencia` distingue filas idénticas
+    dentro del mismo archivo (dos operaciones iguales el mismo día son
+    legítimas)."""
+    clave = clave_dedupe(fecha, categoria, descripcion, monto, cantidad)
+    return hashlib.sha256(f"{clave}|#{ocurrencia}".encode()).hexdigest()
+
+
 def _asignar_hashes(movimientos: list[Movimiento]) -> None:
     """Hash de dedupe (ESTADO.md: fecha+operación+descripción+monto) con
     contador de ocurrencia para idénticos dentro del mismo archivo."""
@@ -559,7 +585,10 @@ def _asignar_hashes(movimientos: list[Movimiento]) -> None:
         clave = m._clave_dedupe()
         n = vistos.get(clave, 0)
         vistos[clave] = n + 1
-        m.hash_dedupe = hashlib.sha256(f"{clave}|#{n}".encode()).hexdigest()
+        m.hash_dedupe = hash_dedupe(
+            m.fecha_concertacion, m.categoria, m.descripcion, m.monto,
+            m.cantidad, n,
+        )
 
 
 # ---------------------------------------------------------------------------

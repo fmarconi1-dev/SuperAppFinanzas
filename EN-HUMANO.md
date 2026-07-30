@@ -9,6 +9,86 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 30 de julio de 2026 (arreglo) — El ASML quedó limpio, y ahora podés corregir errores del broker
+
+**Qué se hizo (en criollo):**
+Tenías razón: el broker le sacó dos ceros. Las compraste a **$6.010** y el archivo decía **$60,10**. Ya está corregido en los dos lados — en la app y en tu Excel (con respaldo, por las dudas: *"Inversiones - respaldo pre-fix-ASML 2026-07-30.xlsx"*).
+
+Con el precio real, esa venta del 21 de enero pasa de un imposible +22.754% a **+$69.803, o sea +128,5% en pesos y +80,2% en dólares, en 250 días**. Es, de verdad, **la mejor operación de tu cartera**.
+
+**Y quedó una herramienta para la próxima.** En la pestaña Cartera hay ahora un panel para **corregir un movimiento mal informado por el broker**: buscás el ticker, elegís la operación y le arreglás el monto y el precio. Lo importante es que la app le recalcula la "huella" al movimiento, así que cuando después arregles la fila en tu Excel y vuelvas a importar, la app la reconoce en vez de cargarla dos veces. Sin eso, arreglar solo el Excel te dejaba **18 ASML donde tenés 9**.
+
+**De paso revisé todos tus movimientos** buscando el mismo tipo de error: comparé cada precio contra lo normal de ese papel. Saltaron 12 filas y 11 son perfectamente correctas (son las compras en dólares, donde el precio está en dólares y por eso parece 1.000 veces más chico).
+
+**Queda una para que preguntes vos:** el **TTM26** del 4 de febrero. Figura que compraste 17.395 láminas por **$17,78** — y ese mismo día compraste otras a $1,458 cada una. Si el precio bueno fuera ~$1,40, ese bono habría rendido **+9,1% en vez de +13,3%**. No lo toqué porque el +13,3% es el número que vos verificaste a mano en julio. Preguntale al broker qué es esa fila.
+
+**Para qué te sirve:**
+Que un error de carga del broker no te deforme los números sin que te enteres — y que cuando aparezca, lo puedas arreglar vos en dos clics sin romper nada.
+
+**Qué sigue:**
+El punto 3 de la fase: cauciones y dividendos como rendimiento propio.
+
+
+---
+
+## 30 de julio de 2026 (Fase 3b, paso 2) — Ya podés ver cómo salió cada venta, una por una
+
+**Qué se hizo (en criollo):**
+La línea de tiempo que armé antes ahora está enchufada a la app, y apareció una sección nueva: **Operaciones cerradas**. Es una fila por cada venta que hiciste, con lo que realmente te había costado ese papel **ese día**, a qué precio lo vendiste, cuánto ganaste o perdiste en pesos y en dólares, y **cuántos días** lo tuviste.
+
+De tus 45 ventas, **38 fueron ganadoras**. La mejor: el **AE38, +97,7% en 578 días**. La peor: **AGRO, −31,8% en 130 días**.
+
+**Encontré un movimiento tuyo que está mal.** El ASML de la venta del 21/1/2026 daba **+22.754%**, que obviamente no existe. Fui a la fila: tu broker anotó la compra del 16/5/2025 como **9 unidades a $60,10** — cuando las vendiste a $13.840. Ese precio de $60 no puede ser real. Lo importante es que ese dato **ya te estaba ensuciando la app de hoy**: hace que ASML figure con un costo promedio de $11.677 cuando las 15 unidades que tenés te costaron **$18.647**. **Convendría que le preguntes a inviu qué es esa fila.** Mientras tanto, la app ahora la marca como "revisar" en vez de mostrarla como si fuera el mejor trade de tu vida.
+
+**Qué cambia en los números:**
+
+| | Antes | Ahora |
+|---|---:|---:|
+| Valor de la cartera | $23.900.213 | **igual** |
+| Lo que te costó lo que tenés | $21.070.343 | $20.640.875 |
+| Ganancia todavía no realizada | $2.829.869 | **$3.259.338** |
+| Ganancia ya realizada en ventas | $6.063.678 | $5.630.023 |
+| Rendimiento sobre el costo | 13,4% | **15,8%** |
+
+**Tu patrimonio, tu capital aportado, tu resultado total y tu tasa anual (TIR) no se mueven ni un peso.** Eso se calcula comparando lo que tenés hoy contra lo que pusiste, sin sumar operación por operación, así que nada de esto lo toca. Lo que mejora es la foto de **dónde** viene cada peso.
+
+**Para qué te sirve:**
+Para saber en qué acertaste y en qué no, y en cuánto tiempo. Un +30% en tres meses y un +30% en tres años no son lo mismo, y hasta ahora la app no te dejaba distinguirlos.
+
+**Qué sigue:**
+El punto 3 de esta fase: **cauciones y dividendos como rendimiento propio**. Tenés 101 cauciones hechas (unos $33.365 de interés) y $53.701 de dividendos cobrados, de los cuales te retuvieron $5.191 — hoy nada de eso se muestra por separado.
+
+
+---
+
+## 30 de julio de 2026 (Fase 3b) — Ahora la app va a mirar el orden en que pasaron las cosas
+
+**Qué se hizo (en criollo):**
+Arrancamos la Fase 3b y encontré algo que explica los cuatro pendientes de una sola vez: **la app hoy suma todo junto sin fijarse en qué orden ocurrió**. Junta todas tus compras de un papel, saca un promedio, y con ese promedio mide las ventas — incluso las ventas que hiciste **antes** de comprarlo de nuevo.
+
+El caso más chico y más fácil de ver es **TGNO4**. Compraste 30 en septiembre a $3.132 y las vendiste en octubre a $3.183: ganaste $1.540. Pero en diciembre volviste a comprar, esta vez a $4.870. Esa compra de diciembre le sube el promedio a toda la historia, y la app termina diciéndote que en aquella venta de octubre **perdiste $37.700**. No es cierto: esa plata la ganaste.
+
+Y el más grande es el **SPY**, que es el mismo problema pero al revés y por otro motivo. Acordate del ajuste de ratio: el broker te dio 70 unidades más sin cobrarte nada, y eso quedó anotado con fecha **23 de julio de 2026**. Pero vos habías vendido 35 SPY el **20 de abril**, tres meses antes. Como la app promedia todo junto, esas 70 unidades gratis de julio le abaratan el costo a una venta de abril que ya había pasado, y te informa una ganancia de **$1.122.268** cuando lo que realmente ganaste ese día fueron **$433.757** (que igual es un +31,5% en 143 días, un muy buen trade). Algo que pasó después no puede cambiar lo que ganaste antes.
+
+Construí entonces la **línea de tiempo**: un motor que recorre tus movimientos en orden de fecha y va llevando la cuenta del costo real que tenías en cada momento. Cada venta queda registrada como una operación propia, con su fecha, su costo verdadero, su resultado y cuántos días tuviste el papel.
+
+**Cuánto cambia:** en pesos, el resultado de tus ventas pasa de $3.297.014 a $3.145.965. Nueve papeles cambian; el resto queda igual. **Tu patrimonio, tu rendimiento total y tu tasa anual no se mueven ni un peso** — eso se calcula por otro camino que ya era correcto.
+
+*(Estos números salieron de correr el motor sobre tu Excel, que no tiene el dólar de cada día congelado; contra la base de la app los montos exactos se van a mover un poco. Lo que no cambia es el mecanismo ni para qué lado va cada corrección.)*
+
+**De paso, dos cosas sobre el AE38:**
+Me dijiste que ya había amortizado el 9/7/2026, y fui a mirar tus movimientos: lo que cobraste ese día fue **solo el cupón** (US$89,65), a la misma tasa por lámina que venías cobrando desde enero de 2025. Si hubiera amortizado, habrías cobrado dos cosas y el cupón habría sido más chico. **La primera amortización del AE38 es el 9 de julio de 2027**, en 22 cuotas semestrales. El AN29 devuelve todo el capital junto al final, en 2029. O sea: tenés casi un año antes de que esto importe de verdad.
+En cambio, tu dato de que **la amortización va por precio y nunca por cantidad de láminas** sí es la clave del diseño, y quedó escrito en el código y protegido con un test.
+
+**Para qué te sirve:**
+Vas a poder ver, operación por operación, cuánto ganaste o perdiste de verdad en cada venta y en cuántos días — en vez de un número global que mezcla todo. Y es la base sobre la que se apoyan los otros tres pendientes de esta fase.
+
+**Qué sigue:**
+Enchufar este motor a la pantalla de Cartera (hoy está construido y probado, pero todavía no cambia nada de lo que ves). Antes te muestro la tabla de los 8 papeles que cambian, para que lo confirmes.
+
+
+---
+
 ## 30 de julio de 2026 (arreglo) — La tabla mostraba posiciones que no existen
 
 **Qué pasó (en criollo):**

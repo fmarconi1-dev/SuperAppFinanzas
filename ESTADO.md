@@ -3,7 +3,7 @@
 > **Este es el archivo más importante para retomar el trabajo.** Se lee primero y se actualiza último, cada sesión.
 > Antes de editar código, actualizá la tabla "Tarea en curso". Al cerrar, dejá el "Próximo paso concreto".
 
-<!-- ultima_actualizacion: 2026-07-30 · autor: Claude (Opus 4.8) · handoff: Fase 3a CERRADA Y EN PRODUCCIÓN (v11, verificada por Franco: "funciona perfecto"). Próximo: Fase 3b -->
+<!-- ultima_actualizacion: 2026-07-30 · autor: Claude (Opus 5) · handoff: Fase 3b EN CURSO — pasos 1 y 2 hechos (motor cronológico + realizado por operación en la app, ADR-0005). Próximo: punto 3, cauciones y dividendos -->
 
 ## 🧭 Dónde estamos
 
@@ -17,7 +17,7 @@
 | Tarea | Estado | Autor | Desde |
 |---|---|---|---|
 | Fase 3a — Cartera nativa (ingest + posiciones + KPIs + recon + export) | ✅ **CERRADA Y DESPLEGADA** (2026-07-30, v11) | Claude (Fable 5 → Opus 4.8) | 2026-07-19 |
-| Fase 3b — Rendimientos finos (ver detalle abajo) | 🔵 SIGUIENTE | — | — |
+| Fase 3b — Rendimientos finos (ver detalle abajo) | 🔵 **EN CURSO** — pasos 1 y 2 hechos (motor + realizado por operación) | Claude (Opus 5) | 2026-07-30 |
 
 ## ✅ Hecho hasta ahora
 
@@ -120,12 +120,44 @@ Los detectó él, no los tests — la única forma de encontrarlos era **reimpor
 
 ⚠️ **Falso positivo de deploy (anotado para no perder tiempo de nuevo):** `fly deploy` avisó *"The app is not listening on the expected address"* y solo mostró `/.fly/hallpass` escuchando. **La app estaba perfecta** (`fly status` → `started`, check passing; `/_stcore/health` → `ok`). Es una carrera de tiempos: Fly mira el puerto durante el arranque y `grace_period` está en `"30s"`. Antes de tocar código: `fly status` + `fly releases` + el health endpoint. Si molesta, subir `grace_period` a `"60s"` en `fly.toml` (1 línea, sin efecto en runtime).
 
-### ⏭️ Fase 3b — Rendimientos finos (siguiente)
+### ⏭️ Fase 3b — Rendimientos finos (EN CURSO desde 2026-07-30)
 
-- **Amortizaciones parciales** de bonos vivos: hoy suman como flujo sin reducir tenencia (con vencimiento total ya funciona). Es la más importante.
-- **Realized PnL por trade** (hoy el resultado realizado es agregado).
-- **Cauciones y dividendos como rendimientos** con su propia tasa.
-- **Análisis por sector** (reusar el sector del snapshot de scoring) y por **tipo de renta**.
+> **Decisión de arranque (Franco, 30/7):** los cuatro puntos comparten una misma limitación estructural — `_acumular()` de `posiciones.py` **agrega sin orden temporal**, así que el realizado de una venta se mide contra el PPC de **toda** la historia, incluidas las compras posteriores a esa venta. Se construye **la línea de tiempo una sola vez** y los cuatro puntos se apoyan ahí. *"Empezá a crear esa línea de tiempo y vamos paso a paso."*
+>
+> **Paso 1 ✅ HECHO (2026-07-30) — `places/inversiones/cartera/ledger.py`, módulo puro, aditivo, NO cableado.** Recorre los eventos por fecha con **PPC móvil** y emite una `Realizacion` por cierre (fecha, unidades, costo liberado al PPC vigente, resultado ARS/USD, %, días de tenencia sobre la fecha de compra promedio ponderada). Guarda las **retenciones aparte** de los dividendos (insumo del punto 3). Reglas: ante misma fecha primero la COMPRA (el export no trae hora); vender más de lo registrado **no inventa costo** (marca `descubierta`); compra sin cantidad (pagaré) acumula costo y avisa. `tests/test_cartera_ledger.py` (17 tests).
+>
+> **Impacto medido sobre el crudo real (585 movimientos, 46 ventas):** el realizado en pesos cambia en **9 tickers**; total $3.297.014 → **$3.145.965 (−$151.050, −4,6%)**. **Patrimonio, TIR y el gate de recon son inmunes** (el método del patrimonio no suma operación por operación). Dos mecanismos:
+> 1. **`SPY` (−$688.510, el mayor):** el ajuste de ratio está en el crudo como **compra de 70 unidades a costo cero fechada el 23/7/2026**, tres meses **después** de la venta del 20/4/2026. Con PPC global esas unidades gratis diluyen el promedio de toda la historia y se aplican **hacia atrás**: $1.122.268 informados contra **$433.757** reales (+31,5% en 143 días). Un evento retroactivo no puede cambiar el resultado de una venta ya hecha.
+> 2. **`TGNO4` (+$39.239) y 7 más:** comprar, vender y recomprar más caro. Vendió 30 el 27/10/2025 a $3.183 compradas a $3.132 → **+$1.540 real**, pero hoy la app informa **−$37.700** porque la compra de diciembre a $4.870 sube el promedio histórico.
+>
+> ⚠️ **Caveat de la medición:** se corrió sobre el crudo con objetos del parser, **sin TC congelado** (las compras en USD aportan ~0 al costo en pesos) → los **absolutos** se moverán al correrlo contra la DB; la diferencia entre métodos usa los mismos insumos y no cambia. **Repetir contra la base antes de cablear.**
+>
+> ⚠️ **Convención de amortización (dato de dominio de Franco, adoptada):** en Argentina la amortización va **por precio, nunca por nominales** — el broker deja la cantidad quieta. Por eso `AMORTIZACION` no toca cantidad ni costo en el ledger. Cubierto por test.
+>
+> ⚠️ **Supuesto corregido con datos reales — AE38 NO amortizó todavía.** El 9/7/2026 se cobró **solo cupón**: US$89,65 sobre 3.604 VN = **2,4875 por cada 100**, exactamente la misma tasa por nominal que los cupones de 9/1/2025 (US$237,50 sobre 9.500), 10/7/2025 y 9/1/2026 (US$236,31). Con una amortización del 4,545% ese cupón habría sido US$85,56. Los 3.604 VN actuales salen de la **venta** de 5.896 el 6/7/2026, no de una amortización. **Primera amortización de AE38: 9/7/2027** (22 cuotas semestrales del 4,545% hasta el 9/1/2038). **AN29 es bullet** (100% al 30/11/2029, cupón 6,5% semestral). → **Ningún instrumento de la cartera amortiza parcialmente antes de julio de 2027.**
+>
+> **Paso 2 ✅ HECHO (2026-07-30) — el realizado por operación ya está en la app.** **`ADR-0005`** registra la decisión (PPC vigente al vender; se mantiene costo promedio ponderado, FIFO sigue en MEJORAS; el realizado por ticker deja de coincidir con el Excel a propósito). `kpis.valuar(cronologico=...)` y la sección **"Operaciones cerradas"** en la vista: 3 KPI cards + una fila por venta con PPC del día, precio, resultado ARS/USD y **días de tenencia**. Sin ledger, `valuar()` conserva el comportamiento anterior → el gate de recon no se toca.
+>
+> ⚠️ **Consistencia obligatoria (casi me lo como):** el realizado y el costo del remanente **van juntos**. Enchufar solo el realizado dejaba cada ticker medido mitad con un método y mitad con el otro, y rompía la identidad `costo liberado + costo remanente = total comprado` (en ASML, por $104.552). `Ledger.plano_por_ticker()` devuelve las cuatro cifras juntas y hay **test de la identidad**.
+>
+> **Verificación end-to-end con datos reales** (585 movimientos con MEP congelado + foto del 30/7): **valor de cartera idéntico** ($23.900.213) → **patrimonio, aportado, resultado total y TIR intactos**. Costo de la tenencia $21.070.343 → $20.640.875; no realizado $2.829.869 → **$3.259.338**; realizado $6.063.678 → $5.630.023; rendimiento sobre costo 13,4% → **15,8%**. Cambian 8 PPC (ASML 11.677→18.647, SPY 23.519→15.679, GGAL, TGNO4, VIST, NU, NVDA, MELI). **45 operaciones, 38 ganadoras**; mejor **AE38 +97,7% en 578 días**, peor **AGRO −31,8% en 130 días**.
+>
+> ✅ **ASML — RESUELTO el mismo día.** La compra del 16/5/2025 figuraba como 9 unidades a **$60,10** ($543,05): **el broker le sacó dos ceros**, fueron a **$6.010**. Lo detectó sola la guarda nueva `Realizacion.sospechosa` (>1.000%). Corregido **en la app y en el Excel**: la venta del 21/1/2026 pasa de un absurdo +22.754% a **+$69.802,85 (+128,5% ARS / +80,2% USD en 250 días)** — es, legítimamente, la mejor operación de la cartera. Realizado total $5.630.023 → **$5.576.261**; operaciones a revisar 4 → **3**.
+>
+> **Cómo se corrige un movimiento (importa para la próxima vez).** `parser.clave_dedupe()`/`hash_dedupe()` centralizan la regla de identidad, e `ingest.corregir_movimiento()` **recalcula el hash** al corregir → después de corregir en la app y poner los mismos valores en el Excel, reimportar **dedupea**. Si se corrigiera **solo** el Excel, la compra entraría de nuevo y quedarían **18 unidades de ASML donde hay 9**: las dos rutas están congeladas en tests (`..._deja_el_hash_que_produciria_el_excel_corregido` y `..._el_excel_arreglado_DUPLICA`). En la vista: expander "Corregir un movimiento mal informado por el broker".
+>
+> **Excel de Franco:** `Inversiones.xlsx` → `Movimientos Crudo` E460/G460 corregidos, con respaldo en *"Inversiones - respaldo pre-fix-ASML 2026-07-30.xlsx"*. **Edición quirúrgica sobre el XML del .xlsx** — un round-trip de openpyxl le borra formato condicional y extensiones a un libro de 16 hojas. Verificado: 16 hojas, 586 filas, resto intacto.
+>
+> 📌 **PARA FRANCO — segundo candidato, NO tocado: `TTM26`.** Un barrido de precios anómalos (cada precio contra la mediana de su ticker) marcó 12 filas; 11 son legítimas (compras en USD, donde el precio está en dólares). La que queda: la compra del **4/2/2026 de 17.395 nominales por $17,78** (precio 0,00102) cuando ese mismo día compraste a 1,458. Si el precio correcto fuera ~1,40, el costo del bono pasa de $633.940 a $658.275 y su resultado de **+13,3% a +9,1%**. **Chequealo con el broker**: no lo toqué porque el +13,3% es el número que validaste a mano el 23/7.
+>
+> **Próximo paso concreto:** **punto 3 de la 3b — cauciones y dividendos como rendimientos con su propia tasa.** Datos reales disponibles: 101 cauciones colocadas (interés neto ≈ $33.365), $3.301 de cuenta remunerada, y $53.701 de dividendos brutos contra $5.191 de retenciones — el ledger **ya las acumula por separado** (`EstadoTicker.retenciones_*`), falta exponerlas.
+
+**Los cuatro puntos, en orden:**
+
+- ✅ **Realizado por operación** (punto 2) — hecho: motor cronológico + ADR-0005 + sección "Operaciones cerradas".
+- **Amortizaciones parciales** de bonos vivos: un evento más de la misma línea de tiempo. Importante pero **no urgente** (primer evento real: 9/7/2027). Falta resolver, cuando llegue, si el precio del broker viene por 100 de nominal **original** o **residual** — se decide con la foto de la tenencia del día que amortice, no antes.
+- 🔵 **Cauciones y dividendos como rendimientos** con su propia tasa — **el que sigue**. Datos reales disponibles hoy: 101 cauciones colocadas (interés neto ≈ **$33.365**), $3.301 de cuenta remunerada, y **$53.701 de dividendos brutos contra $5.191 de retenciones**; el ledger ya las acumula por separado, falta exponerlas.
+- **Análisis por sector** (reusar el sector del snapshot de scoring) y por **tipo de renta**. Ojo con la cobertura: la cartera es casi toda CEDEARs y el scoring cubre ~20 tickers.
 - Renta fija (`Renta fija ARG.xlsx`) NO va en cartera: futura sección de análisis de mercado (está en MEJORAS).
 - Pendiente de Franco (opcional): feedback sobre el formato del **export a Excel** de la cartera.
 
