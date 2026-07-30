@@ -344,9 +344,11 @@ def render(user_id: int | None = None) -> None:
             manual = leer_precio_cache(conn, ticker)
             if manual is not None and manual[1]:
                 return manual[0], "override"
-            # 2) Instrumentos sin mercado (pagarés/cheques): devengan su tasa
-            #    pactada. El "precio actual" del broker no la refleja — en el
-            #    caso real daba ~200% anualizado contra el 10% pactado.
+            # 2) Instrumentos sin mercado cuyo precio el broker NO informa:
+            #    se devenga la tasa pactada. Solo aplica si se cargó una tasa.
+            #    OJO: si el broker informa precio, ESE manda — un pagaré se
+            #    compra a descuento y su precio converge al nominal, así que el
+            #    valor del custodio ya refleja la ganancia devengada.
             tasa = tasas_devengadas.get(ticker)
             if tasa:
                 p = posiciones.get(ticker)
