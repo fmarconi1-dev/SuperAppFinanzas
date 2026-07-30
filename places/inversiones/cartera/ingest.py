@@ -27,10 +27,12 @@ __all__ = [
     "cargar_instrumentos_en_db",
     "importar_movimientos",
     "congelar_tc_mep",
+    "remapear_tickers_base",
     "detectar_tipo",
     "TIPO_MOVIMIENTOS",
     "TIPO_TENENCIA",
     "TIPO_EXCEL_PROPIO",
+    "TIPO_EXPORT_APP",
     "TIPO_DESCONOCIDO",
 ]
 
@@ -209,6 +211,7 @@ def congelar_tc_mep(conn, serie_mep: dict[str, float], user_id: int,
 TIPO_MOVIMIENTOS = "movimientos"
 TIPO_TENENCIA = "tenencia"
 TIPO_EXCEL_PROPIO = "excel_propio"     # Inversiones.xlsx (Config + crudo)
+TIPO_EXPORT_APP = "export_app"        # el "Cartera - Resumen" que genera la app
 TIPO_DESCONOCIDO = "desconocido"
 
 
@@ -235,6 +238,14 @@ def detectar_tipo(archivo) -> str:
         hojas = set(wb.sheetnames)
         if {"Config", "Movimientos Crudo"} <= hojas:
             return TIPO_EXCEL_PROPIO
+        # El export que genera la app: se confunde fácil con el Excel propio
+        # porque queda en la misma carpeta y su nombre también arranca con
+        # "Cartera". Reconocerlo permite dar un mensaje útil en vez de
+        # "no reconocido".
+        if "Resumen Cartera" in hojas and "Config" not in hojas:
+            ws0 = wb["Resumen Cartera"]
+            if str(ws0.cell(1, 1).value or "").startswith("CARTERA DE INVERSIONES"):
+                return TIPO_EXPORT_APP
         ws = wb.worksheets[0]
         primeras = []
         for i, fila in enumerate(ws.iter_rows(values_only=True)):
@@ -253,3 +264,48 @@ def detectar_tipo(archivo) -> str:
             archivo.seek(0)
         except Exception:
             pass
+
+
+def remapear_tickers_base(conn, instrumentos: dict, user_id: int) -> int:
+    """Recalcula ``ticker_base`` de los movimientos ya importados.
+
+    **Por qué existe (bug real en producción):** ``ticker_base`` se resuelve
+    *al importar*, usando el mapa de instrumentos. Si se importan movimientos
+    **sin** ese mapa, las variantes en dólares quedan sin plegar — ``SPYD``,
+    ``GOGLD``, ``NVDAD``… figuran como posiciones propias en vez de sumarse a
+    ``SPY``, ``GOOGL``, ``NVDA``. Y como el dedupe salta las filas ya
+    existentes, **reimportar con el Excel no lo corregía**: el error quedaba
+    grabado, inflando el costo y las posiciones.
+
+    Es idempotente: solo toca las filas cuyo ``ticker_base`` no coincide con el
+    mapping actual. Devuelve cuántas corrigió.
+    """
+    if not instrumentos:
+        return 0
+    # ticker (base o variante USD) → ticker base canónico
+    canonico: dict[str, str] = {}
+    for inst in instrumentos.values():
+        canonico[inst.ticker] = inst.ticker
+        if inst.ticker_usd:
+            canonico[inst.ticker_usd] = inst.ticker
+
+    filas = conn.execute(
+        "SELECT id, ticker_crudo, ticker_base FROM cartera_movimientos "
+        "WHERE user_id = ?", (user_id,),
+    ).fetchall()
+    corregidas = 0
+    conn.execute("BEGIN")
+    try:
+        for f in filas:
+            esperado = canonico.get(f["ticker_crudo"])
+            if esperado and esperado != f["ticker_base"]:
+                conn.execute(
+                    "UPDATE cartera_movimientos SET ticker_base = ? WHERE id = ?",
+                    (esperado, f["id"]),
+                )
+                corregidas += 1
+        conn.execute("COMMIT")
+    except Exception:
+        conn.execute("ROLLBACK")
+        raise
+    return corregidas

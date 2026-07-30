@@ -9,6 +9,31 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 30 de julio de 2026 (arreglo) — La tabla mostraba posiciones que no existen
+
+**Qué pasó (en criollo):**
+Me mostraste la pantalla y tenías razón: mostraba **37 posiciones cuando deberían ser 22**, con tickers raros (`SPYD`, `GOGLD`, `NVDAD`) y cantidades **negativas**. Eran **dos errores míos**, no tuyos.
+
+**El primero.** En tu primera importación se colgó el archivo equivocado, así que los movimientos entraron **sin el mapa de instrumentos**. Sin ese mapa, la app no sabe que `SPYD` es la versión en dólares de `SPY`, y las anotó como dos cosas distintas. Lo peor: cuando volviste a importar con el Excel correcto, la app **salteó esas filas** (porque ya existían, para no duplicar) y el error quedó grabado. Ahora, al cargar el Excel, la app **repara lo que ya estaba mal**: en tus datos corrigió 65 filas.
+
+**El segundo.** Las letras vencidas y GGALX aparecían como "abiertas" porque la app no estaba leyendo la marca de "vencido" de tu Excel. Una línea faltante.
+
+**Cómo queda:**
+
+| | Antes | Ahora |
+|---|---|---|
+| Posiciones | 37 | **22** |
+| Sin precio | 9 | **0** |
+| Patrimonio | US$14.794 | **US$15.742** |
+| Resultado | +28,3% | **+36,5%** |
+| Tasa anual | 19,2% | **24,4%** |
+
+**Para que se aplique:** hay que hacer un deploy nuevo. Después entrás, importás los tres archivos otra vez (con `Inversiones.xlsx`, no el "Cartera - Resumen") y se repara solo.
+
+**Lo que aprendí:** guardar un dato *calculado* (a qué activo pertenece cada movimiento) es riesgoso si la importación puede correr sin toda la información. Quedó anotado, y ahora hay una reparación automática.
+
+---
+
 ## 30 de julio de 2026 — Arrastrás los tres archivos y listo
 
 **Qué se hizo (en criollo):**

@@ -35,12 +35,14 @@ from core.market_data.mep import mep_para_fecha, serie_mep_con_fallback
 from places.inversiones.cartera.ingest import (
     TIPO_DESCONOCIDO,
     TIPO_EXCEL_PROPIO,
+    TIPO_EXPORT_APP,
     TIPO_MOVIMIENTOS,
     TIPO_TENENCIA,
     cargar_instrumentos_en_db,
     congelar_tc_mep,
     detectar_tipo,
     importar_movimientos,
+    remapear_tickers_base,
 )
 from places.inversiones.cartera.kpis import (
     completar_patrimonio,
@@ -139,7 +141,7 @@ def _aplicar_tenencia(posiciones: dict, foto, instrumentos: dict) -> dict:
 def _instrumentos_de_db(conn, user_id: int) -> dict[str, Instrumento]:
     filas = conn.execute(
         "SELECT ticker, ticker_usd, categoria_activo, moneda_cotiz, "
-        "       tasa_anual_usd "
+        "       tasa_anual_usd, activo "
         "FROM cartera_instrumentos WHERE user_id = ?",
         (user_id,),
     )
@@ -149,6 +151,10 @@ def _instrumentos_de_db(conn, user_id: int) -> dict[str, Instrumento]:
             ticker_usd=r["ticker_usd"],
             categoria_activo=r["categoria_activo"] or "",
             moneda_cotiz=r["moneda_cotiz"] or "ARS",
+            # ¡Imprescindible! Sin `activo` todo queda como vigente y las
+            # letras/bonos vencidos siguen figurando con su cantidad residual
+            # (el vencimiento entra como AMORTIZACION y no descuenta unidades).
+            activo=bool(r["activo"]) if r["activo"] is not None else True,
         )
         for r in filas
     }
@@ -269,12 +275,25 @@ def _importar_todo(archivos, user_id: int) -> None:
     for a in archivos:
         clasificados.setdefault(detectar_tipo(a), []).append(a)
 
+    # El export de la propia app se confunde con el Excel propio (mismo
+    # nombre inicial, misma carpeta): avisar cuál es el que hace falta.
+    del_app = clasificados.get(TIPO_EXPORT_APP, [])
+    if del_app:
+        st.warning(
+            "**"
+            + ", ".join(getattr(a, "name", "?") for a in del_app)
+            + "** es un resumen que generó esta app, no tu planilla. El que "
+            "hace falta es tu **Inversiones.xlsx** (el que tiene las hojas "
+            "Config y Movimientos Crudo).",
+            icon=":material/info:")
     desconocidos = clasificados.get(TIPO_DESCONOCIDO, [])
     if desconocidos:
         st.warning(
             "No pude reconocer: "
             + ", ".join(getattr(a, "name", "?") for a in desconocidos)
-            + ". Se ignoran.", icon=":material/warning:")
+            + ". Se ignoran. Los archivos esperados son tu **Inversiones.xlsx**, "
+            "el export de **movimientos** y el de **tenencias** de inviu.",
+            icon=":material/warning:")
 
     resumen: list[str] = []
     with connect() as conn:
@@ -291,11 +310,21 @@ def _importar_todo(archivos, user_id: int) -> None:
                 resumen.append(f"{ins} movimientos históricos (con saldos iniciales)")
 
         instrumentos = _instrumentos_de_db(conn, user_id)
+        # Reparación: si antes se importó sin el mapa, las variantes USD
+        # quedaron sin plegar (SPYD aparte de SPY). El dedupe no lo corrige
+        # solo, así que se recalcula acá.
+        if instrumentos:
+            arregladas = remapear_tickers_base(conn, instrumentos, user_id)
+            if arregladas:
+                resumen.append(f"{arregladas} tickers reagrupados")
         if not instrumentos:
             st.warning(
-                "No subiste el Excel con la hoja Config: sin él los tickers no "
-                "se pueden clasificar (ni se sabe qué bonos cotizan por cada "
-                "100 nominales).", icon=":material/warning:")
+                "Falta tu **Inversiones.xlsx** (el que tiene las hojas Config y "
+                "Movimientos Crudo). Sin él: los tickers no se clasifican, no "
+                "se sabe qué bonos cotizan por cada 100 nominales, y **faltan "
+                "tus tenencias iniciales** — el capital aportado va a quedar "
+                "subvaluado. Subilo y volvé a apretar *Importar todo*: no se "
+                "duplica nada.", icon=":material/warning:")
 
         # 3 — movimientos del broker.
         for a in clasificados.get(TIPO_MOVIMIENTOS, []):
@@ -384,6 +413,7 @@ def render(user_id: int | None = None) -> None:
                 TIPO_EXCEL_PROPIO: "Excel propio (Config + histórico)",
                 TIPO_MOVIMIENTOS: "Movimientos del broker",
                 TIPO_TENENCIA: "Tenencia del broker",
+                TIPO_EXPORT_APP: "Resumen generado por la app (no hace falta)",
                 TIPO_DESCONOCIDO: "No reconocido",
             }
             st.caption("Reconocí: " + " · ".join(

@@ -195,3 +195,68 @@ def test_archivo_irreconocible_no_rompe(tmp_path):
     malo = tmp_path / "roto.xlsx"
     malo.write_bytes(b"no soy un excel")
     assert detectar_tipo(malo) == TIPO_DESCONOCIDO
+
+
+# ---------------------------------------------------------------------------
+# Regresión: importar sin el mapa de instrumentos dejaba tickers sin plegar
+# ---------------------------------------------------------------------------
+
+def test_remapear_tickers_base_repara_variantes_usd(db, instrumentos):
+    """Bug real en producción (30/7/2026): si los movimientos se importan SIN
+    el mapa de instrumentos, las variantes en dólares quedan como posiciones
+    propias (SPYD aparte de SPY). Como el dedupe salta las filas ya
+    existentes, reimportar con el Excel NO lo corregía: el error quedaba
+    grabado, inflando posiciones y costo. En la cartera de Franco: 37
+    posiciones en vez de 22."""
+    from places.inversiones.cartera.ingest import remapear_tickers_base
+
+    # importado SIN instrumentos → ticker_base = ticker_crudo
+    filas = [
+        ["Compra", "2026-01-10", "2026-01-12", "SPY | SPDR", -1000, 10, 100, "ARS"],
+        ["Compra", "2026-01-21", "2026-01-23", "SPYD | SPDR", -176, 5, 35, "USD"],
+    ]
+    movs = parse_filas(filas, {})            # sin mapping
+    importar_movimientos(db, movs, user_id=1)
+    pos = posiciones_desde_db(db, 1)
+    assert {"SPY", "SPYD"} <= set(pos)       # el bug: dos posiciones
+
+    # ahora se carga el mapa y se repara
+    n = remapear_tickers_base(db, instrumentos, user_id=1)
+    assert n == 1                            # solo la fila de SPYD
+    pos2 = posiciones_desde_db(db, 1, instrumentos)
+    assert "SPYD" not in pos2                # plegada
+    assert pos2["SPY"].cant_comprada == 15   # 10 + 5
+
+
+def test_remapear_es_idempotente(db, instrumentos):
+    from places.inversiones.cartera.ingest import remapear_tickers_base
+    movs = parse_filas(
+        [["Compra", "2026-01-21", "2026-01-23", "SPYD | SPDR", -176, 5, 35, "USD"]],
+        {})
+    importar_movimientos(db, movs, user_id=1)
+    assert remapear_tickers_base(db, instrumentos, user_id=1) == 1
+    assert remapear_tickers_base(db, instrumentos, user_id=1) == 0   # ya está
+
+
+def test_remapear_sin_instrumentos_no_hace_nada(db):
+    from places.inversiones.cartera.ingest import remapear_tickers_base
+    assert remapear_tickers_base(db, {}, user_id=1) == 0
+
+
+def test_instrumentos_de_db_lee_el_flag_activo(db, tmp_path):
+    """Segundo bug del 30/7: `_instrumentos_de_db` no leía la columna `activo`,
+    así que TODO quedaba como vigente y las letras/bonos vencidos seguían
+    figurando con su cantidad residual (el vencimiento entra como
+    AMORTIZACION y no descuenta unidades)."""
+    from places.inversiones.cartera.view import _instrumentos_de_db
+
+    db.execute(
+        "INSERT INTO cartera_instrumentos (ticker, user_id, categoria_activo, "
+        " moneda_cotiz, activo) VALUES ('S15G5', 1, 'Letras', 'ARS', 0)")
+    db.execute(
+        "INSERT INTO cartera_instrumentos (ticker, user_id, categoria_activo, "
+        " moneda_cotiz, activo) VALUES ('GGAL', 1, 'Acciones', 'ARS', 1)")
+    db.commit()
+    insts = _instrumentos_de_db(db, 1)
+    assert insts["S15G5"].activo is False     # vencida
+    assert insts["GGAL"].activo is True
