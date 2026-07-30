@@ -33,8 +33,13 @@ from core.market_data import (
 )
 from core.market_data.mep import mep_para_fecha, serie_mep_con_fallback
 from places.inversiones.cartera.ingest import (
+    TIPO_DESCONOCIDO,
+    TIPO_EXCEL_PROPIO,
+    TIPO_MOVIMIENTOS,
+    TIPO_TENENCIA,
     cargar_instrumentos_en_db,
     congelar_tc_mep,
+    detectar_tipo,
     importar_movimientos,
 )
 from places.inversiones.cartera.kpis import (
@@ -245,6 +250,92 @@ def _procesar_carga(archivo, user_id: int) -> None:
     _mep_actual.clear()
 
 
+def _importar_todo(archivos, user_id: int) -> None:
+    """Carga completa en un paso: detecta cada archivo y lo procesa en orden.
+
+    El **orden importa** y por eso lo decide la app, no el usuario:
+
+    1. **Config** del Excel propio → los instrumentos, que el parser necesita
+       para clasificar tickers y saber qué bonos cotizan por cada 100.
+    2. **Crudo del Excel propio** → trae los **saldos iniciales sintéticos**,
+       que el export del broker NO tiene. Sin esto el capital aportado queda
+       subvaluado (US$4.941 en vez de US$11.534 — ver ESTADO.md).
+    3. **Movimientos del broker** → lo nuevo desde entonces (el dedupe evita
+       duplicar lo que ya estaba).
+    4. **Tenencia** → cantidades y precios de referencia + su caché.
+    5. **TC MEP** congelado en las filas que falten.
+    """
+    clasificados: dict[str, list] = {}
+    for a in archivos:
+        clasificados.setdefault(detectar_tipo(a), []).append(a)
+
+    desconocidos = clasificados.get(TIPO_DESCONOCIDO, [])
+    if desconocidos:
+        st.warning(
+            "No pude reconocer: "
+            + ", ".join(getattr(a, "name", "?") for a in desconocidos)
+            + ". Se ignoran.", icon=":material/warning:")
+
+    resumen: list[str] = []
+    with connect() as conn:
+        # 1 y 2 — el Excel propio: instrumentos + base histórica.
+        for a in clasificados.get(TIPO_EXCEL_PROPIO, []):
+            n_inst = cargar_instrumentos_en_db(conn, a, user_id)
+            conn.commit()
+            resumen.append(f"{n_inst} instrumentos")
+            instrumentos = _instrumentos_de_db(conn, user_id)
+            movs = parse_archivo_excel(
+                a, hoja="Movimientos Crudo", instrumentos=instrumentos)
+            if movs:
+                ins, _ = importar_movimientos(conn, movs, user_id)
+                resumen.append(f"{ins} movimientos históricos (con saldos iniciales)")
+
+        instrumentos = _instrumentos_de_db(conn, user_id)
+        if not instrumentos:
+            st.warning(
+                "No subiste el Excel con la hoja Config: sin él los tickers no "
+                "se pueden clasificar (ni se sabe qué bonos cotizan por cada "
+                "100 nominales).", icon=":material/warning:")
+
+        # 3 — movimientos del broker.
+        for a in clasificados.get(TIPO_MOVIMIENTOS, []):
+            movs = parse_archivo_excel(a, instrumentos=instrumentos)
+            if movs:
+                ins, skip = importar_movimientos(conn, movs, user_id)
+                resumen.append(
+                    f"{ins} movimientos nuevos del broker"
+                    + (f" ({skip} ya estaban)" if skip else ""))
+
+        # 4 — tenencia + caché de sus precios.
+        for a in clasificados.get(TIPO_TENENCIA, []):
+            foto_nueva = parse_tenencias(a)
+            n_pos = guardar_foto(conn, foto_nueva, user_id)
+            for t in foto_nueva.posiciones:
+                if t.precio:
+                    guardar_precio_en_cache(
+                        conn, t.ticker, t.precio, foto_nueva.fecha_valuacion,
+                        fuente="broker")
+            conn.commit()
+            resumen.append(
+                f"tenencia al {foto_nueva.fecha_valuacion:%d/%m/%Y} "
+                f"({n_pos} posiciones)")
+
+        # 5 — congelar el TC de cada operación.
+        serie, _ = serie_mep_con_fallback(conn)
+        congelados, sin_tc = congelar_tc_mep(conn, serie, user_id)
+        if congelados:
+            resumen.append(f"TC del día congelado en {congelados} filas")
+
+    st.success("Listo: " + " · ".join(resumen), icon=":material/check_circle:")
+    if sin_tc:
+        st.info(
+            f"{len(sin_tc)} fecha(s) sin cotización de MEP: "
+            f"{', '.join(sin_tc[:3])}{'…' if len(sin_tc) > 3 else ''}.",
+            icon=":material/info:")
+    _precios_cacheados.clear()
+    _mep_actual.clear()
+
+
 # ---------------------------------------------------------------------------
 # Vista
 # ---------------------------------------------------------------------------
@@ -269,78 +360,41 @@ def render(user_id: int | None = None) -> None:
         ).fetchone() is not None
         foto = ultima_foto(conn, uid)
 
-    with st.expander("Cargar movimientos del broker", expanded=not hay_movimientos):
-        archivo = st.file_uploader(
-            "Export de movimientos (.xlsx)",
+    with st.expander("Cargar archivos", expanded=not hay_movimientos):
+        st.caption(
+            "Arrastrá los tres juntos y listo — la app reconoce cada uno por su "
+            "contenido y los procesa en el orden correcto: tu **Excel** "
+            "(instrumentos + histórico con los saldos iniciales), los "
+            "**movimientos** del broker (inviu → Movimientos → Todos) y la "
+            "**tenencia** (inviu → Tenencias). Subir el mismo archivo dos veces "
+            "no duplica nada."
+        )
+        archivos = st.file_uploader(
+            "Tus archivos (.xlsx)",
             type=["xlsx", "csv"],
-            key="cartera_upload",
-            help="inviu → Movimientos → Todos → Exportar. Reimportar el mismo "
-                 "archivo no duplica nada.",
+            accept_multiple_files=True,
+            key="cartera_upload_todo",
         )
-        archivo_ten = st.file_uploader(
-            "Tenencia del broker (.xlsx) — opcional pero recomendado",
-            type=["xlsx"],
-            key="cartera_upload_tenencia",
-            help="inviu → Tenencias → Exportar. Necesaria para las posiciones "
-                 "que los movimientos no permiten derivar: pagarés/cheques (que "
-                 "no traen cantidad) y ajustes de ratio de CEDEARs.",
-        )
-        col_a, col_b = st.columns([1, 2])
-        with col_a:
-            if st.button(
-                "Importar movimientos", type="primary", key="cartera_btn_importar",
-                disabled=archivo is None, use_container_width=True,
-            ):
-                with st.spinner("Procesando el export…"):
-                    _procesar_carga(archivo, uid)
-                st.rerun()
-            if st.button(
-                "Importar tenencia", key="cartera_btn_tenencia",
-                disabled=archivo_ten is None, use_container_width=True,
-            ):
-                try:
-                    nueva = parse_tenencias(archivo_ten)
-                    with connect() as conn:
-                        n = guardar_foto(conn, nueva, uid)
-                        # Los precios de la tenencia quedan en la caché: para
-                        # instrumentos ilíquidos (pagarés) es el ÚNICO precio
-                        # que existe, y así sobrevive a que la foto caduque.
-                        for t in nueva.posiciones:
-                            if t.precio:
-                                guardar_precio_en_cache(
-                                    conn, t.ticker, t.precio,
-                                    nueva.fecha_valuacion, fuente="broker")
-                        conn.commit()
-                    st.success(
-                        f"Tenencia al {nueva.fecha_valuacion:%d/%m/%Y} importada: "
-                        f"{n} posiciones.", icon=":material/check_circle:")
-                    st.rerun()
-                except Exception as exc:  # noqa: BLE001 — se muestra al usuario
-                    st.error(f"No se pudo leer la tenencia: {exc}",
-                             icon=":material/error:")
-        with col_b:
-            # Uploader, NO una ruta del disco: la app corre en un servidor y
-            # ahí no existe el path de la máquina de Franco.
-            excel = st.file_uploader(
-                "Excel con el mapa de instrumentos (hoja Config) — opcional",
-                type=["xlsx"],
-                key="cartera_upload_config",
-                help="Lee la hoja Config: ticker base, variante USD, categoría, "
-                     "moneda de cotización y si el instrumento sigue activo. "
-                     "Hace falta para clasificar los tickers y saber qué bonos "
-                     "cotizan por cada 100 nominales.",
-            )
-            if excel and st.button("Cargar instrumentos", key="cartera_btn_config"):
-                try:
-                    with connect() as conn:
-                        n = cargar_instrumentos_en_db(conn, excel, uid)
-                        conn.commit()
-                    st.success(f"{n} instrumentos actualizados.",
-                               icon=":material/check_circle:")
-                    st.rerun()
-                except Exception as exc:  # noqa: BLE001 — se muestra al usuario
-                    st.error(f"No se pudo leer la hoja Config: {exc}",
-                             icon=":material/error:")
+        if archivos:
+            detectados = {}
+            for a in archivos:
+                detectados.setdefault(detectar_tipo(a), []).append(
+                    getattr(a, "name", "?"))
+            etiquetas = {
+                TIPO_EXCEL_PROPIO: "Excel propio (Config + histórico)",
+                TIPO_MOVIMIENTOS: "Movimientos del broker",
+                TIPO_TENENCIA: "Tenencia del broker",
+                TIPO_DESCONOCIDO: "No reconocido",
+            }
+            st.caption("Reconocí: " + " · ".join(
+                f"**{etiquetas.get(t, t)}**" for t in detectados))
+        if st.button(
+            "Importar todo", type="primary", key="cartera_btn_importar_todo",
+            disabled=not archivos, use_container_width=False,
+        ):
+            with st.spinner("Procesando…"):
+                _importar_todo(archivos, uid)
+            st.rerun()
 
     if not hay_movimientos:
         _empty_state()
@@ -648,8 +702,12 @@ def render(user_id: int | None = None) -> None:
             tk_ext = st.text_input("Ticker", value="BITCOIN",
                                    key="cartera_ext_ticker")
         with e2:
+            # Precargado con la última cantidad informada por Franco, para que
+            # sea confirmar en vez de tipear. Se cambia cuando compra o vende.
             cant_ext = st.number_input(
                 "Cantidad", min_value=0.0, step=0.00001, format="%.8f",
+                value=float(manuales.get(tk_ext.strip().upper() if tk_ext else "",
+                                         0.00316847)),
                 key="cartera_ext_cant")
         with e3:
             st.write("")

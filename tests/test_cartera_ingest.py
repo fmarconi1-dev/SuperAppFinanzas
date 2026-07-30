@@ -119,3 +119,79 @@ def test_cargar_instrumentos_en_db(db, tmp_path):
     assert row["moneda_cotiz"] == "USD/100"
     assert row["divisor_usd"] == 100
     assert row["categoria_activo"] == "Bonos"
+
+
+# ---------------------------------------------------------------------------
+# Carga en un paso: detección del tipo de archivo
+# ---------------------------------------------------------------------------
+
+def _excel_propio(tmp_path):
+    """Un archivo con las hojas Config y Movimientos Crudo (el de Franco)."""
+    import openpyxl
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Config"
+    for i, h in enumerate(["Ticker ARS", "Ticker USD", "Descripción", "Categoría",
+                           "Panel", "Activo", "Moneda Cotiz", "Divisor"]):
+        ws.cell(4, 7 + i, h)
+    for i, v in enumerate(("GGAL", "GGALD", "Galicia", "Acciones", "PANEL LIDER",
+                           "SI", "ARS", 1408)):
+        ws.cell(5, 7 + i, v)
+    ws2 = wb.create_sheet("Movimientos Crudo")
+    for i, h in enumerate(["Operación", "Concertación", "Liquidación",
+                           "Descripción", "Monto", "Cantidad", "Precio", "Moneda"]):
+        ws2.cell(1, 1 + i, h)
+    p = tmp_path / "Inversiones.xlsx"
+    wb.save(p)
+    return p
+
+
+def _export_movimientos(tmp_path):
+    import openpyxl
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "-movimientos"
+    for i, h in enumerate(["Operación", "Concertación", "Liquidación",
+                           "Descripción", "Monto", "Cantidad", "Precio", "Moneda"]):
+        ws.cell(1, 1 + i, h)
+    p = tmp_path / "inviu-movimientos.xlsx"
+    wb.save(p)
+    return p
+
+
+def _export_tenencia(tmp_path):
+    import openpyxl
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.cell(2, 1, "Fecha de valuación:")
+    ws.cell(2, 2, "30/07/2026")
+    ws.cell(3, 1, "TC USD MEP:")
+    ws.cell(3, 2, 1522.185)
+    p = tmp_path / "Tenencias.xlsx"
+    wb.save(p)
+    return p
+
+
+def test_detecta_los_tres_tipos_por_contenido(tmp_path):
+    """Franco sube los tres juntos sin decir cuál es cuál: la app los reconoce
+    por su estructura, no por el nombre del archivo."""
+    from places.inversiones.cartera.ingest import (
+        TIPO_EXCEL_PROPIO, TIPO_MOVIMIENTOS, TIPO_TENENCIA, detectar_tipo,
+    )
+    assert detectar_tipo(_excel_propio(tmp_path)) == TIPO_EXCEL_PROPIO
+    assert detectar_tipo(_export_movimientos(tmp_path)) == TIPO_MOVIMIENTOS
+    assert detectar_tipo(_export_tenencia(tmp_path)) == TIPO_TENENCIA
+
+
+def test_archivo_irreconocible_no_rompe(tmp_path):
+    import openpyxl
+    from places.inversiones.cartera.ingest import TIPO_DESCONOCIDO, detectar_tipo
+    wb = openpyxl.Workbook()
+    wb.active.cell(1, 1, "cualquier cosa")
+    p = tmp_path / "raro.xlsx"
+    wb.save(p)
+    assert detectar_tipo(p) == TIPO_DESCONOCIDO
+    # un archivo que ni se puede abrir tampoco debe explotar
+    malo = tmp_path / "roto.xlsx"
+    malo.write_bytes(b"no soy un excel")
+    assert detectar_tipo(malo) == TIPO_DESCONOCIDO

@@ -9,6 +9,23 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 30 de julio de 2026 — Arrastrás los tres archivos y listo
+
+**Qué se hizo (en criollo):**
+Me pediste no tener que cargar cuatro cosas a mano. No puedo hacerlo yo por vos —la base de datos de la app vive en el servidor, al que no llego desde acá, y tus archivos no pueden guardarse en el repositorio del proyecto— pero **sí pude convertir los cuatro pasos en uno**.
+
+Ahora hay **un solo lugar donde arrastrás los tres archivos juntos** (tu Excel, los movimientos y la tenencia) y apretás "Importar todo". La app **reconoce cada archivo por su contenido**, no por el nombre, y los procesa **en el orden correcto**.
+
+Ese último detalle es el que importa: el orden **tiene** que ser tu Excel primero (es el único que trae tus tenencias iniciales). Si se hace al revés, tu capital aportado aparece como US$4.941 en vez de US$11.534. Ahora eso lo decide la app, así que no te podés equivocar. Lo probé subiendo los archivos en orden salteado a propósito y salió bien.
+
+La cantidad de Bitcoin queda **precargada** con tu número, así solo confirmás.
+
+**Y encontré un problema que habría aparecido recién en el servidor:** el campo para cargar el mapa de instrumentos pedía una **ruta de tu computadora**. En el servidor esa carpeta no existe, así que esa función no habría funcionado online. Ya es un uploader como los demás.
+
+**Cuando entres a la app después del deploy:** Inversiones → Cartera → arrastrás los tres archivos → "Importar todo". Eso es todo.
+
+---
+
 ## 30 de julio de 2026 — Ya podés bajarte la cartera en Excel
 
 **Qué se hizo (en criollo):**

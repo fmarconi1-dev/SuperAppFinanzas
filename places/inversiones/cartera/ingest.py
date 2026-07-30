@@ -27,6 +27,11 @@ __all__ = [
     "cargar_instrumentos_en_db",
     "importar_movimientos",
     "congelar_tc_mep",
+    "detectar_tipo",
+    "TIPO_MOVIMIENTOS",
+    "TIPO_TENENCIA",
+    "TIPO_EXCEL_PROPIO",
+    "TIPO_DESCONOCIDO",
 ]
 
 # Índices 0-based de las columnas de Config (G..N).
@@ -194,3 +199,57 @@ def congelar_tc_mep(conn, serie_mep: dict[str, float], user_id: int,
         conn.execute("ROLLBACK")
         raise
     return actualizados, sorted(set(sin_dato))
+
+
+# ---------------------------------------------------------------------------
+# Carga inicial en un paso: detectar qué es cada archivo
+# ---------------------------------------------------------------------------
+
+#: Tipos que la carga inicial sabe reconocer.
+TIPO_MOVIMIENTOS = "movimientos"
+TIPO_TENENCIA = "tenencia"
+TIPO_EXCEL_PROPIO = "excel_propio"     # Inversiones.xlsx (Config + crudo)
+TIPO_DESCONOCIDO = "desconocido"
+
+
+def detectar_tipo(archivo) -> str:
+    """Reconoce qué archivo es, por su estructura — no por el nombre.
+
+    Así Franco puede arrastrar los tres juntos sin decir cuál es cuál:
+
+    * **Excel propio** (`Inversiones.xlsx`): tiene las hojas ``Config`` y
+      ``Movimientos Crudo``. Es el que trae los **saldos iniciales sintéticos**,
+      así que su crudo debe importarse primero (ver nota en ESTADO.md).
+    * **Tenencia** del broker: la cabecera dice "Fecha de valuación" y
+      "TC USD MEP".
+    * **Movimientos** del broker: encabezados Operación / Concertación /
+      Descripción.
+    """
+    import openpyxl
+
+    try:
+        wb = openpyxl.load_workbook(archivo, data_only=True, read_only=True)
+    except Exception:
+        return TIPO_DESCONOCIDO
+    try:
+        hojas = set(wb.sheetnames)
+        if {"Config", "Movimientos Crudo"} <= hojas:
+            return TIPO_EXCEL_PROPIO
+        ws = wb.worksheets[0]
+        primeras = []
+        for i, fila in enumerate(ws.iter_rows(values_only=True)):
+            primeras.append(" ".join(str(c) for c in fila if c is not None))
+            if i >= 12:
+                break
+        texto = " ".join(primeras)
+        if "Fecha de valuación" in texto or "TC USD MEP" in texto:
+            return TIPO_TENENCIA
+        if "Concertación" in texto and "Descripción" in texto:
+            return TIPO_MOVIMIENTOS
+        return TIPO_DESCONOCIDO
+    finally:
+        wb.close()
+        try:                      # el uploader de Streamlit se puede rebobinar
+            archivo.seek(0)
+        except Exception:
+            pass

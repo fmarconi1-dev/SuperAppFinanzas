@@ -153,3 +153,13 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
 - **Verificado con `recalc.py`:** **159 fórmulas, 0 errores**. Y con datos reales: TOTAL $23.962.038 = patrimonio, 100,0% de la cartera.
 - Detalles que atraparon los tests: el BTC necesitaba **8 decimales** (mostraba 0,00), el pagaré caía en "Otros" (ahora "Pagarés", tomando el tipo de la tenencia), y con **cartera vacía** el autofiltro y la barra de datos lanzaban `TypeError` por rango inválido.
 - Botón **"Descargar Excel"** en la vista. `tests/test_cartera_export.py` (10 tests). Suite **243 passed, 3 skipped** + recon verde.
+
+## 2026-07-30 — Revisión pre-deploy + carga en UN paso con autodetección
+- **Autor:** Claude (Opus 4.8), con Franco. PR #2 mergeado a `main`.
+- **⚠️ Bloqueante del deploy encontrado en la revisión:** el mapa de instrumentos se pedía como **ruta del disco** (`C:\...\Inversiones.xlsx`). En el servidor esa ruta no existe → la función era inutilizable online, y sin instrumentos los tickers no se clasifican ni se sabe qué bonos cotizan por cada 100. Cambiado a `file_uploader`; verificado que `cargar_instrumentos_en_db` e `instrumentos_desde_config` leen bien un archivo **en memoria** (57 instrumentos). También se agregó `Borrar/` al `.dockerignore` (si no, ~200 archivos de basura iban a la imagen).
+- **Franco pidió no tener que cargar los 4 pasos a mano.** No es posible hacerlo desde acá: la DB vive en el volumen de Fly (sin acceso desde el sandbox) y sus archivos **no pueden ir al repo** (regla dura). Lo que sí: **reducir 4 pasos a 1**.
+- **`detectar_tipo()`**: reconoce cada archivo **por su estructura, no por el nombre** — Excel propio (tiene las hojas `Config` + `Movimientos Crudo`), tenencia (cabecera con "Fecha de valuación"/"TC USD MEP") y movimientos del broker (encabezados Operación/Concertación/Descripción). Tolera archivos irreconocibles y no-Excel sin explotar.
+- **`_importar_todo()`**: un uploader múltiple + un botón. **La app decide el orden**, que es lo que evita el error grave: el crudo del Excel primero (trae los saldos iniciales sintéticos), después los movimientos del broker (dedupe), después la tenencia (+ caché de sus precios), y al final el congelado del TC.
+- **Verificado con los archivos reales subidos en orden ALEATORIO** (tenencia, Excel, movimientos): la app los ordenó sola → 57 instrumentos · 585 históricos · 6 nuevos (580 ya estaban) · tenencia al 30/7 (21 posiciones) · TC en 591 filas, y **capital aportado US$11.534,26** — el correcto, no los US$4.941 que daría sin el Excel.
+- La cantidad de BTC queda **precargada** (0,00316847): es confirmar, no tipear.
+- **Estado:** suite **245 passed, 3 skipped**. `tests/test_cartera_ingest.py` (7).
