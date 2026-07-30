@@ -9,6 +9,36 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 30 de julio de 2026 (Fase 3b, paso 2) — Ya podés ver cómo salió cada venta, una por una
+
+**Qué se hizo (en criollo):**
+La línea de tiempo que armé antes ahora está enchufada a la app, y apareció una sección nueva: **Operaciones cerradas**. Es una fila por cada venta que hiciste, con lo que realmente te había costado ese papel **ese día**, a qué precio lo vendiste, cuánto ganaste o perdiste en pesos y en dólares, y **cuántos días** lo tuviste.
+
+De tus 45 ventas, **38 fueron ganadoras**. La mejor: el **AE38, +97,7% en 578 días**. La peor: **AGRO, −31,8% en 130 días**.
+
+**Encontré un movimiento tuyo que está mal.** El ASML de la venta del 21/1/2026 daba **+22.754%**, que obviamente no existe. Fui a la fila: tu broker anotó la compra del 16/5/2025 como **9 unidades a $60,10** — cuando las vendiste a $13.840. Ese precio de $60 no puede ser real. Lo importante es que ese dato **ya te estaba ensuciando la app de hoy**: hace que ASML figure con un costo promedio de $11.677 cuando las 15 unidades que tenés te costaron **$18.647**. **Convendría que le preguntes a inviu qué es esa fila.** Mientras tanto, la app ahora la marca como "revisar" en vez de mostrarla como si fuera el mejor trade de tu vida.
+
+**Qué cambia en los números:**
+
+| | Antes | Ahora |
+|---|---:|---:|
+| Valor de la cartera | $23.900.213 | **igual** |
+| Lo que te costó lo que tenés | $21.070.343 | $20.640.875 |
+| Ganancia todavía no realizada | $2.829.869 | **$3.259.338** |
+| Ganancia ya realizada en ventas | $6.063.678 | $5.630.023 |
+| Rendimiento sobre el costo | 13,4% | **15,8%** |
+
+**Tu patrimonio, tu capital aportado, tu resultado total y tu tasa anual (TIR) no se mueven ni un peso.** Eso se calcula comparando lo que tenés hoy contra lo que pusiste, sin sumar operación por operación, así que nada de esto lo toca. Lo que mejora es la foto de **dónde** viene cada peso.
+
+**Para qué te sirve:**
+Para saber en qué acertaste y en qué no, y en cuánto tiempo. Un +30% en tres meses y un +30% en tres años no son lo mismo, y hasta ahora la app no te dejaba distinguirlos.
+
+**Qué sigue:**
+El punto 3 de esta fase: **cauciones y dividendos como rendimiento propio**. Tenés 101 cauciones hechas (unos $33.365 de interés) y $53.701 de dividendos cobrados, de los cuales te retuvieron $5.191 — hoy nada de eso se muestra por separado.
+
+
+---
+
 ## 30 de julio de 2026 (Fase 3b) — Ahora la app va a mirar el orden en que pasaron las cosas
 
 **Qué se hizo (en criollo):**

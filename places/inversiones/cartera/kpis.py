@@ -193,6 +193,7 @@ def valuar(
     instrumentos: dict | None = None,
     solo_con_tenencia: bool = True,
     mep_actual: float | None = None,
+    cronologico: dict | None = None,
 ) -> list[PosicionValuada]:
     """Valúa cada posición con el precio que devuelva `resolver(ticker, inst)`.
 
@@ -206,16 +207,44 @@ def valuar(
         rendimiento ya realizado forma parte del total —, marcadas con
         ``cerrada=True``.
     :param mep_actual: para valuar la tenencia de hoy en dólares.
+    :param cronologico: ``{ticker: (real_ars, real_usd, ppc_ars, ppc_usd)}``
+        de `Ledger.plano_por_ticker()` — el realizado medido con el **PPC
+        vigente al momento de cada venta** y el PPC de lo que quedó vivo
+        (ADR-0005). Los dos van juntos: son las dos mitades del mismo total,
+        y mezclar un método con el otro rompe la identidad
+        ``costo liberado + costo remanente = total comprado``.
+        Si no se pasa, se usa el PPC global de toda la historia — el método
+        del Excel y el que tenía la app antes —, que se conserva para el gate
+        de reconciliación y para no romper a quien llame sin ledger.
     """
     instrumentos = instrumentos or {}
     out: list[PosicionValuada] = []
     for ticker, pos in posiciones.items():
         cant = pos.cant_actual
         cerrada = abs(cant) < 1e-9
-        # Realizado en ventas, a costo promedio ponderado (regla del Excel).
-        vendidas = -pos.cant_vendida
-        realizado_ars = pos.ingreso_ars_ventas - (pos.ppc_ars or 0.0) * vendidas
-        realizado_usd = pos.ingreso_usd_ventas - (pos.ppc_usd_hist or 0.0) * vendidas
+        # Realizado y costo de la tenencia. Con ledger: PPC vigente al momento
+        # de cada venta y PPC de lo que quedó vivo (ADR-0005). Sin ledger: PPC
+        # global de toda la historia, la regla del Excel — donde el costo de
+        # una venta termina dependiendo de compras posteriores a esa venta.
+        ppc_ars_pos = pos.ppc_ars
+        costo_ars_pos = pos.costo_ars_posicion
+        costo_usd_ten = pos.costo_usd_posicion
+        plano = (cronologico or {}).get(ticker)
+        if plano is not None:
+            realizado_ars, realizado_usd, ppc_led_ars, ppc_led_usd = plano
+            # El PPC del ledger es None cuando no quedan unidades registradas
+            # (pagarés: el movimiento trae el monto pero no la cantidad) → ahí
+            # se conserva el cálculo de `posiciones.py`, que usa la tenencia
+            # del broker como base para promediar.
+            if ppc_led_ars is not None:
+                ppc_ars_pos = ppc_led_ars
+                costo_ars_pos = ppc_led_ars * cant
+            if ppc_led_usd is not None:
+                costo_usd_ten = ppc_led_usd * cant
+        else:
+            vendidas = -pos.cant_vendida
+            realizado_ars = pos.ingreso_ars_ventas - (pos.ppc_ars or 0.0) * vendidas
+            realizado_usd = pos.ingreso_usd_ventas - (pos.ppc_usd_hist or 0.0) * vendidas
         if cerrada and solo_con_tenencia:
             # Sin tenencia: se muestra solo si dejó rendimiento (ventas/cobros).
             if abs(realizado_ars) < 1e-9 and abs(pos.flujos_ars) < 1e-9:
@@ -224,7 +253,6 @@ def valuar(
         inst = instrumentos.get(ticker)
         precio, origen = (None, "cerrada") if cerrada else resolver(ticker, inst)
         valor = precio * cant if isinstance(precio, (int, float)) else None
-        costo_usd_ten = pos.costo_usd_posicion
         out.append(
             PosicionValuada(
                 ticker=ticker,
@@ -233,8 +261,8 @@ def valuar(
                 precio=precio,
                 origen_precio=origen,
                 valor_ars=valor,
-                costo_ars=pos.costo_ars_posicion,
-                ppc_ars=pos.ppc_ars,
+                costo_ars=costo_ars_pos,
+                ppc_ars=ppc_ars_pos,
                 invertido_ars=pos.costo_ars_compras,
                 invertido_usd=pos.costo_usd_hist,
                 realizado_ars=realizado_ars,

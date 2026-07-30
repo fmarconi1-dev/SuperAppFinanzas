@@ -51,6 +51,10 @@ CATEGORIAS_FLUJO = ("AMORTIZACION", "RENTA", "DIVIDENDO")
 #: sin costo contra el cual medirse.
 _PRIORIDAD = {"COMPRA": 0, "VENTA": 1}
 
+#: Por encima de este rendimiento (en %) una operación se marca para revisar:
+#: no existe el trade que multiplica por diez, existe el dato mal cargado.
+_UMBRAL_SOSPECHA_PCT = 1000.0
+
 
 @dataclass(frozen=True)
 class Evento:
@@ -130,6 +134,29 @@ class Realizacion:
             return None
         return (self.fecha - self.fecha_compra_prom).days
 
+    @property
+    def precio_ars(self) -> float | None:
+        """Precio efectivo de venta por unidad (lo que se cobró / unidades)."""
+        if not self.cantidad:
+            return None
+        return self.ingreso_ars / self.cantidad
+
+    @property
+    def sospechosa(self) -> bool:
+        """Rendimiento tan grande que casi seguro es un dato malo, no un trade.
+
+        Regla de la casa (Fase 3a): *cuando un número no cierra, sospechá de
+        la cantidad o del precio antes que del cálculo*. Un rendimiento de
+        cuatro cifras sale de un costo de entrada absurdo — un movimiento con
+        el precio en otra unidad, un ajuste posteado como compra a precio
+        simbólico, un canje sin costo. Preferimos marcarlo antes que mostrar
+        un +22.000% como si fuera un acierto.
+        """
+        return (
+            self.rendimiento_pct is not None
+            and abs(self.rendimiento_pct) > _UMBRAL_SOSPECHA_PCT
+        )
+
 
 @dataclass
 class EstadoTicker:
@@ -200,6 +227,82 @@ class Ledger:
     def por_ticker(self, ticker: str) -> list[Realizacion]:
         return [r for r in self.realizaciones if r.ticker == ticker]
 
+    def tabla_operaciones(self) -> list[dict]:
+        """Las ventas listas para mostrar, de la más reciente a la más vieja.
+
+        Vive acá (y no en la vista) para poder testearse sin Streamlit.
+        """
+        return [
+            {
+                "Fecha": r.fecha,
+                "Ticker": r.ticker,
+                "Unidades": r.cantidad,
+                "PPC del día": r.ppc_ars,
+                "Precio venta": r.precio_ars,
+                "Resultado": r.resultado_ars,
+                "Rend. %": r.rendimiento_pct,
+                "Rend. US$ %": r.rendimiento_usd_pct,
+                "Días": r.dias,
+                "Aviso": "revisar" if (r.descubierta or r.sospechosa) else "",
+            }
+            for r in sorted(self.realizaciones, key=lambda x: x.fecha,
+                            reverse=True)
+        ]
+
+    def resumen_operaciones(self) -> dict:
+        """Totales de las operaciones cerradas (para las KPI cards)."""
+        ops = self.realizaciones
+        # La mejor y la peor se eligen entre las **confiables**: destacar un
+        # +22.000% que sale de un movimiento mal cargado sería presentar un
+        # error como si fuera un logro.
+        con_pct = [r for r in ops
+                   if r.rendimiento_pct is not None and not r.sospechosa]
+        return {
+            "n": len(ops),
+            "ganadoras": sum(1 for r in ops if r.resultado_ars > 0),
+            "a_revisar": sum(1 for r in ops if r.sospechosa or r.descubierta),
+            "total_ars": sum(r.resultado_ars for r in ops),
+            "total_usd": sum(r.resultado_usd for r in ops),
+            "mejor": max(con_pct, key=lambda r: r.rendimiento_pct, default=None),
+            "peor": min(con_pct, key=lambda r: r.rendimiento_pct, default=None),
+        }
+
+    def realizado_por_ticker(self) -> dict[str, tuple[float, float]]:
+        """``{ticker: (ars, usd)}`` — resultado realizado por ticker.
+
+        Incluye los tickers con ventas **y** los que no tuvieron ninguna (con
+        cero), para que el consumidor no caiga al PPC global en esos casos:
+        sin ventas ambos métodos dan cero, pero conviene que la fuente sea una
+        sola.
+        """
+        out: dict[str, tuple[float, float]] = {
+            t: (0.0, 0.0) for t in self.estados
+        }
+        for r in self.realizaciones:
+            ars, usd = out.get(r.ticker, (0.0, 0.0))
+            out[r.ticker] = (ars + r.resultado_ars, usd + r.resultado_usd)
+        return out
+
+    def plano_por_ticker(self) -> dict[str, tuple]:
+        """``{ticker: (real_ars, real_usd, ppc_ars, ppc_usd)}`` — lo que
+        consume `kpis.valuar()` (ADR-0005).
+
+        Van **juntos a propósito**. El realizado y el costo de lo que queda
+        son las dos mitades del mismo total: si el realizado se midiera al PPC
+        del día de la venta pero el remanente al promedio de toda la historia,
+        las dos mitades dejarían de sumar lo que realmente se invirtió. Con
+        ambos del mismo motor se cumple la identidad:
+
+            costo liberado en ventas + costo de lo que queda = total comprado
+        """
+        realizado = self.realizado_por_ticker()
+        return {
+            t: (realizado.get(t, (0.0, 0.0))[0],
+                realizado.get(t, (0.0, 0.0))[1],
+                est.ppc_ars, est.ppc_usd)
+            for t, est in self.estados.items()
+        }
+
 
 # ---------------------------------------------------------------------------
 # El recorrido
@@ -244,6 +347,14 @@ def recorrer(eventos) -> Ledger:
 
     for est in led.estados.values():
         led.advertencias.extend(f"{est.ticker}: {a}" for a in est.advertencias)
+    for r in led.realizaciones:
+        if r.sospechosa:
+            led.advertencias.append(
+                f"{r.ticker}: la venta del {r.fecha} da {r.rendimiento_pct:,.0f}% "
+                f"porque el costo de entrada es de solo "
+                f"{r.ppc_ars or 0:,.2f} por unidad contra un precio de venta de "
+                f"{r.precio_ars or 0:,.2f} — revisá ese movimiento en el broker"
+            )
     return led
 
 

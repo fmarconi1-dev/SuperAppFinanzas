@@ -4,6 +4,18 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-07-30 — Fase 3b paso 2: el resultado por operación (ADR-0005)
+**Autor:** Claude (Opus 5), con Franco. Skill `ui-ux-web-moderno` aplicada.
+- **ADR-0005**: el realizado se mide con el **PPC vigente al vender**, no con el promedio de toda la historia. Se mantiene costo promedio ponderado (FIFO sigue en MEJORAS); el gate de recon (cantidades + costos USD) no se toca.
+- **El realizado y el costo del remanente van juntos**: enchufar solo uno rompía la identidad `costo liberado + costo remanente = total comprado`. Test de la identidad incluido.
+- **Vista**: sección "Operaciones cerradas" — 45 ventas, 38 ganadoras, con PPC del día, resultado ARS/USD y días de tenencia. Mejor: AE38 +97,7% en 578 días.
+- **Verificado end-to-end**: valor de cartera idéntico → **patrimonio, aportado, resultado total y TIR intactos**. No realizado $2,83M → $3,26M; rendimiento sobre costo 13,4% → 15,8%.
+- 🔎 **Para Franco**: la compra de ASML del 16/5/2025 figura como 9 unidades a **$60,10** contra una venta a $13.840 (+22.754%). Ensucia el PPC actual (11.677 contra los 18.647 reales). Chequear con inviu. Se agregó la guarda `sospechosa` (>1.000%) para que un dato malo no se muestre como el mejor trade.
+**Por qué:** el resultado agregado no dice en qué acertaste; y una compra posterior no puede cambiar lo que ganaste en una venta anterior.
+**Estado al cierre:** 271 passed, 3 skipped. Commit listo para que Franco pushee.
+
+---
+
 ## 2026-07-30 — Arranca la Fase 3b: la línea de tiempo de la cartera
 **Autor:** Claude (Opus 5), con Franco.
 - Se detectó que los **cuatro** puntos de la Fase 3b comparten una limitación estructural: `posiciones.py` **agrega sin orden temporal**, así que el resultado realizado de una venta se mide contra el PPC de toda la historia, incluidas las compras posteriores. Decisión de Franco: construir la línea de tiempo una sola vez y apoyar los cuatro puntos ahí.

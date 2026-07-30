@@ -245,3 +245,154 @@ def test_el_adaptador_filtra_espejos_y_no_instrumentos():
         _MovFalso(es_instrumento=False, categoria="DEPOSITO"),
     ]
     assert len(eventos_desde_movimientos(movs)) == 1
+
+
+# ---------------------------------------------------------------------------
+# Enchufe con kpis.valuar() — ADR-0005
+# ---------------------------------------------------------------------------
+
+def test_realizado_por_ticker_agrupa_las_ventas():
+    led = recorrer([
+        ev(1, "COMPRA", cantidad=10, monto=-1000),
+        ev(2, "VENTA", cantidad=-5, monto=750),      # +250
+        ev(3, "VENTA", cantidad=-5, monto=600),      # +100
+        ev(4, "COMPRA", ticker="OTRO", cantidad=1, monto=-50),
+    ])
+    d = led.realizado_por_ticker()
+    assert d["ACME"][0] == pytest.approx(350)
+    # un ticker sin ventas aparece en cero, para que quien consuma no se caiga
+    # al PPC global por ausencia de clave
+    assert d["OTRO"] == (0.0, 0.0)
+
+
+def test_valuar_usa_el_realizado_del_ledger_cuando_se_lo_pasan():
+    """El mismo caso que motivó el ADR-0005, extremo a extremo."""
+    from places.inversiones.cartera.kpis import valuar
+    from places.inversiones.cartera.posiciones import posiciones as pos_de
+
+    movs = [
+        _MovFalso(fecha_concertacion=date(2025, 1, 1), categoria="COMPRA",
+                  cantidad=10.0, monto=-1000.0),
+        _MovFalso(fecha_concertacion=date(2025, 1, 2), categoria="VENTA",
+                  cantidad=-10.0, monto=1500.0),
+        _MovFalso(fecha_concertacion=date(2025, 1, 3), categoria="COMPRA",
+                  cantidad=10.0, monto=-3000.0),
+    ]
+    pos = pos_de(movs)
+    led = recorrer(eventos_desde_movimientos(movs))
+
+    (sin_ledger,) = valuar(pos, lambda t, i: (300.0, "test"))
+    (con_ledger,) = valuar(pos, lambda t, i: (300.0, "test"),
+                           cronologico=led.plano_por_ticker())
+
+    assert sin_ledger.realizado_ars == pytest.approx(-500)   # PPC global: 200
+    assert con_ledger.realizado_ars == pytest.approx(500)    # PPC del día: 100
+
+
+# ---------------------------------------------------------------------------
+# Lo que consume la vista (pura, testeable sin Streamlit)
+# ---------------------------------------------------------------------------
+
+def _led_dos_ventas():
+    return recorrer([
+        ev(1, "COMPRA", cantidad=10, monto=-1000),
+        ev(2, "VENTA", cantidad=-5, monto=750),      # +250 (+50%)
+        ev(3, "COMPRA", ticker="OTRO", cantidad=10, monto=-1000),
+        ev(4, "VENTA", ticker="OTRO", cantidad=-10, monto=800),   # −200 (−20%)
+    ])
+
+
+def test_tabla_de_operaciones_va_de_la_mas_reciente_a_la_mas_vieja():
+    filas = _led_dos_ventas().tabla_operaciones()
+    assert [f["Ticker"] for f in filas] == ["OTRO", "ACME"]
+    assert filas[1]["PPC del día"] == pytest.approx(100)
+    assert filas[1]["Precio venta"] == pytest.approx(150)
+    assert filas[1]["Resultado"] == pytest.approx(250)
+    assert filas[1]["Aviso"] == ""
+
+
+def test_resumen_de_operaciones_cuenta_aciertos_y_extremos():
+    res = _led_dos_ventas().resumen_operaciones()
+    assert res["n"] == 2
+    assert res["ganadoras"] == 1
+    assert res["total_ars"] == pytest.approx(50)     # +250 − 200
+    assert res["mejor"].ticker == "ACME"
+    assert res["peor"].ticker == "OTRO"
+
+
+def test_resumen_sin_operaciones_no_rompe():
+    res = recorrer([ev(1, "COMPRA", cantidad=1, monto=-10)]).resumen_operaciones()
+    assert res["n"] == 0 and res["mejor"] is None and res["total_ars"] == 0
+
+
+def test_la_venta_descubierta_se_marca_en_la_tabla():
+    led = recorrer([
+        ev(1, "COMPRA", cantidad=10, monto=-1000),
+        ev(2, "VENTA", cantidad=-15, monto=2250),
+    ])
+    assert led.tabla_operaciones()[0]["Aviso"] == "revisar"
+
+
+# ---------------------------------------------------------------------------
+# Identidad contable: las dos mitades tienen que sumar el total comprado
+# ---------------------------------------------------------------------------
+
+def test_costo_liberado_mas_costo_remanente_es_el_total_comprado():
+    """La lección de la Fase 3a: todo agregado se contrasta contra una
+    identidad independiente antes de mostrarse.
+
+    Si el realizado se midiera al PPC del día y el remanente al promedio de
+    toda la historia, esta suma no daría — y el resultado por ticker estaría
+    contando plata que no existe.
+    """
+    eventos = [
+        ev(1, "COMPRA", cantidad=10, monto=-1000),
+        ev(2, "VENTA", cantidad=-4, monto=600),
+        ev(3, "COMPRA", cantidad=10, monto=-3000),
+        ev(4, "VENTA", cantidad=-6, monto=1800),
+        ev(5, "COMPRA", cantidad=5, monto=-1500),
+    ]
+    led = recorrer(eventos)
+    est = led.estados["ACME"]
+    total_comprado = sum(-e.monto for e in eventos if e.categoria == "COMPRA")
+    liberado = sum(r.costo_ars for r in led.realizaciones)
+    assert liberado + est.costo_ars == pytest.approx(total_comprado)
+    # y las unidades cierran igual
+    assert est.cantidad == pytest.approx(15)
+
+
+# ---------------------------------------------------------------------------
+# Guarda contra datos malos: no mostrar un error como si fuera un acierto
+# ---------------------------------------------------------------------------
+
+def test_una_venta_con_rendimiento_absurdo_se_marca_para_revisar():
+    """Caso real (ASML): el movimiento de compra dice 9 unidades a $60,10 y la
+    venta fue a $13.840 → +22.754%. No es un trade, es un dato malo."""
+    led = recorrer([
+        ev(1, "COMPRA", cantidad=9, monto=-543.05),
+        ev(2, "VENTA", cantidad=-9, monto=124_107.85),
+    ])
+    (r,) = led.realizaciones
+    assert r.sospechosa
+    assert led.tabla_operaciones()[0]["Aviso"] == "revisar"
+    assert any("revisá ese movimiento" in a for a in led.advertencias)
+
+
+def test_la_sospechosa_no_puede_ser_la_mejor_operacion():
+    led = recorrer([
+        ev(1, "COMPRA", cantidad=9, monto=-543.05),
+        ev(2, "VENTA", cantidad=-9, monto=124_107.85),      # +22.754%
+        ev(3, "COMPRA", ticker="OTRO", cantidad=10, monto=-1000),
+        ev(4, "VENTA", ticker="OTRO", cantidad=-10, monto=1300),   # +30%
+    ])
+    res = led.resumen_operaciones()
+    assert res["mejor"].ticker == "OTRO"
+    assert res["a_revisar"] == 1
+
+
+def test_un_trade_muy_bueno_pero_creible_no_se_marca():
+    led = recorrer([
+        ev(1, "COMPRA", cantidad=10, monto=-1000),
+        ev(2, "VENTA", cantidad=-10, monto=9000),      # +800%: raro pero posible
+    ])
+    assert not led.realizaciones[0].sospechosa

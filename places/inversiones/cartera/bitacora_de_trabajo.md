@@ -188,3 +188,29 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
 - **Nada cambió todavía en la app:** el módulo es aditivo y no está cableado. El patrimonio, la TIR y el gate de reconciliación son **inmunes** (el método del patrimonio no suma operación por operación).
 - **Estado:** `tests/test_cartera_ledger.py` (**17 tests**). Suite completa en verde.
 - **Próximo:** ADR-0005 (PPC móvil para el realizado; ADR-0003 fijó "costo promedio ponderado como el Excel") y enchufar el realizado por operación en `posiciones.py`/`kpis.py` + vista.
+
+## 2026-07-30 — Fase 3b, paso 2: el realizado por operación entra a la app (ADR-0005)
+- **Autor:** Claude (Opus 5), con Franco. Skill `ui-ux-web-moderno` aplicada (obligatoria en UI).
+- **`docs/decisiones/ADR-0005-realizado-ppc-movil.md`:** el resultado realizado pasa a medirse con el **PPC vigente al momento de cada venta**. Se **mantiene** el costo promedio ponderado (no se adopta FIFO, sigue en MEJORAS): lo que cambia es *cuándo* se promedia. Se registra explícitamente que el realizado por ticker deja de coincidir con el Excel, y que el gate de recon (cantidades + costos USD) no se toca.
+- **⚠️ Consistencia obligatoria: el realizado y el costo del remanente van juntos.** Enchufar solo el realizado dejaba la mitad de cada ticker medida con un método y la otra mitad con el otro, y la identidad `costo liberado + costo remanente = total comprado` dejaba de cerrar (en ASML, por $104.552). Por eso `Ledger.plano_por_ticker()` devuelve las cuatro cifras juntas y `kpis.valuar(cronologico=...)` las aplica de a pares. **Test de la identidad** incluido — la lección de 3a: todo agregado se contrasta contra una identidad independiente antes de mostrarse.
+- **`kpis.valuar(cronologico=None)`**: sin ledger conserva exactamente el comportamiento anterior (PPC global), que es lo que usa el gate de reconciliación. Cuando el ledger no tiene PPC (pagarés: el movimiento no trae cantidad) se cae al cálculo de `posiciones.py`, que promedia contra la tenencia del broker.
+- **Vista — "Operaciones cerradas"** (`_operaciones_cerradas`): 3 KPI cards (realizado en pesos, en dólares, aciertos + la mejor operación) y una fila por venta con fecha, unidades, **PPC del día**, precio de venta, resultado, rendimiento en ARS y USD, y **días de tenencia**. Tokens `--cs-*`, cifras tabulares, signo + flecha + color, `column_config` es-AR, empty state propio. La lógica de armado vive en `ledger.tabla_operaciones()` / `resumen_operaciones()` para poder testearse **sin Streamlit**.
+- 🔎 **Hallazgo con datos reales — ASML, y la guarda funcionó.** La venta de 9 unidades del 21/1/2026 daba **+22.754%**: la compra del 16/5/2025 figura como **9 unidades a $60,10** (total $543,05) contra una venta a $13.840. **Franco confirmó la causa el mismo día: el broker le sacó dos ceros — fueron a $6.010.** Efecto en la app **actual**: arrastra el PPC global de ASML a $11.677 cuando las 15 unidades vivas costaron **$18.647**.
+- **Impacto de la corrección (medido, todavía NO aplicada):** la venta pasa a **+$69.803 (+128,5% ARS / +80,2% USD en 250 días)**; realizado total $5.630.023 → **$5.576.261**; el PPC de las 15 unidades vivas **no cambia** (vienen de la compra de junio 2026); operaciones a revisar 4 → 3.
+- ⚠️ **La corrección no es trivial y no se hizo sin decidirlo con Franco: el `hash_dedupe`.** La fila ya está en la DB con el hash del monto equivocado. Arreglar el crudo y reimportar **duplicaría** la compra (18 unidades en vez de 9), porque el hash nuevo no matchea el viejo — misma clase de trampa que el `ticker_base`. Toda corrección de un movimiento debe **recalcular `hash_dedupe` con la misma regla del parser** (fecha + categoría + descripción + monto + cantidad) para que una reimportación posterior del Excel corregido dedupe en vez de duplicar.
+- **Guarda nueva (`Realizacion.sospechosa`, umbral 1.000%):** una operación con rendimiento de cuatro cifras se marca `revisar` en la tabla, se explica en las advertencias y **queda excluida de "la mejor operación"** — destacar un +22.754% que sale de un dato malo sería presentar un error como un logro. Regla de la casa: *cuando un número no cierra, sospechá de la cantidad o del precio antes que del cálculo*.
+- **Verificación end-to-end con datos reales** (crudo de 585 movimientos con el **MEP congelado** desde `argentinadatos`, cantidades y precios de la foto del 30/7):
+
+  | | Hoy (PPC global) | Con el motor | Δ |
+  |---|---:|---:|---:|
+  | Valor de cartera | $23.900.213 | $23.900.213 | **0** |
+  | Costo de la tenencia | $21.070.343 | $20.640.875 | −$429.468 |
+  | Resultado no realizado | $2.829.869 | $3.259.338 | +$429.468 |
+  | Realizado en ventas | $6.063.678 | $5.630.023 | −$433.655 |
+  | Invertido / flujos cobrados | $41.354.011 / $7.494.203 | idem | **0** |
+  | Rendimiento sobre costo | 13,4% | **15,8%** | |
+
+  **El valor de cartera no se mueve → patrimonio, capital aportado, resultado total y TIR quedan intactos.** Cambian 8 PPC: ASML 11.677→18.647, SPY 23.519→15.679, GGAL 5.848→7.314, TGNO4 4.440→4.797, VIST, NU, NVDA, MELI.
+- **Operaciones:** 45 cerradas, 38 ganadoras. La mejor **AE38 +97,7% en 578 días**; la peor **AGRO −31,8% en 130 días**. (Antes de la guarda, "la mejor" era el ASML fantasma.)
+- **Estado:** `tests/test_cartera_ledger.py` (**27 tests**). Suite **271 passed, 3 skipped**.
+- **Próximo:** punto 3 de la 3b — cauciones y dividendos como rendimientos con su propia tasa (101 cauciones, ≈$33.365 de interés; $53.701 de dividendos brutos contra $5.191 de retenciones que ya se acumulan aparte en el ledger).
