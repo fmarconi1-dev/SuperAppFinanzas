@@ -4,6 +4,17 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-07-30 — Corrección de movimientos del broker (ASML resuelto)
+**Autor:** Claude (Opus 5), con Franco.
+- Franco confirmó la causa del +22.754% de ASML: **el broker le sacó dos ceros** (compró a $6.010, el archivo decía $60,10). Corregido **en la app y en el Excel**; la venta pasa a +$69.803 (+128,5% ARS / +80,2% USD en 250 días) y es la mejor operación de la cartera.
+- **`parser.clave_dedupe()`/`hash_dedupe()`** centralizan la regla de identidad de un movimiento; **`ingest.corregir_movimiento()`** corrige y **recalcula el hash**, para que reimportar el Excel corregido dedupee en vez de duplicar. Las dos rutas (con y sin corrección en la app) están congeladas en tests. Expander nuevo en la vista.
+- Excel corregido con **edición quirúrgica sobre el XML**, no round-trip de openpyxl (le borra formato condicional y extensiones a un libro de 16 hojas). Respaldo previo guardado.
+- **Barrido preventivo** de precios anómalos: 12 filas marcadas, 11 legítimas (compras en USD). Queda **TTM26** (17.395 nominales por $17,78) como candidato para que Franco chequee con el broker.
+**Por qué:** un dato malo del custodio deforma el costo sin avisar; y arreglar solo el Excel duplicaba la operación.
+**Estado al cierre:** 276 passed, 3 skipped. Commit listo para que Franco pushee.
+
+---
+
 ## 2026-07-30 — Fase 3b paso 2: el resultado por operación (ADR-0005)
 **Autor:** Claude (Opus 5), con Franco. Skill `ui-ux-web-moderno` aplicada.
 - **ADR-0005**: el realizado se mide con el **PPC vigente al vender**, no con el promedio de toda la historia. Se mantiene costo promedio ponderado (FIFO sigue en MEJORAS); el gate de recon (cantidades + costos USD) no se toca.

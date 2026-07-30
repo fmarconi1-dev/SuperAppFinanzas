@@ -260,3 +260,124 @@ def test_instrumentos_de_db_lee_el_flag_activo(db, tmp_path):
     insts = _instrumentos_de_db(db, 1)
     assert insts["S15G5"].activo is False     # vencida
     assert insts["GGAL"].activo is True
+
+
+# ---------------------------------------------------------------------------
+# Corrección de un movimiento mal informado por el broker
+# ---------------------------------------------------------------------------
+
+def _filas_asml(monto, precio):
+    """La compra real de Franco, con el error del broker (÷100) o corregida."""
+    return [
+        ["Operación", "Concertación", "Liquidación", "Descripción", "Monto",
+         "Cantidad", "Precio", "Moneda"],
+        ["Compra", "2025-05-16", "2025-05-19", "ASML | ASML HOLDING NV",
+         monto, 9, precio, "ARS"],
+    ]
+
+
+def test_corregir_movimiento_deja_el_hash_que_produciria_el_excel_corregido(
+    db, instrumentos
+):
+    """El corazón del asunto: después de corregir en la app y corregir el
+    Excel con los mismos valores, **reimportar no debe duplicar**."""
+    from places.inversiones.cartera.ingest import (
+        corregir_movimiento, movimientos_de_ticker,
+    )
+
+    insts = dict(instrumentos)
+    insts["ASML"] = Instrumento(ticker="ASML", ticker_usd="ASMLD",
+                                categoria_activo="Cedears")
+    importar_movimientos(db, parse_filas(_filas_asml(-543.05, 60.1), insts), 1)
+    db.commit()
+
+    (mov,) = movimientos_de_ticker(db, 1, "ASML")
+    assert corregir_movimiento(db, 1, mov["id"], monto=-54305.0, precio=6010.0)
+    db.commit()
+
+    # Reimportar el Excel YA corregido: el dedupe tiene que reconocerlo.
+    insertados, saltados = importar_movimientos(
+        db, parse_filas(_filas_asml(-54305.0, 6010.0), insts), 1)
+    assert (insertados, saltados) == (0, 1), "se duplicó al reimportar"
+    filas = movimientos_de_ticker(db, 1, "ASML")
+    assert len(filas) == 1
+    assert filas[0]["monto"] == pytest.approx(-54305.0)
+    assert filas[0]["cantidad"] == pytest.approx(9)
+
+
+def test_sin_corregir_en_la_app_el_excel_arreglado_DUPLICA(db, instrumentos):
+    """La trampa, congelada en un test: arreglar solo el Excel no alcanza.
+
+    Si algún día alguien decide que la corrección desde la app "sobra", este
+    test muestra qué pasa — quedan las dos compras, 18 unidades de ASML donde
+    hay 9.
+    """
+    from places.inversiones.cartera.ingest import movimientos_de_ticker
+
+    insts = dict(instrumentos)
+    insts["ASML"] = Instrumento(ticker="ASML", categoria_activo="Cedears")
+    importar_movimientos(db, parse_filas(_filas_asml(-543.05, 60.1), insts), 1)
+    db.commit()
+
+    insertados, _ = importar_movimientos(
+        db, parse_filas(_filas_asml(-54305.0, 6010.0), insts), 1)
+    assert insertados == 1
+    filas = movimientos_de_ticker(db, 1, "ASML")
+    assert len(filas) == 2
+    assert sum(f["cantidad"] for f in filas) == 18
+
+
+def test_corregir_movimiento_sin_cambios_no_toca_nada(db, instrumentos):
+    from places.inversiones.cartera.ingest import (
+        corregir_movimiento, movimientos_de_ticker,
+    )
+
+    insts = dict(instrumentos)
+    insts["ASML"] = Instrumento(ticker="ASML", categoria_activo="Cedears")
+    importar_movimientos(db, parse_filas(_filas_asml(-543.05, 60.1), insts), 1)
+    db.commit()
+    (mov,) = movimientos_de_ticker(db, 1, "ASML")
+    assert corregir_movimiento(db, 1, mov["id"], monto=-543.05) is False
+
+
+def test_corregir_movimiento_de_otro_usuario_no_hace_nada(db, instrumentos):
+    from places.inversiones.cartera.ingest import (
+        corregir_movimiento, movimientos_de_ticker,
+    )
+
+    insts = dict(instrumentos)
+    insts["ASML"] = Instrumento(ticker="ASML", categoria_activo="Cedears")
+    importar_movimientos(db, parse_filas(_filas_asml(-543.05, 60.1), insts), 1)
+    db.commit()
+    (mov,) = movimientos_de_ticker(db, 1, "ASML")
+    assert corregir_movimiento(db, 99, mov["id"], monto=-1.0) is False
+
+
+def test_corregir_reescala_el_precio_normalizado_de_los_bonos(db, instrumentos):
+    """Los bonos cotizan por 100: la corrección no puede perder esa regla."""
+    from places.inversiones.cartera.ingest import (
+        corregir_movimiento, movimientos_de_ticker,
+    )
+
+    insts = {"AE38": Instrumento(ticker="AE38", categoria_activo="Bonos",
+                                 moneda_cotiz="USD/100")}
+    filas = [
+        ["Operación", "Concertación", "Liquidación", "Descripción", "Monto",
+         "Cantidad", "Precio", "Moneda"],
+        ["Compra", "2025-05-16", "2025-05-19", "AE38 | Bono USD 2038",
+         -1000.0, 100, 1000.0, "USD"],
+    ]
+    importar_movimientos(db, parse_filas(filas, insts), 1)
+    db.commit()
+    (mov,) = movimientos_de_ticker(db, 1, "AE38")
+    antes = db.execute(
+        "SELECT precio_normalizado FROM cartera_movimientos WHERE id = ?",
+        (mov["id"],)).fetchone()["precio_normalizado"]
+    assert antes == pytest.approx(10.0)
+
+    corregir_movimiento(db, 1, mov["id"], monto=-2000.0, precio=2000.0)
+    db.commit()
+    despues = db.execute(
+        "SELECT precio_normalizado FROM cartera_movimientos WHERE id = ?",
+        (mov["id"],)).fetchone()["precio_normalizado"]
+    assert despues == pytest.approx(20.0)

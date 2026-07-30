@@ -9,6 +9,28 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 30 de julio de 2026 (arreglo) — El ASML quedó limpio, y ahora podés corregir errores del broker
+
+**Qué se hizo (en criollo):**
+Tenías razón: el broker le sacó dos ceros. Las compraste a **$6.010** y el archivo decía **$60,10**. Ya está corregido en los dos lados — en la app y en tu Excel (con respaldo, por las dudas: *"Inversiones - respaldo pre-fix-ASML 2026-07-30.xlsx"*).
+
+Con el precio real, esa venta del 21 de enero pasa de un imposible +22.754% a **+$69.803, o sea +128,5% en pesos y +80,2% en dólares, en 250 días**. Es, de verdad, **la mejor operación de tu cartera**.
+
+**Y quedó una herramienta para la próxima.** En la pestaña Cartera hay ahora un panel para **corregir un movimiento mal informado por el broker**: buscás el ticker, elegís la operación y le arreglás el monto y el precio. Lo importante es que la app le recalcula la "huella" al movimiento, así que cuando después arregles la fila en tu Excel y vuelvas a importar, la app la reconoce en vez de cargarla dos veces. Sin eso, arreglar solo el Excel te dejaba **18 ASML donde tenés 9**.
+
+**De paso revisé todos tus movimientos** buscando el mismo tipo de error: comparé cada precio contra lo normal de ese papel. Saltaron 12 filas y 11 son perfectamente correctas (son las compras en dólares, donde el precio está en dólares y por eso parece 1.000 veces más chico).
+
+**Queda una para que preguntes vos:** el **TTM26** del 4 de febrero. Figura que compraste 17.395 láminas por **$17,78** — y ese mismo día compraste otras a $1,458 cada una. Si el precio bueno fuera ~$1,40, ese bono habría rendido **+9,1% en vez de +13,3%**. No lo toqué porque el +13,3% es el número que vos verificaste a mano en julio. Preguntale al broker qué es esa fila.
+
+**Para qué te sirve:**
+Que un error de carga del broker no te deforme los números sin que te enteres — y que cuando aparezca, lo puedas arreglar vos en dos clics sin romper nada.
+
+**Qué sigue:**
+El punto 3 de la fase: cauciones y dividendos como rendimiento propio.
+
+
+---
+
 ## 30 de julio de 2026 (Fase 3b, paso 2) — Ya podés ver cómo salió cada venta, una por una
 
 **Qué se hizo (en criollo):**

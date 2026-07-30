@@ -40,8 +40,10 @@ from places.inversiones.cartera.ingest import (
     TIPO_TENENCIA,
     cargar_instrumentos_en_db,
     congelar_tc_mep,
+    corregir_movimiento,
     detectar_tipo,
     importar_movimientos,
+    movimientos_de_ticker,
     remapear_tickers_base,
 )
 from places.inversiones.cartera.kpis import (
@@ -877,6 +879,60 @@ def render(user_id: int | None = None) -> None:
         if tasas_devengadas:
             st.caption("Configurados: " + " · ".join(
                 f"{t} {v * 100:.2f}% anual" for t, v in tasas_devengadas.items()))
+
+    with st.expander("Corregir un movimiento mal informado por el broker"):
+        st.caption(
+            "El broker se equivoca: la compra de ASML del 16/5/2025 vino con "
+            "**dos ceros de menos** (9 unidades a $60,10 en vez de $6.010). "
+            "Corregilo acá y **corregí también la misma fila en tu Excel, con "
+            "los mismos valores**: la app recalcula la huella del movimiento "
+            "para que al reimportar el Excel lo reconozca en vez de cargarlo "
+            "de nuevo. Si solo arreglás el Excel, la compra queda **duplicada**."
+        )
+        tk_corr = st.text_input("Ticker", key="cartera_corr_ticker",
+                                placeholder="ASML")
+        if tk_corr:
+            with connect() as conn:
+                movs_tk = movimientos_de_ticker(conn, uid, tk_corr)
+            if not movs_tk:
+                st.caption(f"No hay movimientos de {tk_corr.strip().upper()}.")
+            else:
+                etiquetas = {
+                    f"{m['fecha_concertacion'][:10]} · {m['categoria']} · "
+                    f"{m['cantidad']:g} u · {_fmt(m['monto'], 2, '$')}": m
+                    for m in movs_tk
+                }
+                elegido = etiquetas[st.selectbox(
+                    "Movimiento", list(etiquetas), key="cartera_corr_mov")]
+                c1, c2, c3 = st.columns([2, 2, 1])
+                with c1:
+                    nuevo_monto = st.number_input(
+                        "Monto (con su signo)", value=float(elegido["monto"]),
+                        step=1.0, format="%.2f", key="cartera_corr_monto")
+                with c2:
+                    nuevo_precio = st.number_input(
+                        "Precio por unidad", value=float(elegido["precio"]),
+                        step=1.0, format="%.4f", key="cartera_corr_precio")
+                with c3:
+                    st.write("")
+                    if st.button("Corregir", key="cartera_btn_corr"):
+                        with connect() as conn:
+                            ok = corregir_movimiento(
+                                conn, uid, elegido["id"],
+                                monto=nuevo_monto, precio=nuevo_precio)
+                            conn.commit()
+                        if ok:
+                            st.success(
+                                "Movimiento corregido. **Poné los mismos "
+                                f"valores en tu Excel** (monto "
+                                f"{_fmt(nuevo_monto, 2, '$')}, precio "
+                                f"{_fmt(nuevo_precio, 2, '$')}) para que la "
+                                "próxima importación no lo duplique.",
+                                icon=":material/check_circle:")
+                            st.rerun()
+                        else:
+                            st.info("No había nada que cambiar.",
+                                    icon=":material/info:")
 
     with st.expander("Corregir un precio a mano"):
         st.caption(

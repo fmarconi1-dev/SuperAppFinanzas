@@ -28,6 +28,8 @@ __all__ = [
     "importar_movimientos",
     "congelar_tc_mep",
     "remapear_tickers_base",
+    "movimientos_de_ticker",
+    "corregir_movimiento",
     "detectar_tipo",
     "TIPO_MOVIMIENTOS",
     "TIPO_TENENCIA",
@@ -309,3 +311,95 @@ def remapear_tickers_base(conn, instrumentos: dict, user_id: int) -> int:
         conn.execute("ROLLBACK")
         raise
     return corregidas
+
+
+def movimientos_de_ticker(conn, user_id: int, ticker: str) -> list[dict]:
+    """Movimientos de un ticker (base o crudo), del más nuevo al más viejo."""
+    t = (ticker or "").strip().upper()
+    if not t:
+        return []
+    filas = conn.execute(
+        "SELECT id, fecha_concertacion, categoria, descripcion, ticker_crudo, "
+        "       ticker_base, monto, cantidad, precio, moneda "
+        "FROM cartera_movimientos "
+        "WHERE user_id = ? AND (ticker_base = ? OR ticker_crudo = ?) "
+        "ORDER BY fecha_concertacion DESC, id DESC",
+        (user_id, t, t),
+    ).fetchall()
+    return [dict(f) for f in filas]
+
+
+def corregir_movimiento(
+    conn, user_id: int, mov_id: int, *,
+    monto: float | None = None,
+    cantidad: float | None = None,
+    precio: float | None = None,
+) -> bool:
+    """Corrige un movimiento ya importado y **recalcula su `hash_dedupe`**.
+
+    **Por qué existe.** El broker se equivoca: en el caso real que la motivó,
+    inviu informó una compra de ASML de 9 unidades a **$60,10** cuando fueron
+    a **$6.010** — dos ceros de menos. Ese dato ya importado no se puede
+    arreglar solo editando el Excel: el hash de dedupe se calcula sobre el
+    monto, así que la fila corregida entraría como **movimiento nuevo** y
+    quedarían las dos (18 unidades de ASML en vez de 9). Es la misma trampa
+    que el `ticker_base` del 30/7.
+
+    Por eso la corrección **recalcula el hash con la regla del parser**
+    (`parser.hash_dedupe`): después de corregir acá y corregir el Excel con
+    los mismos valores, reimportar el Excel **dedupea** en vez de duplicar.
+
+    Si el hash resultante ya existe (había otra operación idéntica), se prueba
+    con la siguiente ocurrencia, igual que hace el parser dentro de un archivo.
+
+    El `precio_normalizado` (bonos que cotizan por 100) se reescala en la
+    misma proporción que el precio, para no perder la regla del LEEME.
+    Devuelve ``True`` si corrigió algo.
+    """
+    from places.inversiones.cartera.parser import hash_dedupe
+
+    f = conn.execute(
+        "SELECT * FROM cartera_movimientos WHERE id = ? AND user_id = ?",
+        (mov_id, user_id),
+    ).fetchone()
+    if f is None:
+        return False
+
+    nuevo_monto = f["monto"] if monto is None else float(monto)
+    nueva_cant = f["cantidad"] if cantidad is None else float(cantidad)
+    nuevo_precio = f["precio"] if precio is None else float(precio)
+    if (nuevo_monto == f["monto"] and nueva_cant == f["cantidad"]
+            and nuevo_precio == f["precio"]):
+        return False
+
+    # El precio normalizado guarda la misma relación con el precio crudo
+    # (÷100 en bonos): se reescala en vez de recalcularse a ciegas.
+    norm = f["precio_normalizado"]
+    if norm is not None and f["precio"]:
+        norm = norm * (nuevo_precio / f["precio"])
+    elif norm is not None:
+        norm = nuevo_precio
+
+    usados = {
+        r["hash_dedupe"] for r in conn.execute(
+            "SELECT hash_dedupe FROM cartera_movimientos "
+            "WHERE user_id = ? AND id <> ?", (user_id, mov_id))
+    }
+    for ocurrencia in range(100):
+        nuevo_hash = hash_dedupe(
+            f["fecha_concertacion"], f["categoria"], f["descripcion"],
+            nuevo_monto, nueva_cant, ocurrencia,
+        )
+        if nuevo_hash not in usados:
+            break
+    else:  # pragma: no cover - 100 operaciones idénticas es imposible
+        raise RuntimeError("no se pudo generar un hash de dedupe libre")
+
+    conn.execute(
+        "UPDATE cartera_movimientos SET monto = ?, cantidad = ?, precio = ?, "
+        "       precio_normalizado = ?, hash_dedupe = ? "
+        "WHERE id = ? AND user_id = ?",
+        (nuevo_monto, nueva_cant, nuevo_precio, norm, nuevo_hash, mov_id,
+         user_id),
+    )
+    return True
