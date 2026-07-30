@@ -23,7 +23,9 @@ import streamlit as st
 
 from core.db import connect
 from core.market_data import (
+    guardar_precio_en_cache,
     leer_precio_cache,
+    leer_precio_mas_reciente,
     precio_yahoo,
     precios_arg,
     resolver_precio,
@@ -64,6 +66,14 @@ from places.inversiones.cartera.tenencias import (
 _USUARIOS_HABILITADOS = os.environ.get("CARTERA_USER_IDS", "1")
 
 _TTL_PRECIOS = 300  # segundos: 5 min de caché en memoria para el panel vivo
+
+#: Días que los precios de una tenencia importada siguen siendo preferibles al
+#: mercado en vivo. Con la foto del día coinciden con lo que muestra el broker;
+#: pasado ese margen (cubre un fin de semana largo) **caducan** y manda el
+#: mercado, si no la cartera quedaría congelada en la fecha del archivo.
+#: Las CANTIDADES de la tenencia no caducan: solo cambian si se opera, y eso
+#: ya lo reflejan los movimientos.
+_DIAS_PRECIOS_BROKER = 3
 
 
 def _habilitado(user_id: int) -> bool:
@@ -291,6 +301,15 @@ def render(user_id: int | None = None) -> None:
                     nueva = parse_tenencias(archivo_ten)
                     with connect() as conn:
                         n = guardar_foto(conn, nueva, uid)
+                        # Los precios de la tenencia quedan en la caché: para
+                        # instrumentos ilíquidos (pagarés) es el ÚNICO precio
+                        # que existe, y así sobrevive a que la foto caduque.
+                        for t in nueva.posiciones:
+                            if t.precio:
+                                guardar_precio_en_cache(
+                                    conn, t.ticker, t.precio,
+                                    nueva.fecha_valuacion, fuente="broker")
+                        conn.commit()
                     st.success(
                         f"Tenencia al {nueva.fecha_valuacion:%d/%m/%Y} importada: "
                         f"{n} posiciones.", icon=":material/check_circle:")
@@ -333,9 +352,17 @@ def render(user_id: int | None = None) -> None:
                 "WHERE user_id = ? AND tasa_anual_usd IS NOT NULL", (uid,))
         }
 
+    # Los precios de la foto solo valen mientras esté fresca (ver
+    # _DIAS_PRECIOS_BROKER); si no, la cartera quedaría clavada en la fecha
+    # del archivo y no reflejaría el mercado de hoy.
+    dias_foto = (
+        (pd.Timestamp.today().date() - foto.fecha_valuacion).days
+        if foto is not None and foto.fecha_valuacion else None
+    )
+    foto_fresca = dias_foto is not None and dias_foto <= _DIAS_PRECIOS_BROKER
     precios_broker = (
         {t.ticker: t.precio for t in foto.posiciones if t.precio}
-        if foto is not None else {}
+        if foto is not None and foto_fresca else {}
     )
 
     def _resolver(ticker: str, inst) -> tuple[float | None, str]:
@@ -371,11 +398,19 @@ def render(user_id: int | None = None) -> None:
                 btc = _precio_btc_usd()
                 if btc and mep:
                     return btc * mep, "proveedor"
-            # 4) Mercado en vivo / caché.
-            return resolver_precio(
+            # 4) Mercado en vivo / caché de hoy.
+            precio, origen = resolver_precio(
                 conn, ticker, precios_proveedor=precios,
                 divide_por_100=bool(inst and inst.divide_por_100),
             )
+            if precio is not None:
+                return precio, origen
+            # 5) Último precio conocido (instrumentos ilíquidos: el pagaré no
+            #    cotiza en ningún panel, su precio solo viene de la tenencia).
+            ultimo = leer_precio_mas_reciente(conn, ticker)
+            if ultimo is not None:
+                return ultimo[0], "última tenencia"
+            return None, "sin_dato"
 
     # La tenencia del broker manda sobre las cantidades: hay posiciones que
     # los movimientos no permiten derivar (pagarés sin cantidad, ajustes de
@@ -579,10 +614,22 @@ def render(user_id: int | None = None) -> None:
         },
     )
 
+    if foto is None:
+        fuente_precios = "Precios de mercado en vivo (data912 · yahoo para cripto)."
+    elif foto_fresca:
+        fuente_precios = (
+            f"Precios de tu tenencia del {foto.fecha_valuacion:%d/%m} — misma "
+            "valuación que ves en el broker."
+        )
+    else:
+        fuente_precios = (
+            f"Tu tenencia es del {foto.fecha_valuacion:%d/%m} ({dias_foto} días): "
+            "sus precios caducaron, se usan los de **mercado en vivo**. Las "
+            "cantidades siguen siendo las del broker."
+        )
     st.caption(
-        "Cuando hay tenencia importada se usan los precios del broker (misma "
-        "valuación que ves en tu cuenta); si no, precios de mercado. Costo a "
-        "promedio ponderado y dólar congelado a la fecha de cada operación."
+        f"{fuente_precios} Costo a promedio ponderado y dólar congelado a la "
+        "fecha de cada operación."
     )
 
     with st.expander("Activos fuera del broker (cripto, otras cuentas)"):

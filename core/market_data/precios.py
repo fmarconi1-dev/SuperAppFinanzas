@@ -31,6 +31,7 @@ __all__ = [
     "guardar_precio_en_cache",
     "set_override_precio",
     "leer_precio_cache",
+    "leer_precio_mas_reciente",
     "resolver_precio",
 ]
 
@@ -160,6 +161,26 @@ def leer_precio_cache(conn, ticker: str, fecha=None, moneda: str = "ARS"):
     if row is None:
         return None
     return float(row["precio"]), bool(row["es_override"])
+
+
+def leer_precio_mas_reciente(conn, ticker: str, moneda: str = "ARS"):
+    """Último precio conocido del ticker, sin importar la fecha.
+
+    Red de contención para instrumentos **ilíquidos**: un pagaré o un cheque
+    no cotiza en ningún panel, así que su único precio es el que informó el
+    broker en su última tenencia. Sin esto, al caducar esa foto la posición
+    quedaba sin valuar y desaparecía del patrimonio.
+
+    Devuelve ``(precio, fecha)`` o ``None``.
+    """
+    row = conn.execute(
+        "SELECT precio, fecha FROM cartera_precios_cache "
+        "WHERE ticker = ? AND moneda = ? ORDER BY fecha DESC LIMIT 1",
+        (ticker, moneda),
+    ).fetchone()
+    if row is None:
+        return None
+    return float(row["precio"]), row["fecha"]
 
 
 def resolver_precio(

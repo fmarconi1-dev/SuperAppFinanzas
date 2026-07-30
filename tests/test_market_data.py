@@ -256,3 +256,33 @@ def test_congelar_reporta_fechas_sin_dato(db):
     n, sin_dato = congelar_tc_mep(db, {"2026-05-19": 1432.3}, user_id=1)
     assert n == 1
     assert "2024-12-05" in sin_dato  # anterior al inicio de la serie
+
+
+# ---------------------------------------------------------------------------
+# Último precio conocido: red de contención para instrumentos ilíquidos
+# ---------------------------------------------------------------------------
+
+def test_ultimo_precio_conocido_para_iliquidos(db):
+    """Un pagaré no cotiza en ningún panel: su único precio es el que informó
+    el broker en su última tenencia. Sin este fallback, al caducar esa foto la
+    posición quedaba sin valuar y desaparecía del patrimonio."""
+    from core.market_data.precios import (
+        guardar_precio_en_cache, leer_precio_mas_reciente, resolver_precio,
+    )
+    guardar_precio_en_cache(db, "#UMV060770008", 1480.86, "2026-07-24",
+                            fuente="broker")
+    guardar_precio_en_cache(db, "#UMV060770008", 1499.84, "2026-07-30",
+                            fuente="broker")
+    db.commit()
+    # el mercado no lo tiene y hoy no hay precio de esa fecha
+    assert resolver_precio(db, "#UMV060770008", "2026-08-15") == (None, "sin_dato")
+    # pero sí el último conocido (el más reciente, no el primero)
+    ultimo = leer_precio_mas_reciente(db, "#UMV060770008")
+    assert ultimo is not None
+    assert ultimo[0] == pytest.approx(1499.84)
+    assert ultimo[1] == "2026-07-30"
+
+
+def test_ultimo_precio_none_si_nunca_se_vio(db):
+    from core.market_data.precios import leer_precio_mas_reciente
+    assert leer_precio_mas_reciente(db, "JAMAS_VISTO") is None

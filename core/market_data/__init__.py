@@ -19,7 +19,9 @@ from .mep import (
     set_override_mep,
 )
 from .precios import (
+    guardar_precio_en_cache,
     leer_precio_cache,
+    leer_precio_mas_reciente,
     precio_yahoo,
     precios_arg,
     resolver_precio,
@@ -34,7 +36,9 @@ __all__ = [
     "obtener_serie_mep",
     "serie_mep_con_fallback",
     "set_override_mep",
+    "guardar_precio_en_cache",
     "leer_precio_cache",
+    "leer_precio_mas_reciente",
     "precio_yahoo",
     "precios_arg",
     "resolver_precio",
