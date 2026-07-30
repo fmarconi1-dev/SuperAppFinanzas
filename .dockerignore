@@ -16,6 +16,7 @@ secrets/
 # Innecesarios en la imagen
 .git/
 .github/
+Borrar/
 .gitignore
 .gitattributes
 .pre-commit-config.yaml

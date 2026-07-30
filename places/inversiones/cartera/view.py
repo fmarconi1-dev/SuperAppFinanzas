@@ -319,12 +319,16 @@ def render(user_id: int | None = None) -> None:
                     st.error(f"No se pudo leer la tenencia: {exc}",
                              icon=":material/error:")
         with col_b:
-            excel = st.text_input(
-                "Ruta del Excel para el mapa de instrumentos (opcional)",
-                key="cartera_ruta_config",
-                placeholder=r"C:\...\Inversiones.xlsx",
-                help="Lee la hoja Config: ticker base, variante USD, categoría "
-                     "y moneda de cotización.",
+            # Uploader, NO una ruta del disco: la app corre en un servidor y
+            # ahí no existe el path de la máquina de Franco.
+            excel = st.file_uploader(
+                "Excel con el mapa de instrumentos (hoja Config) — opcional",
+                type=["xlsx"],
+                key="cartera_upload_config",
+                help="Lee la hoja Config: ticker base, variante USD, categoría, "
+                     "moneda de cotización y si el instrumento sigue activo. "
+                     "Hace falta para clasificar los tickers y saber qué bonos "
+                     "cotizan por cada 100 nominales.",
             )
             if excel and st.button("Cargar instrumentos", key="cartera_btn_config"):
                 try:
