@@ -4,6 +4,58 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-07-30 — FASE 3a COMPLETA: la cartera nativa reconcilia y está lista para deploy
+**Autor:** Claude (Opus 4.8), con Franco.
+- **Consolidación real:** dedupe verificado en producción (de 586 movimientos, 580 ya estaban, entraron 6). Tenencia al 29/7 importada.
+- **El pagaré** (35% de la cartera) pasó a computar costo: `"Compra cheque"` → COMPRA, ticker extraído del formato `Boleto / … / #UMV060770008 / U$S`, `es_instrumento` para tickers con `#`, y PPC con la cantidad de la tenencia. **Franco corrigió mi interpretación de su valuación**: se compran a descuento (US$5.032 → VN US$5.500 = 9,3% ≈ 10% anual), así que el precio del broker es correcto y queda como default.
+- **Paso 5 (gate final):** recon de **costos en USD** en modo MEP único (metodología del Excel) → **49 tickers reconcilian**. Divergencia de AE38/GGAL/BITCOIN (saldo inicial en USD que el Excel toma como ARS) **congelada en un test que falla si la planilla se corrige**.
+- **Números al 30/7:** patrimonio $23.961.034 / US$15.741,21 · aportado $13.462.628 / US$11.534,26 → **+78,0% ARS / +36,5% USD acumulado · TIR 51,4% / 24,4% anual** (602 días).
+**Estado:** suite **229 passed** + 3/3 del gate. **Fase 3a cerrada**, lista para merge a `main` + `fly deploy`.
+**Próximo:** deploy y luego 3b (realized PnL por trade, cauciones/dividendos, sector/tipo de renta, amortizaciones parciales).
+
+---
+
+## 2026-07-23 (cierre del día) — Rendimiento completo ARS/USD + cierre de vencidos
+**Autor:** Claude (Opus 4.8), a pedido de Franco (decisión suya de adelantar parte de 3b).
+- **Franco detectó** que las amortizaciones son rendimiento y no se computaban: **$6.345.528** en flujos cobrados quedaban afuera, y 6 letras vencidas figuraban con cantidad residual. Pidió además medir el rendimiento **en dólares con el MEP del día de compra y de cobro**.
+- **Cierre de vencidos sin heurísticas:** se usa `Config!L "Activo en cartera" = NO` del propio Excel. **Rendimiento completo** según el LEEME (realizado + no realizado + dividendos + amortizaciones), en ARS y USD al TC congelado de cada fecha.
+- ⚠️ **Bug corregido:** la amortización devuelve capital + interés; contarla entera daba ~100-113% de rendimiento en las letras. Se agregó `costo_amortizado_*` (PPC × unidades vencidas). Post-fix, cada letra reproduce exactamente el cálculo manual independiente.
+- **Números reales:** invertido $33,2M (US$25.219) → **+$10.398.493 (+31,3%) en pesos · +US$4.273 (+16,9%) en dólares**. Caso ilustrativo: S15G5 +3,8% en pesos pero **−3,6% en dólares**.
+- Vista con bloque "Rendimiento total" + columna `Rend. US$ %` + toggle de posiciones cerradas. Recon **verde** (documentado que compara el plano bruto del Excel; el cierre de vencidos es capa propia). Suite **206 passed, 1 skipped**.
+**Pendiente 3b:** amortizaciones parciales de bonos vivos (hoy suman como flujo sin reducir tenencia).
+
+---
+
+## 2026-07-23 (final) — Fase 3a paso 4: la Cartera ya vive en la app
+**Autor:** Claude (Opus 4.8), con Franco. Skill `ui-ux-web-moderno` aplicada.
+- **Vista de Cartera** cableada en la pestaña (reemplaza el cartel de "Fase 3"): KPI cards con tokens Cosmic Slate (tabular-nums; ganancia/pérdida con signo+flecha+color, nunca color solo), tabla es-AR, **upload del export del broker** con dedupe + congelado de TC en el mismo flujo, carga de instrumentos desde Config, caché de 5 min, estados empty/error. Scope por usuario (`CARTERA_USER_IDS`).
+- **Lógica:** costo promedio ponderado + costo USD a TC histórico (`posiciones.py`), valuación y totales (`kpis.py`; el costo de lo que no tiene precio no entra a los totales). `tests/test_cartera_kpis.py` (12). Suite **200 passed, 1 skipped**.
+- **Verificado end-to-end con datos reales:** $15.490.098 / US$10.101 · +19,8% · 23 posiciones valuadas; BTC vía yahoo.
+- ⚠️ **Para 3b:** 6 letras/bonos en pesos vencidos quedan con cantidad residual (el vencimiento entra como AMORTIZACION y solo VENTA resta). El Excel arrastra lo mismo; no cotizan → no ensucian totales.
+**Próximo:** paso 5 (recon USD modo "MEP actual") para cerrar 3a, luego merge a `main` + `fly deploy`.
+
+---
+
+## 2026-07-23 (cierre) — Fase 3a paso 3: `core/market_data` (MEP histórico + precios)
+**Autor:** Claude (Opus 4.8), con Franco.
+- **Hallazgo que corrigió una decisión cerrada:** el ADR-0003 asumía el MEP histórico "vía BCRA", pero **el BCRA no publica MEP** (sirve el mayorista A3500: 1.480,86 vs MEP 1.521,9 al 22/7). Se presentaron alternativas y Franco eligió **`argentinadatos`** → **ADR-0004**. Verificado antes de decidir: 419/419 días hábiles del historial cubiertos.
+- **`core/market_data/`** (fetch inyectable, tests sin red): `mep.py` (serie, último hábil anterior, caché, fallback, override) + `precios.py` (data912 ARG, yahoo BTC, precedencia override→caché→proveedor, bonos /100) + `ingest.congelar_tc_mep` idempotente.
+- **Humo real contra APIs vivas:** 585 movimientos del Excel importados con **TC congelado en las 585 filas, cero fechas sin dato**; 1.204 símbolos ARG; AE38 = 1.273,6 (broker: 1.262,6). `tests/test_market_data.py` (18). Suite **188 passed, 1 skipped**.
+**Por qué:** sin TC histórico y precios automáticos, la cartera no puede valuarse ni superar al Excel (que usa un único MEP actual para todo).
+**Próximo:** paso 4 — posiciones + KPIs + vista de Cartera (con upload del export).
+
+---
+
+## 2026-07-23 (tarde) — Excel-oráculo actualizado + reconciliado 20/20 + modelo M9
+**Autor:** Claude (Opus 4.8), con Franco.
+- Franco pasó el export completo de inviu + la Tenencia del broker. Se reconstruyó `Inversiones.xlsx` (con respaldo): export + saldos sintéticos + ajuste de ratio SPY (+70); Procesado con Moneda alineada; Config + Resumen corregidos; MEP/BTC al día. **Recalc con LibreOffice: 20/20 posiciones exactas vs broker.** El parser reprodujo 19/20 solo con movimientos → validación fuerte del motor.
+- **M9** (aditiva, `core/db.py`): tablas `cartera_instrumentos`, `cartera_movimientos` (dedupe por `UNIQUE(user_id, hash_dedupe)`, `tc_mep` para paso 3), `cartera_precios_cache`; scope por user_id. `tests/test_cartera_db.py` (8).
+- **Ingest** (`ingest.py` + `posiciones.py`): carga de instrumentos desde Config + import de movimientos con dedupe; posiciones portando `Resumen Cartera`. Gate `tests/test_cartera_recon.py` **reconcilia exacto** contra el Excel (verificado con recalc; skip elegante sin Excel/caché). `tests/test_cartera_ingest.py` (5). Suite **170 passed, 1 skipped**.
+- Convención `Borrar/` para basura de git del mount OneDrive (gitignoreada).
+**Próximo:** `core/market_data` (paso 3) — MEP histórico + precios ARG/CEDEARs/BTC con caché + override.
+
+---
+
 ## 2026-07-23 — Fase 3a, paso 1: parser del broker construido y testeado
 **Autor:** Claude (Opus 4.8), con Franco.
 - Se **rescató y completó** el borrador `places/inversiones/cartera/parser.py` (estaba untracked y no compilaba). 3 arreglos: `SyntaxError` de la línea 196 (carácter U+0640 incrustado, probable sync OneDrive); espejo de dividendos/renta apareado por `(fecha, ticker_base)` tolerante a categoría para cubrir el **formato nuevo**; detección de saldo inicial sintético sin el paréntesis. Se agregó `__init__.py` y `tests/test_cartera_parser.py` (**43 tests**).

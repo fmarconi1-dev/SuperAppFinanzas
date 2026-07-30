@@ -52,6 +52,21 @@ Son skills del estándar SKILL.md; se instalan con `npx skills add gauss314/skil
 ## Decisión
 _(pendiente de Fase 5 — registrar como ADR cuando se elija la combinación final. Recomendación inicial: `bcra-macro` + `data912` + `byma` + `mae` para AR; `option-pricing` + `backtesting` como herramientas; `yahoo-finance` + `sec-data` para el scoring.)_
 
+### Resuelto en Fase 3a (2026-07-23) — `core/market_data`
+Lo que la **cartera** necesita ya está implementado y verificado contra las APIs reales:
+
+| Necesidad | Fuente elegida | Estado |
+|---|---|---|
+| **MEP histórico** (congelar TC por operación) | **`argentinadatos`** `/v1/cotizaciones/dolares/bolsa` → **ADR-0004** | ✅ serie 2018→hoy; **419/419 días hábiles** del historial de Franco, sin faltantes |
+| Precios ARG (acciones, CEDEARs, bonos) | **`data912`** `/live/{arg_stocks,arg_cedears,arg_bonds}` | ✅ ~1.200 símbolos vivos |
+| BTC / exterior | **`yahoo`** `/v8/finance/chart/{symbol}` | ✅ |
+
+⚠️ **Hallazgo importante: el BCRA NO publica el MEP.** Su API v4.0 sirve el **mayorista A3500** (id 5): 1.480,86 vs MEP 1.521,9 al 22/7/2026 (~3% de brecha). El supuesto original del ADR-0003 ("serie MEP, BCRA") era incorrecto → corregido en **ADR-0004**. `bcra-macro` sigue siendo la fuente oficial para CER/UVA/tasas (renta fija, futuras fases).
+
+**Normalización relevante:** `data912` sirve bonos/letras **por cada 100 nominales** (AE38 = 127.360 donde el broker muestra 1.262,6) → los instrumentos con `moneda_cotiz` terminada en `/100` se dividen por 100, misma regla que el LEEME del Excel.
+
+Resguardos implementados (regla del repo — nada de "tiempo real" sin red de contención): capa por proveedor, **caché en DB**, **override manual** que gana sobre cualquier fuente, y **congelado del TC por fila** (una caída futura no altera lo ya importado). Todo con `fetch` inyectable → los tests corren sin red.
+
 ## Fuentes marcadas por Franco
 - [`gauss314/skills`](https://github.com/gauss314/skills) — el repo clave (arriba).
 - 4 posts de X (`@anyelamarillo`, `@0xjokker`, `@_guillecasaus`, `@untalnixon_exe`) — no se pudieron leer automáticamente (requieren login/JS). Revisar manualmente y agregar acá lo que aporte.

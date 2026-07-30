@@ -29,9 +29,13 @@ Navegación con login único entre lugares. Embeber el scoring leyendo el snapsh
 
 ## 🔵 Fase 3 — Cartera (Lugar B.1) — **giro a NATIVA** (ADR-0003)
 El plan original (Excel-in-the-loop) se reemplazó por **cartera nativa**: DB propia de movimientos, el Excel pasa a oráculo de reconciliación. **Fase 3a** = import + carga recurrente con dedupe + alta manual + posiciones + KPIs (5 pasos). **3b** = realized PnL, cauciones/dividendos como rendimientos, análisis sector/tipo de renta.
-- 🔵 **3a paso 1 ✅ (2026-07-23):** parser del broker (ambos formatos) + 43 tests. Suite 157 en verde.
-- ⬜ 3a paso 2: modelo de datos (migración M9, `mov_cartera` con TC MEP histórico por fila).
-- ⬜ 3a pasos 3-5: `core/market_data/` (precios + caché + override) · posiciones + KPIs + vista · gate `tests/test_cartera_recon.py`.
+- ✅ **3a paso 1:** parser del broker (ambos formatos) + 43 tests.
+- ✅ **3a paso 2:** modelo de datos M9 (`cartera_movimientos` con TC congelado por fila, dedupe) + ingest + gate `tests/test_cartera_recon.py` (reconcilia exacto contra el Excel).
+- ✅ **3a paso 3:** `core/market_data/` — MEP histórico (ADR-0004: el BCRA no publica MEP) + precios ARG/yahoo con caché y override.
+- ✅ **3a paso 4:** posiciones + KPIs + **vista de Cartera con upload**; import de la tenencia del broker (M10) + tenencias manuales para activos externos; rendimiento por **método del patrimonio** en ARS/USD + **TIR**.
+- ✅ **3a paso 5:** recon de **costos en USD** modo "MEP actual" (49 tickers) + divergencias conocidas congeladas en tests.
+- ✅ **Fase 3a COMPLETA (2026-07-30).** Verificada con datos reales al 30/7: patrimonio US$15.741 · aportado US$11.534 · **+36,5% acumulado, TIR 24,4% anual en dólares** (602 días). Suite 229 + 3 del gate.
+- ⬜ **Siguiente:** merge a `main` + `fly deploy`.
 **Gate:** `tests/test_cartera_recon.py` (cartera app == Excel, fila por fila; cantidades y costos ARS exactos).
 **Salida:** la cartera online, con los mismos números que la planilla y más al día que ella.
 

@@ -101,6 +101,11 @@ def _migrate(conn: sqlite3.Connection) -> None:
       M1 (Fase 2): user_id en tablas de datos + usuario local.
       M2 (Fase 2b): columna `subcategoria` en `categorias` para jerarquía
                     macro/sub (ej: Inversion → Ahorro vs Activos financieros).
+      M3–M8.5 (Fase 3/D2): reclasificaciones + scope por user_id y luego por
+                    workspace_id (grupo familiar) — ver bloques abajo.
+      M9 (Fase 3a): tablas de cartera nativa (aditivas, scope por user_id).
+      M10 (Fase 3a): foto de tenencia del broker (los movimientos no alcanzan
+                    para reconstruir la cartera: ver comentario del bloque).
     """
     cur = conn.cursor()
     cur.execute("BEGIN")
@@ -605,6 +610,155 @@ def _migrate(conn: sqlite3.Connection) -> None:
             cur.execute("ALTER TABLE configuracion_m8 RENAME TO configuracion")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_configuracion_user ON configuracion(user_id)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_configuracion_workspace ON configuracion(workspace_id)")
+
+        # ============================================================
+        # M9 (Fase 3a): Cartera nativa — tablas propias, scope por usuario.
+        # ============================================================
+        # La cartera de inversiones es PERSONAL de cada usuario (no se comparte
+        # como los gastos familiares del modelo D2): se scopea por `user_id`,
+        # no por `workspace_id`. Hoy solo la usa Franco; el esquema es
+        # generalizable a otros usuarios sin cambios.
+        #
+        # Estas 3 tablas son ADITIVAS: `CREATE TABLE IF NOT EXISTS` idempotente,
+        # no tocan ninguna tabla de finanzas ni de workspaces → migración de
+        # bajo riesgo (a diferencia de M4–M8, que reconstruían tablas).
+        #
+        #   * cartera_instrumentos  — mapa de tickers (equivalente a Config!G:N
+        #     del Excel): base ↔ variante USD, categoría de activo, panel de
+        #     precios, moneda de cotización, divisor.
+        #   * cartera_movimientos   — un movimiento parseado por fila (salida
+        #     del parser de `places/inversiones/cartera/parser.py`). `tc_mep`
+        #     queda NULL hasta que market_data (paso 3) congele el MEP histórico
+        #     de cada fecha. `hash_dedupe` + UNIQUE hace idempotente la carga
+        #     recurrente (re-importar el mismo export no duplica).
+        #   * cartera_precios_cache — precios de valuación (auto + override),
+        #     con fecha y fuente; base para "precio automático con caché".
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS cartera_instrumentos (
+                ticker            TEXT NOT NULL,
+                user_id           INTEGER NOT NULL,
+                ticker_usd        TEXT,
+                descripcion       TEXT,
+                categoria_activo  TEXT,
+                panel_precio      TEXT,
+                moneda_cotiz      TEXT NOT NULL DEFAULT 'ARS',
+                divisor_usd       REAL,
+                activo            INTEGER NOT NULL DEFAULT 1,
+                PRIMARY KEY (ticker, user_id)
+            )
+        """)
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cartera_instr_user "
+            "ON cartera_instrumentos(user_id)"
+        )
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS cartera_movimientos (
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id             INTEGER NOT NULL,
+                fecha_concertacion  TEXT NOT NULL,
+                fecha_liquidacion   TEXT,
+                categoria           TEXT NOT NULL,
+                descripcion         TEXT NOT NULL,
+                monto               REAL NOT NULL DEFAULT 0,
+                cantidad            REAL NOT NULL DEFAULT 0,
+                precio              REAL NOT NULL DEFAULT 0,
+                moneda              TEXT NOT NULL,
+                ticker_crudo        TEXT,
+                ticker_base         TEXT,
+                operacion_original  TEXT,
+                formato             TEXT,
+                es_instrumento      INTEGER NOT NULL DEFAULT 0,
+                es_espejo           INTEGER NOT NULL DEFAULT 0,
+                es_saldo_inicial    INTEGER NOT NULL DEFAULT 0,
+                precio_normalizado  REAL,
+                tc_mep              REAL,
+                hash_dedupe         TEXT NOT NULL,
+                creado_en           TEXT NOT NULL DEFAULT (datetime('now')),
+                UNIQUE (user_id, hash_dedupe)
+            )
+        """)
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cartera_mov_user "
+            "ON cartera_movimientos(user_id)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cartera_mov_ticker "
+            "ON cartera_movimientos(user_id, ticker_base)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cartera_mov_fecha "
+            "ON cartera_movimientos(fecha_concertacion)"
+        )
+        # ============================================================
+        # M10 (Fase 3a): foto de tenencia del broker.
+        # ============================================================
+        # El export de movimientos NO alcanza para reconstruir la cartera:
+        #   * ajustes de ratio de CEDEAR (SPY) no generan movimiento;
+        #   * pagarés/cheques ("Compra cheque") traen el monto pero NO la
+        #     cantidad — en la cartera de Franco eso era el 35% del total.
+        # Por eso se guarda la tenencia informada por el broker: los
+        # movimientos aportan el histórico (costos, aportes, rendimiento) y
+        # esta tabla la foto actual (cantidades y precios de referencia).
+        # La diferencia entre ambas ES la reconciliación contra el custodio.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS cartera_tenencia (
+                user_id          INTEGER NOT NULL,
+                fecha_valuacion  TEXT NOT NULL,
+                ticker           TEXT NOT NULL,
+                nombre           TEXT,
+                cantidad         REAL NOT NULL DEFAULT 0,
+                precio           REAL,
+                moneda           TEXT NOT NULL DEFAULT 'ARS',
+                tipo_activo      TEXT,
+                costo_ppc        REAL,
+                PRIMARY KEY (user_id, fecha_valuacion, ticker)
+            )
+        """)
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cartera_tenencia_user "
+            "ON cartera_tenencia(user_id, fecha_valuacion)"
+        )
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS cartera_tenencia_meta (
+                user_id          INTEGER NOT NULL,
+                fecha_valuacion  TEXT NOT NULL,
+                mep              REAL,
+                ccl              REAL,
+                efectivo_ars     REAL NOT NULL DEFAULT 0,
+                efectivo_usd     REAL NOT NULL DEFAULT 0,
+                importado_en     TEXT NOT NULL DEFAULT (datetime('now')),
+                PRIMARY KEY (user_id, fecha_valuacion)
+            )
+        """)
+
+        # ============================================================
+        # M11 (Fase 3a): tasa de devengamiento para instrumentos sin mercado.
+        # ============================================================
+        # Los pagarés/cheques de pago diferido no cotizan: rinden una tasa
+        # pactada (el de Franco, 10% anual en USD). El "precio actual" que
+        # informa el broker no refleja ese devengamiento — al 30/7/2026 daba
+        # +7,7% en 24 días, o sea ~200% anualizado. Con la tasa guardada, la
+        # app los valúa devengando desde la compra, que es lo correcto.
+        cols_instr = [
+            r["name"] for r in cur.execute("PRAGMA table_info(cartera_instrumentos)")
+        ]
+        if cols_instr and "tasa_anual_usd" not in cols_instr:
+            cur.execute(
+                "ALTER TABLE cartera_instrumentos ADD COLUMN tasa_anual_usd REAL"
+            )
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS cartera_precios_cache (
+                ticker          TEXT NOT NULL,
+                fecha           TEXT NOT NULL,
+                precio          REAL NOT NULL,
+                moneda          TEXT NOT NULL DEFAULT 'ARS',
+                fuente          TEXT,
+                es_override     INTEGER NOT NULL DEFAULT 0,
+                actualizado_en  TEXT NOT NULL DEFAULT (datetime('now')),
+                PRIMARY KEY (ticker, fecha, moneda)
+            )
+        """)
 
         cur.execute("COMMIT")
     except Exception:

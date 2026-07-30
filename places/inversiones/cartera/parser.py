@@ -82,6 +82,11 @@ MAPA_OPERACION = {
     "retiro": "RETIRO",
     "remuneracion": "REMUNERACION",
     "otros": "OTROS",
+    # Pagarés / cheques de pago diferido: son una compra de instrumento. El
+    # broker NO manda la cantidad en el movimiento (solo el monto pagado), así
+    # que la tenencia aporta las unidades y de ahí sale el precio promedio.
+    "compra cheque": "COMPRA",
+    "venta cheque": "VENTA",
 }
 
 #: Categorías que usan pseudo-ticker en vez de extraerlo de la descripción
@@ -123,6 +128,10 @@ class Instrumento:
     ticker_usd: str | None = None  # variante USD (sufijo D), p. ej. "TSMD"
     categoria_activo: str = ""   # Acciones / Bonos / Cedears / Letras / ONs / Cripto
     moneda_cotiz: str = "ARS"    # "ARS", "USD", "ARS/100", "USD/100"
+    #: ``Config!L`` ("Activo en cartera"). False = instrumento vencido o
+    #: retirado: su tenencia ya no existe (amortizó / se canjeó), aunque los
+    #: movimientos históricos sigan en la DB.
+    activo: bool = True
 
     @property
     def divide_por_100(self) -> bool:
@@ -223,8 +232,21 @@ def _parse_numero(valor) -> float:
 
 
 def _extraer_ticker(descripcion: str) -> str:
-    """``"TSMD | Taiwan Semi..." → "TSMD"`` (fórmula D de Procesado)."""
-    return str(descripcion).split("|")[0].strip()
+    """``"TSMD | Taiwan Semi..." → "TSMD"`` (fórmula D de Procesado).
+
+    Los pagarés/cheques usan otro formato, sin el separador habitual::
+
+        "Boleto / 2529140 / CCHDIF / 1 / #UMV060770008 / U$S" → "#UMV060770008"
+
+    Su identificador es el token que arranca con ``#``.
+    """
+    texto = str(descripcion)
+    if "#" in texto:
+        for token in texto.replace("|", "/").split("/"):
+            t = token.strip()
+            if t.startswith("#"):
+                return t
+    return texto.split("|")[0].strip()
 
 
 # ---------------------------------------------------------------------------
@@ -334,9 +356,18 @@ def _parse_fila(celdas: list, idx: dict[str, Instrumento]) -> Movimiento | None:
     es_instrumento = _es_instrumento(categoria, ticker_crudo, idx)
     es_saldo_inicial = "saldo inicial" in _norm(descripcion)
 
-    moneda = _inferir_moneda(
-        categoria, ticker_crudo, inst, monto, moneda_decl, advertencias,
-    )
+    if es_saldo_inicial:
+        # Los saldos iniciales sintéticos están denominados en USD: sus
+        # precios lo delatan (AE38D 0,6158 de paridad; BTC 98.094,78; GGAL
+        # 4,49 — imposible en pesos) y las compras iniciales suman EXACTO el
+        # depósito sintético que las cubre, así que todo el bloque comparte
+        # moneda. El export no trae la columna Moneda en esas filas, y
+        # tratarlas como ARS subvaluaba el capital inicial ~1.000 veces.
+        moneda = "USD"
+    else:
+        moneda = _inferir_moneda(
+            categoria, ticker_crudo, inst, monto, moneda_decl, advertencias,
+        )
 
     precio_norm = None
     if precio and inst is not None and inst.divide_por_100:
@@ -414,6 +445,11 @@ def _es_instrumento(
     """Fórmula L de Procesado: instrumento si no es cash y el ticker existe."""
     if categoria in _CATEGORIAS_NO_INSTRUMENTO:
         return False
+    # Pagarés / cheques de pago diferido: son instrumentos aunque no estén en
+    # el mapping de Config (el Excel nunca los tuvo). Su identificador
+    # arranca con "#" — ver `_extraer_ticker`.
+    if ticker_crudo.startswith("#"):
+        return True
     if idx:
         return ticker_crudo in idx
     # Sin mapping: heurística por categoría.

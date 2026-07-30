@@ -49,6 +49,8 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 ## Mejoras de producto — Lugar B (Inversiones / Mercado)
 
 ### Cartera (B.1)
+- 🟡 💡 **Traer la tenencia de cripto directo de Binance** (pedido de Franco, 23/7/2026). Hoy la cantidad de BTC se carga a mano en "Activos fuera del broker" y el precio se busca solo (yahoo). Con la API de Binance (read-only, sin permisos de trading — regla del repo: el agente no opera) la cantidad se actualizaría sola. Alternativa evaluada: `ccxt` (ya en `docs/HERRAMIENTAS-EVALUADAS.md`, 🟡 opcional) que unifica exchanges. Ojo: requiere API key del usuario → guardar en `.env`, nunca en el repo.
+- 🟡 💡 **Amortizaciones parciales** de bonos vivos (ej. AE38 cuando empiece a amortizar en cuotas): hoy suman como flujo cobrado pero no reducen la tenencia. Con vencimiento total ya funciona (marca `Activo = NO` en Config).
 - 🔴 💡 Análisis enriquecido: exposición por sector e industria, TIR esperada de la parte de renta fija, duration/riesgo, correlación fija-vs-variable.
 - 🟡 💡 Comparación de la cartera contra benchmarks (SPY, Merval) en distintos plazos.
 - 🟡 💡 Alertas de vencimientos de bonos/ON (reusar la lógica de la hoja "VTO MES" del Excel).

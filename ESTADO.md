@@ -3,7 +3,7 @@
 > **Este es el archivo más importante para retomar el trabajo.** Se lee primero y se actualiza último, cada sesión.
 > Antes de editar código, actualizá la tabla "Tarea en curso". Al cerrar, dejá el "Próximo paso concreto".
 
-<!-- ultima_actualizacion: 2026-07-23 · autor: Claude (Opus 4.8) · handoff: Fase 3a paso 1 (parser del broker) hecho y testeado; sigue paso 2 (modelo de datos M9) -->
+<!-- ultima_actualizacion: 2026-07-30 · autor: Claude (Opus 4.8) · handoff: Fase 3a pasos 1-4 hechos + consolidación al 30/7 (dedupe OK, pagaré con tasa devengada). Falta paso 5 (recon USD modo MEP actual) + merge a main + deploy -->
 
 ## 🧭 Dónde estamos
 
@@ -16,7 +16,8 @@
 
 | Tarea | Estado | Autor | Desde |
 |---|---|---|---|
-| Fase 3a — Cartera nativa (ingest + posiciones + KPIs) | 🔵 EN CURSO | Claude (Fable 5) | 2026-07-19 |
+| Fase 3a — Cartera nativa (ingest + posiciones + KPIs + recon) | ✅ **COMPLETA** (2026-07-30) | Claude (Fable 5 → Opus 4.8) | 2026-07-19 |
+| Merge a `main` + `fly deploy` de la Fase 3a | 🔵 SIGUIENTE | — | — |
 
 ## ✅ Hecho hasta ahora
 
@@ -33,7 +34,63 @@
 
 **Fase 3a — Cartera NATIVA (construir; diseño cerrado en ADR-0003).** Orden de construcción (5 pasos):
 
-> **Paso 1 ✅ HECHO (2026-07-23).** Parser del broker construido y testeado: `places/inversiones/cartera/parser.py` (rescatado del borrador untracked, 3 arreglos) + `places/inversiones/cartera/__init__.py` + `tests/test_cartera_parser.py` (43 tests). Suite completa **157 en verde**. Commiteado en `fase-3a/cartera-nativa` (pendiente de push por Franco). **Próximo: paso 2 (modelo de datos M9).** Detalle en `places/inversiones/cartera/bitacora_de_trabajo.md`.
+> **Paso 1 ✅ HECHO (2026-07-23).** Parser del broker construido y testeado: `places/inversiones/cartera/parser.py` (rescatado del borrador untracked, 3 arreglos) + `places/inversiones/cartera/__init__.py` + `tests/test_cartera_parser.py` (43 tests).
+>
+> **Excel-oráculo actualizado y reconciliado (2026-07-23).** Franco pasó el export completo de inviu + la Tenencia del broker al 24/7. Se reconstruyó `Inversiones.xlsx` (respaldo del original en "Inversiones - respaldo pre-2026-07-23.xlsx"): crudo = export + saldos sintéticos + ajuste de ratio SPY (+70, confirmado); Procesado con fórmulas 1:1 y **columna Moneda alineada**; Config con SATL/UNH/CEG; Resumen corregido (salteaba NBIS, duplicaba GGALX); MEP=1519,725, BTC=65877. **Recalculado con LibreOffice: 20/20 posiciones EXACTAS vs broker.** El parser reprodujo 19/20 solo con movimientos+seeds (la brecha SPY es el ajuste de ratio externo) → validación fuerte del motor.
+>
+> **Paso 2 ✅ HECHO (2026-07-23).** Modelo de datos **M9** (aditivo, `core/db.py`): `cartera_instrumentos`, `cartera_movimientos` (con `tc_mep` NULL hasta paso 3, `UNIQUE(user_id, hash_dedupe)`), `cartera_precios_cache` — **scope por user_id** (la cartera es personal). `tests/test_cartera_db.py` (8 tests).
+>
+> **Ingest + reconciliación ✅ HECHO (2026-07-23).** `places/inversiones/cartera/ingest.py` (instrumentos desde Config + `importar_movimientos` con dedupe) y `posiciones.py` (portan `Resumen Cartera`). Gate `tests/test_cartera_recon.py`: parte del crudo del Excel → parser → posiciones y **reconcilia exacto contra `Resumen Cartera`** (verificado con el Excel recalculado; se saltea sin romper CI si no hay Excel/caché — corre local con `CARTERA_XLSX`). `tests/test_cartera_ingest.py` (5). Suite **170 passed, 1 skipped**.
+>
+> **Paso 3 ✅ HECHO (2026-07-23).** `core/market_data/` con `fetch` inyectable (tests sin red): `mep.py` (serie histórica, último hábil anterior, caché, fallback, override) y `precios.py` (data912 ARG + yahoo BTC, caché, override, **bonos /100**), más `ingest.congelar_tc_mep` (idempotente). **⚠️ El BCRA NO publica MEP** (sirve el mayorista A3500: 1.480,86 vs MEP 1.521,9 al 22/7) → supuesto del ADR-0003 corregido en **ADR-0004**: fuente `argentinadatos` (elegida por Franco; cubre 419/419 días hábiles del historial). **Humo real: 585 movimientos del Excel importados con TC congelado en las 585 filas, cero fechas sin dato.** `tests/test_market_data.py` (18). Suite **188 passed, 1 skipped**.
+>
+> **Paso 4 ✅ HECHO (2026-07-23) — la Cartera ya vive en la app.** `posiciones.py` con costo promedio ponderado + costo USD a TC histórico; `kpis.py` (valuación con precio inyectable; el costo de lo que no tiene precio no entra a los totales); **`view.py`** cableada en la pestaña Cartera: KPI cards con tokens Cosmic Slate (tabular-nums, signo+flecha+color), tabla es-AR, **upload del export del broker** (dedupe + congelado de TC en el mismo flujo), carga de instrumentos desde Config, caché de 5 min y estados empty/error. Scope por usuario (`CARTERA_USER_IDS`, default solo Franco). `tests/test_cartera_kpis.py` (12). **Verificado end-to-end con datos reales: $15.490.098 / US$10.101 · +19,8% · 23 posiciones.** Suite **200 passed, 1 skipped**.
+>
+> **Rendimiento completo ✅ HECHO (2026-07-23, a pedido de Franco — adelanta parte de 3b).** Las amortizaciones son rendimiento y no se computaban ($6.345.528 en flujos afuera), y las 6 letras vencidas figuraban con cantidad residual. Ahora: **cierre de vencidos** usando la señal del propio Excel (`Config!L = NO`, sin heurísticas) y **rendimiento completo** (realizado en ventas + no realizado + amortizaciones/rentas/dividendos) **en ARS y en USD al MEP del día de cada operación**. ⚠️ Bug corregido en el camino: la amortización devuelve **capital + interés** — sin descontar el capital, las letras daban ~100-113%; se agregó `costo_amortizado_*`. Tras el fix, cada letra reproduce exactamente el cálculo manual (S15G5 +3,8% ARS / **−3,6% USD**).
+>
+> ⚠️ **CORREGIDO (mismo día, lo detectó Franco).** Los primeros números (+31,3% / +16,9% sobre US$25.219 "invertidos") **eran incorrectos**. Tres errores: (1) el denominador era la suma de todas las compras — capital *rotado*, que cuenta la misma plata cada vez que se reinvierte — en vez del **capital aportado** (depósitos − retiros); (2) los **saldos iniciales sintéticos están en USD** (las 3 compras suman exacto el depósito que las cubre) y se tomaban como ARS, subvaluando el capital inicial ~1.000×; (3) **la suma por instrumento no sirve como total de cartera**: al pasar importes USD a pesos con el TC de cada fecha, la devaluación infla el resultado — verificado en pesos (sin efecto FX): $9,92M por componentes contra $2,27M por patrimonio.
+>
+> **Método adoptado: patrimonio** (el único verificable; es el que define el panel `General` del Excel): `resultado = (tenencia + efectivo) − (depósitos − retiros)`, cada aporte al MEP de su fecha. `saldos_efectivo()` reconstruye el cash y se contrastó contra el broker (ARS $27.530 vs $26.069; USD 72 vs 54,5).
+>
+> **Números correctos:** capital aportado $13.162.628 (**US$11.338**) · patrimonio hoy $15.544.931 (US$10.137) → **+$2.382.303 (+18,1%) en pesos, −US$1.201 (−10,6%) en dólares**. Suite **209 passed, 1 skipped** + **recon verde**.
+>
+> 🧭 **Lección para quien siga:** todo agregado de una cartera bimonetaria debe contrastarse contra una identidad contable independiente (patrimonio vs aportes) **antes** de mostrarse. Sumar operación por operación parece razonable y da resultados muy equivocados.
+>
+> ⚠️ **HALLAZGO ESTRUCTURAL (M10): el export de movimientos NO alcanza para reconstruir la cartera.** Franco detectó que faltaba el 35% del total. Dos casos probados: (1) el **pagaré `#UMV060770008`** — su movimiento (`Compra cheque`) trae el monto pero **no la cantidad**, y la posición real vale **US$5.359**; (2) los **ajustes de ratio de CEDEAR** (SPY) no generan movimiento. **Solución: dos fuentes complementarias** — movimientos = histórico (costos, aportes, rendimiento); **tenencia del broker = foto actual** (cantidades y precios). Su diferencia **es** la reconciliación contra el custodio. Implementado en `tenencias.py` + **M10** (`cartera_tenencia`, `cartera_tenencia_meta`) + `Posicion.cant_broker` (manda sobre lo derivado; si el ticker **no** está en la tenencia se conserva lo derivado, porque hay tenencias fuera del broker: **el Bitcoin**).
+>
+> **Números con las dos fuentes:** patrimonio **US$15.757** (posiciones US$15.685 incl. BTC + efectivo US$72) vs tenencia del broker US$15.575 (sin BTC). Aportado US$11.338 → **+US$4.419 (+39,0%) en dólares · +$10.783.811 (+81,9%) en pesos**. Suite **218 passed, 1 skipped** + recon verde.
+>
+> 📌 **Para Franco:** la reconciliación detectó que **ASML** está marcado `Activo en cartera = NO` en `Config` del Excel pero el broker informa 15 unidades — conviene corregirlo en la planilla.
+>
+> ✅ **Bitcoin cerrado (3ª objeción de Franco, también correcta):** su posición vale US$203,04 y la app mostraba US$192. **La causa era la CANTIDAD, no el precio**: el Excel solo tenía el saldo inicial (0,003) y la tenencia real es **0,00316847** (Binance). Con la cantidad correcta: US$202,91 (13 centavos de diferencia por el movimiento del precio). Se agregaron **tenencias manuales** (`set_tenencia_manual`, fecha reservada `"manual"`) para activos fuera del custodio: mandan sobre los movimientos y no se pisan al reimportar la foto del broker.
+>
+> **Precios: precedencia override → broker → cripto/yahoo → mercado vivo/caché.** Con tenencia importada se usan los precios del broker, así los totales coinciden con lo que Franco ve.
+>
+> 🔍 **Los US$86 de diferencia — explicados:** las fórmulas del export de tenencias calculan con la columna **C (Cantidad)**, que viene **vacía**, no con la **E (Disponibles)**. El "Total" del propio archivo daría 0 → los 15.489 que ve Franco vienen de la **pantalla del broker** (precios en vivo), no del archivo. Nuestra suma es correcta para los precios congelados del export. Decisión de Franco: ruido de precios aceptable (0,55%).
+>
+> **Números finales del día:** patrimonio **US$15.778** (broker US$15.575 + BTC US$203) · aportado US$11.338 → **+US$4.440 (+39,2%) en dólares · +$10.815.664 (+82,2%) en pesos**. Suite **221 passed, 1 skipped** + recon verde.
+>
+> 💡 **En MEJORAS:** traer la tenencia de cripto directo de **Binance** (read-only — el agente no opera) y las **amortizaciones parciales** de bonos vivos (hoy suman como flujo sin reducir tenencia; con vencimiento total ya funciona).
+>
+> 🔄 **Consolidación al 30/7/2026 + pagaré con su tasa.** Franco subió movimientos al 30/7 y tenencia al 29/7. **Dedupe verificado en producción real: de 586 movimientos, 580 ya estaban y entraron solo los 6 nuevos.**
+>
+> ⚠️ **ORDEN DE IMPORT (fácil de romper):** importar **solo** del export del broker **pierde los saldos iniciales sintéticos**, que existen únicamente en el Excel → el aportado caía de US$11.534 a US$4.941 y las posiciones daban negativas. **Siempre: Excel primero (base histórica), exports del broker encima** (el dedupe se encarga).
+>
+> 💵 **El pagaré, resuelto** (era el 35% de la cartera y no computaba costo): `"Compra cheque"` ahora mapea a COMPRA, `_extraer_ticker` reconoce el formato `"Boleto / … / #UMV060770008 / U$S"`, `_es_instrumento` acepta tickers con `#` (no están en Config) y `_base_ppc` toma la cantidad de la tenencia cuando el movimiento no la trae. Ahora computa costo: **invertido US$5.032,12**.
+>
+> ⚠️ **Corrección de Franco sobre la valuación del pagaré (importante para quien siga).** Se había implementado valuación **devengada** asumiendo que el precio del broker inflaba el valor (daba ~200% anualizado desde la compra). **Franco explicó la mecánica real: los pagarés se compran a DESCUENTO sobre el nominal.** VN US$5.500 comprado en US$5.032,12 → ganancia total US$467,88 = **9,3%, que a un año es el 10% anual**. El precio del broker es el valor presente, que **converge al nominal** al acercarse el vencimiento: no está inflado, y los ~US$400 de hoy son ganancia real devengada. **El precio del broker es el default correcto.** M11 (`tasa_anual_usd` + `precio_devengado()`) queda disponible solo para instrumentos sin mercado **cuyo precio el broker no informe**; no se aplica salvo carga explícita de tasa. Precedencia: override → devengado (si hay tasa) → **broker** → cripto/yahoo → vivo/caché.
+>
+> **Números definitivos al 30/7:** patrimonio $23.961.034 / **US$15.741,21** · aportado $13.462.628 / US$11.534,26 → **+$10.498.406 (+78,0%) / +US$4.206,96 (+36,5%)** · **TIR 51,4% anual en pesos, 24,4% en dólares** (602 días). Suite **229 passed, 1 skipped** + recon verde.
+>
+> 🧭 **Lección:** antes de "corregir" un dato del custodio, entender la mecánica del instrumento. Un pagaré comprado a descuento no devenga linealmente desde el costo.
+>
+> ⏱️ **Horizonte temporal + TIR (2026-07-23).** El acumulado no dice nada sin el tiempo, y anualizarlo dividiendo por los años sería incorrecto: hubo **24 aportes** entre 12/2024 y 07/2026, cada uno invertido un plazo distinto. Se implementó `flujos_de_capital()` + `tir()` (XIRR por **bisección** — Newton diverge con flujos irregulares), validada contra casos conocidos. **Período: 05/12/2024 → 24/07/2026 = 596 días (19,6 meses).** Acumulado +39,2% USD → **TIR 26,0% anual en dólares · 53,6% anual en pesos** (el CAGR simple daría 22,4%, subestimando). Suite **225 passed, 1 skipped**.
+>
+> 📌 **Nota para el gate:** `tests/test_cartera_recon.py` llama a `posiciones()` **sin** instrumentos a propósito — compara el plano que calcula el Excel (cantidades brutas). El cierre de vencidos es una capa deliberada por encima de la planilla; pasar instrumentos ahí haría fallar el recon por la mejora, no por un error.
+>
+> **Paso 5 ✅ HECHO (2026-07-30) — FASE 3a COMPLETA.** El gate ya validaba cantidades; ahora también los **costos en USD** con la metodología del Excel (**MEP único**, replicando su col K sumada en col H): **reconcilian los 49 tickers comparables**. La vista sigue usando el TC histórico por operación (más fiel); el modo MEP único existe solo para reconciliar. La divergencia de **AE38/GGAL/BITCOIN** (saldo inicial en USD que el Excel toma como ARS) quedó **congelada en un test propio** que falla si algún día la planilla se corrige — así no se puede olvidar. `tests/test_cartera_recon.py` (3 tests, los 3 verdes).
+>
+> **Próximo: merge a `main` + `fly deploy`** (hoy el trabajo vive en `fase-3a/cartera-nativa`, que Fly no despliega). Después **3b**: realized PnL por trade, cauciones/dividendos como rendimientos, análisis por sector y tipo de renta, y **amortizaciones parciales** de bonos vivos (hoy suman como flujo sin reducir tenencia).
 
 1. **Parser del broker** (`places/inversiones/cartera/parser.py`) + tests. ✅ HECHO. Spec relevada del Excel:
    - **Formato viejo** (8 cols): Operación | Concertación | Liquidación | Descripción | Monto | Cantidad | Precio | Moneda. ⚠️ la col Moneda es poco confiable (hay compras ARS marcadas USD); inferir de la descripción/ticker (sufijo D = USD) y magnitudes.

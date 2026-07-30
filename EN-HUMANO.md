@@ -9,6 +9,244 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 30 de julio de 2026 — Ya podés bajarte la cartera en Excel
+
+**Qué se hizo (en criollo):**
+Botón **"Descargar Excel"** en la pantalla de Cartera. Te baja una planilla con el mismo estilo que la tuya (los encabezados azules de siempre), pero mejorada:
+
+- **Arriba, el resumen:** cuánto tenés, cuánto pusiste, cuánto ganaste y la tasa anual — en pesos y en dólares, con verde o rojo según corresponda.
+- **La tabla agrupada por tipo** (Acciones, Bonos, Cedears, Cripto, Pagarés y Efectivo), cada grupo con su subtotal, su peso en la cartera y su rendimiento.
+- **Una barrita** en la columna "% cartera" para ver de un vistazo qué pesa más. (Hoy: los pagarés 34%, los Cedears 34%, los bonos 26%.)
+- **Los números formateados** como corresponde: tu planilla actual los muestra crudos porque están todos en formato "General".
+- Al pie, una nota que explica cómo se calculó cada cosa.
+
+**Dos detalles que te van a gustar:**
+1. **La planilla queda viva.** Los totales y rendimientos son fórmulas de Excel, no números pegados. El **dólar MEP está en una celda amarilla**: lo cambiás y toda la planilla se recalcula sola.
+2. **El total cierra con el patrimonio.** Sumé el efectivo como dos filas más (pesos y dólares en cuenta), así el TOTAL da exactamente lo mismo que el resumen de arriba — sin eso, la suma daba menos y parecía un error.
+
+Te dejé una copia generada con tus datos de hoy en la carpeta Cartera personal para que la veas.
+
+---
+
+## 30 de julio de 2026 (cierre) — La cartera pasó el examen final contra tu Excel
+
+**Qué se hizo (en criollo):**
+Cerramos la última pieza: la prueba que compara **los costos en dólares** de la app contra tu planilla, usando el mismo criterio que usás vos (un solo dólar MEP para todo). Resultado: **coinciden los 49 activos comparables**.
+
+Con eso la app quedó examinada por los dos lados: **cuántas unidades** tenés de cada cosa y **cuánto te costó cada una**. Los dos coinciden con tu Excel.
+
+**Un detalle que me gusta de cómo quedó:** hay tres activos (AE38, GGAL y el Bitcoin) donde la app **a propósito no coincide** con tu planilla — son las tenencias iniciales que el Excel cuenta en pesos cuando en realidad son dólares. En vez de esconder esa diferencia, dejé una prueba que la vigila: si algún día corregís el Excel, esa prueba falla y avisa. Así nadie se olvida de por qué difieren.
+
+**Con esto la etapa está terminada.** La cartera: lee los dos archivos de tu broker, entiende tu Bitcoin de Binance, valúa con precios de mercado, congela el dólar de cada operación, calcula cuánto rendiste en pesos y en dólares con su tasa anual, y se autoexamina contra tu planilla.
+
+**Qué sigue:**
+Subirla al servidor para que la uses desde el celular. Y después, las mejoras finas: resultado de cada operación cerrada, rendimiento de las cauciones, y análisis por sector.
+
+---
+
+## 30 de julio de 2026 — Se consolidó la semana y el pagaré ya rinde lo que rinde
+
+**Qué se hizo (en criollo):**
+Subiste los movimientos y la tenencia nuevos, y la app los consolidó sola: de los 586 movimientos del archivo, **reconoció que 580 ya los tenía y sumó solo los 6 nuevos** (tu ingreso de $300.000, las compras de NVDA y GOOGL, y una caución). Eso es exactamente lo que tenía que pasar: podés subir el archivo completo siempre, sin miedo a duplicar.
+
+**Lo del pagaré, que era importante.** Tu pagaré es el 35% de la cartera y estaba mal medido por dos motivos:
+
+1. **No tenía costo.** El broker registra su compra con un formato distinto al resto ("Compra cheque", sin cantidad), así que la app no lo asociaba y su rendimiento no aparecía. Arreglado: ahora sabe que invertiste US$5.032.
+2. **Me equivoqué queriendo "corregir" su precio.** Pensé que el valor que informa el broker estaba inflado y armé una valuación alternativa. Vos me explicaste la mecánica: los pagarés **se compran a descuento**. Pagaste US$5.032 por algo que al vencimiento paga **US$5.500** — esos **US$468 de diferencia son la ganancia**, y a un año es justo tu 10% anual. El precio del broker es el valor de hoy, que se va acercando al nominal a medida que llega el vencimiento. Estaba bien desde el principio.
+
+**Tu foto al 30 de julio:**
+
+| | Pesos | Dólares |
+|---|---|---|
+| Aportaste | $13.462.628 | US$11.534 |
+| Tenés hoy | $23.961.034 | **US$15.741** |
+| **Resultado** | **+$10.498.406 (+78,0%)** | **+US$4.206 (+36,5%)** |
+| **Tasa anual (TIR)** | **51,4%** | **24,4%** |
+
+En 602 días (19,8 meses). Del pagaré ya tenés US$387 de esos US$468 ganados.
+
+**Un detalle técnico que anoté para no olvidar:** si algún día se carga la cartera **solo** desde el archivo del broker, se pierden las tenencias iniciales (las que tenías antes de empezar a registrar, que viven en tu Excel). El orden correcto es Excel primero y los archivos del broker encima.
+
+---
+
+## 23 de julio de 2026 — ¿En cuánto tiempo? 19,6 meses, y la tasa anual real
+
+**Qué se hizo (en criollo):**
+Preguntaste en cuánto tiempo lograste ese rendimiento. Va con un detalle importante: como fuiste poniendo plata **en 24 momentos distintos** entre diciembre de 2024 y julio de 2026, no sirve dividir el acumulado por los años. La plata que pusiste el mes pasado no estuvo trabajando lo mismo que la de hace un año y medio.
+
+La medida que corresponde se llama **TIR**: pondera cuánto tiempo estuvo invertido cada aporte.
+
+**Tu foto temporal:**
+
+- **Período:** del 5/12/2024 al 24/7/2026 → **596 días (19,6 meses, 1,63 años)**
+- **Acumulado:** +39,2% en dólares · +82,2% en pesos
+- **Tasa anual (TIR):** **26,0% anual en dólares** · **53,6% anual en pesos**
+
+Para que se entienda por qué importa: si dividiéramos el acumulado por los años daría 22,4% anual, subestimando tu resultado — porque ignora que buena parte del capital entró hace poco y aun así rindió.
+
+**Para qué te sirve:**
+26% anual en dólares es un número comparable: podés medirlo contra un plazo fijo, contra el S&P 500 o contra cualquier alternativa. El "+39% acumulado" solo, no.
+
+---
+
+## 23 de julio de 2026 (cierre) — El Bitcoin: no era el precio, era la cantidad
+
+**Qué pasó (en criollo):**
+Me marcaste que tu Bitcoin vale US$203,04 y la app mostraba US$192. Yo sospechaba del precio… y era la **cantidad**: tu Excel tenía 0,003 BTC (el saldo inicial de cuando arrancaste), pero en realidad tenés **0,00316847**. Un 5% más. Con la cantidad real: **US$202,91**, o sea 13 centavos de tu número — pura variación del precio en el rato que pasó.
+
+Ahora la app tiene un lugar para **activos que están fuera del broker** (tu BTC en Binance): cargás la cantidad una vez y el precio lo busca sola. Y no se borra cuando subís una tenencia nueva.
+
+También ajusté algo importante: cuando subís la tenencia, la app usa **los precios de tu broker** en vez de los del mercado en vivo. Así los totales coinciden con lo que ves en tu cuenta, en lugar de diferir por unos pesos según el momento.
+
+**Y resolví el misterio de los US$86** que no cerraban: el archivo de tenencias del broker tiene, adentro, una fórmula mal armada — calcula los montos con una columna que viene vacía. O sea que el "Total" del archivo daría cero. Tus 15.489 salen de la **pantalla** del broker (precios de ese instante), y yo sumo los precios que quedaron congelados en el archivo. Son dos fotos de momentos distintos: 0,55% de diferencia.
+
+**Tu foto final:**
+
+| | Pesos | Dólares |
+|---|---|---|
+| Aportaste | $13.162.628 | US$11.338 |
+| Tenés hoy | — | **US$15.778** |
+| **Resultado** | **+$10.815.664 (+82,2%)** | **+US$4.440 (+39,2%)** |
+
+**Qué anoté para más adelante:** traer tu tenencia de Binance automáticamente (solo lectura — la app nunca opera por vos), así no tenés que cargar la cantidad a mano.
+
+---
+
+## 23 de julio de 2026 (corrección 2) — Faltaba el 35% de tu cartera: el pagaré
+
+**Qué pasó (en criollo):**
+Me dijiste "en dólares hay 15.489, como dice en las tenencias" y tenías razón: yo mostraba US$10.047. **Faltaba tu pagaré** (`#UMV060770008`): 5.500 unidades que valen **US$5.359** — más de un tercio de tu cartera.
+
+¿Por qué faltaba? Porque el archivo de **movimientos** del broker registra la compra del pagaré con el monto que pagaste, pero **sin decir cuántas unidades compraste**. Sin ese dato es imposible saber cuánto tenés. Lo mismo pasó con el ajuste de SPY: el broker cambió la relación del CEDEAR sin generar ningún movimiento.
+
+**La conclusión importante:** el archivo de movimientos **solo no alcanza** para armar tu cartera. Ahora la app usa **dos archivos**: el de movimientos (que aporta la historia: qué pagaste, cuánto depositaste, cuánto rendiste) y el de **tenencias** (que aporta la foto de hoy: qué tenés exactamente). Y compara ambos: esa comparación es el control de que nada se escape.
+
+También marcaste bien lo del **Bitcoin**: como está fuera del broker, no aparece en el archivo de tenencias. La app lo contempla — si algo no está en la tenencia pero sí en tus movimientos, lo conserva.
+
+**Los números, ahora completos:**
+
+| | Pesos | Dólares |
+|---|---|---|
+| Pusiste | $13.162.628 | US$11.338 |
+| Tenés hoy | $23.946.439 | US$15.757 |
+| **Resultado** | **+$10.783.811 (+81,9%)** | **+US$4.419 (+39,0%)** |
+
+(Incluye el Bitcoin, US$192, que el broker no ve.)
+
+**De regalo, la comparación encontró un error en tu Excel:** tenés **ASML** marcado como "Activo en cartera = NO", pero el broker dice que tenés 15. Conviene corregirlo en la planilla.
+
+---
+
+## 23 de julio de 2026 (corrección) — Me equivoqué en el rendimiento, vos lo cazaste
+
+**Qué pasó (en criollo):**
+Te di un número mal. Dije que habías invertido US$25.219 y ganado 16,9% en dólares. Vos dijiste "no hay 25 mil, hay unos 10/11 mil, revisá los ingresos de dinero". Tenías razón, y al revisar aparecieron **tres errores**:
+
+1. **Estaba sumando la misma plata muchas veces.** Contaba "invertido" como la suma de todas tus compras. Pero si comprás algo, lo vendés y con esa misma plata comprás otra cosa, eso son dos compras… con el mismo dinero. Lo que realmente pusiste es lo que **depositaste**: **US$11.338** (justo lo que dijiste).
+2. **Tus tenencias iniciales estaban contadas en pesos y son dólares.** El AE38, el Bitcoin y las GGAL con las que arrancaste figuran a "$4,49" y similares — eso son dólares, no pesos. Al tomarlos como pesos, tu capital inicial valía casi nada en el cálculo.
+3. **El más grave:** estaba sumando el resultado de cada instrumento para sacar el total. Eso no funciona en una cartera con pesos y dólares: al pasar los dólares a pesos con el cambio de cada fecha, la devaluación aparece como "ganancia" cuando no lo es. Lo verifiqué **en pesos**, donde el dólar no influye: mi suma daba $9,9 millones y el cálculo correcto da $2,3 millones. Estaba inflado cuatro veces.
+
+**Cómo lo arreglé:**
+Ahora se mide como se debe: **lo que hoy vale todo** (inversiones + efectivo) **menos lo que pusiste**. Simple y a prueba de errores, porque no depende de sumar operación por operación. Además verifiqué el efectivo calculado contra lo que dice tu broker y coincide.
+
+**Los números correctos:**
+
+| | Pesos | Dólares |
+|---|---|---|
+| Pusiste | $13.162.628 | US$11.338 |
+| Tenés hoy | $15.544.931 | US$10.137 |
+| **Resultado** | **+$2.382.303 (+18,1%)** | **−US$1.201 (−10,6%)** |
+
+O sea: **en pesos subiste 18%, pero medido en dólares estás 10,6% abajo**. Es la foto honesta, y es exactamente la razón por la que pediste ver el MEP de cada fecha.
+
+**Qué aprendí (y quedó anotado):**
+Antes de mostrarte cualquier total, hay que contrastarlo contra una cuenta independiente. Sumar operación por operación *parecía* razonable y daba un número muy equivocado. Gracias por no comerte el número.
+
+---
+
+## 23 de julio de 2026 (cierre del día) — Cuánto ganaste de verdad, en pesos y en dólares
+
+**Qué se hizo (en criollo):**
+Vos marcaste algo que faltaba: **las amortizaciones de las letras son ganancia** y no se estaban contando. Tenías razón — había **$6.345.528** cobrados (vencimientos de letras, rentas de bonos y dividendos) que la app ignoraba. Ahora se cuentan, y las letras vencidas dejaron de figurar como si todavía las tuvieras (uso la marca "Activo en cartera = NO" de tu propio Excel para saber cuáles vencieron).
+
+Y como pediste, el rendimiento ahora se calcula **también en dólares**, convirtiendo cada compra y cada cobro al MEP **del día en que ocurrió**. Ahí aparece lo interesante:
+
+- **En pesos: +$10.398.493 (+31,3%)**
+- **En dólares: +US$4.273 (+16,9%)**
+
+Sobre $33,2 millones invertidos (US$25.219) desde que arrancaste.
+
+El caso que mejor muestra por qué importa: la letra **S15G5 ganó 3,8% en pesos… pero perdió 3,6% en dólares**. Sin mirar el dólar de cada fecha, eso no se ve.
+
+**Un error que encontré y corregí:** al principio las letras mostraban 100% y 113% de rendimiento. El motivo: cuando una letra vence te devuelve **el capital más el interés**, y yo estaba contando todo como ganancia. Corregido: ahora se descuenta el capital que pusiste. Verifiqué cada letra contra un cálculo hecho aparte y dan idénticas.
+
+**Para qué te sirve:**
+Es la diferencia entre creer que ganaste 31% y saber que, medido en dólares, ganaste 17%. En Argentina esa distinción es todo.
+
+**Qué sigue:**
+La verificación final contra el Excel y subirla al servidor.
+
+---
+
+## 23 de julio de 2026 (final) — Tu cartera ya se ve en la app
+
+**Qué se hizo (en criollo):**
+- Construimos la **pantalla de Cartera**. Entrás a Inversiones → Cartera, **subís el archivo del broker** y ves: cuánto vale tu cartera en pesos y en dólares, cuánto ganaste o perdiste, y la tabla de posiciones con cantidad, precio promedio de compra, precio de hoy y rendimiento de cada una.
+- Podés volver a subir el mismo archivo cuantas veces quieras: los movimientos repetidos se ignoran solos.
+- **Probado con tus datos reales de punta a punta:** valor **$15.490.098** (unos **US$10.101**), **+19,8%** sobre lo invertido, 23 posiciones valuadas con precios en vivo. Tu Bitcoin también entra (se cotiza aparte, porque no cotiza en el mercado local).
+- Detalle que vale la pena que sepas: hay **6 letras y bonos en pesos que ya vencieron** y quedan figurando con cantidad, porque el sistema registra el vencimiento como "amortización" y no como venta. Tu Excel arrastra exactamente lo mismo. No afectan los totales (no tienen precio), y lo vamos a limpiar en la próxima etapa.
+
+**Para qué te sirve:**
+Es el objetivo de todo esto: dejar de abrir la planilla para saber cómo viene tu cartera.
+
+**Qué sigue:**
+Una última verificación de los dólares contra el Excel, y después subirla al servidor para que la puedas usar desde cualquier lado.
+
+---
+
+## 23 de julio de 2026 (cierre) — La app ya sabe buscar precios y el dólar de cada fecha
+
+**Qué se hizo (en criollo):**
+- Conectamos la app al mercado: ya trae sola los **precios** de tus acciones, CEDEARs y bonos, y el de Bitcoin. Con tres redes de seguridad: guarda una copia de lo último que vio (si la fuente se cae, sigue funcionando), y podés **corregir cualquier precio a mano** — tu valor siempre gana.
+- Y lo más importante: le pusimos a **cada una de tus 585 operaciones el dólar MEP del día en que la hiciste**. Quedó grabado a fuego: aunque mañana cambie la fuente de datos, tus operaciones viejas no se tocan. Probado de punta a punta con tus datos reales: las 585, sin una sola fecha sin cotización.
+- **Apareció un problema y lo resolvimos con vos:** habíamos anotado que el dólar MEP histórico lo daba el Banco Central... y resulta que **el Banco Central no publica el MEP** (publica el mayorista, que va un 3% abajo y te subvaluaría las compras). Te lo planteé, elegiste otra fuente, y quedó documentado.
+
+**Para qué te sirve:**
+Es la diferencia entre "tengo 45 CEDEARs de Google" y "valen tanto, y me rindieron tanto". Además, valuar con el dólar de cada fecha es más fiel que lo que hace hoy tu Excel (que usa el dólar de hoy para todo, incluso para compras de 2024).
+
+**Qué sigue:**
+La pantalla de Cartera: ver todo esto en la app, con el botón para subir el archivo del broker.
+
+---
+
+## 23 de julio de 2026 (noche) — La app ya carga tu cartera y se autoexamina contra el Excel
+
+**Qué se hizo (en criollo):**
+Enseñamos a la app a **cargar tus movimientos en su memoria** (leyendo el archivo del broker) sin duplicar nada si subís el mismo archivo dos veces, y a **calcular cuántas unidades tenés de cada cosa**. Lo más importante: dejamos una prueba automática que agarra los movimientos, calcula las tenencias por su cuenta, y **las compara contra tu planilla** — y dan idénticas. Es la "regla de oro" del proyecto funcionando: la app no vale hasta que sus números coinciden con el Excel.
+
+**Para qué te sirve:**
+Es la garantía de que, cuando la cartera esté en pantalla, los números van a ser los de siempre — verificados, no inventados.
+
+**Qué sigue:**
+Conectar los precios de mercado: el dólar MEP de cada fecha (para valuar con el cambio correcto) y las cotizaciones de acciones/CEDEARs/bonos.
+
+---
+
+## 23 de julio de 2026 (tarde) — Tu Excel al día, cuadrado con el broker, y la "memoria" de la app lista
+
+**Qué se hizo (en criollo):**
+- Actualizamos tu `Inversiones.xlsx` con el resumen completo de movimientos que bajaste de inviu y lo dejamos **cuadrado con lo que el broker dice que tenés hoy**: las 20 posiciones coinciden exactas. (Guardé tu Excel viejo como respaldo por las dudas.) De paso salieron a la luz y se arreglaron dos cositas de la planilla: una columna de moneda que estaba corrida y un ticker (NBIS) que no aparecía. El único ajuste "a mano" fue SPY, por el cambio de conversión del CEDEAR que vos confirmaste. Le puse el dólar MEP del día y el Bitcoin al cierre de ayer.
+- Lo más importante: el "lector" que hicimos ayer procesó tus movimientos REALES y reprodujo solo él 19 de 20 posiciones — la prueba más fuerte de que calcula bien.
+- Y arrancamos la app: construimos la **"memoria"** donde va a vivir tu cartera (las tablas de la base de datos), separada y privada, con una traba para que no se dupliquen movimientos si volvés a subir el mismo archivo.
+
+**Para qué te sirve:**
+Ya tenés un punto de partida confiable y actualizado, y la app tiene dónde guardar tu cartera. A partir de acá, actualizarla va a ser subir el archivo del broker y listo.
+
+**Qué sigue:**
+Cargar de verdad tus movimientos en esa memoria (con una prueba que compara contra el Excel), y después conectar los precios de mercado para poner el dólar de cada fecha.
+
+---
+
 ## 23 de julio de 2026 — El lector de tu cartera ya está hecho y probado
 
 **Qué se hizo (en criollo):**
