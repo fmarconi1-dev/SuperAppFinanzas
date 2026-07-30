@@ -9,6 +9,30 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 30 de julio de 2026 — Se consolidó la semana y el pagaré ya rinde lo que rinde
+
+**Qué se hizo (en criollo):**
+Subiste los movimientos y la tenencia nuevos, y la app los consolidó sola: de los 586 movimientos del archivo, **reconoció que 580 ya los tenía y sumó solo los 6 nuevos** (tu ingreso de $300.000, las compras de NVDA y GOOGL, y una caución). Eso es exactamente lo que tenía que pasar: podés subir el archivo completo siempre, sin miedo a duplicar.
+
+**Lo del pagaré, que era importante.** Tu pagaré es el 35% de la cartera y estaba mal medido por dos motivos:
+
+1. **No tenía costo.** El broker registra su compra con un formato distinto al resto ("Compra cheque", sin cantidad), así que la app no lo asociaba y su rendimiento no aparecía. Arreglado: ahora sabe que invertiste US$5.032.
+2. **El precio del broker no refleja tu 10% anual.** Con el precio que informa, el pagaré habría rendido **7,7% en 24 días** — o sea, más de 200% anual. Con el dato que me diste, ahora la app lo valúa **devengando el 10% anual en dólares** desde el día que lo compraste, que es lo realista.
+
+**Cómo cambia tu foto:**
+
+| | Con el precio del broker | Devengando al 10% |
+|---|---|---|
+| El pagaré vale | US$5.419 | US$5.064 |
+| Patrimonio | US$15.740 | **US$15.385** |
+| Tasa anual (TIR) | 24,4% | **22,5%** |
+
+La segunda columna es la conservadora y la que refleja tu dato. Quedó activa, y podés cambiar la tasa desde la pantalla cuando quieras.
+
+**Un detalle técnico que anoté para no olvidar:** si algún día se carga la cartera **solo** desde el archivo del broker, se pierden las tenencias iniciales (las que tenías antes de empezar a registrar, que viven en tu Excel). El orden correcto es Excel primero y los archivos del broker encima.
+
+---
+
 ## 23 de julio de 2026 — ¿En cuánto tiempo? 19,6 meses, y la tasa anual real
 
 **Qué se hizo (en criollo):**

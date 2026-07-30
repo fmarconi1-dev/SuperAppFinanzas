@@ -346,3 +346,51 @@ def test_kpis_calculan_periodo_y_tir():
     assert k.dias == 365
     assert k.anios == pytest.approx(1.0)
     assert k.tir_ars == pytest.approx(0.10, abs=1e-3)   # 1000 → 1100 en un año
+
+
+# ---------------------------------------------------------------------------
+# Instrumentos sin mercado: valuación por devengamiento (pagarés)
+# ---------------------------------------------------------------------------
+
+def test_precio_devengado_capitaliza_la_tasa():
+    """Un pagaré comprado en US$1.000 al 10% anual, un año después vale
+    US$1.100 (y su precio unitario sale en pesos por el MEP)."""
+    from datetime import date
+    from places.inversiones.cartera.kpis import precio_devengado
+    p = precio_devengado(
+        costo_usd=1000.0, cantidad=1000.0,
+        fecha_compra=date(2025, 1, 1), fecha_valuacion=date(2026, 1, 1),
+        tasa_anual=0.10, mep=1500.0,
+    )
+    # valor_usd = 1100 → en ARS 1.650.000 → por unidad 1650
+    assert p == pytest.approx(1650.0, rel=1e-4)
+
+
+def test_precio_devengado_proporcional_al_tiempo():
+    from datetime import date
+    from places.inversiones.cartera.kpis import precio_devengado
+    # 24 días al 10% anual ≈ +0,63%
+    p = precio_devengado(1000.0, 1000.0, date(2026, 7, 6), date(2026, 7, 30),
+                         0.10, 1000.0)
+    assert p == pytest.approx(1000.0 * 1.10 ** (24 / 365), rel=1e-6)
+
+
+def test_precio_devengado_sin_datos_devuelve_none():
+    from datetime import date
+    from places.inversiones.cartera.kpis import precio_devengado
+    assert precio_devengado(0, 100, date(2026, 1, 1), date(2026, 2, 1), 0.1, 1500) is None
+    assert precio_devengado(100, 0, date(2026, 1, 1), date(2026, 2, 1), 0.1, 1500) is None
+    assert precio_devengado(100, 100, date(2026, 1, 1), date(2026, 2, 1), None, 1500) is None
+    # fecha de valuación anterior a la compra: no se devenga hacia atrás
+    assert precio_devengado(100, 100, date(2026, 3, 1), date(2026, 1, 1), 0.1, 1500) is None
+
+
+def test_ppc_de_pagare_usa_la_cantidad_del_broker():
+    """El movimiento 'Compra cheque' trae el monto pero no la cantidad: las
+    unidades las aporta la tenencia, y de ahí sale el precio promedio."""
+    p = Posicion("#UMV060770008", costo_ars_compras=7_674_000.0,
+                 costo_usd_hist=5032.12)
+    assert p.ppc_ars is None            # sin cantidad no hay promedio
+    p.cant_broker = 5500.0              # la tenencia informa las unidades
+    assert p.ppc_ars == pytest.approx(1395.27, rel=1e-3)
+    assert p.ppc_usd_hist == pytest.approx(0.915, rel=1e-3)

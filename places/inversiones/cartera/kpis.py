@@ -322,3 +322,35 @@ def completar_patrimonio(
             k.tir_usd = tir([(f, u) for f, _, u in flujos]
                             + [(fecha_valuacion, k.patrimonio_usd)])
     return k
+
+
+# ---------------------------------------------------------------------------
+# Instrumentos sin mercado: valuación por devengamiento
+# ---------------------------------------------------------------------------
+
+def precio_devengado(
+    costo_usd: float, cantidad: float, fecha_compra, fecha_valuacion,
+    tasa_anual: float, mep: float,
+) -> float | None:
+    """Precio (en ARS por unidad) de un instrumento que devenga una tasa.
+
+    Los pagarés y cheques de pago diferido **no cotizan**: rinden la tasa
+    pactada al descontarlos. El "precio actual" que informa el broker no
+    refleja ese devengamiento (en el caso real daba ~200% anualizado), así que
+    se valúan capitalizando el costo a su tasa:
+
+        valor_usd = costo_usd × (1 + tasa)^(días/365)
+
+    y se pasa a pesos por el MEP para que conviva con el resto de la cartera.
+    Devuelve ``None`` si falta algún dato.
+    """
+    if not (costo_usd and cantidad and tasa_anual and mep):
+        return None
+    try:
+        dias = (fecha_valuacion - fecha_compra).days
+    except TypeError:
+        return None
+    if dias < 0:
+        return None
+    valor_usd = costo_usd * ((1.0 + tasa_anual) ** (dias / 365.0))
+    return valor_usd * mep / cantidad

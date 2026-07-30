@@ -3,7 +3,7 @@
 > **Este es el archivo más importante para retomar el trabajo.** Se lee primero y se actualiza último, cada sesión.
 > Antes de editar código, actualizá la tabla "Tarea en curso". Al cerrar, dejá el "Próximo paso concreto".
 
-<!-- ultima_actualizacion: 2026-07-23 · autor: Claude (Opus 4.8) · handoff: Fase 3a pasos 1-4 hechos; la Cartera YA vive en la app (vista + upload). Falta paso 5 (recon USD modo MEP actual) + merge a main + deploy -->
+<!-- ultima_actualizacion: 2026-07-30 · autor: Claude (Opus 4.8) · handoff: Fase 3a pasos 1-4 hechos + consolidación al 30/7 (dedupe OK, pagaré con tasa devengada). Falta paso 5 (recon USD modo MEP actual) + merge a main + deploy -->
 
 ## 🧭 Dónde estamos
 
@@ -70,6 +70,14 @@
 > **Números finales del día:** patrimonio **US$15.778** (broker US$15.575 + BTC US$203) · aportado US$11.338 → **+US$4.440 (+39,2%) en dólares · +$10.815.664 (+82,2%) en pesos**. Suite **221 passed, 1 skipped** + recon verde.
 >
 > 💡 **En MEJORAS:** traer la tenencia de cripto directo de **Binance** (read-only — el agente no opera) y las **amortizaciones parciales** de bonos vivos (hoy suman como flujo sin reducir tenencia; con vencimiento total ya funciona).
+>
+> 🔄 **Consolidación al 30/7/2026 + pagaré con su tasa.** Franco subió movimientos al 30/7 y tenencia al 29/7. **Dedupe verificado en producción real: de 586 movimientos, 580 ya estaban y entraron solo los 6 nuevos.**
+>
+> ⚠️ **ORDEN DE IMPORT (fácil de romper):** importar **solo** del export del broker **pierde los saldos iniciales sintéticos**, que existen únicamente en el Excel → el aportado caía de US$11.534 a US$4.941 y las posiciones daban negativas. **Siempre: Excel primero (base histórica), exports del broker encima** (el dedupe se encarga).
+>
+> 💵 **El pagaré, resuelto** (era el 35% de la cartera y no computaba costo): `"Compra cheque"` ahora mapea a COMPRA, `_extraer_ticker` reconoce el formato `"Boleto / … / #UMV060770008 / U$S"`, `_es_instrumento` acepta tickers con `#` (no están en Config) y `_base_ppc` toma la cantidad de la tenencia cuando el movimiento no la trae. **M11**: columna `tasa_anual_usd` + `precio_devengado()` — Franco informó que **rinden 10% anual en USD**, y el "precio actual" del broker daba **+7,7% en 24 días (~200% anualizado)**. Precedencia: override → **devengado** → broker → cripto/yahoo → vivo/caché.
+>
+> **Números al 30/7:** con precio del broker, patrimonio US$15.740,51 · TIR 24,4%. **Devengando el pagaré al 10%: patrimonio US$15.385,01 · TIR 22,5%** (US$355 de diferencia). Suite **229 passed, 1 skipped** + recon verde.
 >
 > ⏱️ **Horizonte temporal + TIR (2026-07-23).** El acumulado no dice nada sin el tiempo, y anualizarlo dividiendo por los años sería incorrecto: hubo **24 aportes** entre 12/2024 y 07/2026, cada uno invertido un plazo distinto. Se implementó `flujos_de_capital()` + `tir()` (XIRR por **bisección** — Newton diverge con flujos irregulares), validada contra casos conocidos. **Período: 05/12/2024 → 24/07/2026 = 596 días (19,6 meses).** Acumulado +39,2% USD → **TIR 26,0% anual en dólares · 53,6% anual en pesos** (el CAGR simple daría 22,4%, subestimando). Suite **225 passed, 1 skipped**.
 >

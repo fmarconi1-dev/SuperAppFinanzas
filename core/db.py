@@ -731,6 +731,22 @@ def _migrate(conn: sqlite3.Connection) -> None:
             )
         """)
 
+        # ============================================================
+        # M11 (Fase 3a): tasa de devengamiento para instrumentos sin mercado.
+        # ============================================================
+        # Los pagarés/cheques de pago diferido no cotizan: rinden una tasa
+        # pactada (el de Franco, 10% anual en USD). El "precio actual" que
+        # informa el broker no refleja ese devengamiento — al 30/7/2026 daba
+        # +7,7% en 24 días, o sea ~200% anualizado. Con la tasa guardada, la
+        # app los valúa devengando desde la compra, que es lo correcto.
+        cols_instr = [
+            r["name"] for r in cur.execute("PRAGMA table_info(cartera_instrumentos)")
+        ]
+        if cols_instr and "tasa_anual_usd" not in cols_instr:
+            cur.execute(
+                "ALTER TABLE cartera_instrumentos ADD COLUMN tasa_anual_usd REAL"
+            )
+
         cur.execute("""
             CREATE TABLE IF NOT EXISTS cartera_precios_cache (
                 ticker          TEXT NOT NULL,

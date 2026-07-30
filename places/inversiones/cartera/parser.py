@@ -82,6 +82,11 @@ MAPA_OPERACION = {
     "retiro": "RETIRO",
     "remuneracion": "REMUNERACION",
     "otros": "OTROS",
+    # Pagarés / cheques de pago diferido: son una compra de instrumento. El
+    # broker NO manda la cantidad en el movimiento (solo el monto pagado), así
+    # que la tenencia aporta las unidades y de ahí sale el precio promedio.
+    "compra cheque": "COMPRA",
+    "venta cheque": "VENTA",
 }
 
 #: Categorías que usan pseudo-ticker en vez de extraerlo de la descripción
@@ -227,8 +232,21 @@ def _parse_numero(valor) -> float:
 
 
 def _extraer_ticker(descripcion: str) -> str:
-    """``"TSMD | Taiwan Semi..." → "TSMD"`` (fórmula D de Procesado)."""
-    return str(descripcion).split("|")[0].strip()
+    """``"TSMD | Taiwan Semi..." → "TSMD"`` (fórmula D de Procesado).
+
+    Los pagarés/cheques usan otro formato, sin el separador habitual::
+
+        "Boleto / 2529140 / CCHDIF / 1 / #UMV060770008 / U$S" → "#UMV060770008"
+
+    Su identificador es el token que arranca con ``#``.
+    """
+    texto = str(descripcion)
+    if "#" in texto:
+        for token in texto.replace("|", "/").split("/"):
+            t = token.strip()
+            if t.startswith("#"):
+                return t
+    return texto.split("|")[0].strip()
 
 
 # ---------------------------------------------------------------------------
@@ -427,6 +445,11 @@ def _es_instrumento(
     """Fórmula L de Procesado: instrumento si no es cash y el ticker existe."""
     if categoria in _CATEGORIAS_NO_INSTRUMENTO:
         return False
+    # Pagarés / cheques de pago diferido: son instrumentos aunque no estén en
+    # el mapping de Config (el Excel nunca los tuvo). Su identificador
+    # arranca con "#" — ver `_extraer_ticker`.
+    if ticker_crudo.startswith("#"):
+        return True
     if idx:
         return ticker_crudo in idx
     # Sin mapping: heurística por categoría.

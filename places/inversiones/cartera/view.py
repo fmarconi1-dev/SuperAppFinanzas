@@ -35,10 +35,16 @@ from places.inversiones.cartera.ingest import (
     congelar_tc_mep,
     importar_movimientos,
 )
-from places.inversiones.cartera.kpis import completar_patrimonio, kpis_de, valuar
+from places.inversiones.cartera.kpis import (
+    completar_patrimonio,
+    kpis_de,
+    precio_devengado,
+    valuar,
+)
 from places.inversiones.cartera.parser import Instrumento, parse_archivo_excel
 from places.inversiones.cartera.posiciones import (
     capital_aportado,
+    fecha_primera_compra,
     flujos_de_capital,
     posiciones_desde_db,
     saldos_efectivo,
@@ -116,7 +122,8 @@ def _aplicar_tenencia(posiciones: dict, foto, instrumentos: dict) -> dict:
 
 def _instrumentos_de_db(conn, user_id: int) -> dict[str, Instrumento]:
     filas = conn.execute(
-        "SELECT ticker, ticker_usd, categoria_activo, moneda_cotiz "
+        "SELECT ticker, ticker_usd, categoria_activo, moneda_cotiz, "
+        "       tasa_anual_usd "
         "FROM cartera_instrumentos WHERE user_id = ?",
         (user_id,),
     )
@@ -318,6 +325,14 @@ def render(user_id: int | None = None) -> None:
     precios = _precios_cacheados()
     mep, origen_mep = _mep_actual()
 
+    with connect() as conn:
+        tasas_devengadas = {
+            r["ticker"]: r["tasa_anual_usd"]
+            for r in conn.execute(
+                "SELECT ticker, tasa_anual_usd FROM cartera_instrumentos "
+                "WHERE user_id = ? AND tasa_anual_usd IS NOT NULL", (uid,))
+        }
+
     precios_broker = (
         {t.ticker: t.precio for t in foto.posiciones if t.precio}
         if foto is not None else {}
@@ -329,7 +344,21 @@ def render(user_id: int | None = None) -> None:
             manual = leer_precio_cache(conn, ticker)
             if manual is not None and manual[1]:
                 return manual[0], "override"
-            # 2) Precio del broker: cuando hay tenencia importada, es el que
+            # 2) Instrumentos sin mercado (pagarés/cheques): devengan su tasa
+            #    pactada. El "precio actual" del broker no la refleja — en el
+            #    caso real daba ~200% anualizado contra el 10% pactado.
+            tasa = tasas_devengadas.get(ticker)
+            if tasa:
+                p = posiciones.get(ticker)
+                f_compra = fecha_primera_compra(conn, uid, ticker)
+                if p is not None and f_compra is not None:
+                    pd_ = precio_devengado(
+                        p.costo_usd_hist, p.cant_actual, f_compra, fecha_val,
+                        tasa, mep or 0.0,
+                    )
+                    if pd_:
+                        return pd_, "devengado"
+            # 3) Precio del broker: cuando hay tenencia importada, es el que
             #    usa la valuación oficial de esa fecha. Así los totales de la
             #    app coinciden con lo que muestra el broker, en vez de diferir
             #    por unos pesos según el momento del feed en vivo.
@@ -582,6 +611,43 @@ def render(user_id: int | None = None) -> None:
         if manuales:
             st.caption("Cargadas: " + " · ".join(
                 f"{t} {c:g}" for t, c in manuales.items()))
+
+    with st.expander("Instrumentos que devengan una tasa (pagarés, cheques)"):
+        st.caption(
+            "Los pagarés y cheques de pago diferido no cotizan: rinden la tasa "
+            "que pactaste. Cargá esa tasa y la app los valúa devengando desde "
+            "la compra, en vez de usar el precio de referencia del broker "
+            "(que puede no reflejarla)."
+        )
+        d1, d2, d3 = st.columns([2, 2, 1])
+        with d1:
+            tk_dev = st.selectbox(
+                "Instrumento",
+                [p.ticker for p in valuadas] or [""],
+                key="cartera_dev_ticker")
+        with d2:
+            tasa_dev = st.number_input(
+                "Tasa anual en dólares (%)", min_value=0.0, max_value=200.0,
+                step=0.5, value=10.0, format="%.2f", key="cartera_dev_tasa")
+        with d3:
+            st.write("")
+            if st.button("Aplicar", key="cartera_btn_dev", disabled=not tk_dev):
+                with connect() as conn:
+                    conn.execute(
+                        "INSERT INTO cartera_instrumentos "
+                        "(ticker, user_id, categoria_activo, moneda_cotiz, "
+                        " tasa_anual_usd) VALUES (?, ?, 'Pagares', 'ARS', ?) "
+                        "ON CONFLICT(ticker, user_id) DO UPDATE SET "
+                        "  tasa_anual_usd = excluded.tasa_anual_usd",
+                        (tk_dev, uid, tasa_dev / 100.0),
+                    )
+                    conn.commit()
+                st.success(f"{tk_dev} devenga {tasa_dev:.2f}% anual en dólares.",
+                           icon=":material/check_circle:")
+                st.rerun()
+        if tasas_devengadas:
+            st.caption("Configurados: " + " · ".join(
+                f"{t} {v * 100:.2f}% anual" for t, v in tasas_devengadas.items()))
 
     with st.expander("Corregir un precio a mano"):
         st.caption(

@@ -94,18 +94,34 @@ class Posicion:
         return (self.ppc_usd_hist or 0.0) * self.cant_amortizada
 
     @property
+    def _base_ppc(self) -> float:
+        """Unidades sobre las que se promedia el costo.
+
+        Normalmente las compradas. Los **pagarés/cheques** son la excepción:
+        su movimiento trae el monto pagado pero no la cantidad, así que las
+        unidades las aporta la tenencia del broker — sin esto, el costo del
+        pagaré (35% de la cartera de Franco) quedaba sin promediar y su
+        rendimiento no se computaba.
+        """
+        if self.cant_comprada:
+            return self.cant_comprada
+        return self.cant_broker or 0.0
+
+    @property
     def ppc_ars(self) -> float | None:
         """Precio promedio ponderado de compra en ARS (costo promedio: ADR-0003)."""
-        if not self.cant_comprada:
+        base = self._base_ppc
+        if not base:
             return None
-        return self.costo_ars_compras / self.cant_comprada
+        return self.costo_ars_compras / base
 
     @property
     def ppc_usd_hist(self) -> float | None:
         """PPC en USD usando el TC de cada compra (más fiel que el MEP único)."""
-        if not self.cant_comprada:
+        base = self._base_ppc
+        if not base:
             return None
-        return self.costo_usd_hist / self.cant_comprada
+        return self.costo_usd_hist / base
 
     @property
     def costo_ars_posicion(self) -> float:
@@ -371,3 +387,18 @@ def tir(flujos: list[tuple[date, float]], tasa_min: float = -0.9999,
         else:
             lo, v_lo = mid, v_mid
     return (lo + hi) / 2.0
+
+
+def fecha_primera_compra(conn, user_id: int, ticker: str) -> date | None:
+    """Fecha de la primera compra del ticker (para devengar desde ahí)."""
+    r = conn.execute(
+        "SELECT MIN(fecha_concertacion) f FROM cartera_movimientos "
+        "WHERE user_id = ? AND ticker_base = ? AND categoria = 'COMPRA'",
+        (user_id, ticker),
+    ).fetchone()
+    if r is None or not r["f"]:
+        return None
+    try:
+        return datetime.strptime(r["f"][:10], "%Y-%m-%d").date()
+    except ValueError:
+        return None
