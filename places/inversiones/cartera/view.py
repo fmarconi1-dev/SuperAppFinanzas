@@ -43,6 +43,7 @@ from places.inversiones.cartera.kpis import (
     precio_devengado,
     valuar,
 )
+from places.inversiones.cartera.export import exportar_cartera
 from places.inversiones.cartera.parser import Instrumento, parse_archivo_excel
 from places.inversiones.cartera.posiciones import (
     capital_aportado,
@@ -721,6 +722,37 @@ def render(user_id: int | None = None) -> None:
                 st.success(f"Precio de {tk_ov} fijado.",
                            icon=":material/check_circle:")
                 st.rerun()
+
+    # ---- Export a Excel --------------------------------------------------
+    col_exp, col_ref = st.columns([1, 3])
+    with col_exp:
+        import io
+        from datetime import date as _date
+        buf = io.BytesIO()
+        nombres = {t.ticker: t.nombre for t in foto.posiciones} if foto else {}
+        tipos = {
+            t.ticker: ("Pagarés" if t.ticker.startswith("#") else t.tipo_activo)
+            for t in (foto.posiciones if foto else [])
+        }
+        for tk in manuales:
+            inst_m = instrumentos.get(tk)
+            tipos.setdefault(tk, getattr(inst_m, "categoria_activo", "") or "Externo")
+        exportar_cartera(
+            buf, valuadas, k, fecha_val, mep,
+            fuente_precios, nombres=nombres, tipos=tipos,
+            efectivo_ars=cash_ars, efectivo_usd=cash_usd,
+        )
+        st.download_button(
+            "Descargar Excel", data=buf.getvalue(),
+            file_name=f"Cartera - Resumen {fecha_val:%Y-%m-%d}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="cartera_btn_export", use_container_width=True,
+            help="Resumen con KPIs, posiciones por tipo, subtotales y "
+                 "rendimiento anualizado. Con fórmulas: si cambiás el MEP, "
+                 "la planilla recalcula.",
+        )
+    with col_ref:
+        pass
 
     if st.button("Actualizar precios", key="cartera_btn_refrescar"):
         _precios_cacheados.clear()

@@ -9,6 +9,25 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 30 de julio de 2026 — Ya podés bajarte la cartera en Excel
+
+**Qué se hizo (en criollo):**
+Botón **"Descargar Excel"** en la pantalla de Cartera. Te baja una planilla con el mismo estilo que la tuya (los encabezados azules de siempre), pero mejorada:
+
+- **Arriba, el resumen:** cuánto tenés, cuánto pusiste, cuánto ganaste y la tasa anual — en pesos y en dólares, con verde o rojo según corresponda.
+- **La tabla agrupada por tipo** (Acciones, Bonos, Cedears, Cripto, Pagarés y Efectivo), cada grupo con su subtotal, su peso en la cartera y su rendimiento.
+- **Una barrita** en la columna "% cartera" para ver de un vistazo qué pesa más. (Hoy: los pagarés 34%, los Cedears 34%, los bonos 26%.)
+- **Los números formateados** como corresponde: tu planilla actual los muestra crudos porque están todos en formato "General".
+- Al pie, una nota que explica cómo se calculó cada cosa.
+
+**Dos detalles que te van a gustar:**
+1. **La planilla queda viva.** Los totales y rendimientos son fórmulas de Excel, no números pegados. El **dólar MEP está en una celda amarilla**: lo cambiás y toda la planilla se recalcula sola.
+2. **El total cierra con el patrimonio.** Sumé el efectivo como dos filas más (pesos y dólares en cuenta), así el TOTAL da exactamente lo mismo que el resumen de arriba — sin eso, la suma daba menos y parecía un error.
+
+Te dejé una copia generada con tus datos de hoy en la carpeta Cartera personal para que la veas.
+
+---
+
 ## 30 de julio de 2026 (cierre) — La cartera pasó el examen final contra tu Excel
 
 **Qué se hizo (en criollo):**

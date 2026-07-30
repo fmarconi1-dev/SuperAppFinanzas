@@ -138,3 +138,18 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
 - **Divergencia deliberada, congelada en un test propio** (`test_saldos_iniciales_divergen_del_excel_a_proposito`): AE38, GGAL y BITCOIN difieren porque su saldo inicial sintético está en **USD** y el Excel lo computa como ARS (subvalúa ~1.500×). El test verifica que el Excel *siga* subvaluándolo: si algún día se corrige la planilla, **falla y avisa** que hay que quitar la excepción. Así la divergencia no se puede olvidar ni tapar.
 - **Estado:** `tests/test_cartera_recon.py` (3 tests). Suite **229 passed** + **3/3 del gate en verde**. **Fase 3a cerrada.**
 - **Próximo:** merge a `main` + `fly deploy` (la app queda usable desde cualquier lado) y después **3b**: realized PnL por trade, cauciones/dividendos como rendimientos, análisis por sector y tipo de renta, amortizaciones parciales.
+
+## 2026-07-30 — Export a Excel de la cartera (pedido de Franco)
+- **Autor:** Claude (Opus 4.8). Skills aplicadas: **`xlsx`** (formato de salida) y `ui-ux-web-moderno` (color semántico y accesibilidad).
+- **Qué:** `places/inversiones/cartera/export.py` — genera la hoja **"Resumen Cartera"** con la identidad visual de la planilla de Franco (encabezados azul `1F4E78` con texto blanco, totales en gris `F2F2F2`) y le suma lo que le faltaba:
+  - **formatos de número reales** — en el Excel original *todas* las celdas del Resumen están en "General", así que los importes salían crudos;
+  - **bloque de KPIs** arriba: patrimonio, capital aportado, resultado, rendimiento acumulado y **TIR anualizada**, en pesos y dólares, con color semántico (verde/rojo) y signo;
+  - **agrupado por tipo de activo con subtotales** (Acciones, Bonos, Cedears, Cripto, Pagarés, Efectivo), cada uno con su % de cartera y su rendimiento;
+  - **barra de datos** en la columna "% cartera" para leer el peso de un vistazo;
+  - panel congelado, autofiltro, cifras monoespaciadas a la derecha;
+  - **nota de metodología al pie** (regla del skill: los supuestos van donde se leen).
+- **La planilla queda VIVA:** los derivados (valor, ganancia, rend %, subtotales, total) son **fórmulas de Excel**, no números calculados en Python. El **MEP vive en una celda amarilla editable (H2)** y todas las columnas en dólares la referencian: cambiarlo recalcula todo.
+- **Decisión de diseño clave:** el **efectivo entra como dos filas más** (pesos y dólares en cuenta), así el **TOTAL de la tabla coincide exacto con el patrimonio de los KPIs**. Sin eso la suma daba menos y el archivo parecía tener un error.
+- **Verificado con `recalc.py`:** **159 fórmulas, 0 errores**. Y con datos reales: TOTAL $23.962.038 = patrimonio, 100,0% de la cartera.
+- Detalles que atraparon los tests: el BTC necesitaba **8 decimales** (mostraba 0,00), el pagaré caía en "Otros" (ahora "Pagarés", tomando el tipo de la tenencia), y con **cartera vacía** el autofiltro y la barra de datos lanzaban `TypeError` por rango inválido.
+- Botón **"Descargar Excel"** en la vista. `tests/test_cartera_export.py` (10 tests). Suite **243 passed, 3 skipped** + recon verde.
