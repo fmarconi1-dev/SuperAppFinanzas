@@ -16,7 +16,8 @@
 
 | Tarea | Estado | Autor | Desde |
 |---|---|---|---|
-| Fase 3a — Cartera nativa (ingest + posiciones + KPIs) | 🔵 EN CURSO | Claude (Fable 5) | 2026-07-19 |
+| Fase 3a — Cartera nativa (ingest + posiciones + KPIs + recon) | ✅ **COMPLETA** (2026-07-30) | Claude (Fable 5 → Opus 4.8) | 2026-07-19 |
+| Merge a `main` + `fly deploy` de la Fase 3a | 🔵 SIGUIENTE | — | — |
 
 ## ✅ Hecho hasta ahora
 
@@ -87,7 +88,9 @@
 >
 > 📌 **Nota para el gate:** `tests/test_cartera_recon.py` llama a `posiciones()` **sin** instrumentos a propósito — compara el plano que calcula el Excel (cantidades brutas). El cierre de vencidos es una capa deliberada por encima de la planilla; pasar instrumentos ahí haría fallar el recon por la mejora, no por un error.
 >
-> **Próximo: paso 5 — recon en USD modo "MEP actual"** (metodología del Excel) para cerrar la Fase 3a. Después: **merge a `main` + `fly deploy`** para verla online (hoy el trabajo vive en `fase-3a/cartera-nativa`, que Fly no despliega). Pendiente de 3b: amortizaciones **parciales** (bonos vivos que amortizan en cuotas, ej. AE38 a futuro) — hoy se cuentan como flujo sin reducir tenencia.
+> **Paso 5 ✅ HECHO (2026-07-30) — FASE 3a COMPLETA.** El gate ya validaba cantidades; ahora también los **costos en USD** con la metodología del Excel (**MEP único**, replicando su col K sumada en col H): **reconcilian los 49 tickers comparables**. La vista sigue usando el TC histórico por operación (más fiel); el modo MEP único existe solo para reconciliar. La divergencia de **AE38/GGAL/BITCOIN** (saldo inicial en USD que el Excel toma como ARS) quedó **congelada en un test propio** que falla si algún día la planilla se corrige — así no se puede olvidar. `tests/test_cartera_recon.py` (3 tests, los 3 verdes).
+>
+> **Próximo: merge a `main` + `fly deploy`** (hoy el trabajo vive en `fase-3a/cartera-nativa`, que Fly no despliega). Después **3b**: realized PnL por trade, cauciones/dividendos como rendimientos, análisis por sector y tipo de renta, y **amortizaciones parciales** de bonos vivos (hoy suman como flujo sin reducir tenencia).
 
 1. **Parser del broker** (`places/inversiones/cartera/parser.py`) + tests. ✅ HECHO. Spec relevada del Excel:
    - **Formato viejo** (8 cols): Operación | Concertación | Liquidación | Descripción | Monto | Cantidad | Precio | Moneda. ⚠️ la col Moneda es poco confiable (hay compras ARS marcadas USD); inferir de la descripción/ticker (sufijo D = USD) y magnitudes.

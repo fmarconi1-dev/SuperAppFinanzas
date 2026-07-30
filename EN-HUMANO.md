@@ -9,6 +9,22 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 30 de julio de 2026 (cierre) — La cartera pasó el examen final contra tu Excel
+
+**Qué se hizo (en criollo):**
+Cerramos la última pieza: la prueba que compara **los costos en dólares** de la app contra tu planilla, usando el mismo criterio que usás vos (un solo dólar MEP para todo). Resultado: **coinciden los 49 activos comparables**.
+
+Con eso la app quedó examinada por los dos lados: **cuántas unidades** tenés de cada cosa y **cuánto te costó cada una**. Los dos coinciden con tu Excel.
+
+**Un detalle que me gusta de cómo quedó:** hay tres activos (AE38, GGAL y el Bitcoin) donde la app **a propósito no coincide** con tu planilla — son las tenencias iniciales que el Excel cuenta en pesos cuando en realidad son dólares. En vez de esconder esa diferencia, dejé una prueba que la vigila: si algún día corregís el Excel, esa prueba falla y avisa. Así nadie se olvida de por qué difieren.
+
+**Con esto la etapa está terminada.** La cartera: lee los dos archivos de tu broker, entiende tu Bitcoin de Binance, valúa con precios de mercado, congela el dólar de cada operación, calcula cuánto rendiste en pesos y en dólares con su tasa anual, y se autoexamina contra tu planilla.
+
+**Qué sigue:**
+Subirla al servidor para que la uses desde el celular. Y después, las mejoras finas: resultado de cada operación cerrada, rendimiento de las cauciones, y análisis por sector.
+
+---
+
 ## 30 de julio de 2026 — Se consolidó la semana y el pagaré ya rinde lo que rinde
 
 **Qué se hizo (en criollo):**

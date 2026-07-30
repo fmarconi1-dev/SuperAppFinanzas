@@ -8,7 +8,7 @@
 
 ## Estado del módulo
 **Fase de implementación:** Fase 3a / 6
-**Situación:** 🟢 Fase 3a funcional — pasos 1 a 4 hechos (parser · M9+ingest+recon · market_data · **vista de Cartera con upload**). La cartera ya vive en la app. Falta el paso 5 (recon USD modo MEP actual) para cerrar la fase
+**Situación:** ✅ **Fase 3a COMPLETA** — los 5 pasos cerrados (parser · M9+ingest · market_data · vista con upload · **recon USD modo MEP actual**). La cartera vive en la app y reconcilia contra el Excel en cantidades y en costos. Próximo: merge a `main` + deploy, y luego 3b
 
 ## Registro
 
@@ -130,3 +130,11 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
 - **Números al 30/7 (definitivos):** patrimonio $23.961.034 / **US$15.741,21** · aportado $13.462.628 / US$11.534,26 → resultado **+$10.498.406 (+78,0%) / +US$4.206,96 (+36,5%)** · **TIR 51,4% anual en pesos, 24,4% en dólares** (602 días).
 - **Lección:** antes de "corregir" un dato del custodio hay que entender la mecánica del instrumento. Un pagaré comprado a descuento no devenga linealmente desde el costo: su precio converge al nominal.
 - **Estado:** `tests/test_cartera_kpis.py` (29). Suite **229 passed, 1 skipped** + recon verde.
+
+## 2026-07-30 — Paso 5: recon de costos en USD → **FASE 3a COMPLETA**
+- **Autor:** Claude (Opus 4.8).
+- **Qué cierra el paso 5:** el gate ya verificaba **cantidades**; ahora también los **costos en dólares** con la metodología del Excel (**MEP único actual**, ADR-0003), replicando su col K de `Movimientos Procesado` (`monto_usd = monto si USD, monto/MEP si ARS`) sumada en la col H de `Resumen Cartera`.
+- **Resultado: reconcilian los 49 tickers comparables** (tolerancia de 1 centavo por dólar, por redondeos del Excel). La vista de la app sigue usando el **TC histórico por operación** (más fiel); el modo MEP único existe solo para poder reconciliar contra la planilla.
+- **Divergencia deliberada, congelada en un test propio** (`test_saldos_iniciales_divergen_del_excel_a_proposito`): AE38, GGAL y BITCOIN difieren porque su saldo inicial sintético está en **USD** y el Excel lo computa como ARS (subvalúa ~1.500×). El test verifica que el Excel *siga* subvaluándolo: si algún día se corrige la planilla, **falla y avisa** que hay que quitar la excepción. Así la divergencia no se puede olvidar ni tapar.
+- **Estado:** `tests/test_cartera_recon.py` (3 tests). Suite **229 passed** + **3/3 del gate en verde**. **Fase 3a cerrada.**
+- **Próximo:** merge a `main` + `fly deploy` (la app queda usable desde cualquier lado) y después **3b**: realized PnL por trade, cauciones/dividendos como rendimientos, análisis por sector y tipo de renta, amortizaciones parciales.

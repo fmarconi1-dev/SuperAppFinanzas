@@ -4,6 +4,17 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-07-30 — FASE 3a COMPLETA: la cartera nativa reconcilia y está lista para deploy
+**Autor:** Claude (Opus 4.8), con Franco.
+- **Consolidación real:** dedupe verificado en producción (de 586 movimientos, 580 ya estaban, entraron 6). Tenencia al 29/7 importada.
+- **El pagaré** (35% de la cartera) pasó a computar costo: `"Compra cheque"` → COMPRA, ticker extraído del formato `Boleto / … / #UMV060770008 / U$S`, `es_instrumento` para tickers con `#`, y PPC con la cantidad de la tenencia. **Franco corrigió mi interpretación de su valuación**: se compran a descuento (US$5.032 → VN US$5.500 = 9,3% ≈ 10% anual), así que el precio del broker es correcto y queda como default.
+- **Paso 5 (gate final):** recon de **costos en USD** en modo MEP único (metodología del Excel) → **49 tickers reconcilian**. Divergencia de AE38/GGAL/BITCOIN (saldo inicial en USD que el Excel toma como ARS) **congelada en un test que falla si la planilla se corrige**.
+- **Números al 30/7:** patrimonio $23.961.034 / US$15.741,21 · aportado $13.462.628 / US$11.534,26 → **+78,0% ARS / +36,5% USD acumulado · TIR 51,4% / 24,4% anual** (602 días).
+**Estado:** suite **229 passed** + 3/3 del gate. **Fase 3a cerrada**, lista para merge a `main` + `fly deploy`.
+**Próximo:** deploy y luego 3b (realized PnL por trade, cauciones/dividendos, sector/tipo de renta, amortizaciones parciales).
+
+---
+
 ## 2026-07-23 (cierre del día) — Rendimiento completo ARS/USD + cierre de vencidos
 **Autor:** Claude (Opus 4.8), a pedido de Franco (decisión suya de adelantar parte de 3b).
 - **Franco detectó** que las amortizaciones son rendimiento y no se computaban: **$6.345.528** en flujos cobrados quedaban afuera, y 6 letras vencidas figuraban con cantidad residual. Pidió además medir el rendimiento **en dólares con el MEP del día de compra y de cobro**.
