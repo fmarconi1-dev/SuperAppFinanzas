@@ -9,6 +9,34 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 30 de julio de 2026 (Fase 3b) — Ahora la app va a mirar el orden en que pasaron las cosas
+
+**Qué se hizo (en criollo):**
+Arrancamos la Fase 3b y encontré algo que explica los cuatro pendientes de una sola vez: **la app hoy suma todo junto sin fijarse en qué orden ocurrió**. Junta todas tus compras de un papel, saca un promedio, y con ese promedio mide las ventas — incluso las ventas que hiciste **antes** de comprarlo de nuevo.
+
+El caso más chico y más fácil de ver es **TGNO4**. Compraste 30 en septiembre a $3.132 y las vendiste en octubre a $3.183: ganaste $1.540. Pero en diciembre volviste a comprar, esta vez a $4.870. Esa compra de diciembre le sube el promedio a toda la historia, y la app termina diciéndote que en aquella venta de octubre **perdiste $37.700**. No es cierto: esa plata la ganaste.
+
+Y el más grande es el **SPY**, que es el mismo problema pero al revés y por otro motivo. Acordate del ajuste de ratio: el broker te dio 70 unidades más sin cobrarte nada, y eso quedó anotado con fecha **23 de julio de 2026**. Pero vos habías vendido 35 SPY el **20 de abril**, tres meses antes. Como la app promedia todo junto, esas 70 unidades gratis de julio le abaratan el costo a una venta de abril que ya había pasado, y te informa una ganancia de **$1.122.268** cuando lo que realmente ganaste ese día fueron **$433.757** (que igual es un +31,5% en 143 días, un muy buen trade). Algo que pasó después no puede cambiar lo que ganaste antes.
+
+Construí entonces la **línea de tiempo**: un motor que recorre tus movimientos en orden de fecha y va llevando la cuenta del costo real que tenías en cada momento. Cada venta queda registrada como una operación propia, con su fecha, su costo verdadero, su resultado y cuántos días tuviste el papel.
+
+**Cuánto cambia:** en pesos, el resultado de tus ventas pasa de $3.297.014 a $3.145.965. Nueve papeles cambian; el resto queda igual. **Tu patrimonio, tu rendimiento total y tu tasa anual no se mueven ni un peso** — eso se calcula por otro camino que ya era correcto.
+
+*(Estos números salieron de correr el motor sobre tu Excel, que no tiene el dólar de cada día congelado; contra la base de la app los montos exactos se van a mover un poco. Lo que no cambia es el mecanismo ni para qué lado va cada corrección.)*
+
+**De paso, dos cosas sobre el AE38:**
+Me dijiste que ya había amortizado el 9/7/2026, y fui a mirar tus movimientos: lo que cobraste ese día fue **solo el cupón** (US$89,65), a la misma tasa por lámina que venías cobrando desde enero de 2025. Si hubiera amortizado, habrías cobrado dos cosas y el cupón habría sido más chico. **La primera amortización del AE38 es el 9 de julio de 2027**, en 22 cuotas semestrales. El AN29 devuelve todo el capital junto al final, en 2029. O sea: tenés casi un año antes de que esto importe de verdad.
+En cambio, tu dato de que **la amortización va por precio y nunca por cantidad de láminas** sí es la clave del diseño, y quedó escrito en el código y protegido con un test.
+
+**Para qué te sirve:**
+Vas a poder ver, operación por operación, cuánto ganaste o perdiste de verdad en cada venta y en cuántos días — en vez de un número global que mezcla todo. Y es la base sobre la que se apoyan los otros tres pendientes de esta fase.
+
+**Qué sigue:**
+Enchufar este motor a la pantalla de Cartera (hoy está construido y probado, pero todavía no cambia nada de lo que ves). Antes te muestro la tabla de los 8 papeles que cambian, para que lo confirmes.
+
+
+---
+
 ## 30 de julio de 2026 (arreglo) — La tabla mostraba posiciones que no existen
 
 **Qué pasó (en criollo):**

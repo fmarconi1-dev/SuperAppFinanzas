@@ -4,6 +4,18 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-07-30 — Arranca la Fase 3b: la línea de tiempo de la cartera
+**Autor:** Claude (Opus 5), con Franco.
+- Se detectó que los **cuatro** puntos de la Fase 3b comparten una limitación estructural: `posiciones.py` **agrega sin orden temporal**, así que el resultado realizado de una venta se mide contra el PPC de toda la historia, incluidas las compras posteriores. Decisión de Franco: construir la línea de tiempo una sola vez y apoyar los cuatro puntos ahí.
+- **`places/inversiones/cartera/ledger.py`**: motor cronológico puro con **PPC móvil**, una `Realizacion` por cierre (costo liberado al PPC vigente, resultado ARS/USD, días de tenencia) y las retenciones separadas de los dividendos. 17 tests. Aditivo: todavía no cambia nada de lo que ve el usuario.
+- **Medido sobre el crudo real:** el realizado en pesos cambia en 8 tickers, $3.297.014 → $3.145.965 (−4,6%). Patrimonio, TIR y gate de recon inmunes.
+- **Dato de dominio adoptado (Franco):** en Argentina la amortización va por **precio**, nunca por nominales.
+- **Supuesto corregido con datos reales:** AE38 no amortizó el 9/7/2026 (fue solo cupón, misma tasa por nominal que los anteriores). Primera amortización: **9/7/2027**. AN29 es bullet. Ningún instrumento de la cartera amortiza parcialmente antes de julio 2027.
+**Por qué:** sin cronología no hay resultado por operación honesto, y los otros tres puntos de la fase se apoyan en lo mismo.
+**Estado al cierre:** commit listo para que Franco pushee. Falta ADR-0005 y cablear el motor a la vista.
+
+---
+
 ## 2026-07-30 — FASE 3a COMPLETA: la cartera nativa reconcilia y está lista para deploy
 **Autor:** Claude (Opus 4.8), con Franco.
 - **Consolidación real:** dedupe verificado en producción (de 586 movimientos, 580 ya estaban, entraron 6). Tenencia al 29/7 importada.
