@@ -170,3 +170,66 @@ def test_precios_cache_pk_ticker_fecha_moneda(db):
         "INSERT INTO cartera_precios_cache (ticker, fecha, precio, moneda) "
         "VALUES ('GGAL', '2026-07-22', 5.2, 'USD')"
     )
+
+
+# ---------------------------------------------------------------------------
+# Seguridad del deploy: las migraciones de cartera no deben tocar Finanzas
+# ---------------------------------------------------------------------------
+
+def test_migraciones_no_pierden_datos_al_redeployar(db, tmp_path):
+    """Lección del incidente 2026-07-17: los tests de idempotencia tienen que
+    correr CON datos y verificar los vínculos, no solo que no crashee.
+
+    Simula el deploy de la Fase 3a sobre una base con datos de Finanzas ya
+    cargados: tras varios arranques (init_db corre en cada uno), nada se
+    pierde ni se desvincula de su workspace.
+    """
+    db.execute("INSERT INTO workspaces (kind, nombre) VALUES ('personal', 'P')")
+    ws = db.execute("SELECT id FROM workspaces LIMIT 1").fetchone()["id"]
+    db.execute(
+        "INSERT OR IGNORE INTO workspace_members "
+        "(workspace_id, user_id, role, member_label) VALUES (?, 1, 'admin', 'F')",
+        (ws,),
+    )
+    for i in range(5):
+        db.execute(
+            "INSERT INTO transacciones (fecha, pasivos, ingresos, motivo, "
+            " user_id, workspace_id) VALUES (?, ?, 0, 'Compras', 1, ?)",
+            (f"2026-07-0{i + 1}", 100 * i, ws),
+        )
+    db.execute(
+        "INSERT INTO configuracion (clave, valor, user_id, workspace_id) "
+        "VALUES ('saldo_inicial_caja', '50000', 1, ?)", (ws,),
+    )
+    _insert_mov(db, _mov(hash_dedupe="deploy"))
+    db.execute(
+        "INSERT INTO cartera_tenencia (user_id, fecha_valuacion, ticker, cantidad) "
+        "VALUES (1, '2026-07-30', 'GGAL', 10)"
+    )
+    db.commit()
+
+    def foto():
+        return (
+            db.execute("SELECT COUNT(*) c FROM transacciones").fetchone()["c"],
+            db.execute(
+                "SELECT COUNT(*) c FROM transacciones WHERE workspace_id IS NOT NULL"
+            ).fetchone()["c"],
+            db.execute(
+                "SELECT valor FROM configuracion WHERE clave='saldo_inicial_caja'"
+            ).fetchone()["valor"],
+            db.execute("SELECT COUNT(*) c FROM cartera_movimientos").fetchone()["c"],
+            db.execute("SELECT COUNT(*) c FROM cartera_tenencia").fetchone()["c"],
+        )
+
+    antes = foto()
+    db_path = tmp_path / "finanzas.db"
+    for _ in range(3):
+        init_db(db_path)
+    assert foto() == antes, "un re-deploy alteró datos existentes"
+
+
+def test_m10_y_m11_presentes(db):
+    tablas = _tablas(db)
+    assert {"cartera_tenencia", "cartera_tenencia_meta"} <= tablas
+    cols = [r["name"] for r in db.execute("PRAGMA table_info(cartera_instrumentos)")]
+    assert "tasa_anual_usd" in cols
