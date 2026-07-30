@@ -3,21 +3,22 @@
 > **Este es el archivo más importante para retomar el trabajo.** Se lee primero y se actualiza último, cada sesión.
 > Antes de editar código, actualizá la tabla "Tarea en curso". Al cerrar, dejá el "Próximo paso concreto".
 
-<!-- ultima_actualizacion: 2026-07-30 · autor: Claude (Opus 5) · handoff: Fase 3b EN CURSO — pasos 1 y 2 hechos (motor cronológico + realizado por operación en la app, ADR-0005). Próximo: punto 3, cauciones y dividendos -->
+<!-- ultima_actualizacion: 2026-07-30 · autor: Claude (Opus 5) · handoff: Fase 3b EN CURSO — pasos 1 y 2 DESPLEGADOS (motor cronológico + realizado por operación, ADR-0005). Próximo: punto 3, cauciones y dividendos -->
 
 ## 🧭 Dónde estamos
 
 - **Fase actual:** **Fase 3a — Cartera nativa, COMPLETA Y EN PRODUCCIÓN** (2026-07-30, release **v11** verificada por Franco usando la app). Diseño en `docs/decisiones/ADR-0003-cartera-nativa.md` + `ADR-0004` (fuente MEP).
 - **Situación:** Superapp en producción con login único, dos lugares (Finanzas + Inversiones/Scoring), **espacios compartidos** (grupo familiar D2) y **Cartera nativa** funcionando. **249 tests en verde** (3 skipped: el gate de recon necesita `CARTERA_XLSX`). Incidente de migración del 17/7 resuelto (ver Nota post-incidente). radar-financiero sigue vivo como respaldo.
 - **Hosting:** Fly.io. App `superapp-finanzas` (gru, 1 GB, auto-stop, volumen `finanzas_data` con snapshots diarios). Sin secrets (radar tampoco tenía; SIGNUP_CODE/SESSION_SECRET opcionales, ver `.env.example`). Ver `docs/DEPLOY.md`. Uso real medido: **152 MB al arrancar, import en 2,2 s** — holgado en 1 GB.
-- **Repo git:** hasta **`2c6dc13`** (fix de los dos bugs del 30/7), pusheado y sincronizado con `origin/main`.
+- **Repo git:** hasta **`8f020b9`** (merge del PR #3, Fase 3b pasos 1-2), pusheado y sincronizado con `origin/main`. **Desplegado en Fly.io.**
+- **Entorno local (2026-07-30):** la suite se corre desde el venv `.venv` con **Python 3.11** (la misma versión del `Dockerfile`). Franco tiene además 3.12 y 3.14 instalados; con 3.14 y sin dependencias la suite ni siquiera colecta. `py -3.11 -m venv .venv` → `.venv\Scripts\activate.bat` → `pip install -r requirements.txt`. **Verificado por Franco: 284 passed, 0 skipped**, incluido el gate de recon contra el Excel corregido.
 
 ## 🔵 Tarea en curso
 
 | Tarea | Estado | Autor | Desde |
 |---|---|---|---|
 | Fase 3a — Cartera nativa (ingest + posiciones + KPIs + recon + export) | ✅ **CERRADA Y DESPLEGADA** (2026-07-30, v11) | Claude (Fable 5 → Opus 4.8) | 2026-07-19 |
-| Fase 3b — Rendimientos finos (ver detalle abajo) | 🔵 **EN CURSO** — pasos 1 y 2 hechos (motor + realizado por operación) | Claude (Opus 5) | 2026-07-30 |
+| Fase 3b — Rendimientos finos (ver detalle abajo) | 🔵 **EN CURSO** — pasos 1 y 2 **DESPLEGADOS** (motor + realizado por operación) | Claude (Opus 5) | 2026-07-30 |
 
 ## ✅ Hecho hasta ahora
 
@@ -149,6 +150,8 @@ Los detectó él, no los tests — la única forma de encontrarlos era **reimpor
 > **Excel de Franco:** `Inversiones.xlsx` → `Movimientos Crudo` E460/G460 corregidos, con respaldo en *"Inversiones - respaldo pre-fix-ASML 2026-07-30.xlsx"*. **Edición quirúrgica sobre el XML del .xlsx** — un round-trip de openpyxl le borra formato condicional y extensiones a un libro de 16 hojas. Verificado: 16 hojas, 586 filas, resto intacto.
 >
 > 📌 **PARA FRANCO — segundo candidato, NO tocado: `TTM26`.** Un barrido de precios anómalos (cada precio contra la mediana de su ticker) marcó 12 filas; 11 son legítimas (compras en USD, donde el precio está en dólares). La que queda: la compra del **4/2/2026 de 17.395 nominales por $17,78** (precio 0,00102) cuando ese mismo día compraste a 1,458. Si el precio correcto fuera ~1,40, el costo del bono pasa de $633.940 a $658.275 y su resultado de **+13,3% a +9,1%**. **Chequealo con el broker**: no lo toqué porque el +13,3% es el número que validaste a mano el 23/7.
+>
+> ✅ **DESPLEGADO (2026-07-30).** Merge del PR #3 a `main` (`8f020b9`) y `fly deploy`. Verificación previa hecha por Franco en su venv de Python 3.11: **284 passed, 0 skipped**, con el gate de recon en **3/3 contra el Excel ya corregido** — el `Resumen Cartera` de la planilla computa ASML en **$334.016,68** (= 54.305 + 279.711,68), el mismo número que la app. La corrección quedó validada por el oráculo, no solo por los tests propios.
 >
 > **Próximo paso concreto:** **punto 3 de la 3b — cauciones y dividendos como rendimientos con su propia tasa.** Datos reales disponibles: 101 cauciones colocadas (interés neto ≈ $33.365), $3.301 de cuenta remunerada, y $53.701 de dividendos brutos contra $5.191 de retenciones — el ledger **ya las acumula por separado** (`EstadoTicker.retenciones_*`), falta exponerlas.
 
