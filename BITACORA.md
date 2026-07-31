@@ -4,6 +4,18 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-07-30 — Fase 3b punto 3: cauciones, dividendos y cuenta remunerada
+**Autor:** Claude (Opus 5), con Franco. Skill `ui-ux-web-moderno` aplicada.
+- **`rendimientos.py`**: aparea las cauciones (colocación y vencimiento **comparten la fecha de concertación**; el plazo sale de la diferencia entre las liquidaciones), calcula el interés y la **TNA ponderada por capital y tiempo** — promediar las TNA sueltas engaña. Dividendos **netos de retención** por instrumento y cuenta remunerada.
+- **Identidad independiente verificada:** el interés apareado ($33.365,31) es idéntico al neto de **todos** los movimientos de caución, cálculo que no depende del apareo. En test y contra datos reales.
+- **Vista "La plata quieta"**, con la aclaración explícita de que es **atribución, no plata nueva**: ya estaba dentro del patrimonio.
+- **Números:** 101 cauciones · interés $33.365,31 · **TNA ponderada 25,60%** (2024: 24,48% · 2025: 29,31% · 2026: 21,38%) · dividendos 62 cobros, $89.086,78 brutos − $5.190,66 de retención · remunerada $3.300,98 · **total caja $120.562,41**.
+- Las TNA más altas de la serie (hasta 105%) son todas de **octubre 2025**: el apretón pre-electoral quedó registrado en los propios movimientos.
+**Por qué:** la plata que no está en una posición igual rinde, y hasta ahora era invisible: las cauciones no son instrumentos y no aparecían en ningún lado.
+**Estado al cierre:** 295 passed, 3 skipped. Commit listo para que Franco pushee.
+
+---
+
 ## 2026-07-30 — Corrección de movimientos del broker (ASML resuelto)
 **Autor:** Claude (Opus 5), con Franco.
 - Franco confirmó la causa del +22.754% de ASML: **el broker le sacó dos ceros** (compró a $6.010, el archivo decía $60,10). Corregido **en la app y en el Excel**; la venta pasa a +$69.803 (+128,5% ARS / +80,2% USD en 250 días) y es la mejor operación de la cartera.

@@ -3,7 +3,7 @@
 > **Este es el archivo más importante para retomar el trabajo.** Se lee primero y se actualiza último, cada sesión.
 > Antes de editar código, actualizá la tabla "Tarea en curso". Al cerrar, dejá el "Próximo paso concreto".
 
-<!-- ultima_actualizacion: 2026-07-30 · autor: Claude (Opus 5) · handoff: Fase 3b EN CURSO — pasos 1 y 2 DESPLEGADOS (motor cronológico + realizado por operación, ADR-0005). Próximo: punto 3, cauciones y dividendos -->
+<!-- ultima_actualizacion: 2026-07-30 · autor: Claude (Opus 5) · handoff: Fase 3b EN CURSO — puntos 2 y 3 hechos (motor cronológico + realizado por operación DESPLEGADO; cauciones/dividendos listo para desplegar). Próximo: punto 4, sector y tipo de renta -->
 
 ## 🧭 Dónde estamos
 
@@ -18,7 +18,7 @@
 | Tarea | Estado | Autor | Desde |
 |---|---|---|---|
 | Fase 3a — Cartera nativa (ingest + posiciones + KPIs + recon + export) | ✅ **CERRADA Y DESPLEGADA** (2026-07-30, v11) | Claude (Fable 5 → Opus 4.8) | 2026-07-19 |
-| Fase 3b — Rendimientos finos (ver detalle abajo) | 🔵 **EN CURSO** — pasos 1 y 2 **DESPLEGADOS** (motor + realizado por operación) | Claude (Opus 5) | 2026-07-30 |
+| Fase 3b — Rendimientos finos (ver detalle abajo) | 🔵 **EN CURSO** — puntos 2 (desplegado) y 3 (sin desplegar) hechos | Claude (Opus 5) | 2026-07-30 |
 
 ## ✅ Hecho hasta ahora
 
@@ -153,14 +153,24 @@ Los detectó él, no los tests — la única forma de encontrarlos era **reimpor
 >
 > ✅ **DESPLEGADO (2026-07-30).** Merge del PR #3 a `main` (`8f020b9`) y `fly deploy`. Verificación previa hecha por Franco en su venv de Python 3.11: **284 passed, 0 skipped**, con el gate de recon en **3/3 contra el Excel ya corregido** — el `Resumen Cartera` de la planilla computa ASML en **$334.016,68** (= 54.305 + 279.711,68), el mismo número que la app. La corrección quedó validada por el oráculo, no solo por los tests propios.
 >
-> **Próximo paso concreto:** **punto 3 de la 3b — cauciones y dividendos como rendimientos con su propia tasa.** Datos reales disponibles: 101 cauciones colocadas (interés neto ≈ $33.365), $3.301 de cuenta remunerada, y $53.701 de dividendos brutos contra $5.191 de retenciones — el ledger **ya las acumula por separado** (`EstadoTicker.retenciones_*`), falta exponerlas.
+> **Punto 3 ✅ HECHO (2026-07-30) — `rendimientos.py` + sección "La plata quieta".** Las cauciones **no son instrumentos** (pseudo-ticker `CC`), así que su rendimiento estaba dentro del efectivo pero sin nombre. Relevado sobre los datos reales (no supuesto): **colocación y vencimiento comparten la fecha de concertación** y el plazo sale de la diferencia entre las **liquidaciones**. **101 pares, cero huérfanas.** Dividendos netos de retención por instrumento + cuenta remunerada.
+>
+> ⚠️ **La tasa va ponderada por capital y tiempo**, no es el promedio de las TNA: promediarlas le da el mismo peso a una caución de $20.000 por un día que a una de $2,7M por cinco. Test sintético donde el promedio simple da **48%** y la tasa real **5,3%**.
+>
+> **Identidad independiente (lección de 3a), en test y con datos reales:** el interés apareado es idéntico al **neto de todos los movimientos de caución** — cálculo que no depende del apareo. Da **$33.365,31** por las dos vías.
+>
+> **Números (dic-2024 → jul-2026):** 101 cauciones · interés **$33.365,31** · **TNA ponderada 25,60%** (2024: 24,48% · 2025: 29,31% · 2026: 21,38%) · dividendos 62 cobros, **$89.086,78** brutos − **$5.190,66** de retención = **$83.896,12** netos · remunerada **$3.300,98** · **total caja $120.562,41**. Retenciones muy distintas por papel: GGAL 10,9%, TGNO4/BMA 7,1%, CEDEARs en dólares 0%. Las TNA más altas de la serie (hasta 105%) son todas de **octubre 2025** — el apretón pre-electoral quedó registrado solo.
+>
+> **⚠️ Es atribución, no plata nueva:** ya estaba todo dentro del patrimonio. La vista lo dice explícitamente.
+>
+> **Próximo paso concreto:** **punto 4 de la 3b — análisis por sector** (reusando el sector del snapshot de scoring) **y por tipo de renta**. Ojo con la cobertura: la cartera es casi toda CEDEARs y el scoring cubre ~20 tickers; el corte por **tipo de renta** (fija / variable / cripto / efectivo) sale de `categoria_activo` y está disponible hoy.
 
 **Los cuatro puntos, en orden:**
 
 - ✅ **Realizado por operación** (punto 2) — hecho: motor cronológico + ADR-0005 + sección "Operaciones cerradas".
 - **Amortizaciones parciales** de bonos vivos: un evento más de la misma línea de tiempo. Importante pero **no urgente** (primer evento real: 9/7/2027). Falta resolver, cuando llegue, si el precio del broker viene por 100 de nominal **original** o **residual** — se decide con la foto de la tenencia del día que amortice, no antes.
-- 🔵 **Cauciones y dividendos como rendimientos** con su propia tasa — **el que sigue**. Datos reales disponibles hoy: 101 cauciones colocadas (interés neto ≈ **$33.365**), $3.301 de cuenta remunerada, y **$53.701 de dividendos brutos contra $5.191 de retenciones**; el ledger ya las acumula por separado, falta exponerlas.
-- **Análisis por sector** (reusar el sector del snapshot de scoring) y por **tipo de renta**. Ojo con la cobertura: la cartera es casi toda CEDEARs y el scoring cubre ~20 tickers.
+- ✅ **Cauciones y dividendos como rendimientos** con su propia tasa — hecho: `rendimientos.py` + sección "La plata quieta". **Falta desplegarlo.**
+- 🔵 **Análisis por sector** (reusar el sector del snapshot de scoring) y por **tipo de renta** — **el que sigue**. Ojo con la cobertura: la cartera es casi toda CEDEARs y el scoring cubre ~20 tickers; el corte por tipo de renta sale de `categoria_activo` y está disponible hoy.
 - Renta fija (`Renta fija ARG.xlsx`) NO va en cartera: futura sección de análisis de mercado (está en MEJORAS).
 - Pendiente de Franco (opcional): feedback sobre el formato del **export a Excel** de la cartera.
 
