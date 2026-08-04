@@ -49,7 +49,11 @@ CATEGORIAS_FLUJO = ("AMORTIZACION", "RENTA", "DIVIDENDO")
 #: ante empate se procesa primero lo que **aporta** unidades y después lo que
 #: las consume: si no, una venta liquidada el mismo día que su compra quedaría
 #: sin costo contra el cual medirse.
-_PRIORIDAD = {"COMPRA": 0, "VENTA": 1}
+#:
+#: El AJUSTE va antes que todo: no es una operación nueva sino la corrección
+#: de lo que ya se tenía. Un split fechado el día de la venta tiene que estar
+#: aplicado *antes* de que esa venta busque unidades.
+_PRIORIDAD = {"AJUSTE": -1, "COMPRA": 0, "VENTA": 1}
 
 #: Por encima de este rendimiento (en %) una operación se marca para revisar:
 #: no existe el trade que multiplica por diez, existe el dato mal cargado.
@@ -322,8 +326,12 @@ def recorrer(eventos) -> Ledger:
     * **AMORTIZACION / RENTA / DIVIDENDO** — se registran como cobro y **no**
       tocan la tenencia (convención argentina: la amortización va por precio).
     * **RETENCION** — se acumula aparte para poder netear el dividendo.
+    * **AJUSTE** — lo que el broker no informa: splits, ratios de CEDEAR,
+      papeles anteriores al registro, cupones recibidos por tenencia. Suma
+      unidades y costo sin generar operación (ver `ajustes.py`).
 
-    El orden es estable: ante misma fecha, primero las compras.
+    El orden es estable: ante misma fecha, primero los ajustes, después las
+    compras y por último las ventas.
     """
     led = Ledger()
     for ev in sorted(eventos, key=lambda e: (e.fecha, _PRIORIDAD.get(e.categoria, 2))):
@@ -332,7 +340,9 @@ def recorrer(eventos) -> Ledger:
             est = led.estados[ev.ticker] = EstadoTicker(ev.ticker)
         ars, usd = ev.importes
 
-        if ev.categoria == "COMPRA":
+        if ev.categoria == "AJUSTE":
+            _ajustar(est, ev, -ars, -usd)
+        elif ev.categoria == "COMPRA":
             _comprar(est, ev, -ars, -usd)
         elif ev.categoria == "VENTA":
             r = _vender(est, ev, ars, usd)
@@ -370,6 +380,29 @@ def _comprar(est: EstadoTicker, ev: Evento, costo_ars: float, costo_usd: float) 
             f"compra del {ev.fecha} sin cantidad en el movimiento "
             f"(costo {costo_ars:,.2f} ARS): el PPC necesita la tenencia del broker"
         )
+
+
+def _ajustar(est: EstadoTicker, ev: Evento, costo_ars: float,
+             costo_usd: float) -> None:
+    """Aplica un ajuste de tenencia (ver `ajustes.py`).
+
+    Es una compra sin operación: suma unidades y suma costo. Dos diferencias
+    deliberadas con `_comprar`:
+
+    * **Con costo 0 no toca la fecha de compra.** Un split no cambia cuándo
+      compraste el papel; si `_origen` se moviera al día del split, el plazo
+      de tenencia de la posición se acortaría solo.
+    * **No advierte por falta de cantidad.** Un ajuste puede ser puro costo
+      (corregir el precio de un saldo inicial ya cargado) y eso es legítimo,
+      mientras que una compra sin unidades es siempre un dato incompleto.
+    """
+    if abs(costo_ars) > 1e-9:
+        if est._origen is None:
+            est._origen = ev.fecha
+        est._peso_fecha += costo_ars * (ev.fecha - est._origen).days
+    est.cantidad += ev.cantidad
+    est.costo_ars += costo_ars
+    est.costo_usd += costo_usd
 
 
 def _vender(est: EstadoTicker, ev: Evento, ingreso_ars: float,
@@ -429,8 +462,15 @@ def eventos_desde_movimientos(movimientos) -> list[Evento]:
     ]
 
 
-def eventos_desde_db(conn, user_id: int) -> list[Evento]:
-    """Eventos desde `cartera_movimientos` (solo instrumentos, sin espejos)."""
+def eventos_desde_db(conn, user_id: int, con_ajustes: bool = True) -> list[Evento]:
+    """Eventos desde `cartera_movimientos` (solo instrumentos, sin espejos).
+
+    Incluye los ajustes de tenencia por defecto y **a propósito**: si sumarlos
+    fuera opcional en cada llamada, tarde o temprano un consumidor se los
+    olvidaría y las cantidades de la tabla dejarían de coincidir con las del
+    ledger. `con_ajustes=False` existe solo para los tests que necesitan ver
+    el efecto de agregarlos.
+    """
     out: list[Evento] = []
     for r in conn.execute(
         "SELECT fecha_concertacion f, categoria, ticker_base, cantidad, monto, "
@@ -448,4 +488,13 @@ def eventos_desde_db(conn, user_id: int) -> list[Evento]:
             cantidad=r["cantidad"] or 0.0, monto=r["monto"] or 0.0,
             moneda=r["moneda"], tc_mep=r["tc_mep"],
         ))
+
+    if con_ajustes:
+        from .ajustes import eventos_desde_ajustes, listar
+        try:
+            out.extend(eventos_desde_ajustes(listar(conn, user_id)))
+        except Exception:
+            # Una base sin la migración M13 no puede dejar sin cartera al
+            # usuario: los ajustes son una mejora, no un requisito.
+            pass
     return out

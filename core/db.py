@@ -783,6 +783,50 @@ def _migrate(conn: sqlite3.Connection) -> None:
             )
         """)
 
+        # ============================================================
+        # M13 (Fase 4): ajustes de tenencia que el broker no informa.
+        # ============================================================
+        # El export de movimientos no alcanza para reconstruir la cartera
+        # (trampa #4): los splits y los ajustes de ratio de CEDEAR no generan
+        # movimiento, y los papeles que ya tenías antes de que arranque el
+        # registro no tienen compra. Sin esto el ledger cierra esas ventas
+        # "descubiertas", sin costo, y el rendimiento sale disparatado.
+        #
+        # **Tabla aparte de `cartera_movimientos` a propósito.** Esa tabla es
+        # lo que dice el broker; ésta es lo que vos sabés que el broker no
+        # informa. Mezclarlas rompería el sentido de la reconciliación (su
+        # diferencia *es* el chequeo) y los ajustes se perderían el día que
+        # se borren los movimientos para reimportar de cero.
+        #
+        # `costo_ars` es el que manda la identidad contable: el capital
+        # aportado suma este costo como depósito sintético, porque esa plata
+        # entró a la cartera antes del registro. Costo 0 (un split, un cupón
+        # gratis) no mueve capital y por eso no genera depósito.
+        #
+        # `estimado` marca los costos deducidos de memoria o despejados de un
+        # rendimiento recordado. Un número estimado no se puede distinguir
+        # después de uno verificado si no se guarda que lo era.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS cartera_ajustes (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id     INTEGER NOT NULL,
+                fecha       TEXT NOT NULL,
+                ticker      TEXT NOT NULL,
+                tipo        TEXT NOT NULL,
+                cantidad    REAL NOT NULL DEFAULT 0,
+                costo_ars   REAL NOT NULL DEFAULT 0,
+                costo_usd   REAL,
+                estimado    INTEGER NOT NULL DEFAULT 0,
+                nota        TEXT,
+                creado_en   TEXT NOT NULL DEFAULT (datetime('now')),
+                UNIQUE (user_id, fecha, ticker, tipo, cantidad, costo_ars)
+            )
+        """)
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cartera_ajustes_user "
+            "ON cartera_ajustes(user_id, ticker)"
+        )
+
         cur.execute("COMMIT")
     except Exception:
         cur.execute("ROLLBACK")

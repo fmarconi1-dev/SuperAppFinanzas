@@ -46,10 +46,11 @@ Estado al escribirlo: **Fase 3b completa** (puntos 2, 3 y 4; el punto 1 —amort
 > * `kpis.py` — valuación y KPIs en dos planos: tenencia viva y rendimiento total (método del patrimonio).
 > * `rendimientos.py` — cauciones apareadas con su TNA ponderada, dividendos netos de retención, cuenta remunerada.
 > * `analisis.py` — composición por tipo de renta, sector e industria.
+> * `ajustes.py` — **ajustes de tenencia** (M13): splits, ratios de CEDEAR, papeles anteriores al registro y cupones recibidos. Tabla aparte de los movimientos; el costo declarado genera aporte sintético de capital.
 > * `core/market_data/sectores.py` — sector e industria automáticos (override → scoring → Yahoo), con caché en DB, caché negativa y `fetch` inyectable.
 > * `tenencias.py`, `view.py`, `export.py` — foto del custodio + tenencias manuales, la pestaña Cartera, export a Excel.
 >
-> **342 tests, 3 skipped.** El gate `tests/test_cartera_recon.py` reconcilia contra mi Excel y se saltea solo si no está `CARTERA_XLSX`. **Corré la suite antes y después de tocar cualquier cosa.**
+> **434 tests, 3 skipped.** El gate `tests/test_cartera_recon.py` reconcilia contra mi Excel y se saltea solo si no está `CARTERA_XLSX`. **Corré la suite antes y después de tocar cualquier cosa.**
 >
 > ## Trampas del dominio que ya nos costaron caro — no las repitas
 >
@@ -75,6 +76,10 @@ Estado al escribirlo: **Fase 3b completa** (puntos 2, 3 y 4; el punto 1 —amort
 > 18. **Antes de elegir un endpoint, probalo.** El "natural" para traer sectores (`quoteSummary` de Yahoo) exige un *crumb* con cookie y devuelve `Unauthorized`; `v1/finance/search` da sector **e industria** sin autenticación. Y siempre exigí **coincidencia exacta de símbolo**: buscando `URA` (ETF de uranio) Yahoo devuelve también `UROY` (una minera).
 > 19. **Toda consulta externa necesita caché negativa.** Si solo se cachea lo que resuelve, un ticker desconocido dispara una búsqueda en cada carga de la pantalla, para siempre.
 > 20. **El broker se equivoca.** La compra de ASML del 16/5/2025 vino con **dos ceros de menos** ($60,10 en vez de $6.010). La guarda `Realizacion.sospechosa` (>1.000%) lo detectó sola. Cuando un rendimiento es absurdo, es un dato malo, no un trade.
+> 21. **Una venta "descubierta" no es un error de cálculo: es un hecho que falta.** Las tres que aparecieron tenían tres causas distintas — un **split** (BYMA, 9→18 sin movimiento), un papel **anterior al registro** (TXAR) y un **cupón recibido gratis** (GGALX). Se cargan en `cartera_ajustes` (M13). Antes de tocar el ledger, preguntá **qué pasó en el mundo**.
+> 22. **Todo costo que se carga a mano necesita su aporte de capital.** El método del patrimonio no mira costos: mira plata que entra y sale. Declarar que las TXAR costaron $233.439 sin registrar ese aporte hace que su venta cuente **$186.751 de ganancia inventada**. La regla es `aporte sintético = costo del ajuste`, automática, y va también a `flujos_de_capital()` **con su fecha** o la TIR sale inflada.
+> 23. **Un número recordado y uno verificado se ven iguales en una tabla.** El costo de TXAR se despejó de un "la vendí como a −20%". Si no se guarda que era una estimación (`estimado`), en seis meses nadie puede distinguirlo del resumen del broker.
+> 24. **Python no valida los nombres hasta que ejecuta la línea.** Usé `backup_db` en `view.py` sin importarlo y el botón habría reventado recién al apretarlo, igual que el `firma_val`. `tests/test_nombres_definidos.py` lee el **bytecode** de cada módulo y verifica que todo `LOAD_GLOBAL` exista. Corré la suite antes de dar por buena cualquier vista.
 >
 > ## Cómo verificar de verdad
 >

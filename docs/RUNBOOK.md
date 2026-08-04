@@ -124,6 +124,33 @@ fly deploy --image <imagen-de-la-release-anterior> -a superapp-finanzas
 
 ---
 
+## 🧱 `cpu_overcommit_exceeded` al desplegar
+
+```
+insufficient CPUs available ... cpu_overcommit_exceeded
+```
+
+**No es un problema de tu app ni del código.** Es el host de Fly en `gru`
+diciendo que no tiene CPU libre para levantar una máquina **nueva** mientras la
+vieja sigue corriendo — que es justo lo que hace la estrategia de deploy por
+defecto (*rolling*: levanta la nueva, la verifica, recién ahí baja la vieja).
+
+Con **una sola máquina y un volumen**, ese solapamiento no aporta nada: el
+volumen está atado a una máquina, así que no hay alta disponibilidad que
+proteger. La salida es pedir el reemplazo directo:
+
+```powershell
+fly deploy --strategy immediate -a superapp-finanzas
+```
+
+**Qué cambia:** hay unos segundos de caída mientras la máquina se reemplaza. Es
+una app personal: el costo es que la pantalla se recargue.
+
+Si igual falla, la región está saturada de verdad. Esperar y reintentar; no
+tiene sentido tocar el `Dockerfile` ni bajarle recursos a la app.
+
+---
+
 ## 🔑 Secrets
 
 ```powershell

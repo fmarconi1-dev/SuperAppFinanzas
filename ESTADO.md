@@ -223,7 +223,17 @@ Los detectó él, no los tests — la única forma de encontrarlos era **reimpor
 
 🧭 **Consecuencia a no olvidar:** los tres tests-oráculo (`test_kpis`, `test_reconciliacion`, `test_cartera_recon`) **solo corren en la máquina de Franco**. Antes de cada deploy hay que correr la suite local, donde el conteo debe dar **0 skipped**. CI protege el resto.
 
-📌 **PENDIENTE DE FRANCO:** **desplegar** (10 commits esperando, incluido este fix) y **programar el backup diario** en el Programador de tareas. Pasos en el RUNBOOK. El test cubre el mecanismo; lo que no puede cubrir es que `flyctl` esté logueado y que la tarea corra.
+🧩 **AJUSTES DE TENENCIA — M13 (2026-08-04).** Los cinco avisos de *Operaciones a revisar* tenían **tres causas distintas y ninguna era un bug**: un **split** (BYMA 9→18, que el export no informa), un papel **anterior al registro** (TXAR, 300 sin compra) y un **cupón gratis por tenencia** (GGALX, 100). Se construyó `ajustes.py` + tabla `cartera_ajustes`, **separada de `cartera_movimientos` a propósito**: esa tabla es lo que dice el broker, ésta lo que el broker no informa — mezclarlas rompería el sentido de la reconciliación y los ajustes se perderían al reimportar de cero.
+
+⚠️ **La trampa del módulo, y la razón de su regla central.** `capital_aportado()` leía solo `DEPOSITO`/`RETIRO`. Declarar el costo de las TXAR sin más habría hecho que el método del patrimonio contara **$186.751 de ganancia inventada**, porque esa plata entró antes del registro. **Regla implementada: `aporte sintético = costo del ajuste`**, automática y sin decisión del usuario; costo 0 (split, cupón) no genera aporte porque no entró plata. Va también a `flujos_de_capital()` **con su fecha**, o la TIR se calcularía sobre menos capital. **Verificado sobre el Excel real: el realizado baja de $3.092.202,73 a $2.858.763,59, exactamente los $233.439,14 que declaran los ajustes. La identidad cierra al centavo.**
+
+🔎 **ASML: no había duplicado.** El aviso reportaba PPC **$60,34** y `543,05 / 9 = 60,34` exacto — en producción quedó **solo la fila vieja**. El Excel ya está corregido pero la corrección nunca se aplicó a la base. **Se arregla desde el panel de corrección, nunca reimportando** (el hash cambió: un reimport sí crearía el duplicado).
+
+🧪 **`tests/test_nombres_definidos.py` (nuevo).** Salió de un error propio: `backup_db` usado en `view.py` sin importar. Lee el **bytecode** de cada módulo, junta los `LOAD_GLOBAL` y verifica que existan — bytecode y no AST para evitar falsos positivos de atributos y locales. **Verificado al revés:** se reintrodujo el error y el test lo nombró. Cubre la misma familia que el `firma_val`. Suite **434 passed, 3 skipped**.
+
+📌 **PENDIENTE DE DATO DE FRANCO:** el **costo real de las 100 GGAL** del saldo inicial. Hoy figuran a **$4,49** —la fila sintética del Excel hace doble trabajo: cubre las acciones *y* dice "canje GGALX"— y ése no es un precio de GGAL en diciembre de 2024. Con ese costo la venta de 200 del 27/10/2025 da **+$815.000**; con uno realista, **~+$316.000**. **Medio millón de diferencia.** El costo de TXAR quedó cargado como **estimado** ($233.439,14, despejado del −20% recordado).
+
+📌 **PENDIENTE DE FRANCO:** **desplegar** (10 commits esperando, incluido este fix) y **programar el backup diario** en el Programador de tareas. Pasos en el RUNBOOK. El test cubre el mecanismo; lo que no puede cubrir es que `flyctl` esté logueado y que la tarea corra. Si el deploy corta con `cpu_overcommit_exceeded`, la salida está en el RUNBOOK (`--strategy immediate`).
 
 ## 🚩 Bloqueos / decisiones abiertas
 

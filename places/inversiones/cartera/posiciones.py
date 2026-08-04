@@ -159,7 +159,12 @@ def _acumular(filas, instrumentos: dict | None = None) -> dict[str, Posicion]:
     for es_inst, categoria, base, cantidad, monto, moneda, tc, es_espejo in filas:
         if not es_inst or es_espejo:
             continue
-        if categoria == "COMPRA":
+        if categoria in ("COMPRA", "AJUSTE"):
+            # Un AJUSTE es una compra sin operación: unidades y costo que el
+            # broker no informó (split, saldo previo al registro, canje). Se
+            # acumula igual para que la cantidad de esta vía coincida con la
+            # del ledger; si divergieran, la tabla y la reconciliación se
+            # contradirían entre sí. Ver `ajustes.py`.
             p = _p(base)
             p.cant_comprada += cantidad
             if moneda == "ARS":
@@ -233,11 +238,34 @@ def posiciones_desde_db(
         (user_id,),
     )
     return _acumular(
-        ((bool(r["es_instrumento"]), r["categoria"], r["ticker_base"],
+        [(bool(r["es_instrumento"]), r["categoria"], r["ticker_base"],
           r["cantidad"], r["monto"], r["moneda"], r["tc_mep"],
-          bool(r["es_espejo"])) for r in filas),
+          bool(r["es_espejo"])) for r in filas] + _filas_de_ajustes(conn, user_id),
         instrumentos,
     )
+
+
+def _filas_de_ajustes(conn, user_id: int) -> list[tuple]:
+    """Los ajustes de tenencia con la forma que espera `_acumular`.
+
+    El monto va negativo (convención del export: lo que se adquiere sale de
+    la caja) para que el costo entre con el mismo signo que una compra.
+    """
+    try:
+        from .ajustes import listar
+    except Exception:
+        return []
+    out = []
+    try:
+        for a in listar(conn, user_id):
+            tc = None
+            if a.costo_usd not in (None, 0) and abs(a.costo_ars) > 1e-9:
+                tc = a.costo_ars / a.costo_usd
+            out.append((True, "AJUSTE", a.ticker, a.cantidad, -a.costo_ars,
+                        "ARS", tc, False))
+    except Exception:
+        return []
+    return out
 
 
 @dataclass(frozen=True)
@@ -293,7 +321,15 @@ def saldos_efectivo(conn, user_id: int) -> tuple[float, float]:
 
 
 def capital_aportado(conn, user_id: int) -> CapitalAportado:
-    """Depósitos y retiros del usuario, en ARS y en USD al TC de cada fecha."""
+    """Depósitos y retiros del usuario, en ARS y en USD al TC de cada fecha.
+
+    Suma también el **aporte sintético de los ajustes de tenencia**. Sin eso,
+    el método del patrimonio (`resultado = tenencia + efectivo − aportes`)
+    cuenta como ganancia la plata que ya era tuya: las 300 TXAR que tenías
+    antes de que arrancara el registro se vendieron por $186.751 y, si ese
+    capital no figura como aportado, los $186.751 enteros aparecen como
+    resultado. Ver la nota de identidad contable en `ajustes.py`.
+    """
     cap = CapitalAportado()
     filas = conn.execute(
         "SELECT categoria, moneda, monto, tc_mep FROM cartera_movimientos "
@@ -312,7 +348,24 @@ def capital_aportado(conn, user_id: int) -> CapitalAportado:
         else:
             cap.retiros_ars += ars
             cap.retiros_usd += usd
+
+    aj_ars, aj_usd = _aporte_de_ajustes(conn, user_id)
+    cap.depositos_ars += aj_ars
+    cap.depositos_usd += aj_usd
     return cap
+
+
+def _aporte_de_ajustes(conn, user_id: int) -> tuple[float, float]:
+    """El capital que declaran los ajustes de tenencia, o ``(0, 0)``.
+
+    Tolerante a una base sin la migración M13: los ajustes suman precisión,
+    no pueden ser la razón de que la cartera no cargue.
+    """
+    try:
+        from .ajustes import aporte_sintetico, listar
+        return aporte_sintetico(listar(conn, user_id))
+    except Exception:
+        return 0.0, 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -344,6 +397,19 @@ def flujos_de_capital(conn, user_id: int) -> list[tuple[date, float, float]]:
             continue
         # Un depósito entra a la cartera → para el inversor es flujo negativo.
         filas.append((f, -ars, -usd))
+
+    # Los ajustes con costo son aportes reales, hechos en su fecha. Sin ellos
+    # la TIR se calcula sobre menos capital del que hubo y sale inflada — el
+    # mismo error que `capital_aportado`, pero además con la fecha corrida.
+    try:
+        from .ajustes import listar
+        for a in listar(conn, user_id):
+            if abs(a.costo_ars) > 1e-9 or (a.costo_usd or 0):
+                filas.append((a.fecha, -a.costo_ars, -(a.costo_usd or 0.0)))
+    except Exception:
+        pass
+
+    filas.sort(key=lambda x: x[0])
     return filas
 
 

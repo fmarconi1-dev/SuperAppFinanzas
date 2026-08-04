@@ -21,7 +21,7 @@ import os
 import pandas as pd
 import streamlit as st
 
-from core.db import connect
+from core.db import backup_db, connect
 from core.market_data import (
     guardar_precio_en_cache,
     leer_precio_cache,
@@ -64,6 +64,7 @@ from places.inversiones.cartera.analisis import (
     sectores_desde_snapshot,
     tipo_de_renta,
 )
+from places.inversiones.cartera import ajustes as mod_ajustes
 from places.inversiones.cartera.export import exportar_cartera
 from places.inversiones.cartera.ledger import eventos_desde_db, recorrer
 from places.inversiones.cartera.parser import Instrumento, parse_archivo_excel
@@ -566,6 +567,140 @@ def _rendimiento_caja(cs, resumen, divs, rem) -> None:
                          "representativa es la ponderada de arriba"),
             },
         )
+
+
+def _panel_ajustes(uid: int) -> None:
+    """Alta y baja de ajustes de tenencia (ver `ajustes.py`).
+
+    Es el panel donde se tapan los agujeros que el export del broker no puede
+    llenar. La ayuda explica *qué* es cada tipo en criollo, porque el error de
+    cargar un split como saldo inicial no da error: da un rendimiento mal.
+    """
+    with st.expander("Ajustar unidades que el broker no informa"):
+        st.caption(
+            "Hay cosas que el export **no trae**: los splits, los ajustes de "
+            "ratio de CEDEAR, los papeles que ya tenías antes de que arrancara "
+            "el historial y los cupones que te dieron por tenencia. Sin esto la "
+            "app ve ventas de más unidades de las que registró y las cierra "
+            "**sin costo**, lo que dispara el rendimiento."
+        )
+
+        with connect() as conn:
+            existentes = mod_ajustes.listar(conn, uid)
+
+        etiquetas = {v["etiqueta"]: k for k, v in mod_ajustes.TIPOS.items()}
+        c1, c2 = st.columns([1, 2])
+        with c1:
+            tk = st.text_input("Ticker", key="cartera_aj_ticker",
+                               placeholder="BYMA").strip().upper()
+        with c2:
+            tipo = etiquetas[st.selectbox(
+                "Qué pasó", list(etiquetas), key="cartera_aj_tipo")]
+
+        meta = mod_ajustes.TIPOS[tipo]
+        st.caption(meta["ayuda"])
+
+        c1, c2 = st.columns(2)
+        with c1:
+            fecha = st.date_input("Fecha", key="cartera_aj_fecha",
+                                  format="DD/MM/YYYY")
+        with c2:
+            cant = st.number_input(
+                "Unidades (negativo si restan)", value=0.0, step=1.0,
+                format="%.4f", key="cartera_aj_cant")
+
+        costo = 0.0
+        estimado = False
+        if meta["espera_costo"]:
+            st.markdown("**Cuánto te costaron**")
+            st.caption(
+                "Este número es el que evita que vender esas unidades figure "
+                "como ganancia pura: la app lo registra como capital que "
+                "aportaste a la cartera."
+            )
+            modo = st.radio(
+                "De dónde sale", ["Sé el costo", "Lo despejo del rendimiento"],
+                horizontal=True, key="cartera_aj_modo",
+                label_visibility="collapsed")
+
+            if modo == "Sé el costo":
+                costo = st.number_input(
+                    "Costo total en pesos", value=0.0, step=1000.0,
+                    format="%.2f", key="cartera_aj_costo")
+                estimado = st.checkbox(
+                    "Es aproximado", key="cartera_aj_estim",
+                    help="Marcalo si el número sale de la memoria y no del "
+                         "resumen del broker. La app lo muestra señalado para "
+                         "que dentro de un año sepas cuál era cuál.")
+            else:
+                c1, c2 = st.columns(2)
+                with c1:
+                    ingreso = st.number_input(
+                        "Cuánto cobraste al venderlas", value=0.0, step=1000.0,
+                        format="%.2f", key="cartera_aj_ingreso")
+                with c2:
+                    rend = st.number_input(
+                        "Rendimiento en pesos (%)", value=0.0, step=1.0,
+                        format="%.2f", key="cartera_aj_rend")
+                estimado = True
+                if ingreso and rend != -100.0:
+                    costo = mod_ajustes.costo_desde_rendimiento(ingreso, rend)
+                    st.info(
+                        f"Costo despejado: **{_fmt(costo, 2, '$')}**"
+                        + (f" ({_fmt(costo / cant, 2, '$')} por unidad)"
+                           if cant else "")
+                        + " — se guarda marcado como aproximado.",
+                        icon=":material/calculate:")
+
+        nota = st.text_input(
+            "Nota (opcional)", key="cartera_aj_nota",
+            placeholder="De dónde salió el dato")
+
+        if st.button("Agregar ajuste", key="cartera_aj_btn", type="primary"):
+            if not tk:
+                st.warning("Falta el ticker.", icon=":material/warning:")
+            elif abs(cant) < 1e-12 and abs(costo) < 1e-9:
+                st.warning("Un ajuste que no mueve unidades ni costo no hace "
+                           "nada.", icon=":material/warning:")
+            else:
+                with connect() as conn:
+                    backup_db()
+                    nuevo = mod_ajustes.agregar(conn, uid, mod_ajustes.Ajuste(
+                        fecha=fecha, ticker=tk, tipo=tipo, cantidad=cant,
+                        costo_ars=costo, estimado=estimado, nota=nota))
+                    conn.commit()
+                if nuevo is None:
+                    st.info("Ese ajuste ya estaba cargado.",
+                            icon=":material/info:")
+                else:
+                    st.success(f"Ajuste cargado en {tk}.",
+                               icon=":material/check_circle:")
+                    st.rerun()
+
+        st.divider()
+        if not existentes:
+            st.caption("Todavía no cargaste ningún ajuste.")
+            return
+
+        st.markdown("**Ajustes cargados**")
+        for a in existentes:
+            c1, c2 = st.columns([6, 1])
+            with c1:
+                marca = " · *aproximado*" if a.estimado else ""
+                costo_txt = (f" · {_fmt(a.costo_ars, 2, '$')}"
+                             if a.mueve_capital else "")
+                st.markdown(
+                    f"`{a.ticker}` {a.fecha.strftime('%d/%m/%Y')} · "
+                    f"{a.etiqueta_tipo} · {a.cantidad:+g} u{costo_txt}{marca}"
+                    + (f"  \n<small>{a.nota}</small>" if a.nota else ""),
+                    unsafe_allow_html=True)
+            with c2:
+                if st.button("Quitar", key=f"cartera_aj_del_{a.id}"):
+                    with connect() as conn:
+                        backup_db()
+                        mod_ajustes.eliminar(conn, uid, a.id)
+                        conn.commit()
+                    st.rerun()
 
 
 def _empty_state() -> None:
@@ -1248,6 +1383,8 @@ def render(user_id: int | None = None) -> None:
                         else:
                             st.info("No había nada que cambiar.",
                                     icon=":material/info:")
+
+    _panel_ajustes(uid)
 
     with st.expander("Corregir un precio a mano"):
         st.caption(

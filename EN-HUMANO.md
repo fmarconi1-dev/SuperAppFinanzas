@@ -9,6 +9,33 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 4 de agosto de 2026 — Los papeles que el broker "no te contó"
+
+**El problema, en criollo:**
+La app te avisaba de cinco operaciones raras. Tres decían lo mismo: *"vendiste 18 unidades pero solo tengo 9 registradas"*. Cuando eso pasa, la app cierra las unidades que le sobran **sin costo**, o sea como si te las hubieran regalado — y entonces el rendimiento sale disparatado.
+
+**Por qué faltaban unidades.** Tres motivos distintos, todos legítimos:
+
+- **BYMA** hizo un *split*: te dieron el doble de papeles y cada uno pasó a valer la mitad. No pusiste plata, pero ahora tenés 18 donde tenías 9. **El broker no informa eso como movimiento**, así que la app no se enteró.
+- **TXAR**: esas 300 las tenías desde antes de que arrancara tu historial. Nunca hubo una compra que registrar.
+- **GGALX**: eran cupones que te dieron gratis por tener acciones de Galicia. Los vendiste por $1.494 y esa plata es ganancia entera, pero la app no tenía de dónde sacar las unidades.
+
+**Lo que se construyó:** un panel nuevo, **"Ajustar unidades que el broker no informa"**, donde cargás estos cuatro casos —split, papel que ya tenías, canje o cupón, y cambio de ratio de CEDEAR— y la app rehace las cuentas. Los ajustes viven aparte de los movimientos del broker, así que si algún día borrás todo y reimportás el Excel, **no se pierden**.
+
+**El detalle que casi rompe todo (y es el que más me importa contarte).** Cuando cargás un papel que ya tenías, hay que decirle cuánto te costó. Pero esa plata **nunca apareció como depósito en tu cuenta**, porque entró antes de que empezara el registro. Si solo cargaba el costo, la app iba a contar los $186.751 que cobraste por las TXAR como **ganancia pura** — plata inventada.
+
+La solución: cada vez que declarás el costo de algo que ya tenías, la app registra automáticamente ese mismo monto como capital que aportaste. Lo verifiqué con tus números reales y cierra al centavo: la ganancia total baja exactamente $233.439, que es exactamente el capital que se agregó. Un split no genera nada de esto, porque ahí no entró plata.
+
+**Sobre TXAR y el "más o menos".** No te acordabas del precio de compra, pero sí de que la vendiste alrededor de **−20%**. Con eso la app despeja el costo hacia atrás: $233.439. Ahora bien, **un número recordado no es lo mismo que uno del resumen del broker**, y en seis meses no hay forma de distinguirlos si no se anota. Así que los ajustes se guardan con una marca de *aproximado* y la app te los muestra señalados. Si algún día conseguís el dato real, lo reemplazás.
+
+**Otra cosa que salió de acá.** Mientras armaba el panel me olvidé de importar una función y el botón "Agregar ajuste" habría reventado en tu cara — el mismo tipo de error que el de "Agregar gasto" de la semana pasada. Así que dejé un test que **lee todos los módulos del proyecto y verifica que no usen nada que no exista**. Lo probé al revés: puse el error a propósito y el test lo cazó por nombre. Ese error ya no llega a producción.
+
+**Para qué te sirve:** las tres operaciones ahora tienen resultado de verdad —BYMA empata en −$7,92, TXAR pierde $46.688, GGALX gana $1.494— y tu ganancia total deja de estar inflada en $233.439.
+
+**Qué sigue:** falta el costo real de las **100 acciones de GGAL** que ya tenías. Hoy figuran a $4,49 cada una, que no es un precio real de diciembre de 2024, y eso infla la venta de octubre en unos **$500.000**. Es el número más grande que queda pendiente.
+
+---
+
 ## 4 de agosto de 2026 (arreglo) — El botón "Agregar gasto" rompía la app
 
 **Qué pasó (en criollo):**
