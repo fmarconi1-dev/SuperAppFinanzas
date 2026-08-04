@@ -20,6 +20,8 @@ from __future__ import annotations
 
 from typing import Iterable
 
+from core.db import backup_db
+
 from .parser import Instrumento, Movimiento
 
 __all__ = [
@@ -115,7 +117,15 @@ def importar_movimientos(
 
     Devuelve ``(insertados, saltados)``. Envuelve el bulk en una transacción
     y commitea al final (la carga recurrente es una unidad atómica).
+
+    **Saca una copia de seguridad antes de empezar.** Un import masivo es la
+    operación más destructiva de la app: si el archivo está mal, entran cientos
+    de filas equivocadas y el dedupe hace que reimportar el bueno no las
+    arregle. Hasta la Fase 4 solo las escrituras de Finanzas Personales
+    disparaban backup, así que cargar 585 movimientos de cartera no dejaba
+    ningún punto de retorno.
     """
+    backup_db()
     insertados = saltados = 0
     conn.execute("BEGIN")
     try:
@@ -358,6 +368,7 @@ def corregir_movimiento(
     """
     from places.inversiones.cartera.parser import hash_dedupe
 
+    backup_db()
     f = conn.execute(
         "SELECT * FROM cartera_movimientos WHERE id = ? AND user_id = ?",
         (mov_id, user_id),

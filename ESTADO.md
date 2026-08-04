@@ -3,7 +3,7 @@
 > **Este es el archivo más importante para retomar el trabajo.** Se lee primero y se actualiza último, cada sesión.
 > Antes de editar código, actualizá la tabla "Tarea en curso". Al cerrar, dejá el "Próximo paso concreto".
 
-<!-- ultima_actualizacion: 2026-07-30 · autor: Claude (Opus 5) · handoff: Fase 3b EN CURSO — puntos 2 y 3 hechos (motor cronológico + realizado por operación DESPLEGADO; cauciones/dividendos listo para desplegar). Próximo: punto 4, sector y tipo de renta -->
+<!-- ultima_actualizacion: 2026-07-30 · autor: Claude (Opus 5) · handoff: Fase 3b COMPLETA + Fase 4 con RESPALDO y CI hechos. NADA de esto está desplegado (7 commits esperando). Pendiente de Franco: desplegar + programar el backup diario -->
 
 ## 🧭 Dónde estamos
 
@@ -18,7 +18,8 @@
 | Tarea | Estado | Autor | Desde |
 |---|---|---|---|
 | Fase 3a — Cartera nativa (ingest + posiciones + KPIs + recon + export) | ✅ **CERRADA Y DESPLEGADA** (2026-07-30, v11) | Claude (Fable 5 → Opus 4.8) | 2026-07-19 |
-| Fase 3b — Rendimientos finos (ver detalle abajo) | 🔵 **EN CURSO** — puntos 2 (desplegado) y 3 (sin desplegar) hechos | Claude (Opus 5) | 2026-07-30 |
+| Fase 3b — Rendimientos finos | ✅ **COMPLETA** (2026-07-30). Punto 2 desplegado; **3 y 4 sin desplegar** | Claude (Opus 5) | 2026-07-30 |
+| Fase 4 — Mejoras del Lugar A (Finanzas Personales) | 🔵 **EN CURSO** — respaldo ✅ y CI ✅; sigue: voz consistente | Claude (Opus 5) | 2026-07-30 |
 
 ## ✅ Hecho hasta ahora
 
@@ -163,7 +164,23 @@ Los detectó él, no los tests — la única forma de encontrarlos era **reimpor
 >
 > **⚠️ Es atribución, no plata nueva:** ya estaba todo dentro del patrimonio. La vista lo dice explícitamente.
 >
-> **Próximo paso concreto:** **punto 4 de la 3b — análisis por sector** (reusando el sector del snapshot de scoring) **y por tipo de renta**. Ojo con la cobertura: la cartera es casi toda CEDEARs y el scoring cubre ~20 tickers; el corte por **tipo de renta** (fija / variable / cripto / efectivo) sale de `categoria_activo` y está disponible hoy.
+> **Punto 4 ✅ HECHO (2026-07-30) — `analisis.py` + sección "Cómo está repartida". FASE 3b COMPLETA.** Decisión de Franco: tipo de renta como corte principal (cobertura total) y sector como capa secundaria solo donde el dato exista. El snapshot del scoring ya trae **100 empresas**, no las ~20 que decía este archivo.
+>
+> **Dos decisiones para no repetir errores viejos:** el porcentaje se mide **contra el patrimonio con el efectivo adentro** (si no, la caja desaparece del cuadro), y se agrega **solo el resultado no realizado** — sumar el total por grupo repetiría la trampa de 3a.
+>
+> ⚠️ **Dos cosas que no cerraban en la primera corrida, encontradas mirando los números reales:** (1) el **pagaré, el 34% de la cartera**, caía en "Sin dato" porque su ticker empieza con `#` y nunca estuvo en `Config` → se reconoce por el ticker y es **renta fija** (se compra a descuento); (2) el corte por sector se diluía a un **"Sin dato" del 74,6%** porque entraban bonos, pagaré, cripto y efectivo — a esos **no les falta el sector: no tienen** → `por_sector` mira **solo la renta variable** y la cobertura pasó de un 25% engañoso a un **65,7% real**.
+>
+> **Foto de la cartera al 30/7 (patrimonio $23.962.038):** renta fija **60,1%** ($14.406.991, 3 posiciones) · renta variable **38,3%** ($9.183.750, 18) · cripto 1,3% · efectivo 0,3%.
+>
+> ✅ **SECTOR E INDUSTRIA AUTOMÁTICOS (2026-07-30, pedido de Franco).** `core/market_data/sectores.py` + **M12** (`cartera_sectores`): cascada **override → scoring → Yahoo `v1/finance/search`** (sin autenticación; ⚠️ `quoteSummary` exige un *crumb* con cookie y devuelve `Unauthorized` — probado). `fetch` inyectable, caché en DB, **caché negativa** (si no, un ticker desconocido dispara una búsqueda en cada carga), coincidencia **exacta** de símbolo (buscando `URA` aparece `UROY`), sufijo **`.BA`** para las argentinas, y los pagarés no se consultan. **Cobertura 100% de la renta variable, cero "Sin dato"** (antes 65,7%). `tests/test_market_data_sectores.py` (18 tests, sin red). Suite **342 passed, 3 skipped**.
+>
+> **Los ETF no tienen sector porque son una canasta** → etiqueta desde el nombre del fondo: **ETF · Oro / Uranio / Cobre / S&P 500**.
+>
+> 📌 **Decisión de Franco:** Yahoo clasifica **TGNO4** como **Energy · Oil & Gas Midstream** (GICS mete el transporte de gas en Energía), no Utilities. Eligió que **mande Yahoo** para quedar comparable contra el estándar; el **override manual gana siempre** y tiene UI.
+>
+> **Sector (sobre renta variable):** ETF · S&P 500 22,1% · Technology 21,5% · Energy 12,3% · Financial Services 11,3% · Consumer Cyclical 10,7% · Communication Services 9,3% · ETF Uranio/Oro/Cobre 7,5% · Healthcare+Utilities+Industrials 5,3%. **Con el nivel de industria aparece que el 21,5% de Technology es 16% en semiconductores** (NVDA + TSM + ASML).
+>
+> **Próximo paso concreto:** **desplegar los puntos 3 y 4** (merge del PR + `fly deploy`) y arrancar la **Fase 4** con `docs/PROMPT-INICIO-FASE-4.md`. El punto 1 de la 3b (amortizaciones parciales) queda en `MEJORAS.md` con motivo: la primera amortización real del AE38 es el **9/7/2027** y todavía no se puede saber si el precio del broker vendrá por 100 de nominal original o residual.
 
 **Los cuatro puntos, en orden:**
 
@@ -178,6 +195,35 @@ Los detectó él, no los tests — la única forma de encontrarlos era **reimpor
 - Retirar `radar-financiero` cuando la superapp esté validada unos días (`fly apps destroy radar-financiero`).
 - Generar `requirements.lock` para builds reproducibles (ver `docs/DEPLOY.md`).
 - Dominio personalizado (FreeDomain o propio): decisión de Franco, queda para el final — es estético. Pasos en `docs/DEPLOY.md`.
+
+### 🔴 Fase 4 — arrancó por el RESPALDO (2026-07-30)
+
+**Backlog del Lugar A relevado** (traído de `Mis-Finanzas-App`). Dos ítems ya estaban hechos: **D2 Grupo familiar** (el más grande, 4-5 días) desde el 17/7, y la **Sección 9 (módulo de inversiones)**, superada por las Fases 3a/3b. ⚠️ **Su decisión cerrada *"NO reemplazar el Excel de Inviu"* está REVERTIDA por ADR-0003** — anotarlo al traer el backlog, o el próximo que lo lea la toma como vigente.
+
+**Orden propuesto y aceptado por Franco:** (1) respaldo ✅ · (2) CI · (3) voz consistente + hitos · (4) importador CSV con LLM · (5) API sidecar → WhatsApp.
+
+⚠️ **El agujero que se encontró (no era una mejora, era un riesgo):** los backups automáticos viven **en el mismo volumen de Fly que la base**; solo los disparaba el Lugar A —**importar 585 movimientos de cartera no dejaba ninguna copia**—; el `backup_remoto.ps1` de la app vieja **no existía en la superapp**; el `RUNBOOK.md` eran 5 líneas de placeholder; y **nunca se ensayó un restore** (estaba en el backlog desde julio, sin tildar). **Lo irreemplazable son las transacciones personales:** la cartera se reconstruye del Excel, los gastos no existen en ningún otro lado.
+
+**Hecho:**
+- **`scripts/backup_remoto.ps1`** — copia externa que verifica antes de darla por buena (`integrity_check` + transacciones + movimientos) y falla si baja vacía. La purga conserva siempre las 3 más recientes aunque sean viejas.
+- **`scripts/restaurar_backup.ps1`** — no existía en ningún lado. Simulacro por defecto; respalda producción **antes** de pisarla; para la app, sube, **borra `-wal` y `-shm`** (sin eso SQLite mezcla la base restaurada con el diario de la vieja y queda corrupta) y verifica el health.
+- **Backup disparado por la cartera:** `importar_movimientos`, `corregir_movimiento`, `guardar_foto`, `set_tenencia_manual`. La copia se saca **antes** de escribir, así sirve para deshacer.
+- **`tests/test_backup_restore.py`** (5 tests): ciclo completo respaldar → perder → restaurar → verificar, y que la purga nunca se lleve la última copia buena.
+- **`docs/RUNBOOK.md`** de verdad, con la tabla de qué se puede reconstruir y qué no.
+
+✅ **Ensayo de restore hecho por Franco (2026-08-04).** El backup remoto y el verificador funcionan contra producción. ⚠️ Se encontraron **dos bugs de PowerShell** en el camino, los dos del mismo tipo — código escrito para un shell corriendo en otro: (1) el restore usaba el here-string `<<<` de bash, que no existe en PowerShell; (2) la verificación pasaba el script Python inline con `python -c` y **PowerShell se come las comillas**, así que Python recibía `ok = c.execute(PRAGMA` y moría con `SyntaxError`. La verificación pasó a **`scripts/verificar_backup.py`**, un archivo de verdad con código de salida y **cubierto por tests** (base válida, sin transacciones, inexistente, corrupta y truncada).
+
+✅ **CI (2026-08-04) — `.github/workflows/tests.yml`.** Corre `pytest` en **Python 3.11** (la del `Dockerfile`) en cada push y PR, **en una máquina limpia**: es la única forma de detectar lo que funciona en la PC de Franco de casualidad. Segundo job **`sin-datos`**: busca `.xlsx`/`.db`/`.csv`/`.env` y claves privadas en el **árbol completo**; el pre-commit hook se puede saltear con `--no-verify`, este no. La suite **no necesita red** (todo `fetch` es inyectable), y el gate de recon aparece como `skipped` porque necesita el Excel, que nunca se versiona.
+
+🐛 **BUG EN PRODUCCIÓN ARREGLADO (2026-08-04) — lo encontró Franco usando la app desde el celular.** `UnboundLocalError: firma_val` al tocar **💸 Agregar gasto**: la app moría entera. `_form_alta_edicion` se bifurca en **modo rápido** / **detallado** y las dos ramas caen al **mismo** guardado, pero `firma_val` se definía solo en la detallada. Desde el teléfono se usa la rápida, y el error aparece **al enviar**, no al mostrar — por eso nunca se había visto. **Fix:** la variable se define antes de la bifurcación; en modo rápido se asume el **miembro activo** del espacio (no se pregunta: esa es la gracia del modo). **`tests/test_transacciones_formulario.py` (10 tests) por AST**: verifica que ninguna variable leída después de la bifurcación esté definida en una sola rama, así atrapa la **clase** de error y no solo este caso. **Verificado reintroduciendo el bug: fallan 3 tests.**
+
+🧭 **Patrón que ya es innegable:** es el **tercer** bug que encuentra Franco usando la app y no la suite. Los tests prueban el camino limpio; él usa el camino real (el celular, el modo rápido, el orden equivocado). Cualquier feature nueva necesita que él la use antes de darla por buena.
+
+⚠️ **El primer CI rojo (2026-08-04) — y por qué NO se arregló como sugería el análisis automático.** `test_kpis.py` y `test_reconciliacion.py` leen `Diario.csv`/`Mensual.csv` de la raíz, que **nunca se versionan**. Las tres opciones que propuso una herramienta externa eran: crear CSV falsos en el workflow, `--ignore` del módulo, o saltear. **Las dos primeras son malas:** `test_kpis.py` compara contra **importes exactos** ($15.014.431 de ingreso anual, entre otros), así que con datos inventados o falla o hay que reescribir los valores esperados —y ahí deja de proteger—; y `--ignore` los borra de la salida. **Se aplicó la convención que el repo ya tenía** desde el gate de recon de 3a: `pytest.skip` con motivo explícito, centralizado en **`tests/_oraculos.py`** (respeta `DIARIO_CSV`/`MENSUAL_CSV`, igual que `ingest.py`). **Verificado en los dos escenarios:** sin los CSV → **23 skipped, cero errores**; con los CSV → **23 passed**.
+
+🧭 **Consecuencia a no olvidar:** los tres tests-oráculo (`test_kpis`, `test_reconciliacion`, `test_cartera_recon`) **solo corren en la máquina de Franco**. Antes de cada deploy hay que correr la suite local, donde el conteo debe dar **0 skipped**. CI protege el resto.
+
+📌 **PENDIENTE DE FRANCO:** **desplegar** (10 commits esperando, incluido este fix) y **programar el backup diario** en el Programador de tareas. Pasos en el RUNBOOK. El test cubre el mecanismo; lo que no puede cubrir es que `flyctl` esté logueado y que la tarea corra.
 
 ## 🚩 Bloqueos / decisiones abiertas
 

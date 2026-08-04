@@ -9,6 +9,150 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 4 de agosto de 2026 (arreglo) — El botón "Agregar gasto" rompía la app
+
+**Qué pasó (en criollo):**
+Tocaste **💸 Agregar gasto** desde el celular y la app se cayó entera con un error rojo. No era un mensaje amable: era la app muriéndose.
+
+**Por qué:** el formulario tiene dos modos. El **rápido** (solo importe y motivo, el que usás del teléfono) y el **detallado**, con fecha, tipo y — si estás en el espacio familiar — el "Firmar como". Los dos modos terminan guardando por el mismo camino, pero el dato de *quién firma* solo se creaba en el modo detallado. Al guardar desde el rápido, la app buscaba algo que nunca había existido y explotaba.
+
+Nunca se había notado porque el error solo aparece **al enviar** el formulario, no al abrirlo, y desde la computadora solés usar el modo detallado.
+
+**Cómo quedó:** en modo rápido ya no se pregunta quién firma — esa es justamente la gracia del modo — y se asume que sos vos, el miembro activo del espacio. Si no estás en un espacio familiar, no cambia nada.
+
+**Lo que me parece más valioso:** el test que dejé no revisa ese dato puntual. Revisa **la forma del error**: lee el código y verifica que ninguna variable que use el guardado esté definida en un solo modo. Si mañana agregamos un campo nuevo al formulario detallado y nos olvidamos del rápido, salta antes de llegar a tu celular. Lo probé al revés: volví a poner el bug a propósito y el test falló; lo saqué y pasó.
+
+**Para qué te sirve:**
+Que puedas cargar un gasto desde el celular sin que se caiga. Y que este tipo de error —el más tonto y el más molesto— tenga red.
+
+**Qué sigue:**
+Desplegar. Este arreglo va en el mismo lote que todo lo demás.
+
+
+---
+
+## 4 de agosto de 2026 — Un robot que revisa tu código cada vez que subís algo
+
+**Qué se hizo (en criollo):**
+Hasta hoy tus 352 pruebas corrían **solo si vos escribías el comando**. Ahora corren solas: cada vez que subas código a GitHub, un robot arranca una computadora limpia, instala todo desde cero y las ejecuta. Si algo se rompió, te avisa ahí mismo con una cruz roja.
+
+Lo de **"computadora limpia"** es lo importante. Hoy pasó justo eso: tu Python local se había quedado sin las librerías del proyecto y las pruebas ni siquiera arrancaban. Nadie se había enterado. Y al revés también sirve: si algo funciona en tu PC porque tenés algo instalado a mano, en la máquina del robot va a fallar — que es exactamente cuando querés enterarte.
+
+**Y de yapa, un segundo guardián.** Revisa que no se te haya colado ningún archivo con tus datos (Excel, base de datos, CSV, contraseñas) en el repositorio. Ya tenías un candado para eso, pero vive en tu máquina y se puede saltear con un comando. Este no: corre en GitHub y no hay forma de puentearlo.
+
+**Para qué te sirve:**
+Para no ser vos el único control de calidad. Y porque el repositorio es privado pero tiene tus finanzas adentro: que algo revise siempre que no se filtre nada vale más que el minuto que tarda.
+
+**Qué sigue:**
+La **voz consistente**: que la app te hable siempre igual y te celebre los hitos (la transacción número 10, la 100, el primer año). Un día de trabajo, riesgo cero.
+
+
+---
+
+## 30 de julio de 2026 (Fase 4) — Tus datos ahora tienen una copia de verdad
+
+**Qué se hizo (en criollo):**
+Antes de tocar ninguna mejora, fui a mirar cómo estaban los respaldos. No estaban bien.
+
+- Las copias automáticas de tu base **viven en el mismo disco que la base**. Si ese disco se pierde, se pierden las dos juntas.
+- **Importar la cartera no generaba ninguna copia.** Cargabas 585 movimientos y no quedaba punto de retorno.
+- El script que bajaba la base a tu PC existía en la app vieja, pero **nunca se copió a la superapp**.
+- El manual de operación eran cinco líneas que decían "placeholder".
+- **Nunca probaste un restore.** Estaba en tu propia lista desde julio, sin tildar.
+
+Lo importante: tu **cartera se puede reconstruir** del Excel si pasa algo. Tus **gastos personales no**. Esos 230 y pico de registros no existen en ningún otro lado.
+
+**Qué hay ahora:**
+
+| | |
+|---|---|
+| `backup_remoto.ps1` | Baja la base a tu PC y **la verifica**: si viene vacía o rota, falla y te avisa |
+| `restaurar_backup.ps1` | El que faltaba. Por defecto hace un **simulacro** y no toca nada |
+| Copias en la cartera | Importar, corregir un movimiento o subir una tenencia ahora deja punto de retorno |
+| `RUNBOOK.md` | El manual de verdad: qué se pierde, cómo volver, y qué hacer si la app no responde |
+| Ensayo automático | El ciclo completo (copiar → perder → volver) corre con los tests |
+
+**Dos detalles que importan más de lo que parecen:** el script de restore **primero guarda lo que hay en producción** antes de pisarlo — si el restore sale mal, podés volver. Y borra dos archivos auxiliares que SQLite usa para las escrituras recientes: si no se borran, la base restaurada se mezcla con la vieja y queda corrupta. Eso es exactamente el tipo de detalle que uno descubre el peor día.
+
+**Para qué te sirve:**
+Para que un problema de disco, un borrado sin querer o un import equivocado sean un mal rato de veinte minutos y no la pérdida de dos años de datos.
+
+**Qué sigue — dos cosas que tenés que hacer vos**, porque no las puedo hacer desde acá:
+
+1. **Ensayar el restore una vez.** Corré el backup, después el restore en modo simulacro, y comprobá que los números coinciden con lo que ves en la app. No toca producción.
+2. **Programar el backup diario** en el Programador de tareas de Windows. Los pasos están en el RUNBOOK.
+
+
+---
+
+## 30 de julio de 2026 — La app ya reconoce sola el sector de cada empresa
+
+**Qué se hizo (en criollo):**
+Tenías razón en las tres: TGNO4 faltaba, los ETF merecían su propia categoría, y la app tenía que poder averiguar los sectores sola en vez de depender de una lista.
+
+Ahora los busca sola en Yahoo. **Cobertura: 18 de 18 papeles. Cero "Sin dato".**
+
+Los ETF quedaron como pediste: **ETF · Oro**, **ETF · Uranio**, **ETF · Cobre**, **ETF · S&P 500**. La app los reconoce sola (Yahoo los marca como ETF y les deja el sector vacío, justamente porque un ETF es una canasta) y les arma la etiqueta con el subyacente.
+
+**Cómo te queda la renta variable:**
+
+| Sector | peso |
+|---|---:|
+| ETF · S&P 500 | 22,1% |
+| Technology | 21,5% |
+| Energy | 12,3% |
+| Financial Services | 11,3% |
+| Consumer Cyclical | 10,7% |
+| Communication Services | 9,3% |
+| ETF · Uranio, Oro y Cobre | 7,5% |
+| Healthcare, Utilities e Industrials | 5,3% |
+
+**Sobre TGNO4:** Yahoo lo clasifica como **Energy · Oil & Gas Midstream**, no Utilities. Las dos son defendibles — el estándar internacional GICS mete el transporte de gas dentro de Energía, aunque en Argentina TGN sea una utility regulada. Elegiste que mande Yahoo, así tu cartera queda comparable contra cualquier referencia. Igual dejé un panel para fijarle el sector a mano a cualquier papel: **tu valor gana siempre**.
+
+**Y algo que apareció al sumar el nivel de industria:** tu 21,5% de "Technology" es en realidad **16% en semiconductores** (NVIDIA, TSMC y ASML juntos). El corte por sector lo escondía; el de industria lo muestra.
+
+**Para qué te sirve:**
+Para ver concentraciones que antes no se veían. Un 16% en un solo tipo de negocio es una apuesta, no una diversificación — y ahora la ves antes de la próxima compra.
+
+**Qué sigue:**
+Desplegar todo esto junto y usarlo unos días.
+
+
+---
+
+## 30 de julio de 2026 (cierre) — Cómo está repartida tu plata, y fin de la Fase 3b
+
+**Qué se hizo (en criollo):**
+La última pieza: una sección que te dice **dónde está parada tu plata**.
+
+| | peso | qué es |
+|---|---:|---|
+| Renta fija | **60,1%** | el AE38, el AN29 y el pagaré |
+| Renta variable | **38,3%** | tus 18 acciones y CEDEARs |
+| Cripto | 1,3% | el bitcoin |
+| Efectivo | 0,3% | lo que tenés en la cuenta |
+
+Ahí hay una foto que quizás no tenías clara: **seis de cada diez pesos tuyos están en renta fija**, y de eso, más de la mitad es un solo pagaré.
+
+Y dentro de tu renta variable, por sector: **Tecnología 21,5%**, Bancos 11,3%, Consumo 10,7%, Comunicaciones 9,3%, Energía 7,6%, y más chico Salud, Servicios públicos e Industria. Un **34,3%** queda como "Sin dato": son TGNO4 y tus cuatro ETFs (SPY, URA, GLD, COPX). A un ETF no le puedo poner un sector sin mentirte — el SPY es el mercado entero y el GLD es oro.
+
+**Dos cosas que estaban mal en el primer intento y arreglé mirando tus números:**
+
+La primera: **tu pagaré, que es el 34% de todo, aparecía como "Sin dato"**. Como nunca estuvo en la hoja Config de tu Excel, la app no sabía qué era. Ahora lo reconoce por el código (`#`) y lo cuenta como renta fija, que es lo que es.
+
+La segunda: el cuadro por sector daba un "Sin dato" del **75%** y no servía para nada, porque metía adentro los bonos, el pagaré, el bitcoin y el efectivo. A esos no les *falta* el sector: **no tienen**. Ahora el cuadro mira solo tu renta variable, y ahí la cobertura real es del **66%**.
+
+**Para qué te sirve:**
+Para ver de un vistazo si estás donde querés estar. Si te parece mucho 60% en renta fija, o mucho 21% en tecnología, ahora lo ves antes de decidir la próxima compra.
+
+**Con esto se cierra la Fase 3b.** La cartera ahora te dice: cuánto tenés, cuánto ganaste, en cuánto tiempo, **en qué acertaste operación por operación**, cuánto te rindió la plata quieta, y **dónde está parada**.
+
+**Qué sigue:**
+Desplegar esto y usarlo unos días. Después arranca la Fase 4, con las Finanzas Personales.
+
+
+---
+
 ## 30 de julio de 2026 — Cuánto te rindió la plata quieta
 
 **Qué se hizo (en criollo):**

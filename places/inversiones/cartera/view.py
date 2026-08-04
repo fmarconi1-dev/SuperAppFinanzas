@@ -32,6 +32,11 @@ from core.market_data import (
     set_override_precio,
 )
 from core.market_data.mep import mep_para_fecha, serie_mep_con_fallback
+from core.market_data.sectores import (
+    refrescar_sectores,
+    sectores_para,
+    set_override_sector,
+)
 from places.inversiones.cartera.ingest import (
     TIPO_DESCONOCIDO,
     TIPO_EXCEL_PROPIO,
@@ -51,6 +56,13 @@ from places.inversiones.cartera.kpis import (
     kpis_de,
     precio_devengado,
     valuar,
+)
+from places.inversiones.cartera.analisis import (
+    SIN_DATO,
+    por_sector,
+    por_tipo_de_renta,
+    sectores_desde_snapshot,
+    tipo_de_renta,
 )
 from places.inversiones.cartera.export import exportar_cartera
 from places.inversiones.cartera.ledger import eventos_desde_db, recorrer
@@ -113,6 +125,46 @@ def _mep_actual() -> tuple[float | None, str]:
     with connect() as conn:
         serie, origen = serie_mep_con_fallback(conn)
     return mep_para_fecha(serie, pd.Timestamp.today().date()), origen
+
+
+@st.cache_data(ttl=_TTL_PRECIOS, show_spinner=False)
+def _sectores_del_scoring() -> tuple[dict, str | None]:
+    """``{ticker: sector}`` del snapshot del scoring (ADR-0002: la app solo
+    LEE el snapshot, no calcula scoring). Es la primera fuente del sector
+    porque ya está en memoria y no cuesta una llamada de red; lo que no cubre
+    lo resuelve Yahoo. `cargar_snapshot` nunca lanza: sin red ni copia local
+    devuelve vacío."""
+    from places.inversiones.scoring.snapshot import cargar_snapshot
+
+    datos, origen = cargar_snapshot()
+    return sectores_desde_snapshot(datos), origen
+
+
+def _resolver_sectores(valuadas, sectores_scoring: dict) -> tuple[dict, dict]:
+    """``(sectores, industrias)`` de la renta variable, resueltos y cacheados.
+
+    Solo se consultan los papeles de **renta variable**: a un bono, al pagaré
+    o a la cripto no les falta el sector, no tienen. La primera corrida pega
+    una vez por ticker contra Yahoo; después sale todo de la caché en DB
+    (incluidos los que no resolvieron, para no reintentar en cada carga).
+    """
+    tickers = [
+        p.ticker for p in valuadas
+        if not p.cerrada
+        and tipo_de_renta(p.categoria_activo, p.ticker) == "Renta variable"
+    ]
+    with connect() as conn:
+        try:
+            refrescar_sectores(conn, tickers, sectores_scoring)
+            conn.commit()
+        except Exception:
+            pass          # la composición se muestra igual con lo que haya
+        sectores = sectores_para(conn)
+        industrias = sectores_para(conn, "industria")
+    # Un ETF no tiene industria: su etiqueta ("ETF · Oro") sirve para los dos
+    # cortes. Si no, todos los ETF caerían juntos en "Sin dato".
+    industrias = {t: industrias.get(t) or sectores.get(t) for t in sectores}
+    return sectores, industrias
 
 
 @st.cache_data(ttl=_TTL_PRECIOS, show_spinner=False)
@@ -282,6 +334,108 @@ def _operaciones_cerradas(ledger) -> None:
                 st.markdown(f"- {a}")
 
 
+def _tabla_grupos(grupos, mep, ayuda_pct: str) -> None:
+    """Tabla de composición: peso, valor y resultado no realizado por grupo."""
+    tope = max((g.pct for g in grupos), default=100.0) or 100.0
+    st.dataframe(
+        pd.DataFrame([
+            {"Grupo": g.nombre, "Peso": g.pct, "Posiciones": g.n,
+             "Valor": g.valor_ars,
+             "US$": g.valor_usd(mep),
+             "No realizado": g.resultado_ars,
+             "Rend. %": g.rendimiento_pct}
+            for g in grupos
+        ]),
+        hide_index=True, use_container_width=True,
+        column_config={
+            "Peso": st.column_config.ProgressColumn(
+                format="%.1f%%", min_value=0.0, max_value=float(tope),
+                help=ayuda_pct),
+            "Posiciones": st.column_config.NumberColumn(format="%d"),
+            "Valor": st.column_config.NumberColumn(format="$ %.0f"),
+            "US$": st.column_config.NumberColumn(format="US$ %.0f"),
+            "No realizado": st.column_config.NumberColumn(
+                format="$ %.0f",
+                help="Lo que vale hoy menos lo que costó. NO es el resultado "
+                     "total: ese no se puede sumar por grupo sin que la "
+                     "devaluación lo infle"),
+            "Rend. %": st.column_config.NumberColumn(format="%.1f%%"),
+        },
+    )
+
+
+def _composicion(valuadas, efectivo_ars, sectores, industrias, mep,
+                 uid) -> None:
+    """Cómo está repartida la plata: por tipo de renta, sector e industria.
+
+    El **tipo de renta** sale de la categoría del Excel y cubre todo. El
+    **sector** y la **industria** se resuelven solos (scoring → Yahoo, con
+    caché y override): a un bono, al pagaré o a la cripto no se les asigna
+    ninguno, porque no les falta el dato — no lo tienen.
+    """
+    st.markdown("#### Cómo está repartida")
+    por_renta = por_tipo_de_renta(valuadas, efectivo_ars)
+    if not por_renta:
+        st.caption("Todavía no hay posiciones para repartir.")
+        return
+
+    ayuda = "Sobre el patrimonio, con el efectivo adentro"
+    izq, der = st.columns(2)
+    with izq:
+        st.markdown("**Por tipo de renta**")
+        st.caption("Desde la categoría de tu Excel: cubre el 100%.")
+        _tabla_grupos(por_renta, mep, ayuda)
+    with der:
+        st.markdown("**Por sector**")
+        grupos_sec = por_sector(valuadas, sectores)
+        sin_dato = next((g for g in grupos_sec if g.nombre == SIN_DATO), None)
+        cubierto = 100.0 - (sin_dato.pct if sin_dato else 0.0)
+        st.caption(
+            f"Solo la **renta variable**: a un bono, al pagaré o a la cripto no "
+            f"les falta el sector, no lo tienen. Resuelto solo — cubre el "
+            f"**{_fmt(cubierto, 0)}%**. Los ETF no tienen sector porque son una "
+            "canasta: van con su subyacente (*ETF · Oro*)."
+        )
+        _tabla_grupos(grupos_sec, mep, "Sobre la renta variable")
+
+    with st.expander("Ver por industria (el detalle dentro de cada sector)"):
+        st.caption(
+            "Dos papeles del mismo sector pueden ser negocios muy distintos. "
+            "Acá se ve, por ejemplo, cuánto de tu tecnología es realmente "
+            "semiconductores."
+        )
+        _tabla_grupos(por_sector(valuadas, industrias), mep,
+                      "Sobre la renta variable")
+
+    with st.expander("Corregir el sector de un papel"):
+        st.caption(
+            "El sector lo resuelve la app sola. Si no coincide con tu criterio, "
+            "fijalo acá: **tu valor gana siempre**, incluso cuando el proveedor "
+            "se actualice. Ejemplo real: Yahoo clasifica a **TGNO4** como "
+            "*Energy · Oil & Gas Midstream* (el estándar GICS mete el "
+            "transporte de gas en Energía), aunque en Argentina se lo piense "
+            "como una utility regulada."
+        )
+        s1, s2, s3 = st.columns([2, 2, 1])
+        with s1:
+            tk_sec = st.selectbox(
+                "Papel", sorted(sectores) or [""], key="cartera_sec_ticker")
+        with s2:
+            nuevo_sector = st.text_input(
+                "Sector", value=sectores.get(tk_sec, ""),
+                key="cartera_sec_valor")
+        with s3:
+            st.write("")
+            if st.button("Fijar", key="cartera_btn_sec",
+                         disabled=not (tk_sec and nuevo_sector)):
+                with connect() as conn:
+                    set_override_sector(conn, tk_sec, nuevo_sector.strip())
+                    conn.commit()
+                st.success(f"{tk_sec} queda como **{nuevo_sector.strip()}**.",
+                           icon=":material/check_circle:")
+                st.rerun()
+
+
 def _rendimiento_caja(cs, resumen, divs, rem) -> None:
     """Lo que rinde la plata que no está en una posición (Fase 3b, punto 3).
 
@@ -291,17 +445,26 @@ def _rendimiento_caja(cs, resumen, divs, rem) -> None:
     resultado, no lo agranda.
     """
     st.markdown("#### La plata quieta")
+
+    rem_ars, rem_usd, rem_n = rem
+    div_bruto = sum(d.bruto for d in divs.values())
+    div_ret = sum(d.retencion for d in divs.values())
+    div_n = sum(d.n for d in divs.values())
+
+    if not (resumen.n or div_n or rem_n):
+        st.caption(
+            "Todavía no hay cauciones, dividendos ni cuenta remunerada en tus "
+            "movimientos. Cuando los haya, acá vas a ver cuánto rindió la "
+            "plata que no está invertida en una posición."
+        )
+        return
+
     st.caption(
         "Cauciones, cuenta remunerada y dividendos. **Ya está todo dentro de "
         "tu patrimonio** — el interés engordó el efectivo y los dividendos ya "
         "cuentan en cada instrumento. Esto no suma nada nuevo: muestra de "
         "dónde viene."
     )
-
-    rem_ars, rem_usd, rem_n = rem
-    div_bruto = sum(d.bruto for d in divs.values())
-    div_ret = sum(d.retencion for d in divs.values())
-    div_n = sum(d.n for d in divs.values())
 
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -331,40 +494,49 @@ def _rendimiento_caja(cs, resumen, divs, rem) -> None:
     col_izq, col_der = st.columns(2)
     with col_izq:
         st.markdown("**Cauciones por año**")
-        st.dataframe(
-            pd.DataFrame([
-                {"Año": anio, "Cauciones": n, "Interés": interes,
-                 "TNA": (tna * 100) if tna is not None else None}
-                for anio, (n, interes, tna) in sorted(resumen.por_anio.items())
-            ]),
-            hide_index=True, use_container_width=True,
-            column_config={
-                "Año": st.column_config.NumberColumn(format="%d"),
-                "Interés": st.column_config.NumberColumn(format="$ %.0f"),
-                "TNA": st.column_config.NumberColumn(
-                    format="%.2f%%",
-                    help="Ponderada por capital y plazo dentro del año"),
-            },
-        )
+        if not resumen.por_anio:
+            st.caption("Sin cauciones registradas.")
+        else:
+            st.dataframe(
+                pd.DataFrame([
+                    {"Año": anio, "Cauciones": n, "Interés": interes,
+                     "TNA": (tna * 100) if tna is not None else None}
+                    for anio, (n, interes, tna)
+                    in sorted(resumen.por_anio.items())
+                ]),
+                hide_index=True, use_container_width=True,
+                column_config={
+                    "Año": st.column_config.NumberColumn(format="%d"),
+                    "Interés": st.column_config.NumberColumn(format="$ %.0f"),
+                    "TNA": st.column_config.NumberColumn(
+                        format="%.2f%%",
+                        help="Ponderada por capital y plazo dentro del año"),
+                },
+            )
     with col_der:
         st.markdown("**Dividendos por instrumento**")
-        st.dataframe(
-            pd.DataFrame([
-                {"Ticker": d.ticker, "Cobros": d.n, "Bruto": d.bruto,
-                 "Retención": d.retencion, "Neto": d.neto,
-                 "Ret. %": d.retencion_pct}
-                for d in sorted(divs.values(), key=lambda x: -x.bruto)
-                if d.bruto
-            ]),
-            hide_index=True, use_container_width=True,
-            column_config={
-                "Bruto": st.column_config.NumberColumn(format="$ %.0f"),
-                "Retención": st.column_config.NumberColumn(format="$ %.0f"),
-                "Neto": st.column_config.NumberColumn(format="$ %.0f"),
-                "Ret. %": st.column_config.NumberColumn(format="%.1f%%"),
-            },
-        )
+        if not div_n:
+            st.caption("Todavía no cobraste dividendos.")
+        else:
+            st.dataframe(
+                pd.DataFrame([
+                    {"Ticker": d.ticker, "Cobros": d.n, "Bruto": d.bruto,
+                     "Retención": d.retencion, "Neto": d.neto,
+                     "Ret. %": d.retencion_pct}
+                    for d in sorted(divs.values(), key=lambda x: -x.bruto)
+                    if d.bruto
+                ]),
+                hide_index=True, use_container_width=True,
+                column_config={
+                    "Bruto": st.column_config.NumberColumn(format="$ %.0f"),
+                    "Retención": st.column_config.NumberColumn(format="$ %.0f"),
+                    "Neto": st.column_config.NumberColumn(format="$ %.0f"),
+                    "Ret. %": st.column_config.NumberColumn(format="%.1f%%"),
+                },
+            )
 
+    if not resumen.n:
+        return
     with st.expander(f"Ver las {resumen.n} cauciones una por una"):
         if resumen.abiertas:
             st.caption(
@@ -640,6 +812,7 @@ def render(user_id: int | None = None) -> None:
 
     precios = _precios_cacheados()
     mep, origen_mep = _mep_actual()
+    sectores_scoring, _origen_scoring = _sectores_del_scoring()
 
     with connect() as conn:
         tasas_devengadas = {
@@ -929,6 +1102,10 @@ def render(user_id: int | None = None) -> None:
         f"{fuente_precios} Costo a promedio ponderado y dólar congelado a la "
         "fecha de cada operación."
     )
+
+    sectores, industrias = _resolver_sectores(valuadas, sectores_scoring)
+    _composicion(valuadas, cash_ars + (cash_usd * mep if mep else 0.0),
+                 sectores, industrias, mep, uid)
 
     _operaciones_cerradas(ledger)
 

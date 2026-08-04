@@ -252,3 +252,63 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
 - **Doble camino verificado:** los módulos puros y los adaptadores de DB (`cauciones_desde_db`, `flujos_caja_desde_db`) dan **exactamente los mismos números** sobre los 585 movimientos importados a una base real.
 - **Estado:** `tests/test_cartera_rendimientos.py` (**19 tests**). Suite **295 passed, 3 skipped**.
 - **Próximo:** punto 4 de la 3b — análisis por sector (reusando el snapshot de scoring) y por tipo de renta.
+
+## 2026-07-30 — Fase 3b, punto 4: cómo está repartida la cartera → **FASE 3b COMPLETA**
+- **Autor:** Claude (Opus 5), con Franco. Skill `ui-ux-web-moderno` aplicada.
+- **Decisión de Franco antes de codear:** tipo de renta como corte principal (cobertura total) y sector como capa secundaria solo donde el dato exista, con un "Sin dato" honesto. **Nada inventado.**
+- **`analisis.py` (módulo puro).** `por_tipo_de_renta` (desde `categoria_activo` de Config) y `por_sector` (desde el snapshot del scoring, que hoy trae **100 empresas**, no las ~20 que decía ESTADO). `sectores_desde_snapshot` tolera un snapshot caído o vacío → todo queda en "Sin dato" y la cartera se muestra igual.
+- **Dos decisiones que evitan repetir errores viejos:**
+  1. **El porcentaje se mide contra el patrimonio, con el efectivo adentro.** Si se midiera solo sobre las posiciones, la caja desaparecería del cuadro y todo lo demás se vería más grande.
+  2. **Se agrega el resultado NO realizado, nunca el total.** Sumar el resultado total por grupo repetiría la trampa de 3a (la devaluación infla los subtotales: $9,92M por componentes contra $2,27M por patrimonio). `valor − costo` vive entero en pesos de hoy y sí se puede sumar. Está dicho en el docstring, en el `help` de la columna y en un test.
+- ⚠️ **Dos cosas que no cerraban en la primera corrida, encontradas mirando los números reales:**
+  1. **El pagaré —el 34% de la cartera— caía en "Sin dato".** Su ticker empieza con `#` y **nunca** estuvo en `Config`, así que llega con categoría "Otros". Se reconoce por el ticker: es **renta fija** por definición (se compra a descuento y su precio converge al nominal).
+  2. **El sector se diluía a un "Sin dato" del 74,6%** porque entraban bonos, pagaré, cripto y efectivo. A esos **no les falta el sector: no tienen**. `por_sector` ahora mira **solo la renta variable** y el porcentaje se lee como *"de mi renta variable, cuánto en cada sector"*. La cobertura pasó de un 25% engañoso a un **65,7% real**.
+- **Números reales (al 30/7/2026, patrimonio $23.962.038):**
+
+  | Tipo de renta | peso | posiciones | valor |
+  |---|---:|---:|---:|
+  | Renta fija | **60,1%** | 3 | $14.406.991 |
+  | Renta variable | **38,3%** | 18 | $9.183.750 |
+  | Cripto | 1,3% | 1 | $309.472 |
+  | Efectivo | 0,3% | 1 | $61.825 |
+
+  **Sector (sobre la renta variable):** Technology 21,5% · Financial Services 11,3% · Consumer Cyclical 10,7% · Communication Services 9,3% · Energy 7,6% · Healthcare 2,2% · Utilities 2,0% · Industrials 1,1% · **Sin dato 34,3%** (TGNO4 y los 4 ETFs: SPY, URA, GLD, COPX).
+- **Vista — "Cómo está repartida":** dos tablas lado a lado con barra de peso (`ProgressColumn`), valor en pesos y dólares, no realizado y rendimiento. "Sin dato" **siempre va último** aunque pese mucho: es una etiqueta de ignorancia, no una categoría que compita.
+- **Estado:** `tests/test_cartera_analisis.py` (**29 tests**). Suite **324 passed, 3 skipped**. **Fase 3b completa.**
+
+## 2026-07-30 — Sector e industria automáticos (pedido de Franco sobre el punto 4)
+- **Autor:** Claude (Opus 5), con Franco. Pedido textual: *"la app debería ser capaz de reconocer por sí sola los sectores de las empresas"*, más TGNO4 (utilities argentina de transporte de gas) y una categoría propia para los ETF (*"ETF - Oro"*).
+- **Fuente elegida: Yahoo `v1/finance/search`.** Devuelve `sector` **e `industry`** sin autenticación. ⚠️ `quoteSummary` (el endpoint "natural" para esto) **exige un crumb con cookie** y devuelve `Unauthorized` — probado antes de elegir.
+- **`core/market_data/sectores.py`** con los mismos resguardos que `mep.py` y `precios.py`: `fetch` inyectable (tests sin red), **caché en DB** (M12, `cartera_sectores`), **override manual** que gana siempre, y nunca lanza.
+- **Cascada:** override → snapshot del scoring (ya está en memoria, no cuesta red) → Yahoo. Solo se consultan los papeles de **renta variable**.
+- **Detalles que evitan errores reales:**
+  - **Coincidencia exacta de símbolo.** Buscando `URA` Yahoo devuelve también `UROY` (una minera de uranio): quedarse con el primer resultado le habría puesto a un ETF el sector de una empresa.
+  - **Sufijo `.BA`** para las argentinas: `TGNO4` no existe en Yahoo, `TGNO4.BA` sí.
+  - **Caché negativa.** Lo que no resuelve también se guarda; si no, un ticker desconocido dispararía una búsqueda en **cada** carga de la pantalla, para siempre. `forzar=True` reintenta.
+  - **Los pagarés no se consultan**: no son una empresa.
+- **Los ETF no tienen sector, y está bien**: Yahoo los marca `quoteType: ETF` con `sector: null` porque **son una canasta**. Se les arma la etiqueta desde el nombre del fondo con un mapa corto de palabras clave: `SPDR Gold Shares` → **"ETF · Oro"**. Lo que no matchea cae al nombre del fondo — nunca a un sector inventado.
+- 📌 **Decisión de Franco (discrepancia real):** Yahoo clasifica a **TGNO4** como **Energy · Oil & Gas Midstream** (el estándar GICS mete el transporte de gas en Energía), no como Utilities. Franco eligió **que mande Yahoo**, para que su cartera quede comparable contra cualquier referencia que use GICS. El override queda disponible y hay UI para usarlo.
+- **Industria como segundo nivel** (también decisión suya): viene gratis en la misma llamada.
+- **Resultado: cobertura 100% de la renta variable** (antes 65,7%). **Cero "Sin dato".**
+
+  | Sector | peso | | Industria | peso |
+  |---|---:|---|---|---:|
+  | ETF · S&P 500 | 22,1% | | ETF · S&P 500 | 22,1% |
+  | Technology | 21,5% | | Semiconductors | 13,2% |
+  | Energy | 12,3% | | Banks—Regional | 11,3% |
+  | Financial Services | 11,3% | | Internet Retail | 10,7% |
+  | Consumer Cyclical | 10,7% | | Internet Content & Information | 9,3% |
+  | Communication Services | 9,3% | | Oil & Gas E&P | 7,6% |
+  | ETF · Uranio / Oro / Cobre | 7,5% | | Software—Application | 5,5% |
+  | Healthcare · Utilities · Industrials | 5,3% | | Oil & Gas Midstream | 4,7% |
+
+- **Lo que se ve ahora y antes no:** el 21,5% de Technology es en realidad **16% en semiconductores** (NVDA + TSM + ASML) — una concentración que el corte por sector escondía. Y TGNO4 se juntó con VIST en Energy (12,3%).
+- **Vista:** el cuadro por sector, un expander con el detalle por industria y otro para **fijar el sector a mano**, con el caso de TGNO4 explicado ahí mismo.
+- **Estado:** `tests/test_market_data_sectores.py` (**18 tests**, sin red). Suite **342 passed, 3 skipped**.
+
+## 2026-07-30 — La cartera ahora deja punto de retorno antes de escribir (Fase 4)
+- **Autor:** Claude (Opus 5). Detalle completo del respaldo en `docs/RUNBOOK.md`; acá queda lo que toca a este módulo.
+- **Agujero encontrado al relevar la Fase 4:** `backup_db()` lo disparaban **solo** las escrituras de Finanzas Personales (transacciones, presupuestos, categorías). **Importar 585 movimientos de cartera no generaba ninguna copia** — y un import masivo es la operación más destructiva de la app: si el archivo está mal entran cientos de filas equivocadas, y el **dedupe hace que reimportar el bueno no las arregle** (la misma trampa del `ticker_base` y del ASML).
+- **Ahora sacan copia previa:** `importar_movimientos`, `corregir_movimiento`, `guardar_foto` (la foto del broker manda sobre las cantidades, importar la equivocada altera todas las valuaciones) y `set_tenencia_manual`.
+- **La copia se saca ANTES de escribir**, así sirve para deshacer: hay test que verifica que la copia dejada por el segundo import contiene el estado del primero.
+- **Estado:** `tests/test_backup_restore.py` (5 tests). Suite **347 passed, 3 skipped**.

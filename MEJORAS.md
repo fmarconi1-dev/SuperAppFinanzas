@@ -38,11 +38,27 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 
 ## Mejoras de producto — Lugar A (Finanzas Personales)
 
-> Heredar y revisar el `MEJORAS.md` del repo original `Mis-Finanzas-App` al llegar a la Fase 4. Pegar acá los ítems vigentes.
+> **Backlog heredado de `Mis-Finanzas-App` y revisado el 4/8/2026.** Ya no hace falta ir al repo viejo: lo vigente está acá abajo. Dos ítems grandes de aquel backlog **ya estaban hechos** al revisarlo.
 
-- 🔴 ✅ **Grupo familiar — D2 Cutover** (hecho 2026-07-17) (gastos compartidos entre usuarios en la misma DB). D1 "Shadow" ya está en producción y **migró al monorepo con la Fase 1** (tablas `workspaces`/`workspace_members`, backfill, 15 tests de invariante, workspaces Franco y Agustina creados). Falta D2: queries filtrando por `workspace_id`, UI crear/unirse/salir en Configuración, badge de modo Personal/Familiar, dropdown "firmar como". Plan detallado y riesgos del premortem #5 en el `MEJORAS.md` del repo original (sección D2).
-- 🟡 💡 Portar el backlog de UX pendiente del repo original.
-- 🟢 💡 _(agregar a medida que surjan)_
+⚠️ **Una decisión cerrada de aquel repo está REVERTIDA:** *"NO reemplazar el Excel de Inviu para inversiones"* (premortem #2). El **ADR-0003** decidió lo contrario y las Fases 3a/3b construyeron la cartera nativa completa. Si alguien lee el `MEJORAS.md` viejo, que no la tome como vigente.
+
+### Hecho
+- 🔴 ✅ **Grupo familiar — D2 Cutover** (2026-07-17): queries por `workspace_id`, UI crear/unirse/salir, badge de modo, "firmar como". Era el ítem más grande del backlog viejo (estimado en 4-5 días).
+- 🔴 ✅ **Módulo de inversiones** (Fases 3a/3b): superó ampliamente el alcance que planteaba la Sección 9 de aquel backlog.
+- 🟡 ✅ **Respaldo externo + restore + RUNBOOK** (4/8/2026): ver `docs/RUNBOOK.md`.
+- 🟡 ✅ **Workflow de CI** (4/8/2026).
+
+### Pendiente
+- 🟡 💡 **M4 · Importador inteligente de CSV con LLM.** Subir el CSV de cualquier banco y que una llamada offline infiera el mapeo de columnas y sugiera categorías, con **preview obligatorio** antes de tocar la base. **Esfuerzo:** 3-5 días. **Riesgo:** medio — el modo de fallo es silencioso (categoriza mal y no te enterás), por eso el preview no es opcional.
+- 🟡 💡 **M5 · API sidecar para agente conversacional.** FastAPI en la misma máquina de Fly, misma SQLite, token bearer rotable + rate-limit por IP + validación Pydantic + log de auditoría. Endpoints `GET /summary` y `POST /transaction`. **Esfuerzo:** 1 semana. **Riesgo:** medio, hay que cuidar la superficie de ataque del endpoint público.
+- 🟢 💡 **Chatbot de WhatsApp.** Tier gratis de WhatsApp Business Cloud API. **Pre-requisito: M5.**
+- 🟢 💡 Portar lo que quede del backlog de UX del repo original (`docs/MEJORAS-UX.md` allá).
+
+### Descartado
+- ⛔ **Voz consistente + hitos de celebración** (1ª transacción, 10ª, 50ª, 100ª, 365ª). Estaba estimado en 1 día con riesgo cero, pero **Franco lo evaluó el 4/8/2026 y decidió que no vale la pena**: es cosmético y no resuelve nada que le moleste usando la app. Anotado para que no se vuelva a proponer.
+- ⛔ **Migrar el stack a React + Firestore + Gemini** (premortem #4, 26/6/2026). Costos de $0 a $25-60/mes, vendor lock-in, superficie 5x más grande, riesgo de pérdida de datos en la migración. **Trigger para reconsiderar:** 20+ usuarios activos pagando, o una feature concreta bloqueada por Streamlit.
+- ⛔ **Publicidad como monetización.** Freemium o suscripción si algún día toca; diferido hasta 5-10 usuarios activos.
+- ⛔ **Toggle claro/oscuro** — bajo impacto y choca con el dark de Cosmic Slate.
 
 ---
 
@@ -50,7 +66,9 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 
 ### Cartera (B.1)
 - 🟡 💡 **Traer la tenencia de cripto directo de Binance** (pedido de Franco, 23/7/2026). Hoy la cantidad de BTC se carga a mano en "Activos fuera del broker" y el precio se busca solo (yahoo). Con la API de Binance (read-only, sin permisos de trading — regla del repo: el agente no opera) la cantidad se actualizaría sola. Alternativa evaluada: `ccxt` (ya en `docs/HERRAMIENTAS-EVALUADAS.md`, 🟡 opcional) que unifica exchanges. Ojo: requiere API key del usuario → guardar en `.env`, nunca en el repo.
-- 🟡 💡 **Amortizaciones parciales** de bonos vivos (ej. AE38 cuando empiece a amortizar en cuotas): hoy suman como flujo cobrado pero no reducen la tenencia. Con vencimiento total ya funciona (marca `Activo = NO` en Config).
+- 🟡 💡 **Amortizaciones parciales** de bonos vivos. **Actualizado 2026-07-30:** la convención argentina es **por precio, nunca por nominales** (dato de Franco) — el broker deja la cantidad quieta y el precio absorbe la devolución de capital. El modelo binario actual (`cant_amortizada` = 0 o todo) alcanza hasta que un bono amortice en cuotas. **Primera fecha real: 9/7/2027** (AE38, 22 cuotas semestrales del 4,545%); AN29 es bullet a 2029. Cuando toque, falta resolver si el precio del broker viene por 100 de nominal **original** o **residual** — se decide con la foto de la tenencia del día que amortice, no antes. Queda fuera de la 3b por eso.
+- 🟢 💡 **Exposición por moneda** (dólar vs pesos) como tercer corte de la composición. Sale de `categoria_activo` + `moneda_cotiz`, pero tiene juicio de por medio: un CEDEAR cotiza en pesos y es exposición en dólares. Requiere una regla explícita acordada con Franco.
+- 🟡 ✅ **Workflow de CI** (hecho 4/8/2026): `tests.yml` corre la suite en Python 3.11 en cada push y PR, más un gate anti-datos del lado del servidor.
 - 🔴 💡 Análisis enriquecido: exposición por sector e industria, TIR esperada de la parte de renta fija, duration/riesgo, correlación fija-vs-variable.
 - 🟡 💡 Comparación de la cartera contra benchmarks (SPY, Merval) en distintos plazos.
 - 🟡 💡 Alertas de vencimientos de bonos/ON (reusar la lógica de la hoja "VTO MES" del Excel).

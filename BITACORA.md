@@ -4,6 +4,77 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-08-04 — El primer CI rojo: los tests-oráculo necesitan datos que no se versionan
+**Autor:** Claude (Opus 5), con Franco.
+- El CI recién estrenado falló en `test_kpis.py` y `test_reconciliacion.py`: leen `Diario.csv`/`Mensual.csv` de la raíz, que **por regla dura nunca se versionan**. **El CI hizo exactamente lo que tenía que hacer** — mostró un supuesto que solo se sostenía en la PC de Franco.
+- ⚠️ **Se descartaron dos de las tres soluciones sugeridas por una herramienta externa.** *CSV falsos en el workflow*: `test_kpis.py` compara contra **importes exactos**, así que con datos inventados o falla, o hay que reescribir los valores esperados y el test deja de proteger. *`--ignore` del módulo*: los borra de la salida y nadie se entera de que existen.
+- **Se aplicó la convención que el repo ya tenía** desde el gate de reconciliación de la Fase 3a: `pytest.skip` con **motivo explícito**. Centralizado en **`tests/_oraculos.py`**, que respeta `DIARIO_CSV`/`MENSUAL_CSV` igual que `ingest.py`, así que los CSV pueden vivir fuera del repo.
+- **Verificado en los dos escenarios:** sin los CSV → **23 skipped, cero errores**; con los CSV → **23 passed**.
+**Por qué importa:** el conteo de `skipped` es la señal. Los tres oráculos (`test_kpis`, `test_reconciliacion`, `test_cartera_recon`) solo corren local; antes de cada deploy la suite tiene que dar **0 skipped** en la máquina de Franco.
+**Estado al cierre:** 362 passed, 3 skipped (local, con datos). Commit listo para pushear.
+
+---
+
+## 2026-08-04 — Bug en producción: "Agregar gasto" reventaba desde el celular
+**Autor:** Claude (Opus 5). Lo encontró Franco usándola.
+- `UnboundLocalError: firma_val` al enviar el formulario en **modo rápido**. La app moría entera.
+- **Causa:** el formulario se bifurca en modo rápido / detallado y las dos ramas caen al mismo guardado, pero `firma_val` se definía solo en la rama detallada. Desde el celular se usa el rápido.
+- **Fix:** la variable se define **antes** de la bifurcación; en modo rápido se asume el miembro activo del espacio (no se pregunta: esa es la gracia del modo).
+- **Test por AST** (`tests/test_transacciones_formulario.py`, 10): verifica que ninguna variable leída después de la bifurcación esté definida en una sola rama — atrapa la **clase** de error, no solo este caso. **Verificado reintroduciendo el bug:** fallan 3 tests; con el fix, pasan los 10.
+**Por qué importa:** es el tercer bug que encuentra Franco usando la app y no los tests. El patrón se repite: los tests prueban el camino limpio, él usa el camino real.
+**Estado al cierre:** 362 passed, 3 skipped.
+
+---
+
+## 2026-08-04 — CI: la suite corre sola en cada push
+**Autor:** Claude (Opus 5), con Franco.
+- **`.github/workflows/tests.yml`**: corre `pytest` en **Python 3.11** (la misma del `Dockerfile` — si CI pasara en otra versión no probaría lo que se despliega) en cada push y PR, **desde cero**. Eso último es lo que ningún test local puede dar: detecta lo que funciona en la PC de Franco "de casualidad".
+- **Segundo job `sin-datos`**: busca `.xlsx`/`.db`/`.csv`/`.env` y claves privadas en el **árbol completo**, no solo en el diff. El pre-commit hook ya lo bloquea, pero vive en la PC de Franco y se puede saltear con `--no-verify`; esta es la red que no se puede puentear.
+- **La suite no necesita red:** todos los módulos que salen a internet (`mep`, `precios`, `sectores`, `snapshot` del scoring) tienen `fetch` inyectable. El CI no depende de que Yahoo o GitHub Pages estén arriba.
+- El gate de reconciliación aparece como **skipped** en CI y está bien: necesita el Excel de Franco, que nunca se versiona. Ese gate corre local.
+**Por qué:** hasta hoy la suite corría solo si Franco escribía el comando. Ese hueco dejó pasar que su entorno local se quedara sin dependencias (Python 3.14 sin instalar nada, la suite ni colectaba) sin que nadie se enterara.
+**Estado al cierre:** 352 passed, 3 skipped. Commit listo para que Franco pushee.
+
+---
+
+## 2026-07-30 — Fase 4 arranca por el respaldo: copia externa, restore y ensayo
+**Autor:** Claude (Opus 5), con Franco.
+- **Relevamiento del backlog del Lugar A** (traído de `Mis-Finanzas-App`): el ítem más grande (**D2 Grupo familiar**, 4-5 días) ya estaba hecho desde el 17/7, y la **Sección 9 (módulo de inversiones)** quedó superada por las Fases 3a/3b. ⚠️ Su decisión cerrada *"NO reemplazar el Excel de Inviu"* está **revertida por ADR-0003**.
+- **Agujero real encontrado, no una mejora:** los backups automáticos viven **en el mismo volumen de Fly que la base**; solo los disparaba el Lugar A (importar cartera no dejaba copia); el `backup_remoto.ps1` de la app vieja **no existía acá**; el `RUNBOOK.md` eran cinco líneas de placeholder; y **nunca se ensayó un restore**. Lo irreemplazable son las transacciones personales: la cartera se reconstruye del Excel, los gastos no.
+- **`scripts/backup_remoto.ps1`**: copia externa que **verifica antes de darla por buena** (`integrity_check` + que haya transacciones + movimientos) y falla si baja vacía. La purga conserva siempre las 3 más recientes aunque sean viejas.
+- **`scripts/restaurar_backup.ps1`** (no existía en ningún lado): simulacro por defecto, respalda producción antes de pisarla, para la app, sube, **borra los archivos `-wal` y `-shm`** —sin eso SQLite mezcla la base restaurada con el diario de la vieja y queda corrupta— y verifica el health.
+- **La cartera ahora deja punto de retorno** antes de importar, corregir un movimiento o guardar una tenencia.
+- **`tests/test_backup_restore.py`**: el ciclo completo automatizado (respaldar → perder → restaurar → verificar), más que la purga nunca se lleve la última copia buena.
+- **`docs/RUNBOOK.md`** de verdad: qué se puede reconstruir y qué no, las tres capas de respaldo, backup, restore, ensayo, caída, secrets y pendientes.
+**Por qué primero esto:** de todo el backlog, es lo único cuyo costo de equivocarse es perder datos que no están en ningún otro lado.
+**Estado al cierre:** 347 passed, 3 skipped. Commit listo para que Franco pushee.
+
+---
+
+## 2026-07-30 — Sector e industria automáticos (Yahoo, con caché y override)
+**Autor:** Claude (Opus 5), con Franco.
+- Pedido de Franco: que la app reconozca sola los sectores, TGNO4 clasificado, y los ETF con categoría propia.
+- **`core/market_data/sectores.py` + M12** (`cartera_sectores`): cascada override → scoring → **Yahoo `v1/finance/search`** (sin autenticación; `quoteSummary` exige crumb y da `Unauthorized`). `fetch` inyectable, caché en DB, caché negativa para no reintentar en cada carga, y nunca lanza.
+- **Coincidencia exacta de símbolo** (buscando `URA` aparece `UROY`, una minera), **sufijo `.BA`** para las argentinas, y los pagarés no se consultan.
+- **Los ETF no tienen sector porque son una canasta**: se les arma la etiqueta desde el nombre del fondo → **"ETF · Oro"**, "ETF · Uranio", "ETF · Cobre", "ETF · S&P 500".
+- **Decisión de Franco:** Yahoo clasifica TGNO4 como *Energy · Oil & Gas Midstream* y no como Utilities; eligió que **mande Yahoo** para quedar comparable contra el estándar GICS. El override queda disponible, con UI.
+- **Cobertura 100% de la renta variable** (antes 65,7%), cero "Sin dato". Con el nivel de industria aparece que el 21,5% de Technology es **16% en semiconductores**.
+**Por qué:** una lista de sectores cargada a mano se desactualiza con cada compra nueva; el dato tiene que resolverse solo.
+**Estado al cierre:** 342 passed, 3 skipped. Commit listo para que Franco pushee.
+
+---
+
+## 2026-07-30 — FASE 3b COMPLETA: composición por tipo de renta y sector
+**Autor:** Claude (Opus 5), con Franco. Skill `ui-ux-web-moderno` aplicada.
+- **`analisis.py`**: `por_tipo_de_renta` (cobertura total, desde `categoria_activo`) y `por_sector` (desde el snapshot del scoring, 100 empresas). Snapshot caído → todo "Sin dato" y la cartera se muestra igual.
+- **El porcentaje se mide contra el patrimonio con el efectivo adentro**, y se agrega **solo el resultado no realizado**: sumar el total por grupo repetiría la trampa de 3a.
+- ⚠️ **Dos correcciones al mirar los números reales:** el **pagaré (34% de la cartera)** caía en "Sin dato" porque nunca estuvo en Config → se reconoce por el `#` y es renta fija; y el corte por sector se diluía a un "Sin dato" del 74,6% por meter bonos, pagaré, cripto y efectivo → ahora mira **solo la renta variable** y la cobertura pasó de 25% a **65,7%**.
+- **Foto de la cartera:** renta fija **60,1%**, renta variable **38,3%**, cripto 1,3%, efectivo 0,3%. Dentro de la variable: Technology 21,5%, Financial Services 11,3%, Consumer Cyclical 10,7%, Communication Services 9,3%, Energy 7,6%.
+**Por qué:** cierra la Fase 3b — la cartera ya dice cuánto tenés, cuánto ganaste, en cuánto tiempo, en qué acertaste, cuánto rindió la caja y dónde está parada.
+**Estado al cierre:** 324 passed, 3 skipped. Commit listo para que Franco pushee.
+
+---
+
 ## 2026-07-30 — Fase 3b punto 3: cauciones, dividendos y cuenta remunerada
 **Autor:** Claude (Opus 5), con Franco. Skill `ui-ux-web-moderno` aplicada.
 - **`rendimientos.py`**: aparea las cauciones (colocación y vencimiento **comparten la fecha de concertación**; el plazo sale de la diferencia entre las liquidaciones), calcula el interés y la **TNA ponderada por capital y tiempo** — promediar las TNA sueltas engaña. Dividendos **netos de retención** por instrumento y cuenta remunerada.

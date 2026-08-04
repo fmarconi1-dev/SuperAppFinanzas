@@ -7,6 +7,8 @@ data/
 *.xls
 *.csv
 backups/
+backups-remotos/
+pre-restore-*.db
 
 # ---- Secrets / entorno ----
 .env
