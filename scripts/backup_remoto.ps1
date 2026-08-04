@@ -22,13 +22,53 @@ $fecha = Get-Date -Format "yyyyMMdd-HHmmss"
 New-Item -ItemType Directory -Force -Path $Destino | Out-Null
 $archivo = Join-Path $Destino "superapp-$fecha.db"
 
-# 1. Despertar la maquina: con auto_stop puede estar dormida y el sftp fallaria.
+# 1. Asegurar que haya una maquina ENCENDIDA. `fly ssh sftp` la necesita.
+#
+#    POR QUE NO ALCANZA UN REQUEST HTTP (fallo real, 4/8/2026): el fly.toml usa
+#    `auto_stop_machines = true` con `min_machines_running = 0`, asi que la
+#    maquina se duerme sola. Despertarla con un GET depende del proxy de Fly y
+#    de que el health check responda dentro del timeout; si no, el sftp corta
+#    con "app has no started VMs" y el backup no se hace.
+#
+#    Y esto NO es un caso raro: la tarea programada corre de madrugada, cuando
+#    la maquina SIEMPRE esta dormida. O sea que el camino de la maquina apagada
+#    es el camino normal de este script, no la excepcion.
+$maquinas = $null
 try {
-    Invoke-WebRequest -Uri "https://$App.fly.dev/_stcore/health" `
-        -TimeoutSec 60 -UseBasicParsing | Out-Null
-    Start-Sleep -Seconds 5
+    $maquinas = fly machines list --json -a $App 2>$null | ConvertFrom-Json
 } catch {
-    Write-Warning "No se pudo despertar la app por HTTP; intento el sftp igual."
+    Write-Warning "No se pudo listar las maquinas; sigo con el despertador HTTP."
+}
+
+if ($maquinas -and $maquinas.Count -eq 0) {
+    Write-Error "La app $App no tiene ninguna maquina. Falta desplegar: fly deploy -a $App"
+    exit 1
+}
+
+if ($maquinas) {
+    $encendida = $maquinas | Where-Object { $_.state -eq "started" } | Select-Object -First 1
+    if (-not $encendida) {
+        $dormida = $maquinas[0]
+        Write-Host "La maquina esta $($dormida.state); la enciendo..."
+        fly machine start $dormida.id -a $App | Out-Null
+    }
+}
+
+# Esperar a que el health responda. El grace_period del arranque es de 30 s.
+$listo = $false
+foreach ($i in 1..12) {
+    try {
+        $r = Invoke-WebRequest -Uri "https://$App.fly.dev/_stcore/health" `
+            -TimeoutSec 10 -UseBasicParsing
+        if ($r.StatusCode -eq 200) { $listo = $true; break }
+    } catch {
+        Start-Sleep -Seconds 5
+    }
+}
+if (-not $listo) {
+    Write-Warning "La app no respondio el health; intento el sftp igual."
+} else {
+    Start-Sleep -Seconds 3
 }
 
 # 2. Descargar la DB.

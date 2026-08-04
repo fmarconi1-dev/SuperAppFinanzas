@@ -41,6 +41,21 @@ powershell -ExecutionPolicy Bypass -File scripts\backup_remoto.ps1
 
 Deja el archivo en `backups-remotos\superapp-AAAAMMDD-HHMMSS.db` y **verifica antes de darlo por bueno**. Si el archivo baja vacío o corrupto, **falla y avisa** en vez de dejarte una copia inútil.
 
+### ⚠️ `app has no started VMs`
+
+El `fly.toml` usa `auto_stop_machines = true` con `min_machines_running = 0`: **la máquina se duerme sola**. Y `fly ssh sftp` necesita una máquina encendida.
+
+**Esto no es un caso raro: es el caso normal.** La tarea programada corre de madrugada, cuando la app siempre está dormida. Por eso el script ya no confía en despertarla con un request HTTP —falló así el 4/8/2026— sino que **lista las máquinas, enciende la que esté apagada y espera al health** antes del `sftp`.
+
+Si aun así ves el error, el diagnóstico es:
+
+```powershell
+fly status -a superapp-finanzas
+```
+
+- Hay una máquina en **`stopped`** → `fly machine start <id> -a superapp-finanzas`.
+- **No hay ninguna máquina** → falta desplegar: `fly deploy -a superapp-finanzas`.
+
 La verificación vive en `scripts\verificar_backup.py` y se puede correr sola sobre cualquier copia:
 
 ```powershell
