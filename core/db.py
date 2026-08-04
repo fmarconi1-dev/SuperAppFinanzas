@@ -760,6 +760,29 @@ def _migrate(conn: sqlite3.Connection) -> None:
             )
         """)
 
+        # ============================================================
+        # M12 (Fase 3b): caché de sector e industria por ticker.
+        # ============================================================
+        # El sector es un dato del mundo, no de la cartera: se resuelve una
+        # vez por ticker y se guarda. Tabla aparte (y no una columna en
+        # `cartera_instrumentos`) por dos motivos: los instrumentos se
+        # re-escriben en cada import desde la hoja Config y pisarían el dato,
+        # y así se replica el patrón ya probado de `cartera_precios_cache`
+        # (fuente + `es_override`, donde el override manual gana siempre).
+        # Sin `user_id`: que NVDA sea Technology no depende de quién la tenga.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS cartera_sectores (
+                ticker          TEXT PRIMARY KEY,
+                sector          TEXT,
+                industria       TEXT,
+                tipo            TEXT,
+                nombre          TEXT,
+                fuente          TEXT,
+                es_override     INTEGER NOT NULL DEFAULT 0,
+                actualizado_en  TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        """)
+
         cur.execute("COMMIT")
     except Exception:
         cur.execute("ROLLBACK")

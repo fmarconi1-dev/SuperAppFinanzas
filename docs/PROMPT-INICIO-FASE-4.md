@@ -2,7 +2,7 @@
 
 Copiá y pegá el bloque de abajo en un chat nuevo. Antes, dale acceso a la carpeta `SuperAppFinanzas/`.
 
-Estado al escribirlo: **Fase 3b completa** (puntos 2, 3 y 4; el punto 1 —amortizaciones parciales— quedó en `MEJORAS.md` con motivo). Suite: 324 passed, 3 skipped.
+Estado al escribirlo: **Fase 3b completa** (puntos 2, 3 y 4; el punto 1 —amortizaciones parciales— quedó en `MEJORAS.md` con motivo). Suite: 342 passed, 3 skipped.
 
 ---
 
@@ -45,10 +45,11 @@ Estado al escribirlo: **Fase 3b completa** (puntos 2, 3 y 4; el punto 1 —amort
 > * `ledger.py` — **motor cronológico**: recorre los movimientos por fecha con PPC móvil y emite una operación cerrada por venta (ADR-0005).
 > * `kpis.py` — valuación y KPIs en dos planos: tenencia viva y rendimiento total (método del patrimonio).
 > * `rendimientos.py` — cauciones apareadas con su TNA ponderada, dividendos netos de retención, cuenta remunerada.
-> * `analisis.py` — composición por tipo de renta y por sector.
+> * `analisis.py` — composición por tipo de renta, sector e industria.
+> * `core/market_data/sectores.py` — sector e industria automáticos (override → scoring → Yahoo), con caché en DB, caché negativa y `fetch` inyectable.
 > * `tenencias.py`, `view.py`, `export.py` — foto del custodio + tenencias manuales, la pestaña Cartera, export a Excel.
 >
-> **324 tests, 3 skipped.** El gate `tests/test_cartera_recon.py` reconcilia contra mi Excel y se saltea solo si no está `CARTERA_XLSX`. **Corré la suite antes y después de tocar cualquier cosa.**
+> **342 tests, 3 skipped.** El gate `tests/test_cartera_recon.py` reconcilia contra mi Excel y se saltea solo si no está `CARTERA_XLSX`. **Corré la suite antes y después de tocar cualquier cosa.**
 >
 > ## Trampas del dominio que ya nos costaron caro — no las repitas
 >
@@ -70,7 +71,9 @@ Estado al escribirlo: **Fase 3b completa** (puntos 2, 3 y 4; el punto 1 —amort
 > 14. **Corregir un movimiento ya importado exige recalcular el `hash_dedupe`.** Si solo se arregla el Excel, la fila corregida entra como movimiento nuevo y quedan las dos. Hay tests de las dos rutas.
 > 15. **Las tasas se ponderan por capital y tiempo, no se promedian.** Promediar las TNA de 101 cauciones le da el mismo peso a una de $20.000 por un día que a una de $2,7M por cinco.
 > 16. **"No tengo el dato" y "no existe el dato" son cosas distintas.** A un bono no le *falta* el sector: no tiene. Filtrá antes de agrupar, o el "Sin dato" se come el 75% del cuadro y no dice nada.
-> 17. **El broker se equivoca.** La compra de ASML del 16/5/2025 vino con **dos ceros de menos** ($60,10 en vez de $6.010). La guarda `Realizacion.sospechosa` (>1.000%) lo detectó sola. Cuando un rendimiento es absurdo, es un dato malo, no un trade.
+> 17. **Antes de elegir un endpoint, probalo.** El "natural" para traer sectores (`quoteSummary` de Yahoo) exige un *crumb* con cookie y devuelve `Unauthorized`; `v1/finance/search` da sector **e industria** sin autenticación. Y siempre exigí **coincidencia exacta de símbolo**: buscando `URA` (ETF de uranio) Yahoo devuelve también `UROY` (una minera).
+> 18. **Toda consulta externa necesita caché negativa.** Si solo se cachea lo que resuelve, un ticker desconocido dispara una búsqueda en cada carga de la pantalla, para siempre.
+> 19. **El broker se equivoca.** La compra de ASML del 16/5/2025 vino con **dos ceros de menos** ($60,10 en vez de $6.010). La guarda `Realizacion.sospechosa` (>1.000%) lo detectó sola. Cuando un rendimiento es absurdo, es un dato malo, no un trade.
 >
 > ## Cómo verificar de verdad
 >

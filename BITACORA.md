@@ -4,6 +4,19 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-07-30 — Sector e industria automáticos (Yahoo, con caché y override)
+**Autor:** Claude (Opus 5), con Franco.
+- Pedido de Franco: que la app reconozca sola los sectores, TGNO4 clasificado, y los ETF con categoría propia.
+- **`core/market_data/sectores.py` + M12** (`cartera_sectores`): cascada override → scoring → **Yahoo `v1/finance/search`** (sin autenticación; `quoteSummary` exige crumb y da `Unauthorized`). `fetch` inyectable, caché en DB, caché negativa para no reintentar en cada carga, y nunca lanza.
+- **Coincidencia exacta de símbolo** (buscando `URA` aparece `UROY`, una minera), **sufijo `.BA`** para las argentinas, y los pagarés no se consultan.
+- **Los ETF no tienen sector porque son una canasta**: se les arma la etiqueta desde el nombre del fondo → **"ETF · Oro"**, "ETF · Uranio", "ETF · Cobre", "ETF · S&P 500".
+- **Decisión de Franco:** Yahoo clasifica TGNO4 como *Energy · Oil & Gas Midstream* y no como Utilities; eligió que **mande Yahoo** para quedar comparable contra el estándar GICS. El override queda disponible, con UI.
+- **Cobertura 100% de la renta variable** (antes 65,7%), cero "Sin dato". Con el nivel de industria aparece que el 21,5% de Technology es **16% en semiconductores**.
+**Por qué:** una lista de sectores cargada a mano se desactualiza con cada compra nueva; el dato tiene que resolverse solo.
+**Estado al cierre:** 342 passed, 3 skipped. Commit listo para que Franco pushee.
+
+---
+
 ## 2026-07-30 — FASE 3b COMPLETA: composición por tipo de renta y sector
 **Autor:** Claude (Opus 5), con Franco. Skill `ui-ux-web-moderno` aplicada.
 - **`analisis.py`**: `por_tipo_de_renta` (cobertura total, desde `categoria_activo`) y `por_sector` (desde el snapshot del scoring, 100 empresas). Snapshot caído → todo "Sin dato" y la cartera se muestra igual.

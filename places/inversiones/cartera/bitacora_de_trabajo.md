@@ -275,3 +275,33 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
   **Sector (sobre la renta variable):** Technology 21,5% · Financial Services 11,3% · Consumer Cyclical 10,7% · Communication Services 9,3% · Energy 7,6% · Healthcare 2,2% · Utilities 2,0% · Industrials 1,1% · **Sin dato 34,3%** (TGNO4 y los 4 ETFs: SPY, URA, GLD, COPX).
 - **Vista — "Cómo está repartida":** dos tablas lado a lado con barra de peso (`ProgressColumn`), valor en pesos y dólares, no realizado y rendimiento. "Sin dato" **siempre va último** aunque pese mucho: es una etiqueta de ignorancia, no una categoría que compita.
 - **Estado:** `tests/test_cartera_analisis.py` (**29 tests**). Suite **324 passed, 3 skipped**. **Fase 3b completa.**
+
+## 2026-07-30 — Sector e industria automáticos (pedido de Franco sobre el punto 4)
+- **Autor:** Claude (Opus 5), con Franco. Pedido textual: *"la app debería ser capaz de reconocer por sí sola los sectores de las empresas"*, más TGNO4 (utilities argentina de transporte de gas) y una categoría propia para los ETF (*"ETF - Oro"*).
+- **Fuente elegida: Yahoo `v1/finance/search`.** Devuelve `sector` **e `industry`** sin autenticación. ⚠️ `quoteSummary` (el endpoint "natural" para esto) **exige un crumb con cookie** y devuelve `Unauthorized` — probado antes de elegir.
+- **`core/market_data/sectores.py`** con los mismos resguardos que `mep.py` y `precios.py`: `fetch` inyectable (tests sin red), **caché en DB** (M12, `cartera_sectores`), **override manual** que gana siempre, y nunca lanza.
+- **Cascada:** override → snapshot del scoring (ya está en memoria, no cuesta red) → Yahoo. Solo se consultan los papeles de **renta variable**.
+- **Detalles que evitan errores reales:**
+  - **Coincidencia exacta de símbolo.** Buscando `URA` Yahoo devuelve también `UROY` (una minera de uranio): quedarse con el primer resultado le habría puesto a un ETF el sector de una empresa.
+  - **Sufijo `.BA`** para las argentinas: `TGNO4` no existe en Yahoo, `TGNO4.BA` sí.
+  - **Caché negativa.** Lo que no resuelve también se guarda; si no, un ticker desconocido dispararía una búsqueda en **cada** carga de la pantalla, para siempre. `forzar=True` reintenta.
+  - **Los pagarés no se consultan**: no son una empresa.
+- **Los ETF no tienen sector, y está bien**: Yahoo los marca `quoteType: ETF` con `sector: null` porque **son una canasta**. Se les arma la etiqueta desde el nombre del fondo con un mapa corto de palabras clave: `SPDR Gold Shares` → **"ETF · Oro"**. Lo que no matchea cae al nombre del fondo — nunca a un sector inventado.
+- 📌 **Decisión de Franco (discrepancia real):** Yahoo clasifica a **TGNO4** como **Energy · Oil & Gas Midstream** (el estándar GICS mete el transporte de gas en Energía), no como Utilities. Franco eligió **que mande Yahoo**, para que su cartera quede comparable contra cualquier referencia que use GICS. El override queda disponible y hay UI para usarlo.
+- **Industria como segundo nivel** (también decisión suya): viene gratis en la misma llamada.
+- **Resultado: cobertura 100% de la renta variable** (antes 65,7%). **Cero "Sin dato".**
+
+  | Sector | peso | | Industria | peso |
+  |---|---:|---|---|---:|
+  | ETF · S&P 500 | 22,1% | | ETF · S&P 500 | 22,1% |
+  | Technology | 21,5% | | Semiconductors | 13,2% |
+  | Energy | 12,3% | | Banks—Regional | 11,3% |
+  | Financial Services | 11,3% | | Internet Retail | 10,7% |
+  | Consumer Cyclical | 10,7% | | Internet Content & Information | 9,3% |
+  | Communication Services | 9,3% | | Oil & Gas E&P | 7,6% |
+  | ETF · Uranio / Oro / Cobre | 7,5% | | Software—Application | 5,5% |
+  | Healthcare · Utilities · Industrials | 5,3% | | Oil & Gas Midstream | 4,7% |
+
+- **Lo que se ve ahora y antes no:** el 21,5% de Technology es en realidad **16% en semiconductores** (NVDA + TSM + ASML) — una concentración que el corte por sector escondía. Y TGNO4 se juntó con VIST en Energy (12,3%).
+- **Vista:** el cuadro por sector, un expander con el detalle por industria y otro para **fijar el sector a mano**, con el caso de TGNO4 explicado ahí mismo.
+- **Estado:** `tests/test_market_data_sectores.py` (**18 tests**, sin red). Suite **342 passed, 3 skipped**.

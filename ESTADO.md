@@ -170,7 +170,15 @@ Los detectó él, no los tests — la única forma de encontrarlos era **reimpor
 >
 > ⚠️ **Dos cosas que no cerraban en la primera corrida, encontradas mirando los números reales:** (1) el **pagaré, el 34% de la cartera**, caía en "Sin dato" porque su ticker empieza con `#` y nunca estuvo en `Config` → se reconoce por el ticker y es **renta fija** (se compra a descuento); (2) el corte por sector se diluía a un **"Sin dato" del 74,6%** porque entraban bonos, pagaré, cripto y efectivo — a esos **no les falta el sector: no tienen** → `por_sector` mira **solo la renta variable** y la cobertura pasó de un 25% engañoso a un **65,7% real**.
 >
-> **Foto de la cartera al 30/7 (patrimonio $23.962.038):** renta fija **60,1%** ($14.406.991, 3 posiciones) · renta variable **38,3%** ($9.183.750, 18) · cripto 1,3% · efectivo 0,3%. **Sector sobre la renta variable:** Technology 21,5% · Financial Services 11,3% · Consumer Cyclical 10,7% · Communication Services 9,3% · Energy 7,6% · Healthcare 2,2% · Utilities 2,0% · Industrials 1,1% · **Sin dato 34,3%** (TGNO4 y los 4 ETFs).
+> **Foto de la cartera al 30/7 (patrimonio $23.962.038):** renta fija **60,1%** ($14.406.991, 3 posiciones) · renta variable **38,3%** ($9.183.750, 18) · cripto 1,3% · efectivo 0,3%.
+>
+> ✅ **SECTOR E INDUSTRIA AUTOMÁTICOS (2026-07-30, pedido de Franco).** `core/market_data/sectores.py` + **M12** (`cartera_sectores`): cascada **override → scoring → Yahoo `v1/finance/search`** (sin autenticación; ⚠️ `quoteSummary` exige un *crumb* con cookie y devuelve `Unauthorized` — probado). `fetch` inyectable, caché en DB, **caché negativa** (si no, un ticker desconocido dispara una búsqueda en cada carga), coincidencia **exacta** de símbolo (buscando `URA` aparece `UROY`), sufijo **`.BA`** para las argentinas, y los pagarés no se consultan. **Cobertura 100% de la renta variable, cero "Sin dato"** (antes 65,7%). `tests/test_market_data_sectores.py` (18 tests, sin red). Suite **342 passed, 3 skipped**.
+>
+> **Los ETF no tienen sector porque son una canasta** → etiqueta desde el nombre del fondo: **ETF · Oro / Uranio / Cobre / S&P 500**.
+>
+> 📌 **Decisión de Franco:** Yahoo clasifica **TGNO4** como **Energy · Oil & Gas Midstream** (GICS mete el transporte de gas en Energía), no Utilities. Eligió que **mande Yahoo** para quedar comparable contra el estándar; el **override manual gana siempre** y tiene UI.
+>
+> **Sector (sobre renta variable):** ETF · S&P 500 22,1% · Technology 21,5% · Energy 12,3% · Financial Services 11,3% · Consumer Cyclical 10,7% · Communication Services 9,3% · ETF Uranio/Oro/Cobre 7,5% · Healthcare+Utilities+Industrials 5,3%. **Con el nivel de industria aparece que el 21,5% de Technology es 16% en semiconductores** (NVDA + TSM + ASML).
 >
 > **Próximo paso concreto:** **desplegar los puntos 3 y 4** (merge del PR + `fly deploy`) y arrancar la **Fase 4** con `docs/PROMPT-INICIO-FASE-4.md`. El punto 1 de la 3b (amortizaciones parciales) queda en `MEJORAS.md` con motivo: la primera amortización real del AE38 es el **9/7/2027** y todavía no se puede saber si el precio del broker vendrá por 100 de nominal original o residual.
 

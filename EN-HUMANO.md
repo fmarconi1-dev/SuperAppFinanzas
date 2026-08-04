@@ -9,6 +9,41 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 30 de julio de 2026 — La app ya reconoce sola el sector de cada empresa
+
+**Qué se hizo (en criollo):**
+Tenías razón en las tres: TGNO4 faltaba, los ETF merecían su propia categoría, y la app tenía que poder averiguar los sectores sola en vez de depender de una lista.
+
+Ahora los busca sola en Yahoo. **Cobertura: 18 de 18 papeles. Cero "Sin dato".**
+
+Los ETF quedaron como pediste: **ETF · Oro**, **ETF · Uranio**, **ETF · Cobre**, **ETF · S&P 500**. La app los reconoce sola (Yahoo los marca como ETF y les deja el sector vacío, justamente porque un ETF es una canasta) y les arma la etiqueta con el subyacente.
+
+**Cómo te queda la renta variable:**
+
+| Sector | peso |
+|---|---:|
+| ETF · S&P 500 | 22,1% |
+| Technology | 21,5% |
+| Energy | 12,3% |
+| Financial Services | 11,3% |
+| Consumer Cyclical | 10,7% |
+| Communication Services | 9,3% |
+| ETF · Uranio, Oro y Cobre | 7,5% |
+| Healthcare, Utilities e Industrials | 5,3% |
+
+**Sobre TGNO4:** Yahoo lo clasifica como **Energy · Oil & Gas Midstream**, no Utilities. Las dos son defendibles — el estándar internacional GICS mete el transporte de gas dentro de Energía, aunque en Argentina TGN sea una utility regulada. Elegiste que mande Yahoo, así tu cartera queda comparable contra cualquier referencia. Igual dejé un panel para fijarle el sector a mano a cualquier papel: **tu valor gana siempre**.
+
+**Y algo que apareció al sumar el nivel de industria:** tu 21,5% de "Technology" es en realidad **16% en semiconductores** (NVIDIA, TSMC y ASML juntos). El corte por sector lo escondía; el de industria lo muestra.
+
+**Para qué te sirve:**
+Para ver concentraciones que antes no se veían. Un 16% en un solo tipo de negocio es una apuesta, no una diversificación — y ahora la ves antes de la próxima compra.
+
+**Qué sigue:**
+Desplegar todo esto junto y usarlo unos días.
+
+
+---
+
 ## 30 de julio de 2026 (cierre) — Cómo está repartida tu plata, y fin de la Fase 3b
 
 **Qué se hizo (en criollo):**

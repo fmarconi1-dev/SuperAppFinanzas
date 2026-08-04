@@ -32,6 +32,11 @@ from core.market_data import (
     set_override_precio,
 )
 from core.market_data.mep import mep_para_fecha, serie_mep_con_fallback
+from core.market_data.sectores import (
+    refrescar_sectores,
+    sectores_para,
+    set_override_sector,
+)
 from places.inversiones.cartera.ingest import (
     TIPO_DESCONOCIDO,
     TIPO_EXCEL_PROPIO,
@@ -57,6 +62,7 @@ from places.inversiones.cartera.analisis import (
     por_sector,
     por_tipo_de_renta,
     sectores_desde_snapshot,
+    tipo_de_renta,
 )
 from places.inversiones.cartera.export import exportar_cartera
 from places.inversiones.cartera.ledger import eventos_desde_db, recorrer
@@ -124,12 +130,41 @@ def _mep_actual() -> tuple[float | None, str]:
 @st.cache_data(ttl=_TTL_PRECIOS, show_spinner=False)
 def _sectores_del_scoring() -> tuple[dict, str | None]:
     """``{ticker: sector}`` del snapshot del scoring (ADR-0002: la app solo
-    LEE el snapshot, no calcula scoring). `cargar_snapshot` nunca lanza: si no
-    hay red ni copia local, se devuelve vacío y todo queda en "Sin dato"."""
+    LEE el snapshot, no calcula scoring). Es la primera fuente del sector
+    porque ya está en memoria y no cuesta una llamada de red; lo que no cubre
+    lo resuelve Yahoo. `cargar_snapshot` nunca lanza: sin red ni copia local
+    devuelve vacío."""
     from places.inversiones.scoring.snapshot import cargar_snapshot
 
     datos, origen = cargar_snapshot()
     return sectores_desde_snapshot(datos), origen
+
+
+def _resolver_sectores(valuadas, sectores_scoring: dict) -> tuple[dict, dict]:
+    """``(sectores, industrias)`` de la renta variable, resueltos y cacheados.
+
+    Solo se consultan los papeles de **renta variable**: a un bono, al pagaré
+    o a la cripto no les falta el sector, no tienen. La primera corrida pega
+    una vez por ticker contra Yahoo; después sale todo de la caché en DB
+    (incluidos los que no resolvieron, para no reintentar en cada carga).
+    """
+    tickers = [
+        p.ticker for p in valuadas
+        if not p.cerrada
+        and tipo_de_renta(p.categoria_activo, p.ticker) == "Renta variable"
+    ]
+    with connect() as conn:
+        try:
+            refrescar_sectores(conn, tickers, sectores_scoring)
+            conn.commit()
+        except Exception:
+            pass          # la composición se muestra igual con lo que haya
+        sectores = sectores_para(conn)
+        industrias = sectores_para(conn, "industria")
+    # Un ETF no tiene industria: su etiqueta ("ETF · Oro") sirve para los dos
+    # cortes. Si no, todos los ETF caerían juntos en "Sin dato".
+    industrias = {t: industrias.get(t) or sectores.get(t) for t in sectores}
+    return sectores, industrias
 
 
 @st.cache_data(ttl=_TTL_PRECIOS, show_spinner=False)
@@ -329,13 +364,14 @@ def _tabla_grupos(grupos, mep, ayuda_pct: str) -> None:
     )
 
 
-def _composicion(valuadas, efectivo_ars, sectores, origen_sectores, mep) -> None:
-    """Cómo está repartida la plata: por tipo de renta y por sector.
+def _composicion(valuadas, efectivo_ars, sectores, industrias, mep,
+                 uid) -> None:
+    """Cómo está repartida la plata: por tipo de renta, sector e industria.
 
     El **tipo de renta** sale de la categoría del Excel y cubre todo. El
-    **sector** sale del snapshot del scoring y cubre lo que cubre: al resto se
-    le pone "Sin dato" en vez de inventarle uno (a un ETF de oro o a un bono
-    soberano no se le puede asignar un sector sin mentir).
+    **sector** y la **industria** se resuelven solos (scoring → Yahoo, con
+    caché y override): a un bono, al pagaré o a la cripto no se les asigna
+    ninguno, porque no les falta el dato — no lo tienen.
     """
     st.markdown("#### Cómo está repartida")
     por_renta = por_tipo_de_renta(valuadas, efectivo_ars)
@@ -354,21 +390,50 @@ def _composicion(valuadas, efectivo_ars, sectores, origen_sectores, mep) -> None
         grupos_sec = por_sector(valuadas, sectores)
         sin_dato = next((g for g in grupos_sec if g.nombre == SIN_DATO), None)
         cubierto = 100.0 - (sin_dato.pct if sin_dato else 0.0)
-        if sectores:
-            st.caption(
-                f"Solo la **renta variable** — a un bono, al pagaré o a la "
-                f"cripto no les falta el sector: no tienen. Del scoring "
-                f"({len(sectores)} empresas) sale el **{_fmt(cubierto, 0)}%**; "
-                "en **Sin dato** quedan los ETFs (son una canasta) y las "
-                "acciones fuera de su universo."
-            )
-        else:
-            st.caption(
-                "El scoring no respondió, así que no hay sectores para cruzar. "
-                "La cartera se muestra igual." if origen_sectores is None else
-                "Sin sectores disponibles."
-            )
-        _tabla_grupos(grupos_sec, mep, ayuda)
+        st.caption(
+            f"Solo la **renta variable**: a un bono, al pagaré o a la cripto no "
+            f"les falta el sector, no lo tienen. Resuelto solo — cubre el "
+            f"**{_fmt(cubierto, 0)}%**. Los ETF no tienen sector porque son una "
+            "canasta: van con su subyacente (*ETF · Oro*)."
+        )
+        _tabla_grupos(grupos_sec, mep, "Sobre la renta variable")
+
+    with st.expander("Ver por industria (el detalle dentro de cada sector)"):
+        st.caption(
+            "Dos papeles del mismo sector pueden ser negocios muy distintos. "
+            "Acá se ve, por ejemplo, cuánto de tu tecnología es realmente "
+            "semiconductores."
+        )
+        _tabla_grupos(por_sector(valuadas, industrias), mep,
+                      "Sobre la renta variable")
+
+    with st.expander("Corregir el sector de un papel"):
+        st.caption(
+            "El sector lo resuelve la app sola. Si no coincide con tu criterio, "
+            "fijalo acá: **tu valor gana siempre**, incluso cuando el proveedor "
+            "se actualice. Ejemplo real: Yahoo clasifica a **TGNO4** como "
+            "*Energy · Oil & Gas Midstream* (el estándar GICS mete el "
+            "transporte de gas en Energía), aunque en Argentina se lo piense "
+            "como una utility regulada."
+        )
+        s1, s2, s3 = st.columns([2, 2, 1])
+        with s1:
+            tk_sec = st.selectbox(
+                "Papel", sorted(sectores) or [""], key="cartera_sec_ticker")
+        with s2:
+            nuevo_sector = st.text_input(
+                "Sector", value=sectores.get(tk_sec, ""),
+                key="cartera_sec_valor")
+        with s3:
+            st.write("")
+            if st.button("Fijar", key="cartera_btn_sec",
+                         disabled=not (tk_sec and nuevo_sector)):
+                with connect() as conn:
+                    set_override_sector(conn, tk_sec, nuevo_sector.strip())
+                    conn.commit()
+                st.success(f"{tk_sec} queda como **{nuevo_sector.strip()}**.",
+                           icon=":material/check_circle:")
+                st.rerun()
 
 
 def _rendimiento_caja(cs, resumen, divs, rem) -> None:
@@ -747,7 +812,7 @@ def render(user_id: int | None = None) -> None:
 
     precios = _precios_cacheados()
     mep, origen_mep = _mep_actual()
-    sectores, origen_sectores = _sectores_del_scoring()
+    sectores_scoring, _origen_scoring = _sectores_del_scoring()
 
     with connect() as conn:
         tasas_devengadas = {
@@ -1038,8 +1103,9 @@ def render(user_id: int | None = None) -> None:
         "fecha de cada operación."
     )
 
+    sectores, industrias = _resolver_sectores(valuadas, sectores_scoring)
     _composicion(valuadas, cash_ars + (cash_usd * mep if mep else 0.0),
-                 sectores, origen_sectores, mep)
+                 sectores, industrias, mep, uid)
 
     _operaciones_cerradas(ledger)
 
