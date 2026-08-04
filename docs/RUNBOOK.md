@@ -135,6 +135,24 @@ Ambos son opcionales (ver `.env.example`). Setearlos **reinicia la app**.
 
 ---
 
+## 🧪 Los tests-oráculo (por qué CI muestra `skipped`)
+
+Tres módulos no verifican lógica contra casos inventados: verifican los **números reales** contra una fuente de verdad externa. Son los más valiosos del repo —atajaron los errores de cálculo de la Fase 3a— pero necesitan archivos que **por regla dura nunca se versionan**:
+
+| Test | Necesita | Variable de entorno |
+|---|---|---|
+| `test_kpis.py` | `Diario.csv` + `Mensual.csv` | `DIARIO_CSV`, `MENSUAL_CSV` |
+| `test_reconciliacion.py` | ídem | ídem |
+| `test_cartera_recon.py` | `Inversiones.xlsx` | `CARTERA_XLSX` |
+
+En CI esos archivos no existen **y no deben existir**, así que los tests se saltean con un motivo explícito y el conteo de `skipped` deja el rastro. Si algún día ves 20 skips donde esperabas 3, algo cambió.
+
+⚠️ **Esto implica que los oráculos solo corren en tu máquina.** Antes de un deploy, corré la suite local: ahí no se saltea ninguno y el conteo tiene que dar **0 skipped**.
+
+**Lo que NO se hace:** alimentarlos con CSV falsos. `test_kpis.py` compara contra importes exactos ($15.014.431 de ingreso anual, entre otros); con datos inventados o falla, o hay que cambiar los valores esperados — y ahí el test deja de proteger. Tampoco `--ignore` en el workflow: desaparecen de la salida y nadie se entera de que existen.
+
+---
+
 ## 📊 Snapshot del scoring
 
 La app **solo lee** el snapshot que publica el batch de GitHub Actions del repo `Scoring-Inversiones` (ADR-0002). Si el scoring se ve viejo, el problema está allá, no acá. La cartera tiene fallback: sin snapshot, los sectores los resuelve Yahoo igual.

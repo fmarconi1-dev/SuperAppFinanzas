@@ -42,9 +42,9 @@ from places.finanzas.core.metrics import (
 )
 
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-DIARIO_CSV = REPO_ROOT / "Diario.csv"
-MENSUAL_CSV = REPO_ROOT / "Mensual.csv"
+# Los CSV y el motivo del skip viven en conftest.py: este es un test-oráculo
+# contra los datos reales de Franco, que nunca se versionan.
+from tests._oraculos import DIARIO_CSV, MENSUAL_CSV, saltear_si_faltan_csv  # noqa: E402
 
 # Valores esperados (fórmula disjunta, Fase 2b).
 EXPECTED = {
@@ -75,6 +75,7 @@ TOL_PCT = 0.0005      # ±0.05 puntos porcentuales
 @pytest.fixture
 def kpis_db(tmp_path, monkeypatch):
     """Importa Diario+Mensual a una DB temporal y devuelve (conn_path, kpis)."""
+    saltear_si_faltan_csv()
     db_tmp = tmp_path / "finanzas_kpis.db"
     monkeypatch.setenv("DB_PATH", str(db_tmp))
     run_import(DIARIO_CSV, MENSUAL_CSV, anio=2026, force=False)

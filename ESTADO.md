@@ -219,7 +219,11 @@ Los detectó él, no los tests — la única forma de encontrarlos era **reimpor
 
 🧭 **Patrón que ya es innegable:** es el **tercer** bug que encuentra Franco usando la app y no la suite. Los tests prueban el camino limpio; él usa el camino real (el celular, el modo rápido, el orden equivocado). Cualquier feature nueva necesita que él la use antes de darla por buena.
 
-📌 **PENDIENTE DE FRANCO:** **desplegar** (9 commits esperando, incluido este fix) y **programar el backup diario** en el Programador de tareas. Pasos en el RUNBOOK. El test cubre el mecanismo; lo que no puede cubrir es que `flyctl` esté logueado y que la tarea corra.
+⚠️ **El primer CI rojo (2026-08-04) — y por qué NO se arregló como sugería el análisis automático.** `test_kpis.py` y `test_reconciliacion.py` leen `Diario.csv`/`Mensual.csv` de la raíz, que **nunca se versionan**. Las tres opciones que propuso una herramienta externa eran: crear CSV falsos en el workflow, `--ignore` del módulo, o saltear. **Las dos primeras son malas:** `test_kpis.py` compara contra **importes exactos** ($15.014.431 de ingreso anual, entre otros), así que con datos inventados o falla o hay que reescribir los valores esperados —y ahí deja de proteger—; y `--ignore` los borra de la salida. **Se aplicó la convención que el repo ya tenía** desde el gate de recon de 3a: `pytest.skip` con motivo explícito, centralizado en **`tests/_oraculos.py`** (respeta `DIARIO_CSV`/`MENSUAL_CSV`, igual que `ingest.py`). **Verificado en los dos escenarios:** sin los CSV → **23 skipped, cero errores**; con los CSV → **23 passed**.
+
+🧭 **Consecuencia a no olvidar:** los tres tests-oráculo (`test_kpis`, `test_reconciliacion`, `test_cartera_recon`) **solo corren en la máquina de Franco**. Antes de cada deploy hay que correr la suite local, donde el conteo debe dar **0 skipped**. CI protege el resto.
+
+📌 **PENDIENTE DE FRANCO:** **desplegar** (10 commits esperando, incluido este fix) y **programar el backup diario** en el Programador de tareas. Pasos en el RUNBOOK. El test cubre el mecanismo; lo que no puede cubrir es que `flyctl` esté logueado y que la tarea corra.
 
 ## 🚩 Bloqueos / decisiones abiertas
 

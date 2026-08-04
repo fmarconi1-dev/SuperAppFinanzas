@@ -37,9 +37,9 @@ from core.db import init_db, connect, get_config
 from places.finanzas.core.ingest import run_import
 
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-DIARIO_CSV = REPO_ROOT / "Diario.csv"
-MENSUAL_CSV = REPO_ROOT / "Mensual.csv"
+# Los CSV y el motivo del skip viven en conftest.py: este es un test-oráculo
+# contra los datos reales de Franco, que nunca se versionan.
+from tests._oraculos import DIARIO_CSV, MENSUAL_CSV, saltear_si_faltan_csv  # noqa: E402
 
 # Saldo final esperado al cierre del Diario (11/5/2026). Coincide con el valor
 # "Saldo cuenta corriente" del Mensual.csv → es nuestro número-ancla.
@@ -51,6 +51,7 @@ TOL = 0.01
 
 def _iter_csv_rows():
     """Generator de filas (fecha_raw, pasivos_raw, ingresos_raw, motivo_raw, caja_raw)."""
+    saltear_si_faltan_csv()
     with open(DIARIO_CSV, encoding=CSV_ENCODING, newline="") as f:
         reader = csv.reader(f, delimiter=CSV_SEPARATOR)
         next(reader)  # skip header
@@ -60,7 +61,12 @@ def _iter_csv_rows():
 
 
 def test_csv_existe():
-    """Pre-flight: el CSV de origen tiene que estar al lado del paquete."""
+    """Pre-flight: el CSV de origen tiene que estar al lado del paquete.
+
+    En CI se saltea (los CSV no se versionan). En la máquina de Franco, si
+    esto falla es que movió o renombró los archivos.
+    """
+    saltear_si_faltan_csv()
     assert DIARIO_CSV.exists(), f"No encuentro {DIARIO_CSV}"
     assert MENSUAL_CSV.exists(), f"No encuentro {MENSUAL_CSV}"
 
@@ -129,6 +135,7 @@ def test_caja_via_db(tmp_path, monkeypatch):
 
     Usa una DB temporal (tmp_path) para no tocar la real del usuario.
     """
+    saltear_si_faltan_csv()
     db_tmp = tmp_path / "finanzas_test.db"
     monkeypatch.setenv("DB_PATH", str(db_tmp))
 
@@ -158,6 +165,7 @@ def test_caja_via_db(tmp_path, monkeypatch):
 def test_motivos_normalizados_sin_espacios_trailing(tmp_path, monkeypatch):
     """Garantiza que 'Pago tarjeta ' (con espacio final) y 'Pago tarjeta' no
     aparezcan como motivos distintos en la DB."""
+    saltear_si_faltan_csv()
     db_tmp = tmp_path / "finanzas_test.db"
     monkeypatch.setenv("DB_PATH", str(db_tmp))
     run_import(DIARIO_CSV, MENSUAL_CSV, anio=2026, force=False)

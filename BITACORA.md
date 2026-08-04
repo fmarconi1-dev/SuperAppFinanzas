@@ -4,6 +4,17 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-08-04 — El primer CI rojo: los tests-oráculo necesitan datos que no se versionan
+**Autor:** Claude (Opus 5), con Franco.
+- El CI recién estrenado falló en `test_kpis.py` y `test_reconciliacion.py`: leen `Diario.csv`/`Mensual.csv` de la raíz, que **por regla dura nunca se versionan**. **El CI hizo exactamente lo que tenía que hacer** — mostró un supuesto que solo se sostenía en la PC de Franco.
+- ⚠️ **Se descartaron dos de las tres soluciones sugeridas por una herramienta externa.** *CSV falsos en el workflow*: `test_kpis.py` compara contra **importes exactos**, así que con datos inventados o falla, o hay que reescribir los valores esperados y el test deja de proteger. *`--ignore` del módulo*: los borra de la salida y nadie se entera de que existen.
+- **Se aplicó la convención que el repo ya tenía** desde el gate de reconciliación de la Fase 3a: `pytest.skip` con **motivo explícito**. Centralizado en **`tests/_oraculos.py`**, que respeta `DIARIO_CSV`/`MENSUAL_CSV` igual que `ingest.py`, así que los CSV pueden vivir fuera del repo.
+- **Verificado en los dos escenarios:** sin los CSV → **23 skipped, cero errores**; con los CSV → **23 passed**.
+**Por qué importa:** el conteo de `skipped` es la señal. Los tres oráculos (`test_kpis`, `test_reconciliacion`, `test_cartera_recon`) solo corren local; antes de cada deploy la suite tiene que dar **0 skipped** en la máquina de Franco.
+**Estado al cierre:** 362 passed, 3 skipped (local, con datos). Commit listo para pushear.
+
+---
+
 ## 2026-08-04 — Bug en producción: "Agregar gasto" reventaba desde el celular
 **Autor:** Claude (Opus 5). Lo encontró Franco usándola.
 - `UnboundLocalError: firma_val` al enviar el formulario en **modo rápido**. La app moría entera.
