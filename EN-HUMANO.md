@@ -9,6 +9,39 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 30 de julio de 2026 (cierre) — Cómo está repartida tu plata, y fin de la Fase 3b
+
+**Qué se hizo (en criollo):**
+La última pieza: una sección que te dice **dónde está parada tu plata**.
+
+| | peso | qué es |
+|---|---:|---|
+| Renta fija | **60,1%** | el AE38, el AN29 y el pagaré |
+| Renta variable | **38,3%** | tus 18 acciones y CEDEARs |
+| Cripto | 1,3% | el bitcoin |
+| Efectivo | 0,3% | lo que tenés en la cuenta |
+
+Ahí hay una foto que quizás no tenías clara: **seis de cada diez pesos tuyos están en renta fija**, y de eso, más de la mitad es un solo pagaré.
+
+Y dentro de tu renta variable, por sector: **Tecnología 21,5%**, Bancos 11,3%, Consumo 10,7%, Comunicaciones 9,3%, Energía 7,6%, y más chico Salud, Servicios públicos e Industria. Un **34,3%** queda como "Sin dato": son TGNO4 y tus cuatro ETFs (SPY, URA, GLD, COPX). A un ETF no le puedo poner un sector sin mentirte — el SPY es el mercado entero y el GLD es oro.
+
+**Dos cosas que estaban mal en el primer intento y arreglé mirando tus números:**
+
+La primera: **tu pagaré, que es el 34% de todo, aparecía como "Sin dato"**. Como nunca estuvo en la hoja Config de tu Excel, la app no sabía qué era. Ahora lo reconoce por el código (`#`) y lo cuenta como renta fija, que es lo que es.
+
+La segunda: el cuadro por sector daba un "Sin dato" del **75%** y no servía para nada, porque metía adentro los bonos, el pagaré, el bitcoin y el efectivo. A esos no les *falta* el sector: **no tienen**. Ahora el cuadro mira solo tu renta variable, y ahí la cobertura real es del **66%**.
+
+**Para qué te sirve:**
+Para ver de un vistazo si estás donde querés estar. Si te parece mucho 60% en renta fija, o mucho 21% en tecnología, ahora lo ves antes de decidir la próxima compra.
+
+**Con esto se cierra la Fase 3b.** La cartera ahora te dice: cuánto tenés, cuánto ganaste, en cuánto tiempo, **en qué acertaste operación por operación**, cuánto te rindió la plata quieta, y **dónde está parada**.
+
+**Qué sigue:**
+Desplegar esto y usarlo unos días. Después arranca la Fase 4, con las Finanzas Personales.
+
+
+---
+
 ## 30 de julio de 2026 — Cuánto te rindió la plata quieta
 
 **Qué se hizo (en criollo):**

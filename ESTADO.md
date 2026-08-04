@@ -3,7 +3,7 @@
 > **Este es el archivo más importante para retomar el trabajo.** Se lee primero y se actualiza último, cada sesión.
 > Antes de editar código, actualizá la tabla "Tarea en curso". Al cerrar, dejá el "Próximo paso concreto".
 
-<!-- ultima_actualizacion: 2026-07-30 · autor: Claude (Opus 5) · handoff: Fase 3b EN CURSO — puntos 2 y 3 hechos (motor cronológico + realizado por operación DESPLEGADO; cauciones/dividendos listo para desplegar). Próximo: punto 4, sector y tipo de renta -->
+<!-- ultima_actualizacion: 2026-07-30 · autor: Claude (Opus 5) · handoff: **FASE 3b COMPLETA** (puntos 2, 3 y 4; el 1 quedó en MEJORAS con motivo). Puntos 3 y 4 SIN DESPLEGAR. Próximo: desplegar y arrancar Fase 4 — ver docs/PROMPT-INICIO-FASE-4.md -->
 
 ## 🧭 Dónde estamos
 
@@ -18,7 +18,8 @@
 | Tarea | Estado | Autor | Desde |
 |---|---|---|---|
 | Fase 3a — Cartera nativa (ingest + posiciones + KPIs + recon + export) | ✅ **CERRADA Y DESPLEGADA** (2026-07-30, v11) | Claude (Fable 5 → Opus 4.8) | 2026-07-19 |
-| Fase 3b — Rendimientos finos (ver detalle abajo) | 🔵 **EN CURSO** — puntos 2 (desplegado) y 3 (sin desplegar) hechos | Claude (Opus 5) | 2026-07-30 |
+| Fase 3b — Rendimientos finos | ✅ **COMPLETA** (2026-07-30). Punto 2 desplegado; **3 y 4 sin desplegar** | Claude (Opus 5) | 2026-07-30 |
+| Fase 4 — Mejoras del Lugar A (Finanzas Personales) | ⬜ SIGUIENTE — arrancar con `docs/PROMPT-INICIO-FASE-4.md` | — | — |
 
 ## ✅ Hecho hasta ahora
 
@@ -163,7 +164,15 @@ Los detectó él, no los tests — la única forma de encontrarlos era **reimpor
 >
 > **⚠️ Es atribución, no plata nueva:** ya estaba todo dentro del patrimonio. La vista lo dice explícitamente.
 >
-> **Próximo paso concreto:** **punto 4 de la 3b — análisis por sector** (reusando el sector del snapshot de scoring) **y por tipo de renta**. Ojo con la cobertura: la cartera es casi toda CEDEARs y el scoring cubre ~20 tickers; el corte por **tipo de renta** (fija / variable / cripto / efectivo) sale de `categoria_activo` y está disponible hoy.
+> **Punto 4 ✅ HECHO (2026-07-30) — `analisis.py` + sección "Cómo está repartida". FASE 3b COMPLETA.** Decisión de Franco: tipo de renta como corte principal (cobertura total) y sector como capa secundaria solo donde el dato exista. El snapshot del scoring ya trae **100 empresas**, no las ~20 que decía este archivo.
+>
+> **Dos decisiones para no repetir errores viejos:** el porcentaje se mide **contra el patrimonio con el efectivo adentro** (si no, la caja desaparece del cuadro), y se agrega **solo el resultado no realizado** — sumar el total por grupo repetiría la trampa de 3a.
+>
+> ⚠️ **Dos cosas que no cerraban en la primera corrida, encontradas mirando los números reales:** (1) el **pagaré, el 34% de la cartera**, caía en "Sin dato" porque su ticker empieza con `#` y nunca estuvo en `Config` → se reconoce por el ticker y es **renta fija** (se compra a descuento); (2) el corte por sector se diluía a un **"Sin dato" del 74,6%** porque entraban bonos, pagaré, cripto y efectivo — a esos **no les falta el sector: no tienen** → `por_sector` mira **solo la renta variable** y la cobertura pasó de un 25% engañoso a un **65,7% real**.
+>
+> **Foto de la cartera al 30/7 (patrimonio $23.962.038):** renta fija **60,1%** ($14.406.991, 3 posiciones) · renta variable **38,3%** ($9.183.750, 18) · cripto 1,3% · efectivo 0,3%. **Sector sobre la renta variable:** Technology 21,5% · Financial Services 11,3% · Consumer Cyclical 10,7% · Communication Services 9,3% · Energy 7,6% · Healthcare 2,2% · Utilities 2,0% · Industrials 1,1% · **Sin dato 34,3%** (TGNO4 y los 4 ETFs).
+>
+> **Próximo paso concreto:** **desplegar los puntos 3 y 4** (merge del PR + `fly deploy`) y arrancar la **Fase 4** con `docs/PROMPT-INICIO-FASE-4.md`. El punto 1 de la 3b (amortizaciones parciales) queda en `MEJORAS.md` con motivo: la primera amortización real del AE38 es el **9/7/2027** y todavía no se puede saber si el precio del broker vendrá por 100 de nominal original o residual.
 
 **Los cuatro puntos, en orden:**
 

@@ -35,7 +35,12 @@ El plan original (Excel-in-the-loop) se reemplazó por **cartera nativa**: DB pr
 - ✅ **3a paso 4:** posiciones + KPIs + **vista de Cartera con upload**; import de la tenencia del broker (M10) + tenencias manuales para activos externos; rendimiento por **método del patrimonio** en ARS/USD + **TIR**.
 - ✅ **3a paso 5:** recon de **costos en USD** modo "MEP actual" (49 tickers) + divergencias conocidas congeladas en tests.
 - ✅ **Fase 3a COMPLETA (2026-07-30).** Verificada con datos reales al 30/7: patrimonio US$15.741 · aportado US$11.534 · **+36,5% acumulado, TIR 24,4% anual en dólares** (602 días). Suite 229 + 3 del gate.
-- ⬜ **Siguiente:** merge a `main` + `fly deploy`.
+- ✅ **Fase 3a DESPLEGADA (2026-07-30, v11).**
+- ✅ **3b punto 2 — resultado realizado por operación (ADR-0005), DESPLEGADO.** Motor cronológico `ledger.py` con PPC móvil: el costo de una venta es el vigente ESE día, no el promedio de toda la historia. Cambió el realizado en 9 tickers (−4,6%); patrimonio, TIR y el gate de recon, intactos. 45 operaciones, 38 ganadoras.
+- ✅ **3b punto 3 — cauciones, dividendos y cuenta remunerada.** `rendimientos.py`: 101 cauciones apareadas, interés $33.365 a una **TNA ponderada del 25,60%**; dividendos netos de retención por instrumento; total de la caja $120.562.
+- ✅ **3b punto 4 — composición por tipo de renta y sector.** `analisis.py`: renta fija 60,1% · variable 38,3% · cripto 1,3% · efectivo 0,3%; sector sobre la renta variable con 65,7% de cobertura del scoring.
+- ✅ **FASE 3b COMPLETA (2026-07-30).** Suite 324 + 3 del gate. **Pendiente: desplegar los puntos 3 y 4.**
+- ⬜ **Queda de 3b para más adelante:** las **amortizaciones parciales** de bonos vivos. No urgente: la primera amortización del AE38 es el **9/7/2027** y el AN29 es bullet a 2029. Anotado en `MEJORAS.md`.
 **Gate:** `tests/test_cartera_recon.py` (cartera app == Excel, fila por fila; cantidades y costos ARS exactos).
 **Salida:** la cartera online, con los mismos números que la planilla y más al día que ella.
 

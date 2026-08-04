@@ -4,6 +4,17 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-07-30 — FASE 3b COMPLETA: composición por tipo de renta y sector
+**Autor:** Claude (Opus 5), con Franco. Skill `ui-ux-web-moderno` aplicada.
+- **`analisis.py`**: `por_tipo_de_renta` (cobertura total, desde `categoria_activo`) y `por_sector` (desde el snapshot del scoring, 100 empresas). Snapshot caído → todo "Sin dato" y la cartera se muestra igual.
+- **El porcentaje se mide contra el patrimonio con el efectivo adentro**, y se agrega **solo el resultado no realizado**: sumar el total por grupo repetiría la trampa de 3a.
+- ⚠️ **Dos correcciones al mirar los números reales:** el **pagaré (34% de la cartera)** caía en "Sin dato" porque nunca estuvo en Config → se reconoce por el `#` y es renta fija; y el corte por sector se diluía a un "Sin dato" del 74,6% por meter bonos, pagaré, cripto y efectivo → ahora mira **solo la renta variable** y la cobertura pasó de 25% a **65,7%**.
+- **Foto de la cartera:** renta fija **60,1%**, renta variable **38,3%**, cripto 1,3%, efectivo 0,3%. Dentro de la variable: Technology 21,5%, Financial Services 11,3%, Consumer Cyclical 10,7%, Communication Services 9,3%, Energy 7,6%.
+**Por qué:** cierra la Fase 3b — la cartera ya dice cuánto tenés, cuánto ganaste, en cuánto tiempo, en qué acertaste, cuánto rindió la caja y dónde está parada.
+**Estado al cierre:** 324 passed, 3 skipped. Commit listo para que Franco pushee.
+
+---
+
 ## 2026-07-30 — Fase 3b punto 3: cauciones, dividendos y cuenta remunerada
 **Autor:** Claude (Opus 5), con Franco. Skill `ui-ux-web-moderno` aplicada.
 - **`rendimientos.py`**: aparea las cauciones (colocación y vencimiento **comparten la fecha de concertación**; el plazo sale de la diferencia entre las liquidaciones), calcula el interés y la **TNA ponderada por capital y tiempo** — promediar las TNA sueltas engaña. Dividendos **netos de retención** por instrumento y cuenta remunerada.

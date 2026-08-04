@@ -52,6 +52,12 @@ from places.inversiones.cartera.kpis import (
     precio_devengado,
     valuar,
 )
+from places.inversiones.cartera.analisis import (
+    SIN_DATO,
+    por_sector,
+    por_tipo_de_renta,
+    sectores_desde_snapshot,
+)
 from places.inversiones.cartera.export import exportar_cartera
 from places.inversiones.cartera.ledger import eventos_desde_db, recorrer
 from places.inversiones.cartera.parser import Instrumento, parse_archivo_excel
@@ -113,6 +119,17 @@ def _mep_actual() -> tuple[float | None, str]:
     with connect() as conn:
         serie, origen = serie_mep_con_fallback(conn)
     return mep_para_fecha(serie, pd.Timestamp.today().date()), origen
+
+
+@st.cache_data(ttl=_TTL_PRECIOS, show_spinner=False)
+def _sectores_del_scoring() -> tuple[dict, str | None]:
+    """``{ticker: sector}`` del snapshot del scoring (ADR-0002: la app solo
+    LEE el snapshot, no calcula scoring). `cargar_snapshot` nunca lanza: si no
+    hay red ni copia local, se devuelve vacío y todo queda en "Sin dato"."""
+    from places.inversiones.scoring.snapshot import cargar_snapshot
+
+    datos, origen = cargar_snapshot()
+    return sectores_desde_snapshot(datos), origen
 
 
 @st.cache_data(ttl=_TTL_PRECIOS, show_spinner=False)
@@ -280,6 +297,78 @@ def _operaciones_cerradas(ledger) -> None:
             )
             for a in ledger.advertencias:
                 st.markdown(f"- {a}")
+
+
+def _tabla_grupos(grupos, mep, ayuda_pct: str) -> None:
+    """Tabla de composición: peso, valor y resultado no realizado por grupo."""
+    tope = max((g.pct for g in grupos), default=100.0) or 100.0
+    st.dataframe(
+        pd.DataFrame([
+            {"Grupo": g.nombre, "Peso": g.pct, "Posiciones": g.n,
+             "Valor": g.valor_ars,
+             "US$": g.valor_usd(mep),
+             "No realizado": g.resultado_ars,
+             "Rend. %": g.rendimiento_pct}
+            for g in grupos
+        ]),
+        hide_index=True, use_container_width=True,
+        column_config={
+            "Peso": st.column_config.ProgressColumn(
+                format="%.1f%%", min_value=0.0, max_value=float(tope),
+                help=ayuda_pct),
+            "Posiciones": st.column_config.NumberColumn(format="%d"),
+            "Valor": st.column_config.NumberColumn(format="$ %.0f"),
+            "US$": st.column_config.NumberColumn(format="US$ %.0f"),
+            "No realizado": st.column_config.NumberColumn(
+                format="$ %.0f",
+                help="Lo que vale hoy menos lo que costó. NO es el resultado "
+                     "total: ese no se puede sumar por grupo sin que la "
+                     "devaluación lo infle"),
+            "Rend. %": st.column_config.NumberColumn(format="%.1f%%"),
+        },
+    )
+
+
+def _composicion(valuadas, efectivo_ars, sectores, origen_sectores, mep) -> None:
+    """Cómo está repartida la plata: por tipo de renta y por sector.
+
+    El **tipo de renta** sale de la categoría del Excel y cubre todo. El
+    **sector** sale del snapshot del scoring y cubre lo que cubre: al resto se
+    le pone "Sin dato" en vez de inventarle uno (a un ETF de oro o a un bono
+    soberano no se le puede asignar un sector sin mentir).
+    """
+    st.markdown("#### Cómo está repartida")
+    por_renta = por_tipo_de_renta(valuadas, efectivo_ars)
+    if not por_renta:
+        st.caption("Todavía no hay posiciones para repartir.")
+        return
+
+    ayuda = "Sobre el patrimonio, con el efectivo adentro"
+    izq, der = st.columns(2)
+    with izq:
+        st.markdown("**Por tipo de renta**")
+        st.caption("Desde la categoría de tu Excel: cubre el 100%.")
+        _tabla_grupos(por_renta, mep, ayuda)
+    with der:
+        st.markdown("**Por sector**")
+        grupos_sec = por_sector(valuadas, sectores)
+        sin_dato = next((g for g in grupos_sec if g.nombre == SIN_DATO), None)
+        cubierto = 100.0 - (sin_dato.pct if sin_dato else 0.0)
+        if sectores:
+            st.caption(
+                f"Solo la **renta variable** — a un bono, al pagaré o a la "
+                f"cripto no les falta el sector: no tienen. Del scoring "
+                f"({len(sectores)} empresas) sale el **{_fmt(cubierto, 0)}%**; "
+                "en **Sin dato** quedan los ETFs (son una canasta) y las "
+                "acciones fuera de su universo."
+            )
+        else:
+            st.caption(
+                "El scoring no respondió, así que no hay sectores para cruzar. "
+                "La cartera se muestra igual." if origen_sectores is None else
+                "Sin sectores disponibles."
+            )
+        _tabla_grupos(grupos_sec, mep, ayuda)
 
 
 def _rendimiento_caja(cs, resumen, divs, rem) -> None:
@@ -658,6 +747,7 @@ def render(user_id: int | None = None) -> None:
 
     precios = _precios_cacheados()
     mep, origen_mep = _mep_actual()
+    sectores, origen_sectores = _sectores_del_scoring()
 
     with connect() as conn:
         tasas_devengadas = {
@@ -947,6 +1037,9 @@ def render(user_id: int | None = None) -> None:
         f"{fuente_precios} Costo a promedio ponderado y dólar congelado a la "
         "fecha de cada operación."
     )
+
+    _composicion(valuadas, cash_ars + (cash_usd * mep if mep else 0.0),
+                 sectores, origen_sectores, mep)
 
     _operaciones_cerradas(ledger)
 

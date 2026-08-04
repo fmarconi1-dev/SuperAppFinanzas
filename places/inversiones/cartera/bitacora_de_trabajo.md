@@ -252,3 +252,26 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
 - **Doble camino verificado:** los módulos puros y los adaptadores de DB (`cauciones_desde_db`, `flujos_caja_desde_db`) dan **exactamente los mismos números** sobre los 585 movimientos importados a una base real.
 - **Estado:** `tests/test_cartera_rendimientos.py` (**19 tests**). Suite **295 passed, 3 skipped**.
 - **Próximo:** punto 4 de la 3b — análisis por sector (reusando el snapshot de scoring) y por tipo de renta.
+
+## 2026-07-30 — Fase 3b, punto 4: cómo está repartida la cartera → **FASE 3b COMPLETA**
+- **Autor:** Claude (Opus 5), con Franco. Skill `ui-ux-web-moderno` aplicada.
+- **Decisión de Franco antes de codear:** tipo de renta como corte principal (cobertura total) y sector como capa secundaria solo donde el dato exista, con un "Sin dato" honesto. **Nada inventado.**
+- **`analisis.py` (módulo puro).** `por_tipo_de_renta` (desde `categoria_activo` de Config) y `por_sector` (desde el snapshot del scoring, que hoy trae **100 empresas**, no las ~20 que decía ESTADO). `sectores_desde_snapshot` tolera un snapshot caído o vacío → todo queda en "Sin dato" y la cartera se muestra igual.
+- **Dos decisiones que evitan repetir errores viejos:**
+  1. **El porcentaje se mide contra el patrimonio, con el efectivo adentro.** Si se midiera solo sobre las posiciones, la caja desaparecería del cuadro y todo lo demás se vería más grande.
+  2. **Se agrega el resultado NO realizado, nunca el total.** Sumar el resultado total por grupo repetiría la trampa de 3a (la devaluación infla los subtotales: $9,92M por componentes contra $2,27M por patrimonio). `valor − costo` vive entero en pesos de hoy y sí se puede sumar. Está dicho en el docstring, en el `help` de la columna y en un test.
+- ⚠️ **Dos cosas que no cerraban en la primera corrida, encontradas mirando los números reales:**
+  1. **El pagaré —el 34% de la cartera— caía en "Sin dato".** Su ticker empieza con `#` y **nunca** estuvo en `Config`, así que llega con categoría "Otros". Se reconoce por el ticker: es **renta fija** por definición (se compra a descuento y su precio converge al nominal).
+  2. **El sector se diluía a un "Sin dato" del 74,6%** porque entraban bonos, pagaré, cripto y efectivo. A esos **no les falta el sector: no tienen**. `por_sector` ahora mira **solo la renta variable** y el porcentaje se lee como *"de mi renta variable, cuánto en cada sector"*. La cobertura pasó de un 25% engañoso a un **65,7% real**.
+- **Números reales (al 30/7/2026, patrimonio $23.962.038):**
+
+  | Tipo de renta | peso | posiciones | valor |
+  |---|---:|---:|---:|
+  | Renta fija | **60,1%** | 3 | $14.406.991 |
+  | Renta variable | **38,3%** | 18 | $9.183.750 |
+  | Cripto | 1,3% | 1 | $309.472 |
+  | Efectivo | 0,3% | 1 | $61.825 |
+
+  **Sector (sobre la renta variable):** Technology 21,5% · Financial Services 11,3% · Consumer Cyclical 10,7% · Communication Services 9,3% · Energy 7,6% · Healthcare 2,2% · Utilities 2,0% · Industrials 1,1% · **Sin dato 34,3%** (TGNO4 y los 4 ETFs: SPY, URA, GLD, COPX).
+- **Vista — "Cómo está repartida":** dos tablas lado a lado con barra de peso (`ProgressColumn`), valor en pesos y dólares, no realizado y rendimiento. "Sin dato" **siempre va último** aunque pese mucho: es una etiqueta de ignorancia, no una categoría que compita.
+- **Estado:** `tests/test_cartera_analisis.py` (**29 tests**). Suite **324 passed, 3 skipped**. **Fase 3b completa.**
