@@ -239,6 +239,12 @@ Los detectó él, no los tests — la única forma de encontrarlos era **reimpor
 
 🧭 **Lección operativa:** **nunca validar totales en pesos corriendo el ledger sobre objetos del parser.** Sirve para instrumentos en pesos (así se verificaron bien BYMA, TXAR y GGALX) y **miente en todo lo que esté en dólares**. Para totales, la fuente es la DB —con el TC ya congelado— o la app.
 
+✅ **CERRADO Y VERIFICADO EN PRODUCCIÓN (4/8/2026).** Los tres ajustes cargados. Pantalla final: **Operaciones a revisar 5 → 1** (queda solo el pagaré, esperado), **aciertos 38 de 46** sin ninguna "a revisar", **reconciliación 4 → 3 diferencias**, capital aportado **$13.696.067** con el aporte sintético adentro, realizado **$5.432.244**, patrimonio **$24.524.772 / US$16.040**, TIR **26,1% USD**.
+
+🧭 **Detalle que confirma que el mecanismo es correcto:** cargar GGALX **no movió el realizado total**. Esos cupones fueron gratis, así que ya cerraban a costo cero; lo único que cambió es que la app ahora *sabe por qué* en vez de marcarlo como anomalía. Un ajuste bien hecho no debe mover un número que ya estaba bien.
+
+⏭️ **El aviso del pagaré `#UMV060770008` es estructural** (trampa #4: el export trae el monto pero no los nominales) y la valuación ya es correcta porque la cantidad sale de la tenencia del broker. **Pero conviene cerrarlo antes del vencimiento:** cuando el pagaré venza, el movimiento de cobro sí va a traer nominales y el ledger los verá como una venta descubierta. Se resuelve con un ajuste tipo CANJE, cantidad = nominales del broker, **costo 0** (la plata ya entró por la compra).
+
 📌 **Estado real de los ajustes:** BYMA y TXAR cargados y verificados. **Falta GGALX** (el aviso sigue apareciendo). El costo de TXAR quedó marcado como **estimado** ($233.439,14, despejado del −20% recordado) y el aporte sintético se ve en producción: capital aportado pasó de $13.462.628 a **$13.696.067**, exactamente +$233.439.
 
 📌 **PENDIENTE DE FRANCO:** **desplegar** (10 commits esperando, incluido este fix) y **programar el backup diario** en el Programador de tareas. Pasos en el RUNBOOK. El test cubre el mecanismo; lo que no puede cubrir es que `flyctl` esté logueado y que la tarea corra. Si el deploy corta con `cpu_overcommit_exceeded`, la salida está en el RUNBOOK (`--strategy immediate`).
