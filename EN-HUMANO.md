@@ -9,6 +9,25 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 4 de agosto de 2026 (arreglo) — La app se moría al cargar el ajuste de TXAR
+
+**Qué viste:** cargaste el ajuste y la app se cayó entera con `database is locked`.
+
+**Qué pasaba, con una analogía.** La base de datos es un cuaderno donde solo puede escribir una persona a la vez. Al guardar el ajuste pasaban tres cosas casi simultáneas: se sacaba una copia de seguridad, se escribía el dato, y la app se recargaba sola para mostrarte el resultado. Y **cada vez que la app se recarga volvía a revisar la estructura del cuaderno entero** — algo que solo hace falta una vez, cuando arranca. Las tres cosas quisieron el lápiz al mismo tiempo y la app, en vez de esperar su turno, se murió.
+
+**Cuatro cosas arregladas**, y la tercera es la que me costó encontrar:
+
+1. La revisión de la estructura ahora corre **una sola vez** cuando la app arranca, no en cada click. De paso, cada interacción tuya es más liviana.
+2. Cuando el cuaderno está ocupado, ahora se **espera hasta 30 segundos** en vez de fallar.
+3. **El punto 2 no alcanzaba solo.** La revisión de estructura pedía el lápiz de una forma en la que la espera *no se aplica*: SQLite se niega a esperar si la operación ya empezó leyendo, porque los dos podrían quedar trabados para siempre. Había que pedir el lápiz **desde el principio**, no a mitad de camino. Un renglón de diferencia.
+4. La copia de seguridad ahora se saca **antes** de tomar el lápiz, no con el lápiz en la mano.
+
+**Lo que más me importa:** dejé cinco tests que levantan dos procesos de verdad peleando por la base. Y lo probé al revés — volví a poner el renglón viejo y el test falló, lo saqué y pasó. Este error no vuelve sin que nos enteremos.
+
+**Para qué te sirve:** más allá de que ahora podés cargar el ajuste, la app dejó de tener un punto donde dos operaciones normales podían matarla. Iba a volver a pasar en cualquier momento.
+
+---
+
 ## 4 de agosto de 2026 — Los papeles que el broker "no te contó"
 
 **El problema, en criollo:**
