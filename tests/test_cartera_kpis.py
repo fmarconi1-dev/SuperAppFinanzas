@@ -394,3 +394,64 @@ def test_ppc_de_pagare_usa_la_cantidad_del_broker():
     p.cant_broker = 5500.0              # la tenencia informa las unidades
     assert p.ppc_ars == pytest.approx(1395.27, rel=1e-3)
     assert p.ppc_usd_hist == pytest.approx(0.915, rel=1e-3)
+
+
+# ---------------------------------------------------------------------------
+# Rendimiento de la POSICIÓN VIVA (el comparable con el broker)
+# ---------------------------------------------------------------------------
+
+def test_el_rendimiento_vivo_no_mezcla_trades_ya_cerrados():
+    """Regla de Franco (4/8/2026): un trade cerrado tiene su propio resultado
+    y NO se compensa con la posición abierta.
+
+    Caso real de ASML: compró 9, las vendió con ganancia, y después compró 15
+    nuevas que hoy están levemente en rojo. El broker muestra el rojo de las 15
+    (−2,9%); mezclarle la ganancia de la venta daba un número que no coincide
+    con ninguna pantalla.
+    """
+    from places.inversiones.cartera.kpis import PosicionValuada
+
+    p = PosicionValuada(
+        ticker="ASML", categoria_activo="Cedears", cantidad=15,
+        precio=18_360.0, origen_precio="proveedor",
+        valor_ars=275_400.0, costo_ars=279_711.68, ppc_ars=18_647.45,
+        # Historia: compró y vendió antes, con ganancia.
+        invertido_ars=334_016.68, realizado_ars=69_802.85,
+        realizado_usd=37.66,
+        valor_usd_actual=180.12, costo_usd_tenencia=185.52,
+        invertido_usd=232.47,
+    )
+
+    # Lo que muestra el broker: solo la posición viva.
+    assert p.rendimiento_vivo_usd_pct == pytest.approx(-2.91, abs=0.05)
+    assert p.rendimiento_vivo_pct == pytest.approx(-1.54, abs=0.05)
+    assert p.no_realizado_usd == pytest.approx(-5.40, abs=0.01)
+
+    # El total del papel es otro número, positivo por la venta: sigue
+    # existiendo, pero NO es el que va en la tabla de posiciones.
+    assert p.rendimiento_usd_pct > 0
+
+
+def test_una_posicion_sin_costo_no_divide_por_cero():
+    from places.inversiones.cartera.kpis import PosicionValuada
+
+    p = PosicionValuada(
+        ticker="RARO", categoria_activo="Otros", cantidad=1, precio=100.0,
+        origen_precio="proveedor", valor_ars=100.0, costo_ars=0.0, ppc_ars=None,
+        valor_usd_actual=1.0, costo_usd_tenencia=0.0,
+    )
+    assert p.rendimiento_vivo_pct is None
+    assert p.rendimiento_vivo_usd_pct is None
+
+
+def test_sin_precio_no_hay_rendimiento_vivo():
+    """Si no se pudo valuar, no se inventa un rendimiento."""
+    from places.inversiones.cartera.kpis import PosicionValuada
+
+    p = PosicionValuada(
+        ticker="SINPRECIO", categoria_activo="Otros", cantidad=10, precio=None,
+        origen_precio="sin_dato", valor_ars=None, costo_ars=1000.0,
+        ppc_ars=100.0, valor_usd_actual=None, costo_usd_tenencia=0.66,
+    )
+    assert p.rendimiento_vivo_pct is None
+    assert p.rendimiento_vivo_usd_pct is None

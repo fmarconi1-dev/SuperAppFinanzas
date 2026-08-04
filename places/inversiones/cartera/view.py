@@ -1043,6 +1043,12 @@ def render(user_id: int | None = None) -> None:
         value=False, key="cartera_ver_cerradas",
         help="Ya no tienen tenencia, pero su rendimiento cuenta en el total.",
     )
+    st.caption(
+        "**Esta tabla es tu posición viva**: lo que vale hoy contra lo que te "
+        "costó lo que todavía tenés. Es el mismo número que ves en el broker. "
+        "Los trades ya cerrados **no se mezclan acá** — cada uno tiene su "
+        "propio rendimiento en *Operaciones cerradas*, más abajo."
+    )
     filas = [p for p in valuadas if ver_cerradas or not p.cerrada]
     df = pd.DataFrame([
         {
@@ -1053,9 +1059,10 @@ def render(user_id: int | None = None) -> None:
             "PPC": p.ppc_ars,
             "Precio": p.precio,
             "Valor": p.valor_ars,
-            "Resultado": p.resultado_ars,
-            "Rend. %": p.rendimiento_pct,
-            "Rend. US$ %": p.rendimiento_usd_pct,
+            "US$": p.valor_usd_actual,
+            "No realizado": None if p.cerrada else p.no_realizado_ars,
+            "Rend. %": None if p.cerrada else p.rendimiento_vivo_pct,
+            "Rend. US$ %": None if p.cerrada else p.rendimiento_vivo_usd_pct,
             "Precio de": p.origen_precio,
         }
         for p in filas
@@ -1066,17 +1073,24 @@ def render(user_id: int | None = None) -> None:
         use_container_width=True,
         column_config={
             "Cantidad": st.column_config.NumberColumn(format="%.2f"),
-            "PPC": st.column_config.NumberColumn(format="$ %.2f"),
+            "PPC": st.column_config.NumberColumn(
+                format="$ %.2f",
+                help="Costo promedio ponderado de lo que tenés hoy"),
             "Precio": st.column_config.NumberColumn(format="$ %.2f"),
             "Valor": st.column_config.NumberColumn(format="$ %.0f"),
-            "Resultado": st.column_config.NumberColumn(
+            "US$": st.column_config.NumberColumn(format="US$ %.0f"),
+            "No realizado": st.column_config.NumberColumn(
                 format="$ %.0f",
-                help="Ventas + cobros + no realizado, menos el capital que amortizó",
+                help="Valor de hoy menos el costo de lo que tenés. NO incluye "
+                     "ventas pasadas ni dividendos: eso vive en Operaciones "
+                     "cerradas y en el bloque de arriba",
             ),
             "Rend. %": st.column_config.NumberColumn(format="%.1f%%"),
             "Rend. US$ %": st.column_config.NumberColumn(
                 format="%.1f%%",
-                help="Rendimiento en dólares, al MEP del día de cada operación",
+                help="En dólares, contra el costo de la tenencia al MEP del día "
+                     "de cada compra. Es el comparable con la pantalla del "
+                     "broker: si no coincide, hay un problema real",
             ),
             "Precio de": st.column_config.TextColumn(
                 help="proveedor = precio en vivo · cache = último conocido · "

@@ -59,6 +59,40 @@ class PosicionValuada:
             return None
         return self.valor_usd_actual - self.costo_usd_tenencia
 
+    # --- rendimiento de la POSICIÓN VIVA (lo que muestra el broker) ------
+    #
+    # Es el que va en la tabla de posiciones: lo que vale hoy contra lo que
+    # costó **lo que todavía tenés**. No mezcla trades ya cerrados.
+    #
+    # Regla de Franco (4/8/2026), que es además la que ya implementa el motor
+    # cronológico: cada operación con posición abierta que vuelve a cerrarse
+    # **es un trade con su propio rendimiento** y no se compensa con los
+    # anteriores. Si comprás a 100 y vendés a 150, ganaste 50%; si después
+    # comprás a 150 y vendés a 135, perdiste 10% — son dos resultados
+    # independientes, y viven en "Operaciones cerradas". Cuando se compra a
+    # varios precios, el costo es el promedio ponderado y la venta (total o
+    # parcial) se mide contra ese promedio.
+
+    @property
+    def rendimiento_vivo_pct(self) -> float | None:
+        """No realizado en pesos sobre el costo de la tenencia actual."""
+        nr = self.no_realizado_ars
+        if nr is None or not self.costo_ars:
+            return None
+        return nr / self.costo_ars * 100.0
+
+    @property
+    def rendimiento_vivo_usd_pct(self) -> float | None:
+        """No realizado en dólares sobre el costo de la tenencia actual.
+
+        **Es el número comparable con la pantalla del broker.** Si no coincide
+        con inviu, hay un problema real — no una diferencia de definición.
+        """
+        nr = self.no_realizado_usd
+        if nr is None or not self.costo_usd_tenencia:
+            return None
+        return nr / self.costo_usd_tenencia * 100.0
+
     # --- rendimiento total: realizado + no realizado + flujos ------------
     @property
     def resultado_ars(self) -> float | None:
