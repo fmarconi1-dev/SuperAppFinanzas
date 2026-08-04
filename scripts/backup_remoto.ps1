@@ -40,29 +40,18 @@ if (-not (Test-Path $archivo) -or (Get-Item $archivo).Length -lt 1024) {
 
 # 3. Verificar. Un backup corrupto o vacio no es un backup, y el momento de
 #    descubrirlo NO es el dia que lo necesites.
-$py = @'
-import sqlite3, sys
-c = sqlite3.connect(sys.argv[1])
-ok = c.execute("PRAGMA integrity_check").fetchone()[0]
-def cuenta(tabla):
-    try:
-        return c.execute(f"SELECT COUNT(*) FROM {tabla}").fetchone()[0]
-    except sqlite3.Error:
-        return -1
-print(f"{ok}|{cuenta('transacciones')}|{cuenta('cartera_movimientos')}")
-'@
-$salida = python -c $py $archivo
+#    La verificacion vive en scripts\verificar_backup.py y no en un `python -c`
+#    aca adentro: PowerShell se come las comillas al pasar un script multilinea
+#    como argumento y Python moria con SyntaxError (paso de verdad, 4/8/2026).
+$salida = python "$PSScriptRoot\verificar_backup.py" $archivo
+$ok = ($LASTEXITCODE -eq 0)
 $partes = $salida.Split("|")
 $integridad = $partes[0]
 $transacciones = [int]$partes[1]
 $movimientos = [int]$partes[2]
 
-if ($integridad -ne "ok") {
-    Write-Error "El backup NO pasa integrity_check: $integridad"
-    exit 1
-}
-if ($transacciones -lt 1) {
-    Write-Error "El backup tiene 0 transacciones de Finanzas Personales. Eso es lo irreemplazable: abortando."
+if (-not $ok) {
+    Write-Error "El backup descargado NO sirve (integridad=$integridad, transacciones=$transacciones). Abortando."
     exit 1
 }
 if ($movimientos -lt 1) {

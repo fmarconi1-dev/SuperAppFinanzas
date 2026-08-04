@@ -190,3 +190,58 @@ def test_la_purga_conserva_las_copias_recientes(entorno):
     quedan = list(backups.glob("finanzas-*.db"))
     assert quedan, "la purga borró TODAS las copias"
     assert all(_contar(p, "transacciones") >= 1 for p in quedan)
+
+
+# ---------------------------------------------------------------------------
+# El verificador que usan los scripts de PowerShell
+# ---------------------------------------------------------------------------
+
+def test_una_copia_buena_pasa_la_verificacion(entorno):
+    from scripts.verificar_backup import verificar
+
+    conn, ruta, _ = entorno
+    conn.execute(
+        "INSERT INTO transacciones (user_id, fecha, motivo, pasivos) "
+        "VALUES (1, '2026-01-15', 'Supermercado', 50000)"
+    )
+    conn.commit()
+    copia = backup_db(db_path=ruta)
+
+    sirve, integridad, conteos = verificar(copia)
+    assert sirve and integridad == "ok"
+    assert conteos["transacciones"] == 1 and conteos["usuarios"] == 1
+
+
+def test_una_copia_sin_transacciones_no_sirve(entorno):
+    """Lo irreemplazable son los gastos personales: una copia sin eso no es
+    una copia útil, aunque el archivo esté perfecto."""
+    from scripts.verificar_backup import verificar
+
+    _, ruta, _ = entorno
+    sirve, integridad, conteos = verificar(backup_db(db_path=ruta))
+    assert integridad == "ok"          # el archivo está sano...
+    assert conteos["transacciones"] == 0
+    assert not sirve                   # ...pero no sirve
+
+
+@pytest.mark.parametrize("contenido,motivo", [
+    (b"x", "vacio"),                          # truncada
+    (b"no soy una base" * 500, "ilegible"),   # basura
+])
+def test_una_copia_rota_se_detecta_antes_de_restaurar(tmp_path, contenido, motivo):
+    """Restaurar una copia rota encima de una base viva convierte un problema
+    en un desastre: por eso se verifica ANTES."""
+    from scripts.verificar_backup import verificar
+
+    p = tmp_path / "rota.db"
+    p.write_bytes(contenido)
+    sirve, integridad, _ = verificar(p)
+    assert not sirve
+    assert motivo in integridad
+
+
+def test_un_archivo_que_no_existe_no_explota(tmp_path):
+    from scripts.verificar_backup import verificar
+
+    sirve, integridad, _ = verificar(tmp_path / "fantasma.db")
+    assert not sirve and integridad == "no existe"

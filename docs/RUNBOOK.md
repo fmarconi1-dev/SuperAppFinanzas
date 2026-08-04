@@ -39,9 +39,15 @@ cd "C:\Users\Franco\OneDrive\Desktop\Finanzas Personales\Superapp de Finanzas\Su
 powershell -ExecutionPolicy Bypass -File scripts\backup_remoto.ps1
 ```
 
-Deja el archivo en `backups-remotos\superapp-AAAAMMDD-HHMMSS.db` y **verifica antes de darlo por bueno**: `integrity_check`, que haya transacciones y que haya movimientos de cartera. Si el archivo baja vacío o corrupto, **falla y avisa** en vez de dejarte una copia inútil.
+Deja el archivo en `backups-remotos\superapp-AAAAMMDD-HHMMSS.db` y **verifica antes de darlo por bueno**. Si el archivo baja vacío o corrupto, **falla y avisa** en vez de dejarte una copia inútil.
 
-Sale por error si hay **0 transacciones**: eso es lo irreemplazable, y una copia sin eso no sirve.
+La verificación vive en `scripts\verificar_backup.py` y se puede correr sola sobre cualquier copia:
+
+```powershell
+python scripts\verificar_backup.py backups-remotos\superapp-20260804-105642.db
+```
+
+Imprime `integridad|transacciones|movimientos|usuarios` y devuelve código 0 solo si la copia sirve. **Sirve** = pasa `integrity_check`, tiene usuarios y **tiene al menos una transacción**: eso es lo irreemplazable. Una cartera vacía no invalida la copia (puede ser anterior al primer import).
 
 ### Programarlo (hacelo una vez)
 

@@ -27,26 +27,14 @@ if (-not (Test-Path $Archivo)) {
 
 # 1. Verificar el backup ANTES de tocar produccion. Restaurar una copia rota
 #    encima de una base viva convierte un problema en un desastre.
-$py = @'
-import sqlite3, sys
-c = sqlite3.connect(sys.argv[1])
-ok = c.execute("PRAGMA integrity_check").fetchone()[0]
-def cuenta(tabla):
-    try:
-        return c.execute(f"SELECT COUNT(*) FROM {tabla}").fetchone()[0]
-    except sqlite3.Error:
-        return -1
-print(f"{ok}|{cuenta('transacciones')}|{cuenta('cartera_movimientos')}|{cuenta('usuarios')}")
-'@
-$partes = (python -c $py $Archivo).Split("|")
-if ($partes[0] -ne "ok") {
-    Write-Error "El backup NO pasa integrity_check ($($partes[0])). No se restaura nada."
+#    (La verificacion vive en un archivo aparte: ver el comentario en
+#    backup_remoto.ps1 sobre PowerShell y las comillas.)
+$salida = python "$PSScriptRoot\verificar_backup.py" $Archivo
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "La copia NO sirve ($salida). No se restaura nada."
     exit 1
 }
-if ([int]$partes[3] -lt 1) {
-    Write-Error "El backup no tiene usuarios: no es una base valida de esta app."
-    exit 1
-}
+$partes = $salida.Split("|")
 
 Write-Host ""
 Write-Host "Vas a REEMPLAZAR la base de $App con:" -ForegroundColor Yellow
