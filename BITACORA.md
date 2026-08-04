@@ -4,6 +4,20 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-07-30 — Fase 4 arranca por el respaldo: copia externa, restore y ensayo
+**Autor:** Claude (Opus 5), con Franco.
+- **Relevamiento del backlog del Lugar A** (traído de `Mis-Finanzas-App`): el ítem más grande (**D2 Grupo familiar**, 4-5 días) ya estaba hecho desde el 17/7, y la **Sección 9 (módulo de inversiones)** quedó superada por las Fases 3a/3b. ⚠️ Su decisión cerrada *"NO reemplazar el Excel de Inviu"* está **revertida por ADR-0003**.
+- **Agujero real encontrado, no una mejora:** los backups automáticos viven **en el mismo volumen de Fly que la base**; solo los disparaba el Lugar A (importar cartera no dejaba copia); el `backup_remoto.ps1` de la app vieja **no existía acá**; el `RUNBOOK.md` eran cinco líneas de placeholder; y **nunca se ensayó un restore**. Lo irreemplazable son las transacciones personales: la cartera se reconstruye del Excel, los gastos no.
+- **`scripts/backup_remoto.ps1`**: copia externa que **verifica antes de darla por buena** (`integrity_check` + que haya transacciones + movimientos) y falla si baja vacía. La purga conserva siempre las 3 más recientes aunque sean viejas.
+- **`scripts/restaurar_backup.ps1`** (no existía en ningún lado): simulacro por defecto, respalda producción antes de pisarla, para la app, sube, **borra los archivos `-wal` y `-shm`** —sin eso SQLite mezcla la base restaurada con el diario de la vieja y queda corrupta— y verifica el health.
+- **La cartera ahora deja punto de retorno** antes de importar, corregir un movimiento o guardar una tenencia.
+- **`tests/test_backup_restore.py`**: el ciclo completo automatizado (respaldar → perder → restaurar → verificar), más que la purga nunca se lleve la última copia buena.
+- **`docs/RUNBOOK.md`** de verdad: qué se puede reconstruir y qué no, las tres capas de respaldo, backup, restore, ensayo, caída, secrets y pendientes.
+**Por qué primero esto:** de todo el backlog, es lo único cuyo costo de equivocarse es perder datos que no están en ningún otro lado.
+**Estado al cierre:** 347 passed, 3 skipped. Commit listo para que Franco pushee.
+
+---
+
 ## 2026-07-30 — Sector e industria automáticos (Yahoo, con caché y override)
 **Autor:** Claude (Opus 5), con Franco.
 - Pedido de Franco: que la app reconozca sola los sectores, TGNO4 clasificado, y los ETF con categoría propia.

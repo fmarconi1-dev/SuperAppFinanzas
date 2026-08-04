@@ -305,3 +305,10 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
 - **Lo que se ve ahora y antes no:** el 21,5% de Technology es en realidad **16% en semiconductores** (NVDA + TSM + ASML) — una concentración que el corte por sector escondía. Y TGNO4 se juntó con VIST en Energy (12,3%).
 - **Vista:** el cuadro por sector, un expander con el detalle por industria y otro para **fijar el sector a mano**, con el caso de TGNO4 explicado ahí mismo.
 - **Estado:** `tests/test_market_data_sectores.py` (**18 tests**, sin red). Suite **342 passed, 3 skipped**.
+
+## 2026-07-30 — La cartera ahora deja punto de retorno antes de escribir (Fase 4)
+- **Autor:** Claude (Opus 5). Detalle completo del respaldo en `docs/RUNBOOK.md`; acá queda lo que toca a este módulo.
+- **Agujero encontrado al relevar la Fase 4:** `backup_db()` lo disparaban **solo** las escrituras de Finanzas Personales (transacciones, presupuestos, categorías). **Importar 585 movimientos de cartera no generaba ninguna copia** — y un import masivo es la operación más destructiva de la app: si el archivo está mal entran cientos de filas equivocadas, y el **dedupe hace que reimportar el bueno no las arregle** (la misma trampa del `ticker_base` y del ASML).
+- **Ahora sacan copia previa:** `importar_movimientos`, `corregir_movimiento`, `guardar_foto` (la foto del broker manda sobre las cantidades, importar la equivocada altera todas las valuaciones) y `set_tenencia_manual`.
+- **La copia se saca ANTES de escribir**, así sirve para deshacer: hay test que verifica que la copia dejada por el segundo import contiene el estado del primero.
+- **Estado:** `tests/test_backup_restore.py` (5 tests). Suite **347 passed, 3 skipped**.

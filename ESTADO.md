@@ -3,7 +3,7 @@
 > **Este es el archivo más importante para retomar el trabajo.** Se lee primero y se actualiza último, cada sesión.
 > Antes de editar código, actualizá la tabla "Tarea en curso". Al cerrar, dejá el "Próximo paso concreto".
 
-<!-- ultima_actualizacion: 2026-07-30 · autor: Claude (Opus 5) · handoff: **FASE 3b COMPLETA** (puntos 2, 3 y 4; el 1 quedó en MEJORAS con motivo). Puntos 3 y 4 SIN DESPLEGAR. Próximo: desplegar y arrancar Fase 4 — ver docs/PROMPT-INICIO-FASE-4.md -->
+<!-- ultima_actualizacion: 2026-07-30 · autor: Claude (Opus 5) · handoff: Fase 3b COMPLETA + Fase 4 arrancada por el RESPALDO (copia externa, restore y ensayo). NADA de esto está desplegado todavía. Pendiente de Franco: ensayo de restore + tarea programada -->
 
 ## 🧭 Dónde estamos
 
@@ -19,7 +19,7 @@
 |---|---|---|---|
 | Fase 3a — Cartera nativa (ingest + posiciones + KPIs + recon + export) | ✅ **CERRADA Y DESPLEGADA** (2026-07-30, v11) | Claude (Fable 5 → Opus 4.8) | 2026-07-19 |
 | Fase 3b — Rendimientos finos | ✅ **COMPLETA** (2026-07-30). Punto 2 desplegado; **3 y 4 sin desplegar** | Claude (Opus 5) | 2026-07-30 |
-| Fase 4 — Mejoras del Lugar A (Finanzas Personales) | ⬜ SIGUIENTE — arrancar con `docs/PROMPT-INICIO-FASE-4.md` | — | — |
+| Fase 4 — Mejoras del Lugar A (Finanzas Personales) | 🔵 **EN CURSO** — respaldo hecho; backlog relevado y priorizado | Claude (Opus 5) | 2026-07-30 |
 
 ## ✅ Hecho hasta ahora
 
@@ -195,6 +195,23 @@ Los detectó él, no los tests — la única forma de encontrarlos era **reimpor
 - Retirar `radar-financiero` cuando la superapp esté validada unos días (`fly apps destroy radar-financiero`).
 - Generar `requirements.lock` para builds reproducibles (ver `docs/DEPLOY.md`).
 - Dominio personalizado (FreeDomain o propio): decisión de Franco, queda para el final — es estético. Pasos en `docs/DEPLOY.md`.
+
+### 🔴 Fase 4 — arrancó por el RESPALDO (2026-07-30)
+
+**Backlog del Lugar A relevado** (traído de `Mis-Finanzas-App`). Dos ítems ya estaban hechos: **D2 Grupo familiar** (el más grande, 4-5 días) desde el 17/7, y la **Sección 9 (módulo de inversiones)**, superada por las Fases 3a/3b. ⚠️ **Su decisión cerrada *"NO reemplazar el Excel de Inviu"* está REVERTIDA por ADR-0003** — anotarlo al traer el backlog, o el próximo que lo lea la toma como vigente.
+
+**Orden propuesto y aceptado por Franco:** (1) respaldo ✅ · (2) CI · (3) voz consistente + hitos · (4) importador CSV con LLM · (5) API sidecar → WhatsApp.
+
+⚠️ **El agujero que se encontró (no era una mejora, era un riesgo):** los backups automáticos viven **en el mismo volumen de Fly que la base**; solo los disparaba el Lugar A —**importar 585 movimientos de cartera no dejaba ninguna copia**—; el `backup_remoto.ps1` de la app vieja **no existía en la superapp**; el `RUNBOOK.md` eran 5 líneas de placeholder; y **nunca se ensayó un restore** (estaba en el backlog desde julio, sin tildar). **Lo irreemplazable son las transacciones personales:** la cartera se reconstruye del Excel, los gastos no existen en ningún otro lado.
+
+**Hecho:**
+- **`scripts/backup_remoto.ps1`** — copia externa que verifica antes de darla por buena (`integrity_check` + transacciones + movimientos) y falla si baja vacía. La purga conserva siempre las 3 más recientes aunque sean viejas.
+- **`scripts/restaurar_backup.ps1`** — no existía en ningún lado. Simulacro por defecto; respalda producción **antes** de pisarla; para la app, sube, **borra `-wal` y `-shm`** (sin eso SQLite mezcla la base restaurada con el diario de la vieja y queda corrupta) y verifica el health.
+- **Backup disparado por la cartera:** `importar_movimientos`, `corregir_movimiento`, `guardar_foto`, `set_tenencia_manual`. La copia se saca **antes** de escribir, así sirve para deshacer.
+- **`tests/test_backup_restore.py`** (5 tests): ciclo completo respaldar → perder → restaurar → verificar, y que la purga nunca se lleve la última copia buena.
+- **`docs/RUNBOOK.md`** de verdad, con la tabla de qué se puede reconstruir y qué no.
+
+📌 **PENDIENTE DE FRANCO (no lo puede hacer el agente):** el primer **ensayo de restore end-to-end** y **programar el backup diario** en el Programador de tareas. Pasos en el RUNBOOK. El test cubre el mecanismo; lo que no puede cubrir es que `flyctl` esté logueado y que la tarea corra.
 
 ## 🚩 Bloqueos / decisiones abiertas
 

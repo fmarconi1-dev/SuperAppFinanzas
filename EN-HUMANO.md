@@ -9,6 +9,42 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 30 de julio de 2026 (Fase 4) — Tus datos ahora tienen una copia de verdad
+
+**Qué se hizo (en criollo):**
+Antes de tocar ninguna mejora, fui a mirar cómo estaban los respaldos. No estaban bien.
+
+- Las copias automáticas de tu base **viven en el mismo disco que la base**. Si ese disco se pierde, se pierden las dos juntas.
+- **Importar la cartera no generaba ninguna copia.** Cargabas 585 movimientos y no quedaba punto de retorno.
+- El script que bajaba la base a tu PC existía en la app vieja, pero **nunca se copió a la superapp**.
+- El manual de operación eran cinco líneas que decían "placeholder".
+- **Nunca probaste un restore.** Estaba en tu propia lista desde julio, sin tildar.
+
+Lo importante: tu **cartera se puede reconstruir** del Excel si pasa algo. Tus **gastos personales no**. Esos 230 y pico de registros no existen en ningún otro lado.
+
+**Qué hay ahora:**
+
+| | |
+|---|---|
+| `backup_remoto.ps1` | Baja la base a tu PC y **la verifica**: si viene vacía o rota, falla y te avisa |
+| `restaurar_backup.ps1` | El que faltaba. Por defecto hace un **simulacro** y no toca nada |
+| Copias en la cartera | Importar, corregir un movimiento o subir una tenencia ahora deja punto de retorno |
+| `RUNBOOK.md` | El manual de verdad: qué se pierde, cómo volver, y qué hacer si la app no responde |
+| Ensayo automático | El ciclo completo (copiar → perder → volver) corre con los tests |
+
+**Dos detalles que importan más de lo que parecen:** el script de restore **primero guarda lo que hay en producción** antes de pisarlo — si el restore sale mal, podés volver. Y borra dos archivos auxiliares que SQLite usa para las escrituras recientes: si no se borran, la base restaurada se mezcla con la vieja y queda corrupta. Eso es exactamente el tipo de detalle que uno descubre el peor día.
+
+**Para qué te sirve:**
+Para que un problema de disco, un borrado sin querer o un import equivocado sean un mal rato de veinte minutos y no la pérdida de dos años de datos.
+
+**Qué sigue — dos cosas que tenés que hacer vos**, porque no las puedo hacer desde acá:
+
+1. **Ensayar el restore una vez.** Corré el backup, después el restore en modo simulacro, y comprobá que los números coinciden con lo que ves en la app. No toca producción.
+2. **Programar el backup diario** en el Programador de tareas de Windows. Los pasos están en el RUNBOOK.
+
+
+---
+
 ## 30 de julio de 2026 — La app ya reconoce sola el sector de cada empresa
 
 **Qué se hizo (en criollo):**

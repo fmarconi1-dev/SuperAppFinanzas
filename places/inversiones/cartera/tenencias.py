@@ -23,6 +23,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
+from core.db import backup_db
+
 __all__ = [
     "Tenencia",
     "FotoCartera",
@@ -188,7 +190,12 @@ def guardar_foto(conn, foto: FotoCartera, user_id: int) -> int:
     """Guarda la foto en `cartera_tenencia` (+ meta). Idempotente por fecha.
 
     Devuelve la cantidad de posiciones guardadas. Commitea al final.
+
+    Saca una copia previa: la foto del broker **manda sobre las cantidades**
+    derivadas de movimientos, así que importar la equivocada altera todas las
+    valuaciones.
     """
+    backup_db()
     if foto.fecha_valuacion is None:
         raise ValueError("La tenencia no trae fecha de valuación")
     fecha = foto.fecha_valuacion.isoformat()
