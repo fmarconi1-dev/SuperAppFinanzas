@@ -9,6 +9,28 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 4 de agosto de 2026 (arreglo) — El botón "Agregar gasto" rompía la app
+
+**Qué pasó (en criollo):**
+Tocaste **💸 Agregar gasto** desde el celular y la app se cayó entera con un error rojo. No era un mensaje amable: era la app muriéndose.
+
+**Por qué:** el formulario tiene dos modos. El **rápido** (solo importe y motivo, el que usás del teléfono) y el **detallado**, con fecha, tipo y — si estás en el espacio familiar — el "Firmar como". Los dos modos terminan guardando por el mismo camino, pero el dato de *quién firma* solo se creaba en el modo detallado. Al guardar desde el rápido, la app buscaba algo que nunca había existido y explotaba.
+
+Nunca se había notado porque el error solo aparece **al enviar** el formulario, no al abrirlo, y desde la computadora solés usar el modo detallado.
+
+**Cómo quedó:** en modo rápido ya no se pregunta quién firma — esa es justamente la gracia del modo — y se asume que sos vos, el miembro activo del espacio. Si no estás en un espacio familiar, no cambia nada.
+
+**Lo que me parece más valioso:** el test que dejé no revisa ese dato puntual. Revisa **la forma del error**: lee el código y verifica que ninguna variable que use el guardado esté definida en un solo modo. Si mañana agregamos un campo nuevo al formulario detallado y nos olvidamos del rápido, salta antes de llegar a tu celular. Lo probé al revés: volví a poner el bug a propósito y el test falló; lo saqué y pasó.
+
+**Para qué te sirve:**
+Que puedas cargar un gasto desde el celular sin que se caiga. Y que este tipo de error —el más tonto y el más molesto— tenga red.
+
+**Qué sigue:**
+Desplegar. Este arreglo va en el mismo lote que todo lo demás.
+
+
+---
+
 ## 4 de agosto de 2026 — Un robot que revisa tu código cada vez que subís algo
 
 **Qué se hizo (en criollo):**

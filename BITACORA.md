@@ -4,6 +4,17 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-08-04 — Bug en producción: "Agregar gasto" reventaba desde el celular
+**Autor:** Claude (Opus 5). Lo encontró Franco usándola.
+- `UnboundLocalError: firma_val` al enviar el formulario en **modo rápido**. La app moría entera.
+- **Causa:** el formulario se bifurca en modo rápido / detallado y las dos ramas caen al mismo guardado, pero `firma_val` se definía solo en la rama detallada. Desde el celular se usa el rápido.
+- **Fix:** la variable se define **antes** de la bifurcación; en modo rápido se asume el miembro activo del espacio (no se pregunta: esa es la gracia del modo).
+- **Test por AST** (`tests/test_transacciones_formulario.py`, 10): verifica que ninguna variable leída después de la bifurcación esté definida en una sola rama — atrapa la **clase** de error, no solo este caso. **Verificado reintroduciendo el bug:** fallan 3 tests; con el fix, pasan los 10.
+**Por qué importa:** es el tercer bug que encuentra Franco usando la app y no los tests. El patrón se repite: los tests prueban el camino limpio, él usa el camino real.
+**Estado al cierre:** 362 passed, 3 skipped.
+
+---
+
 ## 2026-08-04 — CI: la suite corre sola en cada push
 **Autor:** Claude (Opus 5), con Franco.
 - **`.github/workflows/tests.yml`**: corre `pytest` en **Python 3.11** (la misma del `Dockerfile` — si CI pasara en otra versión no probaría lo que se despliega) en cada push y PR, **desde cero**. Eso último es lo que ningún test local puede dar: detecta lo que funciona en la PC de Franco "de casualidad".

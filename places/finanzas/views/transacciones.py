@@ -157,6 +157,18 @@ def _form_alta_edicion(motivos: list[str]) -> None:
     except ValueError:
         motivo_idx = 0
 
+    # ⚠️ Definir ANTES del if: las dos ramas del formulario comparten el código
+    # de guardado, así que toda variable que se lea después tiene que existir en
+    # las dos. Bug real en producción (4/8/2026): `firma_val` se definía solo en
+    # el modo detallado y "Agregar gasto" desde el celular reventaba con
+    # `UnboundLocalError`. En modo rápido no se pregunta la firma —esa es la
+    # gracia del modo— así que se asume el miembro activo del espacio.
+    firma_val = (
+        st.session_state.get("active_member_label")
+        if st.session_state.get("active_workspace_kind") == "familiar"
+        else None
+    )
+
     with st.form("txn_form", clear_on_submit=not editing):
         if modo_rapido:
             # ----- MODO RÁPIDO: sólo Importe + Motivo -----
@@ -211,7 +223,6 @@ def _form_alta_edicion(motivos: list[str]) -> None:
                     value="", key="form_motivo_nuevo",
                     placeholder="Ej: Suscripciones, Regalos…",
                 )
-            firma_val = None
             if st.session_state.get("active_workspace_kind") == "familiar":
                 with connect() as conn:
                     etiquetas = [

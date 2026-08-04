@@ -29,3 +29,14 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
 
 ## 2026-07-17 (tarde) — Incidente de migración D2 resuelto
 - M4 re-disparada post-M8 desvinculaba workspaces en producción. Guard corregido + reparación M8.5 + 2 tests de regresión (ver BITACORA global y nota en ESTADO.md). Verificado por Franco en producción: datos restaurados. Suite: 114 en verde.
+
+## 2026-08-04 — Bug en producción: "Agregar gasto" reventaba desde el celular
+- **Autor:** Claude (Opus 5). **Lo encontró Franco usándola**, no los tests — igual que los dos bugs de la Fase 3a.
+- **Síntoma:** `UnboundLocalError: cannot access local variable 'firma_val'` al tocar **💸 Agregar gasto**. La app moría entera (traceback de Streamlit en pantalla), no era un error manejado.
+- **Causa:** `_form_alta_edicion` se bifurca en **modo rápido** (importe + motivo y nada más) y **modo detallado**, pero después las dos ramas caen al **mismo** código de guardado. `firma_val` se definía únicamente dentro de la rama detallada (el selectbox "Firmar como" del espacio familiar), así que en modo rápido —el que se usa desde el teléfono— la variable no existía cuando el guardado la leía.
+- **Por qué no se notó antes:** el modo rápido es reciente y el bug solo aparece al **enviar** el formulario, no al mostrarlo. Desde la compu se suele usar el detallado.
+- **Fix:** `firma_val` se define **antes** del `if modo_rapido:`. En modo rápido **no se pregunta** la firma —esa es la gracia del modo— así que se asume el **miembro activo** del espacio familiar; fuera de un espacio familiar queda en `None`, igual que antes.
+- **Test — `tests/test_transacciones_formulario.py` (10 tests):** no revisa `firma_val`, revisa **la forma del problema**. Lee el código con `ast` y verifica que ninguna variable leída después de la bifurcación esté definida en una sola rama, descontando las que ya existen antes y las que el guardado crea por su cuenta. Así atrapa también a la próxima variable que alguien agregue a un solo modo. Hay además un test explícito por cada variable que el guardado necesita, para que el mensaje diga **cuál** falta y en qué modo.
+- **Verificado de verdad:** con el bug reintroducido a propósito, **fallan 3 tests**; con el fix, pasan los 10.
+- ⚠️ **Se hace por AST y no ejecutando el formulario** porque renderizar Streamlit en un test exige un runtime entero. Es una heurística acotada, no análisis de flujo completo: apunta a la clase de error que ya ocurrió. Está dicho en el docstring.
+- **Estado:** suite **362 passed, 3 skipped**.

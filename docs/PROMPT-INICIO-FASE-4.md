@@ -71,9 +71,10 @@ Estado al escribirlo: **Fase 3b completa** (puntos 2, 3 y 4; el punto 1 —amort
 > 14. **Corregir un movimiento ya importado exige recalcular el `hash_dedupe`.** Si solo se arregla el Excel, la fila corregida entra como movimiento nuevo y quedan las dos. Hay tests de las dos rutas.
 > 15. **Las tasas se ponderan por capital y tiempo, no se promedian.** Promediar las TNA de 101 cauciones le da el mismo peso a una de $20.000 por un día que a una de $2,7M por cinco.
 > 16. **"No tengo el dato" y "no existe el dato" son cosas distintas.** A un bono no le *falta* el sector: no tiene. Filtrá antes de agrupar, o el "Sin dato" se come el 75% del cuadro y no dice nada.
-> 17. **Antes de elegir un endpoint, probalo.** El "natural" para traer sectores (`quoteSummary` de Yahoo) exige un *crumb* con cookie y devuelve `Unauthorized`; `v1/finance/search` da sector **e industria** sin autenticación. Y siempre exigí **coincidencia exacta de símbolo**: buscando `URA` (ETF de uranio) Yahoo devuelve también `UROY` (una minera).
-> 18. **Toda consulta externa necesita caché negativa.** Si solo se cachea lo que resuelve, un ticker desconocido dispara una búsqueda en cada carga de la pantalla, para siempre.
-> 19. **El broker se equivoca.** La compra de ASML del 16/5/2025 vino con **dos ceros de menos** ($60,10 en vez de $6.010). La guarda `Realizacion.sospechosa` (>1.000%) lo detectó sola. Cuando un rendimiento es absurdo, es un dato malo, no un trade.
+> 17. **Si un formulario se bifurca, las dos ramas tienen que definir lo mismo.** `_form_alta_edicion` de transacciones tiene modo rápido y modo detallado que caen al **mismo** guardado; `firma_val` se definía solo en el detallado y "Agregar gasto" desde el celular reventaba con `UnboundLocalError`. Definí las variables compartidas **antes** del `if`, no las dupliques.
+> 18. **Antes de elegir un endpoint, probalo.** El "natural" para traer sectores (`quoteSummary` de Yahoo) exige un *crumb* con cookie y devuelve `Unauthorized`; `v1/finance/search` da sector **e industria** sin autenticación. Y siempre exigí **coincidencia exacta de símbolo**: buscando `URA` (ETF de uranio) Yahoo devuelve también `UROY` (una minera).
+> 19. **Toda consulta externa necesita caché negativa.** Si solo se cachea lo que resuelve, un ticker desconocido dispara una búsqueda en cada carga de la pantalla, para siempre.
+> 20. **El broker se equivoca.** La compra de ASML del 16/5/2025 vino con **dos ceros de menos** ($60,10 en vez de $6.010). La guarda `Realizacion.sospechosa` (>1.000%) lo detectó sola. Cuando un rendimiento es absurdo, es un dato malo, no un trade.
 >
 > ## Cómo verificar de verdad
 >

@@ -215,7 +215,11 @@ Los detectó él, no los tests — la única forma de encontrarlos era **reimpor
 
 ✅ **CI (2026-08-04) — `.github/workflows/tests.yml`.** Corre `pytest` en **Python 3.11** (la del `Dockerfile`) en cada push y PR, **en una máquina limpia**: es la única forma de detectar lo que funciona en la PC de Franco de casualidad. Segundo job **`sin-datos`**: busca `.xlsx`/`.db`/`.csv`/`.env` y claves privadas en el **árbol completo**; el pre-commit hook se puede saltear con `--no-verify`, este no. La suite **no necesita red** (todo `fetch` es inyectable), y el gate de recon aparece como `skipped` porque necesita el Excel, que nunca se versiona.
 
-📌 **PENDIENTE DE FRANCO:** **desplegar** (7 commits esperando) y **programar el backup diario** en el Programador de tareas. Pasos en el RUNBOOK. El test cubre el mecanismo; lo que no puede cubrir es que `flyctl` esté logueado y que la tarea corra.
+🐛 **BUG EN PRODUCCIÓN ARREGLADO (2026-08-04) — lo encontró Franco usando la app desde el celular.** `UnboundLocalError: firma_val` al tocar **💸 Agregar gasto**: la app moría entera. `_form_alta_edicion` se bifurca en **modo rápido** / **detallado** y las dos ramas caen al **mismo** guardado, pero `firma_val` se definía solo en la detallada. Desde el teléfono se usa la rápida, y el error aparece **al enviar**, no al mostrar — por eso nunca se había visto. **Fix:** la variable se define antes de la bifurcación; en modo rápido se asume el **miembro activo** del espacio (no se pregunta: esa es la gracia del modo). **`tests/test_transacciones_formulario.py` (10 tests) por AST**: verifica que ninguna variable leída después de la bifurcación esté definida en una sola rama, así atrapa la **clase** de error y no solo este caso. **Verificado reintroduciendo el bug: fallan 3 tests.**
+
+🧭 **Patrón que ya es innegable:** es el **tercer** bug que encuentra Franco usando la app y no la suite. Los tests prueban el camino limpio; él usa el camino real (el celular, el modo rápido, el orden equivocado). Cualquier feature nueva necesita que él la use antes de darla por buena.
+
+📌 **PENDIENTE DE FRANCO:** **desplegar** (9 commits esperando, incluido este fix) y **programar el backup diario** en el Programador de tareas. Pasos en el RUNBOOK. El test cubre el mecanismo; lo que no puede cubrir es que `flyctl` esté logueado y que la tarea corra.
 
 ## 🚩 Bloqueos / decisiones abiertas
 
