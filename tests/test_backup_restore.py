@@ -16,7 +16,9 @@ Cubre lo que estaba flojo hasta la Fase 4:
 
 from __future__ import annotations
 
+import gc
 import sqlite3
+import time
 
 import pytest
 
@@ -59,6 +61,46 @@ def _contar(ruta, tabla) -> int:
         return con.execute(f"SELECT COUNT(*) FROM {tabla}").fetchone()[0]
     finally:
         con.close()
+
+
+def _perder_la_base(ruta) -> None:
+    """Borra el archivo de la DB simulando que se perdió.
+
+    **Por qué no es un simple `unlink()`.** En Linux se puede borrar un archivo
+    aunque queden descriptores abiertos; **en Windows no**: mientras el proceso
+    conserve un handle, `unlink` falla con `PermissionError [WinError 32]`. El
+    test se escribió y se corrió en Linux (CI) y ahí pasaba; en la máquina de
+    Franco fallaba. El defecto era del test, no del backup: se verificó que tras
+    `init_db()` y `backup_db()` **no queda ninguna conexión abierta** — los
+    handles que sobran son objetos ya cerrados esperando al recolector.
+
+    Por eso: forzar la recolección, y reintentar unas pocas veces por si el
+    sistema de archivos todavía no soltó el handle. Si igual no se puede
+    borrar, se falla con un mensaje que lo explique en vez de un rastro
+    confuso de permisos.
+    """
+    gc.collect()
+    for extra in (".db-wal", ".db-shm", "-wal", "-shm"):
+        companero = ruta.with_name(ruta.name.replace(".db", "") + extra)
+        if companero.exists():
+            try:
+                companero.unlink()
+            except OSError:
+                pass
+    ultimo: Exception | None = None
+    for _ in range(10):
+        try:
+            ruta.unlink()
+            return
+        except PermissionError as exc:          # Windows: handle todavía vivo
+            ultimo = exc
+            gc.collect()
+            time.sleep(0.05)
+    raise AssertionError(
+        f"no se pudo borrar {ruta} para simular la pérdida: {ultimo}. "
+        "Si esto pasa siempre, hay una conexión sqlite que quedó abierta de "
+        "verdad — revisá los call sites de `backup_db`."
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -127,7 +169,7 @@ def test_ciclo_completo_backup_perdida_restore(entorno):
 
     # Se pierde la base (el volumen de Fly, un borrado, lo que sea).
     conn.close()
-    ruta.unlink()
+    _perder_la_base(ruta)
     assert not ruta.exists()
 
     # Restore: la copia pasa a ser la base.
@@ -156,7 +198,7 @@ def test_la_base_restaurada_sigue_siendo_escribible(entorno):
     copia = backup_db(db_path=ruta)
     conn.close()
 
-    ruta.unlink()
+    _perder_la_base(ruta)
     ruta.write_bytes(copia.read_bytes())
     restaurada = connect(ruta)
     try:

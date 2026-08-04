@@ -193,3 +193,20 @@ La app **solo lee** el snapshot que publica el batch de GitHub Actions del repo 
 - [ ] Monitor de uptime (UptimeRobot u otro) contra `/_stcore/health`.
 - [ ] `requirements.lock` (`pip freeze > requirements.lock`) para builds reproducibles.
 - [ ] Retirar `radar-financiero`: `fly apps destroy radar-financiero`.
+
+---
+
+## 🪟 Tests que borran archivos: Linux vs Windows
+
+`tests/test_backup_restore.py` simula la pérdida de la base borrando el
+archivo. **Linux permite borrar un archivo con handles abiertos; Windows no**
+(`PermissionError [WinError 32]`). El test pasaba en CI (Linux) y fallaba en la
+máquina de Franco.
+
+**No era un problema del backup:** se verificó que después de `init_db()` y
+`backup_db()` **no queda ninguna conexión sqlite abierta**. Los handles que
+sobran son objetos ya cerrados esperando al recolector.
+
+El helper `_perder_la_base()` fuerza `gc.collect()`, borra los compañeros
+`-wal`/`-shm` y reintenta. **Regla general: cualquier test que borre o
+reemplace archivos tiene que probarse en Windows, no solo en CI.**
