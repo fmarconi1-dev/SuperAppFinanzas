@@ -3,7 +3,7 @@
 > **Este es el archivo más importante para retomar el trabajo.** Se lee primero y se actualiza último, cada sesión.
 > Antes de editar código, actualizá la tabla "Tarea en curso". Al cerrar, dejá el "Próximo paso concreto".
 
-<!-- ultima_actualizacion: 2026-07-30 · autor: Claude (Opus 5) · handoff: Fase 3b COMPLETA + Fase 4 arrancada por el RESPALDO (copia externa, restore y ensayo). NADA de esto está desplegado todavía. Pendiente de Franco: ensayo de restore + tarea programada -->
+<!-- ultima_actualizacion: 2026-07-30 · autor: Claude (Opus 5) · handoff: Fase 3b COMPLETA + Fase 4 con RESPALDO y CI hechos. NADA de esto está desplegado (7 commits esperando). Pendiente de Franco: desplegar + programar el backup diario -->
 
 ## 🧭 Dónde estamos
 
@@ -19,7 +19,7 @@
 |---|---|---|---|
 | Fase 3a — Cartera nativa (ingest + posiciones + KPIs + recon + export) | ✅ **CERRADA Y DESPLEGADA** (2026-07-30, v11) | Claude (Fable 5 → Opus 4.8) | 2026-07-19 |
 | Fase 3b — Rendimientos finos | ✅ **COMPLETA** (2026-07-30). Punto 2 desplegado; **3 y 4 sin desplegar** | Claude (Opus 5) | 2026-07-30 |
-| Fase 4 — Mejoras del Lugar A (Finanzas Personales) | 🔵 **EN CURSO** — respaldo hecho; backlog relevado y priorizado | Claude (Opus 5) | 2026-07-30 |
+| Fase 4 — Mejoras del Lugar A (Finanzas Personales) | 🔵 **EN CURSO** — respaldo ✅ y CI ✅; sigue: voz consistente | Claude (Opus 5) | 2026-07-30 |
 
 ## ✅ Hecho hasta ahora
 
@@ -211,7 +211,11 @@ Los detectó él, no los tests — la única forma de encontrarlos era **reimpor
 - **`tests/test_backup_restore.py`** (5 tests): ciclo completo respaldar → perder → restaurar → verificar, y que la purga nunca se lleve la última copia buena.
 - **`docs/RUNBOOK.md`** de verdad, con la tabla de qué se puede reconstruir y qué no.
 
-📌 **PENDIENTE DE FRANCO (no lo puede hacer el agente):** el primer **ensayo de restore end-to-end** y **programar el backup diario** en el Programador de tareas. Pasos en el RUNBOOK. El test cubre el mecanismo; lo que no puede cubrir es que `flyctl` esté logueado y que la tarea corra.
+✅ **Ensayo de restore hecho por Franco (2026-08-04).** El backup remoto y el verificador funcionan contra producción. ⚠️ Se encontraron **dos bugs de PowerShell** en el camino, los dos del mismo tipo — código escrito para un shell corriendo en otro: (1) el restore usaba el here-string `<<<` de bash, que no existe en PowerShell; (2) la verificación pasaba el script Python inline con `python -c` y **PowerShell se come las comillas**, así que Python recibía `ok = c.execute(PRAGMA` y moría con `SyntaxError`. La verificación pasó a **`scripts/verificar_backup.py`**, un archivo de verdad con código de salida y **cubierto por tests** (base válida, sin transacciones, inexistente, corrupta y truncada).
+
+✅ **CI (2026-08-04) — `.github/workflows/tests.yml`.** Corre `pytest` en **Python 3.11** (la del `Dockerfile`) en cada push y PR, **en una máquina limpia**: es la única forma de detectar lo que funciona en la PC de Franco de casualidad. Segundo job **`sin-datos`**: busca `.xlsx`/`.db`/`.csv`/`.env` y claves privadas en el **árbol completo**; el pre-commit hook se puede saltear con `--no-verify`, este no. La suite **no necesita red** (todo `fetch` es inyectable), y el gate de recon aparece como `skipped` porque necesita el Excel, que nunca se versiona.
+
+📌 **PENDIENTE DE FRANCO:** **desplegar** (7 commits esperando) y **programar el backup diario** en el Programador de tareas. Pasos en el RUNBOOK. El test cubre el mecanismo; lo que no puede cubrir es que `flyctl` esté logueado y que la tarea corra.
 
 ## 🚩 Bloqueos / decisiones abiertas
 

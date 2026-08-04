@@ -9,6 +9,24 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 4 de agosto de 2026 — Un robot que revisa tu código cada vez que subís algo
+
+**Qué se hizo (en criollo):**
+Hasta hoy tus 352 pruebas corrían **solo si vos escribías el comando**. Ahora corren solas: cada vez que subas código a GitHub, un robot arranca una computadora limpia, instala todo desde cero y las ejecuta. Si algo se rompió, te avisa ahí mismo con una cruz roja.
+
+Lo de **"computadora limpia"** es lo importante. Hoy pasó justo eso: tu Python local se había quedado sin las librerías del proyecto y las pruebas ni siquiera arrancaban. Nadie se había enterado. Y al revés también sirve: si algo funciona en tu PC porque tenés algo instalado a mano, en la máquina del robot va a fallar — que es exactamente cuando querés enterarte.
+
+**Y de yapa, un segundo guardián.** Revisa que no se te haya colado ningún archivo con tus datos (Excel, base de datos, CSV, contraseñas) en el repositorio. Ya tenías un candado para eso, pero vive en tu máquina y se puede saltear con un comando. Este no: corre en GitHub y no hay forma de puentearlo.
+
+**Para qué te sirve:**
+Para no ser vos el único control de calidad. Y porque el repositorio es privado pero tiene tus finanzas adentro: que algo revise siempre que no se filtre nada vale más que el minuto que tarda.
+
+**Qué sigue:**
+La **voz consistente**: que la app te hable siempre igual y te celebre los hitos (la transacción número 10, la 100, el primer año). Un día de trabajo, riesgo cero.
+
+
+---
+
 ## 30 de julio de 2026 (Fase 4) — Tus datos ahora tienen una copia de verdad
 
 **Qué se hizo (en criollo):**

@@ -28,7 +28,7 @@ Estado al escribirlo: **Fase 3b completa** (puntos 2, 3 y 4; el punto 1 —amort
 > * Documentación y commits **en español**.
 > * Al cerrar: actualizás la bitácora del módulo, `EN-HUMANO.md` y `ESTADO.md`.
 > * **Los push y los deploy los hago yo.** Vos dejás el commit listo y me avisás.
-> * **Entorno local:** la suite se corre desde `.venv` con **Python 3.11** (la del `Dockerfile`). Tengo también 3.12 y 3.14; con 3.14 y sin dependencias la suite ni siquiera colecta. `py -3.11 -m venv .venv` → `.venv\Scripts\activate.bat` → `pip install -r requirements.txt`. **No hay CI**: si no la corro yo, no la corre nadie.
+> * **Entorno local:** la suite se corre desde `.venv` con **Python 3.11** (la del `Dockerfile`). Tengo también 3.12 y 3.14; con 3.14 y sin dependencias la suite ni siquiera colecta. `py -3.11 -m venv .venv` → `.venv\Scripts\activate.bat` → `pip install -r requirements.txt`. Desde el 4/8/2026 **hay CI**: `tests.yml` corre la suite en cada push, así que si algo rojea me entero sin correr nada. Igual corrola local antes de pedirme que pushee.
 > * **Ojo con git + OneDrive:** `rm` falla con "Operation not permitted", solo `mv` funciona. Los `.git/*.lock` y `tmp_obj_*` que queden se mueven a `Borrar/` (carpeta que yo borro antes de cada push). Está en la nota operativa de `ESTADO.md`.
 >
 > ## Explicame "en humano"

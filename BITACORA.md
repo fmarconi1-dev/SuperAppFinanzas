@@ -4,6 +4,17 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-08-04 — CI: la suite corre sola en cada push
+**Autor:** Claude (Opus 5), con Franco.
+- **`.github/workflows/tests.yml`**: corre `pytest` en **Python 3.11** (la misma del `Dockerfile` — si CI pasara en otra versión no probaría lo que se despliega) en cada push y PR, **desde cero**. Eso último es lo que ningún test local puede dar: detecta lo que funciona en la PC de Franco "de casualidad".
+- **Segundo job `sin-datos`**: busca `.xlsx`/`.db`/`.csv`/`.env` y claves privadas en el **árbol completo**, no solo en el diff. El pre-commit hook ya lo bloquea, pero vive en la PC de Franco y se puede saltear con `--no-verify`; esta es la red que no se puede puentear.
+- **La suite no necesita red:** todos los módulos que salen a internet (`mep`, `precios`, `sectores`, `snapshot` del scoring) tienen `fetch` inyectable. El CI no depende de que Yahoo o GitHub Pages estén arriba.
+- El gate de reconciliación aparece como **skipped** en CI y está bien: necesita el Excel de Franco, que nunca se versiona. Ese gate corre local.
+**Por qué:** hasta hoy la suite corría solo si Franco escribía el comando. Ese hueco dejó pasar que su entorno local se quedara sin dependencias (Python 3.14 sin instalar nada, la suite ni colectaba) sin que nadie se enterara.
+**Estado al cierre:** 352 passed, 3 skipped. Commit listo para que Franco pushee.
+
+---
+
 ## 2026-07-30 — Fase 4 arranca por el respaldo: copia externa, restore y ensayo
 **Autor:** Claude (Opus 5), con Franco.
 - **Relevamiento del backlog del Lugar A** (traído de `Mis-Finanzas-App`): el ítem más grande (**D2 Grupo familiar**, 4-5 días) ya estaba hecho desde el 17/7, y la **Sección 9 (módulo de inversiones)** quedó superada por las Fases 3a/3b. ⚠️ Su decisión cerrada *"NO reemplazar el Excel de Inviu"* está **revertida por ADR-0003**.
