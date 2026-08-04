@@ -663,8 +663,12 @@ def _panel_ajustes(uid: int) -> None:
                 st.warning("Un ajuste que no mueve unidades ni costo no hace "
                            "nada.", icon=":material/warning:")
             else:
+                # El backup va ANTES de abrir la conexión de escritura, no
+                # adentro: copiar la base entera teniéndola ya tomada abre una
+                # ventana en la que cualquier otro acceso choca. Así fue el
+                # `database is locked` del 4/8/2026.
+                backup_db()
                 with connect() as conn:
-                    backup_db()
                     nuevo = mod_ajustes.agregar(conn, uid, mod_ajustes.Ajuste(
                         fecha=fecha, ticker=tk, tipo=tipo, cantidad=cant,
                         costo_ars=costo, estimado=estimado, nota=nota))
@@ -696,8 +700,8 @@ def _panel_ajustes(uid: int) -> None:
                     unsafe_allow_html=True)
             with c2:
                 if st.button("Quitar", key=f"cartera_aj_del_{a.id}"):
+                    backup_db()          # fuera de la conexión de escritura
                     with connect() as conn:
-                        backup_db()
                         mod_ajustes.eliminar(conn, uid, a.id)
                         conn.commit()
                     st.rerun()

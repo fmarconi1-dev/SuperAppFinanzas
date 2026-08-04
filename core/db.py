@@ -108,7 +108,16 @@ def _migrate(conn: sqlite3.Connection) -> None:
                     para reconstruir la cartera: ver comentario del bloque).
     """
     cur = conn.cursor()
-    cur.execute("BEGIN")
+    # BEGIN **IMMEDIATE**, no diferido. Con `BEGIN` a secas SQLite abre la
+    # transacción en modo lectura y pide el lock de escritura recién en la
+    # primera escritura — y en ese momento **no aplica `busy_timeout`**:
+    # devuelve `SQLITE_BUSY` al instante, porque esperar con lecturas ya hechas
+    # podría terminar en deadlock. Resultado: `database is locked` aunque la
+    # conexión estuviera configurada para esperar 30 s.
+    # Con `IMMEDIATE` el lock se toma al abrir, que es donde el timeout sí
+    # cuenta, y la migración espera su turno en vez de matar la app.
+    # (Incidente del 4/8/2026: se cargaba un ajuste y la app moría entera.)
+    cur.execute("BEGIN IMMEDIATE")
     try:
         # M1: user_id.
         for tabla in _USER_SCOPED_TABLES:
@@ -853,7 +862,15 @@ def connect(db_path: Optional[Path] = None) -> sqlite3.Connection:
     """
     path = Path(db_path) if db_path is not None else get_db_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path, isolation_level=None)
+    # `timeout` + `busy_timeout`: si otra conexión tiene el lock de escritura,
+    # **esperar** en vez de fallar. El default de sqlite3 son 5 s solo para el
+    # lock del driver y deja a SQLite sin `busy_timeout` propio, así que dos
+    # escrituras simultáneas terminaban en `database is locked`. Pasó de verdad
+    # el 4/8/2026: cargar un ajuste dispara un rerun de Streamlit que corría las
+    # migraciones mientras el backup todavía tenía la base tomada, y la app
+    # moría entera. 30 s es de sobra para cualquier escritura de esta app.
+    conn = sqlite3.connect(path, isolation_level=None, timeout=30.0)
+    conn.execute("PRAGMA busy_timeout = 30000")
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")

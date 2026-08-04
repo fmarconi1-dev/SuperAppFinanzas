@@ -56,8 +56,28 @@ def _try_restore_session_from_token() -> None:
     st.session_state["current_user_fullname"] = user["fullname"]
 
 
-def main() -> None:
+@st.cache_resource
+def _inicializar_db() -> bool:
+    """Schema + migraciones, **una sola vez por proceso**.
+
+    Antes esto corría dentro de `main()`, o sea en **cada rerun de Streamlit**:
+    cada click volvía a ejecutar el schema entero y las 13 migraciones. Son
+    idempotentes, así que el resultado era correcto, pero cada interacción
+    pedía el lock de escritura para hacer `ALTER TABLE` y `CREATE INDEX` que ya
+    estaban hechos.
+
+    El 4/8/2026 eso reventó en producción: cargar un ajuste de tenencia dispara
+    un `st.rerun()`, el rerun corrió las migraciones mientras el backup previo
+    todavía tenía la base tomada, y la app murió con `database is locked` en
+    `_migrate`. Correrlas una vez por proceso saca la colisión de raíz — y de
+    paso le quita trabajo a cada click.
+    """
     init_db()
+    return True
+
+
+def main() -> None:
+    _inicializar_db()
 
     # Restaurar sesión desde token firmado en la URL (si SESSION_SECRET está
     # configurado). Evita el re-login en cada refresh.

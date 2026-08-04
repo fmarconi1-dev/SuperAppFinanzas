@@ -225,3 +225,31 @@ sobran son objetos ya cerrados esperando al recolector.
 El helper `_perder_la_base()` fuerza `gc.collect()`, borra los compañeros
 `-wal`/`-shm` y reintenta. **Regla general: cualquier test que borre o
 reemplace archivos tiene que probarse en Windows, no solo en CI.**
+
+---
+
+## 🔒 `database is locked`
+
+Pasó el 4/8/2026 al cargar un ajuste de tenencia: la app **murió entera**, con
+el traceback apuntando a `init_db() → _migrate()`. **Cuatro defectos sumados**,
+los cuatro arreglados:
+
+1. **`init_db()` corría en cada rerun de Streamlit** — o sea en cada click: el
+   schema entero y las 13 migraciones, pidiendo el lock de escritura para
+   `ALTER TABLE` y `CREATE INDEX` que ya estaban hechos. Ahora va detrás de
+   `@st.cache_resource`: **una vez por proceso**.
+2. **`connect()` no configuraba `busy_timeout`** — ante un lock tomado, SQLite
+   fallaba en vez de esperar. Ahora espera hasta 30 s.
+3. ⚠️ **`_migrate` abría con `BEGIN` diferido.** Este es el sutil: con `BEGIN` a
+   secas la transacción arranca en modo lectura y pide el lock de escritura
+   recién en la primera escritura — y **ahí SQLite no aplica `busy_timeout`**,
+   devuelve `SQLITE_BUSY` al instante, porque esperar con lecturas ya hechas
+   podría terminar en deadlock. O sea que el punto 2 **no alcanzaba solo**.
+   Ahora usa `BEGIN IMMEDIATE`: el lock se toma al abrir, que es donde el
+   timeout sí cuenta.
+4. **El backup se sacaba con la conexión de escritura ya abierta**, alargando la
+   ventana de colisión. Ahora va antes.
+
+**Si vuelve a aparecer:** mirá si alguna transacción nueva usa `BEGIN` a secas y
+escribe después de leer. Cubierto por `tests/test_db_concurrencia.py`, que
+levanta dos hilos de verdad y falla si se revierte cualquiera de los cuatro.
