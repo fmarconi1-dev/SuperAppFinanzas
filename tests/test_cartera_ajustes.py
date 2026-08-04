@@ -381,3 +381,43 @@ def test_un_ajuste_no_genera_operacion_cerrada():
     assert led.realizaciones == []
     assert led.estados["X"].cantidad == pytest.approx(10.0)
     assert led.estados["X"].costo_ars == pytest.approx(500.0)
+
+
+# ---------------------------------------------------------------------------
+# Un ticker mal escrito no falla: no hace nada, que es peor
+# ---------------------------------------------------------------------------
+
+def test_tickers_conocidos_sale_de_los_movimientos(conn):
+    _cargar_byma(conn)
+    assert aj.tickers_conocidos(conn, UID) == {"BYMA"}
+
+
+def test_sugiere_el_ticker_contenido_en_el_texto():
+    """El caso real del 4/8/2026: se cargó `CUPONES GGALX` en vez de `GGALX`.
+
+    El ajuste se guardó sin chistar, no corrigió nada y el aviso original
+    siguió apareciendo. La sugerencia tiene que poner `GGALX` primero.
+    """
+    assert aj.parecidos("CUPONES GGALX", {"GGAL", "GGALX", "BYMA"})[0] == "GGALX"
+
+
+def test_sugiere_por_parecido_ante_un_typo():
+    assert "BYMA" in aj.parecidos("BYMAA", {"BYMA", "TXAR", "GGAL"})
+
+
+def test_un_ticker_conocido_no_genera_sugerencias():
+    assert aj.parecidos("BYMA", {"BYMA", "TXAR"}) == []
+
+
+def test_sin_ticker_no_sugiere_nada():
+    assert aj.parecidos("", {"BYMA"}) == []
+
+
+def test_el_ajuste_con_ticker_equivocado_no_corrige_nada(conn):
+    """La prueba de que el aviso hacía falta: cargarlo mal deja todo igual."""
+    _cargar_byma(conn)
+    aj.agregar(conn, UID, aj.Ajuste(
+        fecha=date(2025, 9, 1), ticker="SPLIT DE BYMA", tipo="SPLIT",
+        cantidad=9.0))
+    conn.commit()
+    assert [a for a in _led(conn).advertencias if a.startswith("BYMA")]

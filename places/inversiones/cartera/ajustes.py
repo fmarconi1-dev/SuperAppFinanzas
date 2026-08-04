@@ -60,8 +60,9 @@ from dataclasses import dataclass
 from datetime import date, datetime
 
 __all__ = [
-    "TIPOS", "Ajuste", "listar", "agregar", "eliminar",
-    "eventos_desde_ajustes", "aporte_sintetico", "costo_desde_rendimiento",
+    "TIPOS", "Ajuste", "listar", "agregar", "eliminar", "tickers_conocidos",
+    "parecidos", "eventos_desde_ajustes", "aporte_sintetico",
+    "costo_desde_rendimiento",
 ]
 
 
@@ -182,6 +183,47 @@ def agregar(conn, user_id: int, ajuste: Ajuste) -> int | None:
          int(ajuste.estimado), ajuste.nota or None),
     )
     return cur.lastrowid if cur.rowcount else None
+
+
+def tickers_conocidos(conn, user_id: int) -> set[str]:
+    """Los tickers que aparecen en los movimientos del usuario.
+
+    Sirve para avisar cuando un ajuste apunta a un papel que no existe. Pasó
+    de verdad el 4/8/2026: se cargó el ajuste de los cupones con el ticker
+    ``CUPONES GGALX`` en vez de ``GGALX``. Se guardó sin chistar, no corrigió
+    nada y el aviso siguió apareciendo — **un ajuste mal tipeado no falla, no
+    hace nada**, que es peor porque no deja rastro.
+    """
+    try:
+        return {
+            r[0] for r in conn.execute(
+                "SELECT DISTINCT ticker_base FROM cartera_movimientos "
+                "WHERE user_id = ? AND ticker_base IS NOT NULL", (user_id,))
+        }
+    except Exception:
+        return set()
+
+
+def parecidos(ticker: str, conocidos, n: int = 3) -> list[str]:
+    """Tickers conocidos que se parecen al escrito, para sugerir.
+
+    Además del parecido difuso, se prioriza que el ticker escrito **contenga**
+    uno conocido: así `CUPONES GGALX` sugiere `GGALX` primero.
+    """
+    t = (ticker or "").strip().upper()
+    if not t:
+        return []
+    contenidos = sorted(
+        (c for c in conocidos if c and c in t and c != t),
+        key=len, reverse=True,
+    )
+    import difflib
+    difusos = difflib.get_close_matches(t, list(conocidos), n=n, cutoff=0.6)
+    salida: list[str] = []
+    for c in contenidos + difusos:
+        if c not in salida and c != t:
+            salida.append(c)
+    return salida[:n]
 
 
 def eliminar(conn, user_id: int, ajuste_id: int) -> bool:

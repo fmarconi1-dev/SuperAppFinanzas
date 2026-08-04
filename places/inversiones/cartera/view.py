@@ -587,6 +587,7 @@ def _panel_ajustes(uid: int) -> None:
 
         with connect() as conn:
             existentes = mod_ajustes.listar(conn, uid)
+            conocidos = mod_ajustes.tickers_conocidos(conn, uid)
 
         etiquetas = {v["etiqueta"]: k for k, v in mod_ajustes.TIPOS.items()}
         c1, c2 = st.columns([1, 2])
@@ -599,6 +600,19 @@ def _panel_ajustes(uid: int) -> None:
 
         meta = mod_ajustes.TIPOS[tipo]
         st.caption(meta["ayuda"])
+
+        # Un ajuste con el ticker mal escrito no falla: **no hace nada**, y eso
+        # es peor, porque no deja rastro y el aviso original sigue ahí. Pasó el
+        # 4/8/2026 con `CUPONES GGALX` en vez de `GGALX`.
+        if tk and conocidos and tk not in conocidos:
+            sugerencias = mod_ajustes.parecidos(tk, conocidos)
+            extra = (f" ¿Quisiste decir **{'** o **'.join(sugerencias)}**?"
+                     if sugerencias else "")
+            st.warning(
+                f"No hay ningún movimiento de **{tk}** en tu cartera, así que "
+                f"este ajuste no va a corregir nada.{extra} El texto "
+                f"descriptivo va en **Nota**, no en Ticker.",
+                icon=":material/warning:")
 
         c1, c2 = st.columns(2)
         with c1:
