@@ -80,8 +80,11 @@ fly scale count 0 -a $App -y
 Start-Sleep -Seconds 10
 
 # 4. Subir la copia y limpiar el diario WAL de la base vieja.
+#    `fly ssh sftp` no tiene subcomando `put`: hay que abrir su shell y
+#    mandarle el comando por la entrada estandar. En PowerShell eso es un
+#    pipe (el `<<<` de bash NO existe acá).
 Write-Host "Subiendo la copia ..."
-fly ssh sftp shell -a $App <<< "put $Archivo /app/data/finanzas.db"
+"put $Archivo /app/data/finanzas.db" | fly ssh sftp shell -a $App
 fly ssh console -a $App -C "rm -f /app/data/finanzas.db-wal /app/data/finanzas.db-shm"
 
 # 5. Levantar y verificar.
