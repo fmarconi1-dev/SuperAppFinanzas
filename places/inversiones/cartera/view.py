@@ -291,17 +291,26 @@ def _rendimiento_caja(cs, resumen, divs, rem) -> None:
     resultado, no lo agranda.
     """
     st.markdown("#### La plata quieta")
+
+    rem_ars, rem_usd, rem_n = rem
+    div_bruto = sum(d.bruto for d in divs.values())
+    div_ret = sum(d.retencion for d in divs.values())
+    div_n = sum(d.n for d in divs.values())
+
+    if not (resumen.n or div_n or rem_n):
+        st.caption(
+            "Todavía no hay cauciones, dividendos ni cuenta remunerada en tus "
+            "movimientos. Cuando los haya, acá vas a ver cuánto rindió la "
+            "plata que no está invertida en una posición."
+        )
+        return
+
     st.caption(
         "Cauciones, cuenta remunerada y dividendos. **Ya está todo dentro de "
         "tu patrimonio** — el interés engordó el efectivo y los dividendos ya "
         "cuentan en cada instrumento. Esto no suma nada nuevo: muestra de "
         "dónde viene."
     )
-
-    rem_ars, rem_usd, rem_n = rem
-    div_bruto = sum(d.bruto for d in divs.values())
-    div_ret = sum(d.retencion for d in divs.values())
-    div_n = sum(d.n for d in divs.values())
 
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -331,40 +340,49 @@ def _rendimiento_caja(cs, resumen, divs, rem) -> None:
     col_izq, col_der = st.columns(2)
     with col_izq:
         st.markdown("**Cauciones por año**")
-        st.dataframe(
-            pd.DataFrame([
-                {"Año": anio, "Cauciones": n, "Interés": interes,
-                 "TNA": (tna * 100) if tna is not None else None}
-                for anio, (n, interes, tna) in sorted(resumen.por_anio.items())
-            ]),
-            hide_index=True, use_container_width=True,
-            column_config={
-                "Año": st.column_config.NumberColumn(format="%d"),
-                "Interés": st.column_config.NumberColumn(format="$ %.0f"),
-                "TNA": st.column_config.NumberColumn(
-                    format="%.2f%%",
-                    help="Ponderada por capital y plazo dentro del año"),
-            },
-        )
+        if not resumen.por_anio:
+            st.caption("Sin cauciones registradas.")
+        else:
+            st.dataframe(
+                pd.DataFrame([
+                    {"Año": anio, "Cauciones": n, "Interés": interes,
+                     "TNA": (tna * 100) if tna is not None else None}
+                    for anio, (n, interes, tna)
+                    in sorted(resumen.por_anio.items())
+                ]),
+                hide_index=True, use_container_width=True,
+                column_config={
+                    "Año": st.column_config.NumberColumn(format="%d"),
+                    "Interés": st.column_config.NumberColumn(format="$ %.0f"),
+                    "TNA": st.column_config.NumberColumn(
+                        format="%.2f%%",
+                        help="Ponderada por capital y plazo dentro del año"),
+                },
+            )
     with col_der:
         st.markdown("**Dividendos por instrumento**")
-        st.dataframe(
-            pd.DataFrame([
-                {"Ticker": d.ticker, "Cobros": d.n, "Bruto": d.bruto,
-                 "Retención": d.retencion, "Neto": d.neto,
-                 "Ret. %": d.retencion_pct}
-                for d in sorted(divs.values(), key=lambda x: -x.bruto)
-                if d.bruto
-            ]),
-            hide_index=True, use_container_width=True,
-            column_config={
-                "Bruto": st.column_config.NumberColumn(format="$ %.0f"),
-                "Retención": st.column_config.NumberColumn(format="$ %.0f"),
-                "Neto": st.column_config.NumberColumn(format="$ %.0f"),
-                "Ret. %": st.column_config.NumberColumn(format="%.1f%%"),
-            },
-        )
+        if not div_n:
+            st.caption("Todavía no cobraste dividendos.")
+        else:
+            st.dataframe(
+                pd.DataFrame([
+                    {"Ticker": d.ticker, "Cobros": d.n, "Bruto": d.bruto,
+                     "Retención": d.retencion, "Neto": d.neto,
+                     "Ret. %": d.retencion_pct}
+                    for d in sorted(divs.values(), key=lambda x: -x.bruto)
+                    if d.bruto
+                ]),
+                hide_index=True, use_container_width=True,
+                column_config={
+                    "Bruto": st.column_config.NumberColumn(format="$ %.0f"),
+                    "Retención": st.column_config.NumberColumn(format="$ %.0f"),
+                    "Neto": st.column_config.NumberColumn(format="$ %.0f"),
+                    "Ret. %": st.column_config.NumberColumn(format="%.1f%%"),
+                },
+            )
 
+    if not resumen.n:
+        return
     with st.expander(f"Ver las {resumen.n} cauciones una por una"):
         if resumen.abiertas:
             st.caption(
