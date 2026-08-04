@@ -231,7 +231,15 @@ Los detectó él, no los tests — la única forma de encontrarlos era **reimpor
 
 🧪 **`tests/test_nombres_definidos.py` (nuevo).** Salió de un error propio: `backup_db` usado en `view.py` sin importar. Lee el **bytecode** de cada módulo, junta los `LOAD_GLOBAL` y verifica que existan — bytecode y no AST para evitar falsos positivos de atributos y locales. **Verificado al revés:** se reintrodujo el error y el test lo nombró. Cubre la misma familia que el `firma_val`. Suite **434 passed, 3 skipped**.
 
-📌 **PENDIENTE DE DATO DE FRANCO:** el **costo real de las 100 GGAL** del saldo inicial. Hoy figuran a **$4,49** —la fila sintética del Excel hace doble trabajo: cubre las acciones *y* dice "canje GGALX"— y ése no es un precio de GGAL en diciembre de 2024. Con ese costo la venta de 200 del 27/10/2025 da **+$815.000**; con uno realista, **~+$316.000**. **Medio millón de diferencia.** El costo de TXAR quedó cargado como **estimado** ($233.439,14, despejado del −20% recordado).
+❌ **RETRACTADO (4/8/2026): el "problema de las 100 GGAL a $4,49" NO existe.** Se afirmó acá y en la bitácora que el saldo inicial de GGAL tenía un costo irrisorio que inflaba la venta de octubre en ~$500.000. **Era un artefacto de la verificación, no un dato malo.**
+
+⚠️ **La causa, que vale como trampa nueva.** La fila del saldo inicial está **denominada en USD** (US$449 por 100 acciones ≈ US$4,49 c/u, que es el precio correcto de GGAL en diciembre de 2024). La simulación se corrió sobre los objetos del **parser**, y el parser **no lleva el TC MEP**: se congela recién al importar (ADR-0004, y está documentado en `posiciones()`). Con `tc_mep=None`, `Evento.importes` devuelve **0 pesos** para todo lo denominado en dólares — así que el costo de esas 100 acciones se computó como **$449 en vez de $476.748**.
+
+**Producción está bien:** PPC de GGAL **$5.188,63** y la venta del 27/10/2025 da **+$339.256,70**. El despeje lo confirma: $476.748 / US$449 = **TC $1.061,80**, un MEP plausible de diciembre de 2024.
+
+🧭 **Lección operativa:** **nunca validar totales en pesos corriendo el ledger sobre objetos del parser.** Sirve para instrumentos en pesos (así se verificaron bien BYMA, TXAR y GGALX) y **miente en todo lo que esté en dólares**. Para totales, la fuente es la DB —con el TC ya congelado— o la app.
+
+📌 **Estado real de los ajustes:** BYMA y TXAR cargados y verificados. **Falta GGALX** (el aviso sigue apareciendo). El costo de TXAR quedó marcado como **estimado** ($233.439,14, despejado del −20% recordado) y el aporte sintético se ve en producción: capital aportado pasó de $13.462.628 a **$13.696.067**, exactamente +$233.439.
 
 📌 **PENDIENTE DE FRANCO:** **desplegar** (10 commits esperando, incluido este fix) y **programar el backup diario** en el Programador de tareas. Pasos en el RUNBOOK. El test cubre el mecanismo; lo que no puede cubrir es que `flyctl` esté logueado y que la tarea corra. Si el deploy corta con `cpu_overcommit_exceeded`, la salida está en el RUNBOOK (`--strategy immediate`).
 

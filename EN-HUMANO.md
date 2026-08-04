@@ -51,7 +51,9 @@ La solución: cada vez que declarás el costo de algo que ya tenías, la app reg
 
 **Para qué te sirve:** las tres operaciones ahora tienen resultado de verdad —BYMA empata en −$7,92, TXAR pierde $46.688, GGALX gana $1.494— y tu ganancia total deja de estar inflada en $233.439.
 
-**Qué sigue:** falta el costo real de las **100 acciones de GGAL** que ya tenías. Hoy figuran a $4,49 cada una, que no es un precio real de diciembre de 2024, y eso infla la venta de octubre en unos **$500.000**. Es el número más grande que queda pendiente.
+**Qué sigue:** cargar el ajuste de **GGALX**, que quedó pendiente.
+
+> ⚠️ **Corrección (mismo día).** Acá decía que faltaba el costo real de las 100 acciones de GGAL y que eso inflaba una venta en ~$500.000. **Era un error mío, no un problema tuyo.** Esa fila está anotada **en dólares** (US$449 por 100 acciones, o sea US$4,49 cada una — que es el precio correcto que tenía GGAL en diciembre de 2024). Yo la verifiqué con una herramienta que **no conoce el tipo de cambio** de cada fecha, así que leyó "449" como si fueran 449 pesos en vez de 449 dólares. Tu app siempre lo tuvo bien: esa venta da **+$339.257**, no lo que yo dije. No tenés que buscar ningún dato.
 
 ---
 
