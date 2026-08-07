@@ -182,6 +182,13 @@ class EstadoTicker:
     retenciones_usd: float = 0.0
     realizaciones: list[Realizacion] = field(default_factory=list)
     advertencias: list[str] = field(default_factory=list)
+    #: Compras que llegaron sin unidades (pagarés, cheques). Se guardan aparte
+    #: porque **son un dato faltante, no un movimiento mal hecho**: si un
+    #: AJUSTE aporta después la cantidad, el aviso deja de corresponder. Se
+    #: emiten al final de `recorrer()`, no en el momento de la compra.
+    advertencias_sin_cantidad: list[str] = field(default_factory=list)
+    #: True si algún AJUSTE le aportó unidades a este ticker.
+    unidades_ajustadas: bool = False
 
     @property
     def ppc_ars(self) -> float | None:
@@ -356,7 +363,11 @@ def recorrer(eventos) -> Ledger:
             est.retenciones_usd += usd
 
     for est in led.estados.values():
-        led.advertencias.extend(f"{est.ticker}: {a}" for a in est.advertencias)
+        avisos = list(est.advertencias)
+        # La compra sin unidades solo es un problema si nadie las aportó.
+        if not est.unidades_ajustadas:
+            avisos.extend(est.advertencias_sin_cantidad)
+        led.advertencias.extend(f"{est.ticker}: {a}" for a in avisos)
     for r in led.realizaciones:
         if r.sospechosa:
             led.advertencias.append(
@@ -376,7 +387,9 @@ def _comprar(est: EstadoTicker, ev: Evento, costo_ars: float, costo_usd: float) 
     est.costo_ars += costo_ars
     est.costo_usd += costo_usd
     if abs(ev.cantidad) < 1e-12 and abs(costo_ars) > 1e-9:
-        est.advertencias.append(
+        # A la lista aparte: puede que un AJUSTE aporte las unidades y
+        # entonces este aviso ya no corresponda. Se decide al final.
+        est.advertencias_sin_cantidad.append(
             f"compra del {ev.fecha} sin cantidad en el movimiento "
             f"(costo {costo_ars:,.2f} ARS): el PPC necesita la tenencia del broker"
         )
@@ -400,6 +413,8 @@ def _ajustar(est: EstadoTicker, ev: Evento, costo_ars: float,
         if est._origen is None:
             est._origen = ev.fecha
         est._peso_fecha += costo_ars * (ev.fecha - est._origen).days
+    if abs(ev.cantidad) > 1e-12:
+        est.unidades_ajustadas = True
     est.cantidad += ev.cantidad
     est.costo_ars += costo_ars
     est.costo_usd += costo_usd

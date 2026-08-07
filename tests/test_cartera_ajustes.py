@@ -421,3 +421,64 @@ def test_el_ajuste_con_ticker_equivocado_no_corrige_nada(conn):
         cantidad=9.0))
     conn.commit()
     assert [a for a in _led(conn).advertencias if a.startswith("BYMA")]
+
+
+# ---------------------------------------------------------------------------
+# Caso pagaré: el movimiento trae el monto pero no los nominales
+# ---------------------------------------------------------------------------
+
+def test_el_pagare_sin_cantidad_avisa(conn):
+    """El estado previo: hay costo pero no unidades, así que no hay PPC."""
+    _mov(conn, "2026-07-06", "COMPRA", "#UMV060770008", 0, -7_674_486.21)
+    assert any("sin cantidad" in a for a in _led(conn).advertencias)
+
+
+def test_cargar_los_nominales_le_da_ppc_al_pagare(conn):
+    """Datos reales: $7.674.486,21 por 5.500 nominales → $1.395,36 c/u.
+
+    Al MEP de julio de 2026 (~$1.500) eso es US$0,93 por dólar de valor
+    nominal: un descuento de ~7% que, a nueve meses, da del orden del 10%
+    anual en dólares — la tasa que Franco tiene cargada para sus pagarés.
+    """
+    _mov(conn, "2026-07-06", "COMPRA", "#UMV060770008", 0, -7_674_486.21)
+    aj.agregar(conn, UID, aj.Ajuste(
+        fecha=date(2026, 7, 6), ticker="#UMV060770008", tipo="NOMINALES",
+        cantidad=5500.0, nota="Nominales que el export no informa"))
+    conn.commit()
+
+    led = _led(conn)
+    assert not led.advertencias
+    est = led.estados["#UMV060770008"]
+    assert est.cantidad == pytest.approx(5500.0)
+    assert est.ppc_ars == pytest.approx(1395.36, abs=0.01)
+
+
+def test_los_nominales_no_aportan_capital(conn):
+    """La plata ya entró con la compra: contarla otra vez la duplicaría."""
+    _mov(conn, "2026-07-06", "COMPRA", "#UMV060770008", 0, -7_674_486.21)
+    aj.agregar(conn, UID, aj.Ajuste(
+        fecha=date(2026, 7, 6), ticker="#UMV060770008", tipo="NOMINALES",
+        cantidad=5500.0))
+    conn.commit()
+    assert capital_aportado(conn, UID).depositos_ars == pytest.approx(0.0)
+
+
+def test_con_los_nominales_el_vencimiento_no_queda_descubierto(conn):
+    """**El motivo real para cargarlo ahora.** Hoy la valuación ya es correcta
+    porque la cantidad sale de la tenencia del broker. Pero cuando el pagaré
+    venza, el movimiento de cobro **sí** va a traer los nominales y el ledger
+    los vería como una venta de unidades que nunca registró."""
+    _mov(conn, "2026-07-06", "COMPRA", "#UMV060770008", 0, -7_674_486.21)
+    _mov(conn, "2027-04-06", "VENTA", "#UMV060770008", -5500, 8_400_000.00)
+    assert any("excedente" in a for a in _led(conn).advertencias)
+
+    aj.agregar(conn, UID, aj.Ajuste(
+        fecha=date(2026, 7, 6), ticker="#UMV060770008", tipo="NOMINALES",
+        cantidad=5500.0))
+    conn.commit()
+
+    led = _led(conn)
+    assert not led.advertencias
+    r = led.por_ticker("#UMV060770008")[0]
+    assert not r.descubierta
+    assert r.resultado_ars == pytest.approx(8_400_000.00 - 7_674_486.21, abs=0.01)

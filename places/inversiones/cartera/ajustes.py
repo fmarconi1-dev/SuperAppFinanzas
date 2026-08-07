@@ -94,6 +94,13 @@ TIPOS: dict[str, dict] = {
                  "Cambia la cantidad, no lo que invertiste.",
         "espera_costo": False,
     },
+    "NOMINALES": {
+        "etiqueta": "El movimiento vino sin la cantidad",
+        "ayuda": "El export trae el monto pero no los nominales — pasa con los "
+                 "pagarés y cheques. El costo ya entró con la compra: acá va "
+                 "solo la cantidad, que sale de la tenencia del broker.",
+        "espera_costo": False,
+    },
 }
 
 
