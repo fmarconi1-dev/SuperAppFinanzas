@@ -69,9 +69,14 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 - 🟡 💡 **Amortizaciones parciales** de bonos vivos. **Actualizado 2026-07-30:** la convención argentina es **por precio, nunca por nominales** (dato de Franco) — el broker deja la cantidad quieta y el precio absorbe la devolución de capital. El modelo binario actual (`cant_amortizada` = 0 o todo) alcanza hasta que un bono amortice en cuotas. **Primera fecha real: 9/7/2027** (AE38, 22 cuotas semestrales del 4,545%); AN29 es bullet a 2029. Cuando toque, falta resolver si el precio del broker viene por 100 de nominal **original** o **residual** — se decide con la foto de la tenencia del día que amortice, no antes. Queda fuera de la 3b por eso.
 - 🟢 💡 **Exposición por moneda** (dólar vs pesos) como tercer corte de la composición. Sale de `categoria_activo` + `moneda_cotiz`, pero tiene juicio de por medio: un CEDEAR cotiza en pesos y es exposición en dólares. Requiere una regla explícita acordada con Franco.
 - 🟡 ✅ **Workflow de CI** (hecho 4/8/2026): `tests.yml` corre la suite en Python 3.11 en cada push y PR, más un gate anti-datos del lado del servidor.
-- 🔴 💡 Análisis enriquecido: exposición por sector e industria, TIR esperada de la parte de renta fija, duration/riesgo, correlación fija-vs-variable.
-- 🟡 💡 Comparación de la cartera contra benchmarks (SPY, Merval) en distintos plazos.
-- 🟡 💡 Alertas de vencimientos de bonos/ON (reusar la lógica de la hoja "VTO MES" del Excel).
+- 🔴 💡 **Análisis enriquecido** (en curso desde el 5/8/2026):
+  - ✅ Exposición por **sector e industria** (Fase 3b).
+  - ✅ **Vencimientos** de renta fija (M14): las fechas se leen de la descripción del instrumento. ⚠️ De la renta fija **viva** de Franco resuelve 1 de 3 — AE38 y el pagaré no traen fecha.
+  - 🟡 **TIR esperada y duration** — **destrabadas**: se encontró fuente (`Docta Capital`, ver `docs/CRONOGRAMAS-RENTA-FIJA.md`). Falta que Franco cree la cuenta gratuita. Un cronograma es dato estático, así que con caché el plan gratuito de 15 req/día alcanza de sobra.
+  - 🟡 **Calendario de cobros** — sale del mismo cronograma. Para un bono amortizable importa más que el vencimiento: el AE38 no vence hasta 2038 pero empieza a devolver capital el **9/7/2027**.
+  - 🟡 Correlación fija-vs-variable — necesita serie histórica del patrimonio.
+- 🟡 💡 **Comparación contra benchmarks (SPY, Merval)** — próximo en la fila. **Money-weighted, no simple**: Franco aportó en 24 momentos distintos y el índice no, así que comparar acumulados sería tramposo. La pregunta correcta es *"si hubieras puesto la misma plata en las mismas fechas en SPY, hoy tendrías US$ X"*. `flujos_de_capital()` ya da los aportes con fecha e importe; falta la serie histórica del índice.
+- ✅ Alertas de vencimientos de bonos/ON — hecho el 5/8/2026 (M14). Ver arriba el caveat sobre su alcance real.
 - 🟢 💡 Simulador "qué pasa si" (agregar/quitar posiciones y ver impacto en estructura).
 
 ### Scoring (B.2)
