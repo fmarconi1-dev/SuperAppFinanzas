@@ -17,6 +17,7 @@ rerun de Streamlit.
 from __future__ import annotations
 
 import os
+from datetime import date
 
 import pandas as pd
 import streamlit as st
@@ -65,6 +66,7 @@ from places.inversiones.cartera.analisis import (
     tipo_de_renta,
 )
 from places.inversiones.cartera import ajustes as mod_ajustes
+from places.inversiones.cartera import vencimientos as mod_venc
 from places.inversiones.cartera.export import exportar_cartera
 from places.inversiones.cartera.ledger import eventos_desde_db, recorrer
 from places.inversiones.cartera.parser import Instrumento, parse_archivo_excel
@@ -201,7 +203,7 @@ def _aplicar_tenencia(posiciones: dict, foto, instrumentos: dict) -> dict:
 
 def _instrumentos_de_db(conn, user_id: int) -> dict[str, Instrumento]:
     filas = conn.execute(
-        "SELECT ticker, ticker_usd, categoria_activo, moneda_cotiz, "
+        "SELECT ticker, ticker_usd, descripcion, categoria_activo, moneda_cotiz, "
         "       tasa_anual_usd, activo "
         "FROM cartera_instrumentos WHERE user_id = ?",
         (user_id,),
@@ -210,6 +212,9 @@ def _instrumentos_de_db(conn, user_id: int) -> dict[str, Instrumento]:
         r["ticker"]: Instrumento(
             ticker=r["ticker"],
             ticker_usd=r["ticker_usd"],
+            # La descripción trae la fecha de vencimiento de bonos, letras y
+            # ON ("Vto. 30/11/2029"): la lee `vencimientos.py`.
+            descripcion=r["descripcion"] or "",
             categoria_activo=r["categoria_activo"] or "",
             moneda_cotiz=r["moneda_cotiz"] or "ARS",
             # ¡Imprescindible! Sin `activo` todo queda como vigente y las
@@ -434,6 +439,112 @@ def _composicion(valuadas, efectivo_ars, sectores, industrias, mep,
                     conn.commit()
                 st.success(f"{tk_sec} queda como **{nuevo_sector.strip()}**.",
                            icon=":material/check_circle:")
+                st.rerun()
+
+
+def _vencimientos(valuadas: dict, instrumentos: dict, uid: int) -> None:
+    """Qué se te vence, cuándo y cuánta plata es.
+
+    Las fechas salen de la descripción del instrumento (`vencimientos.py`); no
+    hay que cargarlas. Lo que no la trae se fija a mano acá abajo.
+    """
+    with connect() as conn:
+        vencs = mod_venc.resolver(instrumentos, conn)
+    if not vencs:
+        return
+
+    hoy = date.today()
+    res = mod_venc.resumen(vencs, valuadas, hoy)
+    filas = mod_venc.proximos(vencs, valuadas, hoy)
+
+    st.markdown("#### Qué se te vence")
+    st.caption(
+        "Bonos, letras, ON y pagarés que todavía tenés, del que vence antes al "
+        "que vence después. **Las fechas se leen solas** de la descripción de "
+        "cada instrumento. Lo ya vencido no aparece: no te vence nada."
+    )
+
+    prox = res["proximo"]
+    c1, c2 = st.columns(2)
+    with c1:
+        st.html(_kpi_card(
+            "VENCE EN LOS PRÓXIMOS 90 DÍAS",
+            _fmt(res["ars_proximos"], 0, "$") if res["n_proximos"] else "—",
+            (f"{res['n_proximos']} instrumento(s) · "
+             f"{_fmt(res['usd_proximos'], 0, 'US$ ')}")
+            if res["n_proximos"] else "nada en el corto plazo",
+        ))
+    with c2:
+        st.html(_kpi_card(
+            "EL PRÓXIMO",
+            f"{prox['Ticker']}" if prox else "—",
+            (f"{prox['Vence']} · en {prox['Días']} días" if prox
+             else "el más cercano está a más de 90 días"),
+        ))
+
+    if not filas:
+        st.caption("No te queda nada de renta fija por vencer.")
+        return
+
+    df = pd.DataFrame([
+        {k: f[k] for k in ("Ticker", "Vence", "Días", "Valor", "US$", "Fuente")}
+        for f in filas
+    ])
+    st.dataframe(
+        df, hide_index=True, use_container_width=True,
+        column_config={
+            "Vence": st.column_config.TextColumn(
+                help="Solo el año cuando la descripción no dice el día."),
+            "Días": st.column_config.NumberColumn(
+                format="%d", help="Vacío cuando la fecha no es exacta: contar "
+                                  "días contra un año redondeado sería "
+                                  "inventar precisión."),
+            "Valor": st.column_config.NumberColumn(format="$ %.0f"),
+            "US$": st.column_config.NumberColumn(format="US$ %.2f"),
+            "Fuente": st.column_config.TextColumn(
+                help="'a mano' = la fecha la fijaste vos, no salió del Excel."),
+        },
+    )
+
+    if res["sin_fecha"]:
+        st.info(
+            "Sin fecha: **" + "**, **".join(res["sin_fecha"]) + "**. "
+            "Sus descripciones tienen el año en el *nombre* del bono "
+            "(«Bono USD 2038»), que no es lo mismo que decir cuándo vence. "
+            "Fijalas abajo si las necesitás.",
+            icon=":material/info:")
+
+    with st.expander("Fijar un vencimiento a mano"):
+        st.caption(
+            "Para lo que el Excel no informa. La fecha que pongas acá **gana** "
+            "sobre la descripción, y se puede quitar para volver a la automática."
+        )
+        candidatos = sorted(vencs)
+        c1, c2, c3 = st.columns([2, 2, 1])
+        with c1:
+            tk = st.selectbox("Instrumento", candidatos, key="cartera_venc_tk")
+        with c2:
+            f = st.date_input("Vence el", key="cartera_venc_fecha",
+                              format="DD/MM/YYYY")
+        with c3:
+            st.write("")
+            if st.button("Fijar", key="cartera_venc_set"):
+                with connect() as conn:
+                    mod_venc.set_override(conn, tk, f)
+                    conn.commit()
+                st.success(f"{tk} vence el {f.strftime('%d/%m/%Y')}.",
+                           icon=":material/check_circle:")
+                st.rerun()
+
+        manuales = [t for t, x in vencs.items() if x.fuente == "manual"]
+        if manuales:
+            st.caption("Fijados a mano: " + ", ".join(manuales))
+            quitar = st.selectbox("Volver a la fecha automática", manuales,
+                                  key="cartera_venc_quitar")
+            if st.button("Quitar", key="cartera_venc_del"):
+                with connect() as conn:
+                    mod_venc.quitar_override(conn, quitar)
+                    conn.commit()
                 st.rerun()
 
 
@@ -1273,6 +1384,8 @@ def render(user_id: int | None = None) -> None:
     sectores, industrias = _resolver_sectores(valuadas, sectores_scoring)
     _composicion(valuadas, cash_ars + (cash_usd * mep if mep else 0.0),
                  sectores, industrias, mep, uid)
+
+    _vencimientos(valuadas, instrumentos, uid)
 
     _operaciones_cerradas(ledger)
 

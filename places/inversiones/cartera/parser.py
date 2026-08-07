@@ -130,6 +130,12 @@ class Instrumento:
     ticker_usd: str | None = None  # variante USD (sufijo D), p. ej. "TSMD"
     categoria_activo: str = ""   # Acciones / Bonos / Cedears / Letras / ONs / Cripto
     moneda_cotiz: str = "ARS"    # "ARS", "USD", "ARS/100", "USD/100"
+    #: ``Config!I``. Se guardaba en `cartera_instrumentos` pero no viajaba en
+    #: este objeto, así que el resto del código no la veía. **Tiene dato útil
+    #: además del nombre:** la fecha de vencimiento de bonos, letras y ON está
+    #: escrita ahí ("Bono Tesoro Nacional Vto. 30/11/2029") y es de donde la
+    #: lee `vencimientos.py`.
+    descripcion: str = ""
     #: ``Config!L`` ("Activo en cartera"). False = instrumento vencido o
     #: retirado: su tenencia ya no existe (amortizó / se canjeó), aunque los
     #: movimientos históricos sigan en la DB.

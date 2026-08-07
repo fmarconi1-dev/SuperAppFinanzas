@@ -836,6 +836,28 @@ def _migrate(conn: sqlite3.Connection) -> None:
             "ON cartera_ajustes(user_id, ticker)"
         )
 
+        # ============================================================
+        # M14 (Fase 4): vencimientos fijados a mano.
+        # ============================================================
+        # La fecha de vencimiento se lee de la descripción del instrumento
+        # ("Bono Tesoro Nacional Vto. 30/11/2029"), pero no todas la traen: el
+        # pagaré no tiene descripción con fecha y algunos bonos dicen solo el
+        # año. Esta tabla guarda las que se corrigen a mano.
+        #
+        # Tabla aparte y no una columna en `cartera_instrumentos` por el mismo
+        # motivo que `cartera_sectores`: esa tabla se **re-escribe en cada
+        # import** desde la hoja Config y pisaría el dato. Sin `user_id`: que
+        # el AN29 venza el 30/11/2029 no depende de quién lo tenga.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS cartera_vencimientos (
+                ticker          TEXT PRIMARY KEY,
+                fecha           TEXT NOT NULL,
+                fuente          TEXT,
+                es_override     INTEGER NOT NULL DEFAULT 0,
+                actualizado_en  TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        """)
+
         cur.execute("COMMIT")
     except Exception:
         cur.execute("ROLLBACK")
