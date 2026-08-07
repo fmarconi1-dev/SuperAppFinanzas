@@ -172,30 +172,47 @@ fly deploy --image <imagen-de-la-release-anterior> -a superapp-finanzas
 
 ---
 
-## 🧱 `cpu_overcommit_exceeded` al desplegar
+## 🧱 El deploy falla por falta de recursos en el host
+
+Dos mensajes, **una sola causa**:
 
 ```
 insufficient CPUs available ... cpu_overcommit_exceeded
+insufficient memory available to fulfill request on the current host
 ```
 
 **No es un problema de tu app ni del código.** Es el host de Fly en `gru`
-diciendo que no tiene CPU libre para levantar una máquina **nueva** mientras la
-vieja sigue corriendo — que es justo lo que hace la estrategia de deploy por
-defecto (*rolling*: levanta la nueva, la verifica, recién ahí baja la vieja).
+diciendo que no le entra. La estrategia de deploy por defecto es *rolling*:
+levanta la máquina nueva, la verifica, y **recién ahí** baja la vieja — o sea
+que durante el cambio necesita **el doble de recursos** (2 GB de RAM en vez de
+1). Y como tu máquina está atada al volumen `finanzas_data`, **no puede mudarse
+a otro host**: donde está el volumen, ahí tiene que correr.
 
-Con **una sola máquina y un volumen**, ese solapamiento no aporta nada: el
-volumen está atado a una máquina, así que no hay alta disponibilidad que
-proteger. La salida es pedir el reemplazo directo:
+Con **una sola máquina**, ese solapamiento no compra nada: no hay alta
+disponibilidad que proteger. La salida es pedir el reemplazo directo:
 
 ```powershell
 fly deploy --strategy immediate -a superapp-finanzas
 ```
 
-**Qué cambia:** hay unos segundos de caída mientras la máquina se reemplaza. Es
-una app personal: el costo es que la pantalla se recargue.
+`immediate` para la máquina antes de actualizarla, así solo necesita 1 GB en vez
+de 2. **Qué cambia:** unos segundos de caída. Es una app personal; el costo es
+que la pantalla se recargue.
 
-Si igual falla, la región está saturada de verdad. Esperar y reintentar; no
-tiene sentido tocar el `Dockerfile` ni bajarle recursos a la app.
+**Si `immediate` también falla**, liberá la memoria explícitamente antes:
+
+```powershell
+fly status -a superapp-finanzas          # anotá el id de la máquina
+fly machine stop <id> -a superapp-finanzas
+fly deploy --strategy immediate -a superapp-finanzas
+```
+
+Con la máquina apagada el host ya tiene el GB libre para reservar. Es la vía más
+determinista.
+
+Si aun así corta, el host está saturado de verdad: esperá un rato y reintentá.
+**No bajes la memoria de la app** — 1 GB es lo que necesita pandas para las
+valuaciones de la cartera — ni toques el `Dockerfile`.
 
 ---
 
