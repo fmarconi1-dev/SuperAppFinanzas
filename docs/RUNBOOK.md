@@ -64,14 +64,39 @@ python scripts\verificar_backup.py backups-remotos\superapp-20260804-105642.db
 
 Imprime `integridad|transacciones|movimientos|usuarios` y devuelve código 0 solo si la copia sirve. **Sirve** = pasa `integrity_check`, tiene usuarios y **tiene al menos una transacción**: eso es lo irreemplazable. Una cartera vacía no invalida la copia (puede ser anterior al primer import).
 
-### Programarlo (hacelo una vez)
+### Programarlo (un comando, hacelo una vez)
 
-Programador de tareas de Windows → Crear tarea básica → diario, a una hora en que la PC esté prendida:
+Abrí PowerShell **como administrador** y corré:
 
-- **Programa:** `powershell.exe`
-- **Argumentos:** `-ExecutionPolicy Bypass -File "C:\Users\Franco\OneDrive\Desktop\Finanzas Personales\Superapp de Finanzas\SuperAppFinanzas\scripts\backup_remoto.ps1"`
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\programar_backup.ps1
+```
+
+Queda diario a las 09:00 (`-Hora 09:30` para cambiarla, `-Quitar` para borrarla). El script deja puestas las tres opciones que se olvidan a mano y que hacen que la tarea **exista pero no corra**:
+
+| Opción | Sin ella |
+|---|---|
+| `StartWhenAvailable` | el día que la PC estuvo apagada a esa hora, no hay backup |
+| `AllowStartIfOnBatteries` | en notebook, el default de Windows es **no correr con batería** |
+| `ExecutionTimeLimit` | una corrida colgada bloquea todas las siguientes |
+
+Probala en el momento, sin esperar a mañana:
+
+```powershell
+Start-ScheduledTask -TaskName "Backup Superapp Finanzas"
+```
 
 Como la carpeta está en OneDrive, la copia además se sincroniza a la nube sola.
+
+### ¿Viene funcionando? (un comando)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\estado_backup.ps1
+```
+
+Muestra las últimas copias con su antigüedad, las últimas corridas de la bitácora (`backups-remotos\backup.log`) y **da un veredicto**: verde si la copia más nueva tiene menos de 3 días, rojo si no.
+
+⚠️ **Por qué hace falta.** La tarea corre de madrugada y nadie mira la consola. **Un backup que dejó de funcionar y no avisa es peor que no tener backup**, porque da una sensación de protección que no existe. El log distingue *"no corrió"* de *"corrió y falló"*, que no es lo mismo. Corré esto cada tanto.
 
 ---
 
@@ -89,9 +114,17 @@ powershell -ExecutionPolicy Bypass -File scripts\restaurar_backup.ps1 `
     -Archivo backups-remotos\superapp-20260730-2200.db -Confirmar
 ```
 
-El script, en orden: verifica la copia → **guarda el estado actual de producción** en `pre-restore-*.db` → para la app → sube la copia → borra los archivos `-wal` y `-shm` → levanta la app → chequea el health.
+El script, en orden: verifica la copia → **enciende la máquina** → **guarda el estado actual de producción** en `pre-restore-*.db` → sube la copia a un **temporal** → hace el swap y borra `-wal`/`-shm` en un solo comando → **reinicia la máquina** → chequea el health.
 
 ⚠️ **Lo de `-wal` y `-shm` no es opcional.** SQLite guarda las escrituras recientes en esos dos archivos aparte. Si se reemplaza el `.db` sin borrarlos, SQLite mezcla la base restaurada con el diario de la vieja y el resultado es una base corrupta.
+
+⚠️ **No uses la app mientras corre el restore.** Como no se puede entrar por SSH a una máquina apagada, el swap se hace con la app viva: queda una ventana de ~1 segundo entre el reemplazo y el reinicio en la que una escritura tuya volvería a crear el `-wal`. Es una app de un solo usuario: la ventana es teórica si vos no estás tocándola.
+
+### 🐛 Este script estaba roto y nadie lo sabía (reescrito el 4/8/2026)
+
+La versión original **no podía funcionar**: hacía `fly scale count 0` para "parar" la app —que no la para, la **destruye**— y después intentaba entrar por `fly ssh` a una máquina inexistente. El restore se colgaba ahí, **con la app caída y la base sin reemplazar**: el peor estado posible. Y `scale count 1` tenía que crear una máquina nueva, cosa que puede fallar (`cpu_overcommit_exceeded` pasó de verdad ese mismo día en un deploy común), así que el camino de vuelta tampoco estaba garantizado.
+
+**Nunca se detectó porque el ensayo end-to-end quedó siempre pendiente.** Es la demostración literal de la frase de acá abajo. Ahora usa `fly machine restart`, que preserva la máquina y su volumen, y `tests/test_scripts_backup.py` falla si alguien vuelve a poner `scale count`.
 
 Si el restore sale mal, la base previa quedó en `pre-restore-*.db`: restaurá **esa** con el mismo script.
 

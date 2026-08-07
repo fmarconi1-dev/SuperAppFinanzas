@@ -18,62 +18,38 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. "$PSScriptRoot\_fly_comun.ps1"
+
 $fecha = Get-Date -Format "yyyyMMdd-HHmmss"
 New-Item -ItemType Directory -Force -Path $Destino | Out-Null
 $archivo = Join-Path $Destino "superapp-$fecha.db"
 
+# Bitacora de corridas. POR QUE: cuando esto lo dispare el Programador de
+# tareas a las 3 de la manana, nadie va a estar mirando la consola. Un backup
+# que dejo de funcionar y no avisa es PEOR que no tener backup, porque da una
+# sensacion de proteccion que no existe. El log deja el rastro y
+# `estado_backup.ps1` lo resume en un comando.
+$log = Join-Path $Destino "backup.log"
+function Escribir-Log {
+    param([string]$Estado, [string]$Detalle)
+    $linea = "{0}`t{1}`t{2}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $Estado, $Detalle
+    Add-Content -Path $log -Value $linea -Encoding UTF8
+}
+
+trap {
+    Escribir-Log "ERROR" $_.Exception.Message
+    break
+}
+
 # 1. Asegurar que haya una maquina ENCENDIDA. `fly ssh sftp` la necesita.
-#
-#    POR QUE NO ALCANZA UN REQUEST HTTP (fallo real, 4/8/2026): el fly.toml usa
-#    `auto_stop_machines = true` con `min_machines_running = 0`, asi que la
-#    maquina se duerme sola. Despertarla con un GET depende del proxy de Fly y
-#    de que el health check responda dentro del timeout; si no, el sftp corta
-#    con "app has no started VMs" y el backup no se hace.
-#
-#    Y esto NO es un caso raro: la tarea programada corre de madrugada, cuando
-#    la maquina SIEMPRE esta dormida. O sea que el camino de la maquina apagada
-#    es el camino normal de este script, no la excepcion.
-$maquinas = $null
-try {
-    $maquinas = fly machines list --json -a $App 2>$null | ConvertFrom-Json
-} catch {
-    Write-Warning "No se pudo listar las maquinas; sigo con el despertador HTTP."
-}
-
-if ($maquinas -and $maquinas.Count -eq 0) {
-    Write-Error "La app $App no tiene ninguna maquina. Falta desplegar: fly deploy -a $App"
-    exit 1
-}
-
-if ($maquinas) {
-    $encendida = $maquinas | Where-Object { $_.state -eq "started" } | Select-Object -First 1
-    if (-not $encendida) {
-        $dormida = $maquinas[0]
-        Write-Host "La maquina esta $($dormida.state); la enciendo..."
-        fly machine start $dormida.id -a $App | Out-Null
-    }
-}
-
-# Esperar a que el health responda. El grace_period del arranque es de 30 s.
-$listo = $false
-foreach ($i in 1..12) {
-    try {
-        $r = Invoke-WebRequest -Uri "https://$App.fly.dev/_stcore/health" `
-            -TimeoutSec 10 -UseBasicParsing
-        if ($r.StatusCode -eq 200) { $listo = $true; break }
-    } catch {
-        Start-Sleep -Seconds 5
-    }
-}
-if (-not $listo) {
-    Write-Warning "La app no respondio el health; intento el sftp igual."
-} else {
-    Start-Sleep -Seconds 3
-}
+#    La logica vive en `_fly_comun.ps1` para que este script y el de restore
+#    no puedan divergir (paso: se arreglo aca y el restore quedo sin arreglar).
+Start-AppFly -App $App | Out-Null
 
 # 2. Descargar la DB.
 fly ssh sftp get /app/data/finanzas.db $archivo -a $App
 if (-not (Test-Path $archivo) -or (Get-Item $archivo).Length -lt 1024) {
+    Escribir-Log "ERROR" "el archivo no se descargo o esta vacio"
     Write-Error "FALLO: el archivo no se descargo o esta vacio."
     exit 1
 }
@@ -91,12 +67,14 @@ $transacciones = [int]$partes[1]
 $movimientos = [int]$partes[2]
 
 if (-not $ok) {
+    Escribir-Log "ERROR" "copia invalida: integridad=$integridad transacciones=$transacciones"
     Write-Error "El backup descargado NO sirve (integridad=$integridad, transacciones=$transacciones). Abortando."
     exit 1
 }
 if ($movimientos -lt 1) {
     Write-Warning "El backup no tiene movimientos de cartera. Si todavia no importaste, es normal."
 }
+Escribir-Log "OK" "$([System.IO.Path]::GetFileName($archivo))  transacciones=$transacciones  movimientos=$movimientos"
 Write-Host "OK: $archivo"
 Write-Host "    integridad=$integridad - transacciones=$transacciones - movimientos de cartera=$movimientos"
 
