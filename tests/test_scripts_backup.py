@@ -214,3 +214,33 @@ def test_hay_un_script_que_responde_si_el_backup_viene_andando():
 def test_el_verificador_existe_y_es_importable():
     assert (SCRIPTS / "verificar_backup.py").exists()
     from scripts.verificar_backup import verificar   # noqa: F401
+
+
+# ---------------------------------------------------------------------------
+# La configuración de deploy
+# ---------------------------------------------------------------------------
+
+def test_el_deploy_usa_la_estrategia_immediate():
+    """Rolling pide **el doble de recursos** durante el cambio (2 GB de RAM),
+    y la máquina no puede mudarse de host porque está atada al volumen. Falló
+    dos veces el 4/8/2026, con los dos mensajes de la familia:
+    `cpu_overcommit_exceeded` e `insufficient memory ... on the current host`.
+
+    Con una sola máquina el solapamiento no compra nada: no hay alta
+    disponibilidad que proteger.
+    """
+    fly = SCRIPTS.parent / "fly.toml"
+    t = _texto(fly)
+    assert "[deploy]" in t, "falta la sección [deploy] en fly.toml"
+    assert 'strategy = "immediate"' in t, (
+        "el deploy volvió a la estrategia rolling: con un volumen y una sola "
+        "máquina, eso pide el doble de recursos en un host que no puede cambiar"
+    )
+
+
+def test_el_volumen_y_la_memoria_siguen_donde_los_esperamos():
+    """Si alguien baja la memoria para 'que entre en el host', la cartera deja
+    de poder valuarse: pandas necesita ese GB."""
+    t = _texto(SCRIPTS.parent / "fly.toml")
+    assert 'memory = "1gb"' in t
+    assert 'source = "finanzas_data"' in t

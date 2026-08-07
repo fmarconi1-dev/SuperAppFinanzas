@@ -189,15 +189,13 @@ que durante el cambio necesita **el doble de recursos** (2 GB de RAM en vez de
 a otro host**: donde está el volumen, ahí tiene que correr.
 
 Con **una sola máquina**, ese solapamiento no compra nada: no hay alta
-disponibilidad que proteger. La salida es pedir el reemplazo directo:
+disponibilidad que proteger.
 
-```powershell
-fly deploy --strategy immediate -a superapp-finanzas
-```
-
-`immediate` para la máquina antes de actualizarla, así solo necesita 1 GB en vez
-de 2. **Qué cambia:** unos segundos de caída. Es una app personal; el costo es
-que la pantalla se recargue.
+✅ **Desde el 4/8/2026 esto ya está resuelto por configuración:** el `fly.toml`
+tiene `[deploy] strategy = "immediate"`, así que un `fly deploy` común ya usa el
+reemplazo directo y no hay que acordarse del flag. `immediate` para la máquina
+antes de actualizarla, así necesita 1 GB en vez de 2. **Qué cambia:** unos
+segundos de caída — es una app personal, la pantalla se recarga y listo.
 
 **Si `immediate` también falla**, liberá la memoria explícitamente antes:
 

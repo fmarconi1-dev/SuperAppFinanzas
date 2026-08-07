@@ -5,6 +5,25 @@ primary_region = "gru"  # São Paulo
 
 [build]
 
+# Reemplazo directo en vez de rolling. NO es una optimización: es el único
+# modo que funciona de manera confiable con esta topología.
+#
+# Rolling (el default) levanta la máquina nueva, la verifica y recién ahí baja
+# la vieja: durante el cambio pide **el doble de recursos** (2 GB de RAM, 2
+# CPUs). Y como la máquina está atada al volumen `finanzas_data`, no puede
+# mudarse a otro host: donde está el volumen, ahí tiene que correr. Si ese host
+# está justo, el deploy falla.
+#
+# Paso dos veces el 4/8/2026, con los dos mensajes de la familia:
+#   insufficient CPUs available ... cpu_overcommit_exceeded
+#   insufficient memory available to fulfill request on the current host
+#
+# Con UNA sola máquina el solapamiento no compra nada: no hay alta
+# disponibilidad que proteger. El costo de `immediate` son unos segundos de
+# caída, y esta es una app personal: la pantalla se recarga y listo.
+[deploy]
+  strategy = "immediate"
+
 [http_service]
   internal_port = 8501
   force_https = true
