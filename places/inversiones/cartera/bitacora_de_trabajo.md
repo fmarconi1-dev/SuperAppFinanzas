@@ -362,3 +362,17 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
 - **El test de nombres se ganó el sueldo:** `date` no estaba importado a nivel de módulo en `view.py` y `_vencimientos()` lo usaba. Lo cazó antes del deploy — mismo tipo de error que el `firma_val` y el `backup_db`.
 - **Estado:** `tests/test_cartera_vencimientos.py` (29 tests). Suite **502 passed, 3 skipped** (local, con oráculos).
 - ⏭️ **Sigue:** benchmark money-weighted contra SPY y Merval. La **TIR esperada y la duration siguen bloqueadas**: necesitan el cronograma de cupones y amortizaciones de cada bono, que no está ni en la app ni en el Excel (la hoja *Flujo de Fondos* tiene 3 instrumentos y **un** flujo cargado). Franco eligió **buscar una fuente automática** (data912 / IAMC / BYMA) — investigación pendiente.
+
+## 2026-08-05 (corrección) — "Próximo vencimiento X30N6" era falso
+- **Autor:** Claude (Opus 5). **Lo detectó Franco**: *"yo no tengo ese bono"*. Tenía razón.
+- **El error fue del reporte, no del código.** La verificación se corrió con `v.resolver(...)` **sin pasarle la tenencia**, así que listó los 14 instrumentos de renta fija de la hoja `Config` tuviera o no posición. `proximos()` sí filtra por posiciones vivas cuando recibe `valuadas`, y el panel de la vista se lo pasa: X30N6 (cantidad 0, marcado inactivo en Config) **nunca se habría mostrado en la app**. Hay test que lo cubre (`test_solo_entra_lo_que_todavia_tenes`).
+- ⚠️ **Lo que la corrección destapó, y es más importante que el error.** El "12 de 14 resuelven solos" era cierto pero **engañoso: 12 de esos 14 son instrumentos que Franco ya no tiene**. Su renta fija viva son tres cosas y el panel resuelve **una**:
+
+  | Instrumento | Vencimiento | Estado |
+  |---|---|---|
+  | AN29 | 30/11/2029 | ✔ leído de la descripción |
+  | AE38 | `s/d` | el año está en el *nombre* ("Bono USD 2038"), no como Vto. |
+  | `#UMV060770008` | `s/d` | el pagaré no tiene descripción con fecha |
+
+- 🧭 **Y para el AE38 la pregunta está mal planteada.** Ese bono **no vence hasta 2038 pero empieza a amortizar el 9/7/2027**: lo útil no es *cuándo vence* sino *cuándo cobra*. Para una cartera con soberanos amortizables, el vencimiento es un dato pobre y el **cronograma de cupones y amortizaciones** es el dato real. Eso refuerza la prioridad de la investigación de fuentes (data912 / IAMC / BYMA) por encima de seguir puliendo este panel.
+- **Regla de verificación que queda:** al validar una feature que filtra por tenencia, **correrla con la tenencia puesta**. Un listado sin filtrar se ve igual de plausible y no lo es.
