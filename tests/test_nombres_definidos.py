@@ -25,6 +25,7 @@ import dis
 import importlib
 import pkgutil
 import types
+from pathlib import Path
 
 import pytest
 
@@ -72,6 +73,42 @@ def _globales_faltantes(modulo) -> list[str]:
                 if ins.argval not in disponibles:
                     faltantes.add(ins.argval)
     return sorted(faltantes)
+
+
+def _archivos() -> list[Path]:
+    """Todos los `.py` de los paquetes propios, sin importar nada."""
+    raiz = Path(__file__).resolve().parents[1]
+    out: list[Path] = []
+    for paquete in PAQUETES:
+        out.extend(sorted((raiz / paquete).rglob("*.py")))
+    return out
+
+
+@pytest.mark.parametrize("archivo", _archivos(), ids=lambda p: p.name)
+def test_el_archivo_compila(archivo: Path):
+    """**Todo archivo del proyecto tiene que compilar.** Sin excepciones.
+
+    Existe aparte del chequeo de nombres por un motivo concreto: el 5/8/2026 un
+    reemplazo masivo dejó `format="localized", step=1` en una línea que **ya
+    tenía** un `step`, y `mensual.py` quedó con un `SyntaxError`. La vista
+    Mensual estaba muerta.
+
+    El test de nombres lo detectó, pero **como un `skip`**: no podía importar
+    el módulo y trataba eso como "falta una dependencia". Un `SyntaxError` no
+    es una dependencia faltante, es código roto, y tiene que **fallar**.
+
+    Compilar no necesita importar, así que esto corre igual en CI aunque
+    falten Streamlit o Plotly — que es justo cuando más hace falta.
+    """
+    fuente = archivo.read_text(encoding="utf-8", errors="replace")
+    try:
+        compile(fuente, str(archivo), "exec")
+    except SyntaxError as exc:
+        raise AssertionError(
+            f"{archivo.relative_to(Path(__file__).resolve().parents[1])} no "
+            f"compila: {exc.msg} (línea {exc.lineno}). El módulo está roto y "
+            f"la pantalla que lo use va a estar caída."
+        ) from None
 
 
 @pytest.mark.parametrize("nombre", _modulos())

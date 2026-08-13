@@ -292,8 +292,12 @@ def _render_editor_previsiones(db_path, anio: int, mes: int) -> None:
                 "Previsto": st.column_config.NumberColumn(
                     "Previsto (ARS)",
                     min_value=0.0,
+                    # `step` acá manda dos cosas a la vez: el salto del input
+                    # al editar (de a $1.000) y, con `format="localized"`, la
+                    # precisión mostrada. $1.000 de salto y sin decimales es
+                    # lo que corresponde a un presupuesto.
                     step=1000.0,
-                    format="localized", step=1,
+                    format="localized",
                     help="0 = sin previsión (se borra la fila si existía).",
                 ),
             },
