@@ -293,7 +293,7 @@ def _render_editor_previsiones(db_path, anio: int, mes: int) -> None:
                     "Previsto (ARS)",
                     min_value=0.0,
                     step=1000.0,
-                    format="$ %.0f",
+                    format="localized", step=1,
                     help="0 = sin previsión (se borra la fila si existía).",
                 ),
             },

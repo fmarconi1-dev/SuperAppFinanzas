@@ -204,16 +204,20 @@ def test_el_override_gana_y_no_lo_pisa_ni_el_proveedor_ni_forzar(db):
     assert leer_sectores_cache(db)["TGNO4"].fuente == "override"
 
 
-def test_el_scoring_se_usa_antes_que_la_red(db):
-    """Si el snapshot ya trae el sector, no hace falta una llamada."""
-    def no_deberia_llamarse(url):
-        raise AssertionError("consultó la red teniendo el dato del scoring")
-
-    n, _ = refrescar_sectores(db, ["GGAL"], {"GGAL": "Financial Services"},
-                              fetch=no_deberia_llamarse)
+def test_la_cache_evita_la_segunda_llamada(db):
+    """Reemplaza a `test_el_scoring_se_usa_antes_que_la_red`, que verificaba
+    que el snapshot del scoring ahorrara la consulta. El scoring se retiró el
+    5/8/2026 y ahora **la caché es lo único que evita pegarle a la red**, así
+    que el invariante que hay que sostener es éste."""
+    refrescar_sectores(db, ["NVDA"], fetch=_fetch({"NVDA": _respuesta(NVDA)}))
     db.commit()
-    assert n == 1
-    assert leer_sectores_cache(db)["GGAL"].fuente == "scoring"
+
+    def no_deberia_llamarse(url):
+        raise AssertionError("consultó la red teniendo el dato en caché")
+
+    n, faltan = refrescar_sectores(db, ["NVDA"], fetch=no_deberia_llamarse)
+    assert (n, faltan) == (0, [])
+    assert leer_sectores_cache(db)["NVDA"].fuente == "yahoo"
 
 
 def test_las_industrias_se_leen_aparte(db):

@@ -1,15 +1,17 @@
 """Composición de la cartera: por tipo de renta y por sector (Fase 3b, punto 4).
 
-Responde "¿cómo está repartida mi plata?" en dos cortes:
+Responde "¿cómo está repartida mi plata?" en tres cortes, cada uno aplicado a
+lo que **sí** le corresponde:
 
 * **Tipo de renta** — renta variable, renta fija, cripto, efectivo. Sale de
   ``categoria_activo`` (la hoja `Config` del Excel), así que cubre el **100%**
   de la cartera. Es el corte principal.
-* **Sector** — sale del snapshot del scoring, que hoy trae 100 empresas con su
-  sector. Cubre **13 de las 22** posiciones de Franco; el resto (bonos, ETFs,
-  cripto, el pagaré y las acciones argentinas fuera del universo) queda como
-  **"Sin dato"**, explícito. No se inventa el sector de nada: a un ETF de oro o
-  a un bono soberano no se le puede asignar uno sin mentir.
+* **Sector**, solo sobre la **renta variable** — lo resuelve Yahoo por ticker y
+  se cachea en la DB. No se inventa el sector de nada: a un ETF de oro o a un
+  bono soberano no se le puede asignar uno sin mentir.
+* **Emisor**, solo sobre la **renta fija** — soberano, subsoberano o
+  corporativo, más el país. Preguntarle el "sector" a un bono no tiene sentido;
+  lo que define su riesgo es **quién te debe la plata**.
 
 **Dos decisiones que evitan repetir errores viejos:**
 
@@ -32,8 +34,8 @@ from dataclasses import dataclass
 
 __all__ = [
     "Grupo", "TIPOS_DE_RENTA", "SIN_DATO", "EFECTIVO",
-    "tipo_de_renta", "por_tipo_de_renta", "por_sector",
-    "sectores_desde_snapshot",
+    "TIPOS_DE_EMISOR", "tipo_de_renta", "tipo_de_emisor", "pais_del_emisor",
+    "por_tipo_de_renta", "por_sector", "por_emisor", "por_pais",
 ]
 
 #: Etiqueta única para lo que no tiene el dato. Se muestra tal cual: es
@@ -157,7 +159,7 @@ def por_tipo_de_renta(valuadas, efectivo_ars: float = 0.0) -> list[Grupo]:
 
 
 def por_sector(valuadas, sectores: dict) -> list[Grupo]:
-    """Sector económico de la **renta variable**, según el snapshot del scoring.
+    """Sector económico de la **renta variable**, resuelto por Yahoo.
 
     Solo entran acciones y CEDEARs: a un bono soberano, a un pagaré, al
     efectivo o al bitcoin **no se les puede asignar un sector** — no es que
@@ -165,9 +167,9 @@ def por_sector(valuadas, sectores: dict) -> list[Grupo]:
     del 75% que no dice nada. Con este recorte, el porcentaje se lee como
     *"de mi renta variable, cuánto tengo en cada sector"*.
 
-    Dentro de la renta variable, lo que el snapshot no cubre **sí** queda en
+    Dentro de la renta variable, lo que Yahoo no cubre **sí** queda en
     "Sin dato": los ETFs (son una canasta; asignarles un sector sería
-    inventarlo) y las acciones fuera del universo del scoring.
+    inventarlo) y cualquier papel que Yahoo no reconozca.
     """
     variables = [
         p for p in valuadas
@@ -177,14 +179,89 @@ def por_sector(valuadas, sectores: dict) -> list[Grupo]:
     return _agrupar(variables, lambda p: sectores.get(p.ticker) or SIN_DATO)
 
 
-def sectores_desde_snapshot(snapshot) -> dict[str, str]:
-    """``{ticker: sector}`` del snapshot del scoring. Tolera un snapshot vacío
-    o caído: sin datos devuelve ``{}`` y todo queda en "Sin dato"."""
-    if not isinstance(snapshot, dict):
-        return {}
-    out: dict[str, str] = {}
-    for e in snapshot.get("empresas") or []:
-        ticker, sector = e.get("ticker"), e.get("sector")
-        if ticker and sector:
-            out[str(ticker).strip().upper()] = str(sector).strip()
-    return out
+# ---------------------------------------------------------------------------
+# Renta fija: quién te debe la plata
+# ---------------------------------------------------------------------------
+#
+# `sectores_desde_snapshot()` vivía acá y leía el snapshot del scoring como
+# primera fuente del sector. Se retiró el 5/8/2026 junto con el módulo de
+# Scoring (decisión de Franco). Los sectores se resuelven **100% con Yahoo**.
+
+#: Etiquetas del emisor. El orden es el del riesgo percibido, no alfabético.
+TIPOS_DE_EMISOR = ("Soberano", "Subsoberano", "Corporativo")
+
+#: Letras y bonos del Tesoro Nacional. Se reconocen por la categoría del Excel
+#: (`Bonos`, `Letras`) — el emisor no está como dato en ningún lado, así que se
+#: deriva de lo que sí hay.
+_CAT_SOBERANO = ("bonos", "letras")
+#: Obligaciones negociables = deuda de una empresa. Los pagarés y cheques
+#: avalados también: el que paga es una empresa, no el Estado.
+_CAT_CORPORATIVO = ("ons", "pagares", "cheques")
+
+#: Provincias y municipios. Sus tickers tienen prefijos reconocibles (PBA =
+#: Buenos Aires, CO = Córdoba, BA37/BB37/BC37 = canjes provinciales).
+_PREFIJOS_SUBSOBERANO = ("PBA", "PBY", "BDC", "CO2", "BA3", "BB3", "BC3")
+
+
+def tipo_de_emisor(categoria_activo, ticker: str = "") -> str:
+    """Soberano / Subsoberano / Corporativo para un instrumento de renta fija.
+
+    **Por qué existe.** A un bono no se le puede preguntar el sector — no tiene
+    uno. Lo que define su riesgo es **quién te debe la plata**: no es lo mismo
+    un título del Tesoro que una ON de una petrolera.
+
+    Se deriva de la categoría del Excel y del ticker, porque el emisor **no
+    está como dato** en ninguna fuente que tengamos. Lo que no se puede
+    determinar queda en `Sin dato`: es un corte para leer riesgo, y una
+    etiqueta inventada ahí sería peor que la ausencia.
+    """
+    t = str(ticker or "").strip().upper()
+    if t.startswith("#"):
+        return "Corporativo"          # pagaré/cheque avalado: paga una empresa
+    cat = _norm(categoria_activo)
+    if cat in _CAT_CORPORATIVO:
+        return "Corporativo"
+    if cat in _CAT_SOBERANO:
+        if any(t.startswith(p) for p in _PREFIJOS_SUBSOBERANO):
+            return "Subsoberano"
+        return "Soberano"
+    return SIN_DATO
+
+
+def pais_del_emisor(categoria_activo, ticker: str = "") -> str:
+    """País del emisor de un instrumento de renta fija.
+
+    Hoy devuelve **Argentina** para todo lo que sea renta fija: todos los
+    instrumentos de Franco son locales. Existe como función aparte —y no como
+    una constante— para que el día que compre deuda de afuera el cambio sea
+    acá adentro y no repartido por la vista.
+    """
+    if tipo_de_renta(categoria_activo, ticker) != "Renta fija":
+        return SIN_DATO
+    return "Argentina"
+
+
+def por_emisor(valuadas) -> list[Grupo]:
+    """Renta fija por tipo de emisor. Solo entra la renta fija."""
+    fija = [
+        p for p in valuadas
+        if tipo_de_renta(getattr(p, "categoria_activo", ""), p.ticker)
+        == "Renta fija"
+    ]
+    return _agrupar(
+        fija,
+        lambda p: tipo_de_emisor(getattr(p, "categoria_activo", ""), p.ticker),
+    )
+
+
+def por_pais(valuadas) -> list[Grupo]:
+    """Renta fija por país del emisor. Solo entra la renta fija."""
+    fija = [
+        p for p in valuadas
+        if tipo_de_renta(getattr(p, "categoria_activo", ""), p.ticker)
+        == "Renta fija"
+    ]
+    return _agrupar(
+        fija,
+        lambda p: pais_del_emisor(getattr(p, "categoria_activo", ""), p.ticker),
+    )

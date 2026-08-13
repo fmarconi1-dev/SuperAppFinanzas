@@ -1,6 +1,32 @@
 # ADR-0002 — El scoring se consume como snapshot remoto (no se migra el batch)
 
-**Fecha:** 2026-07-15 · **Estado:** aceptada · **Fase:** 2
+**Fecha:** 2026-07-15 · **Estado:** ⛔ **RETIRADA (5/8/2026)** · **Fase:** 2
+
+> ## ⛔ Esta decisión ya no aplica
+>
+> **El 5/8/2026 Franco pidió eliminar la pestaña de Scoring de la app:** *"creo
+> que es demasiado y no tiene influjo real de información"*. Mostraba un ranking
+> de ~20 empresas que no cambiaba ninguna de sus decisiones.
+>
+> **Lo que se retiró:** `places/inversiones/scoring/` (vista y lector del
+> snapshot), su test, la pestaña, y el escalón del scoring en la cascada de
+> resolución de sectores.
+>
+> **Lo que sobrevive:** el repo `Scoring-Inversiones` y su tablero público
+> siguen existiendo y corriendo por su cuenta — nunca fueron parte de esta app,
+> que solo leía su snapshot. Esta decisión sigue siendo válida como registro de
+> *por qué no se migró el batch*.
+>
+> **Consecuencia técnica:** los sectores de la cartera se resuelven ahora
+> **100% con Yahoo** (`core/market_data/sectores.py`), que ya cubría el total
+> de la renta variable de Franco. Sin el snapshot como primer escalón, cada
+> ticker nuevo cuesta una consulta — pero se cachea en DB, incluida la caché
+> negativa, así que es una vez por ticker y nunca más.
+>
+> **Si algún día se quiere volver atrás:** el código está en el historial de
+> git; el snapshot se sigue publicando.
+
+---
 
 ## Contexto
 El plan maestro (§4/§6) preveía mover `Scoring-Inversiones` a

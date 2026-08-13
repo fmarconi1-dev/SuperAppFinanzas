@@ -9,7 +9,8 @@ realizado, que es el único que se puede sumar sin que la devaluación lo infle.
 import pytest
 
 from places.inversiones.cartera.analisis import (
-    EFECTIVO, SIN_DATO, por_sector, por_tipo_de_renta, sectores_desde_snapshot,
+    EFECTIVO, SIN_DATO, pais_del_emisor, por_emisor, por_pais, por_sector,
+    por_tipo_de_renta, tipo_de_emisor,
     tipo_de_renta,
 )
 
@@ -186,22 +187,71 @@ def test_los_grupos_van_de_mayor_a_menor_peso():
 
 
 # ---------------------------------------------------------------------------
-# Lectura del snapshot
+# Sin sectores resueltos, todo queda en Sin dato
+# ---------------------------------------------------------------------------
+#
+# Antes acá se testeaba `sectores_desde_snapshot()`, que leía el snapshot del
+# scoring. Se retiró el 5/8/2026 con el módulo: los sectores salen 100% de
+# Yahoo, cacheados en la DB. Lo que sí sigue importando es que la cartera se
+# muestre igual cuando la resolución falla.
+
+@pytest.mark.parametrize("sectores", [None, {}, {"OTRO": "Energy"}])
+def test_sin_sector_resuelto_la_cartera_se_muestra_igual(sectores):
+    """Yahoo puede no responder: la composición no puede romperse por eso."""
+    gs = por_sector([_Pos("NVDA", valor=100)], sectores or {})
+    assert [g.nombre for g in gs] == [SIN_DATO]
+
+
+# ---------------------------------------------------------------------------
+# Renta fija: quién te debe la plata
 # ---------------------------------------------------------------------------
 
-def test_lee_los_sectores_del_snapshot():
-    d = sectores_desde_snapshot({"empresas": [
-        {"ticker": "nvda", "sector": " Technology "},
-        {"ticker": "GGAL", "sector": "Financial Services"},
-        {"ticker": "XXX"},                      # sin sector: se ignora
-        {"sector": "Energy"},                   # sin ticker: se ignora
-    ]})
-    assert d == {"NVDA": "Technology", "GGAL": "Financial Services"}
+@pytest.mark.parametrize("categoria,ticker,esperado", [
+    ("Bonos", "AE38", "Soberano"),          # Bonar 2038
+    ("Bonos", "AN29", "Soberano"),
+    ("Letras", "S31L6", "Soberano"),        # letra del Tesoro
+    ("ONs", "RUCDO", "Corporativo"),        # ON MSU Energy
+    ("Otros", "#UMV060770008", "Corporativo"),   # pagaré: paga una empresa
+    ("Bonos", "PBA25", "Subsoberano"),      # provincia de Buenos Aires
+    ("Bonos", "BDC28", "Subsoberano"),
+])
+def test_clasifica_el_emisor_de_la_renta_fija(categoria, ticker, esperado):
+    assert tipo_de_emisor(categoria, ticker) == esperado
 
 
-@pytest.mark.parametrize("entrada", [None, {}, {"empresas": None}, "roto", []])
-def test_un_snapshot_caido_o_vacio_deja_todo_en_sin_dato(entrada):
-    """El scoring puede no responder: la cartera tiene que seguir mostrándose."""
-    assert sectores_desde_snapshot(entrada) == {}
-    gs = por_sector([_Pos("NVDA", valor=100)], sectores_desde_snapshot(entrada))
-    assert [g.nombre for g in gs] == [SIN_DATO]
+def test_una_accion_no_tiene_emisor_de_renta_fija():
+    """No es que le falte el dato: la pregunta no aplica."""
+    assert tipo_de_emisor("Acciones", "GGAL") == SIN_DATO
+    assert pais_del_emisor("Acciones", "GGAL") == SIN_DATO
+    assert pais_del_emisor("Cripto", "BITCOIN") == SIN_DATO
+
+
+def test_el_pais_de_la_renta_fija_es_argentina():
+    assert pais_del_emisor("Bonos", "AE38") == "Argentina"
+    assert pais_del_emisor("Otros", "#UMV060770008") == "Argentina"
+
+
+def test_por_emisor_solo_toma_la_renta_fija():
+    """Si entrara una acción, el cuadro dejaría de leerse como *'de mi renta
+    fija, cuánto le debe cada tipo de emisor'*."""
+    posiciones = [
+        _Pos("AE38", valor=1000, categoria="Bonos"),
+        _Pos("RUCDO", valor=500, categoria="ONs"),
+        _Pos("GGAL", valor=9000, categoria="Acciones"),
+    ]
+    gs = por_emisor(posiciones)
+    assert [g.nombre for g in gs] == ["Soberano", "Corporativo"]
+    assert gs[0].valor_ars == 1000
+    assert gs[0].pct == pytest.approx(1000 / 1500 * 100)
+
+
+def test_por_pais_agrupa_toda_la_renta_fija_junta():
+    posiciones = [
+        _Pos("AE38", valor=1000, categoria="Bonos"),
+        _Pos("RUCDO", valor=500, categoria="ONs"),
+        _Pos("NVDA", valor=9000, categoria="Cedears"),
+    ]
+    gs = por_pais(posiciones)
+    assert [g.nombre for g in gs] == ["Argentina"]
+    assert gs[0].valor_ars == 1500
+    assert gs[0].pct == pytest.approx(100.0)

@@ -376,3 +376,24 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
 
 - 🧭 **Y para el AE38 la pregunta está mal planteada.** Ese bono **no vence hasta 2038 pero empieza a amortizar el 9/7/2027**: lo útil no es *cuándo vence* sino *cuándo cobra*. Para una cartera con soberanos amortizables, el vencimiento es un dato pobre y el **cronograma de cupones y amortizaciones** es el dato real. Eso refuerza la prioridad de la investigación de fuentes (data912 / IAMC / BYMA) por encima de seguir puliendo este panel.
 - **Regla de verificación que queda:** al validar una feature que filtra por tenencia, **correrla con la tenencia puesta**. Un listado sin filtrar se ve igual de plausible y no lo es.
+
+## 2026-08-05 — Tanda de correcciones pedidas por Franco usando la app
+- **Autor:** Claude (Opus 5). Cinco pedidos, todos salidos de usarla.
+
+**1. Una transacción con `pasivos` negativo no se podía editar.** *"No me deja editar solo el tipo de transacción, si o si me exige que sea positivo o negativo, y a veces solamente me equivoqué de categoría."* Reproducido: `tipo_default` se decidía con `pasivos > 0`, así que un gasto cargado en negativo (una devolución) caía en "Ingreso"; el importe se tomaba entonces de `ingresos` —que vale 0— y el campo precargaba **vacío**. Al guardar, la validación "el importe debe ser positivo" la rechazaba: **esa fila era imposible de editar**, ni siquiera para corregirle la categoría. Fix: `!= 0` y `abs()`. El mensaje de error también se reescribió para explicar que **el signo lo da el Tipo, no el número**.
+
+**2. Scoring eliminado.** *"Es demasiado y no tiene influjo real de información."* Se retiraron la pestaña, `places/inversiones/scoring/`, su test y el escalón del scoring en la cascada de sectores. **ADR-0002 marcado como RETIRADA** con el motivo. Los sectores pasan a resolverse **100% con Yahoo**, que ya cubría el total de la renta variable. El repo `Scoring-Inversiones` y su tablero público siguen corriendo por su cuenta: nunca fueron parte de esta app.
+  - ⚠️ **Efecto colateral que costó un rato:** el test viejo quedó en `Borrar/` y **pytest lo levantó igual**, matando la colección entera con `ModuleNotFoundError`. Se agregó `pytest.ini` con `norecursedirs = Borrar ...`. Esa carpeta existe por el conflicto git+OneDrive y nunca debería mirarse.
+  - ⚠️ **Un `git checkout` no restaura sobre OneDrive:** falla con *"unable to unlink"*. La forma que sí funciona es `git show HEAD:archivo > archivo`, que escribe en el lugar en vez de borrar y recrear. Quedó anotado.
+
+**3. Separador de miles.** Verificado contra la documentación de Streamlit 1.61 antes de tocar: `format` acepta `%,d` para agrupar y el preset **`"localized"`**, que usa el formato del navegador — en es-AR, puntos para miles y coma decimal, **igual que las tarjetas de KPI**. Se aplicó a 21 columnas de plata con `step` para fijar los decimales.
+
+**4. "El número que importa" sacado** del KPI de resultado en dólares.
+
+**5. "Cómo está repartida" rehecha.** *"Se cortan los cuadros y no se entiende."*
+  - Los cortes van **a ancho completo y uno debajo del otro**, no en dos columnas. Además de arreglar el corte visual, es más honesto: son cortes sobre **universos distintos** (toda la cartera / la renta variable / la renta fija), y ponerlos lado a lado sugiere que se comparan entre sí.
+  - **Gráficos de barras horizontales**, no torta: con ocho o diez sectores una torta es ilegible, y la barra horizontal deja leer nombres largos sin rotarlos. `Sin dato` va en gris — es una etiqueta de ignorancia, no una categoría que compita por atención.
+  - **"Por sector (renta variable)"**, con el universo explícito en el título.
+  - **Corte nuevo para renta fija: por emisor** (soberano / subsoberano / corporativo) **y por país**. A un bono no se le puede preguntar el sector; lo que define su riesgo es **quién te debe la plata**. El emisor se **deriva** de la categoría del Excel y del ticker porque no está como dato en ninguna fuente: `ONs`, pagarés y cheques → corporativo; `Bonos`/`Letras` → soberano, salvo prefijos provinciales (PBA, BDC, CO2, BA3…) → subsoberano. Verificado sobre los tickers reales de Franco.
+  - **El corte por país solo aparece si hay más de uno.** Con toda la renta fija argentina, un gráfico de una sola barra al 100% no dice nada: se muestra una leyenda y listo.
+- **Estado:** `pytest.ini` nuevo. Suite **517 passed, 3 skipped** (local, con oráculos).

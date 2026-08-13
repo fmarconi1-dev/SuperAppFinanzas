@@ -131,8 +131,16 @@ def _form_alta_edicion(motivos: list[str]) -> None:
         fecha_default = date.fromisoformat(txn["fecha"])
         pasivos_default = float(txn["pasivos"])
         ingresos_default = float(txn["ingresos"])
-        tipo_default = "Gasto" if pasivos_default > 0 else "Ingreso"
-        importe_default = pasivos_default if tipo_default == "Gasto" else ingresos_default
+        # ⚠️ `!= 0` y `abs()`, no `> 0`. Una transacción con `pasivos`
+        # **negativo** (una devolución cargada como gasto en negativo) se leía
+        # como "Ingreso", y entonces el importe salía de `ingresos` — que vale
+        # 0. El campo precargaba **vacío** y al guardar cortaba con "Importe
+        # inválido": esa transacción no se podía editar de ninguna manera, ni
+        # siquiera para corregirle la categoría. Lo reportó Franco el 5/8/2026.
+        tipo_default = "Gasto" if pasivos_default != 0 else "Ingreso"
+        importe_default = abs(
+            pasivos_default if tipo_default == "Gasto" else ingresos_default
+        )
         motivo_default = txn["motivo"]
         comentario_default = txn["comentario"] or ""
         # Pre-cargar session_state UNA vez al entrar en edición (sentinel
@@ -264,8 +272,10 @@ def _form_alta_edicion(motivos: list[str]) -> None:
         return
     if importe_val <= 0:
         st.error(
-            f"El cálculo da {fmt_ars(importe_val)}. El importe debe ser positivo — "
-            "si querés registrar una devolución, usá 'Tipo = Ingreso' (modo detallado)."
+            f"El cálculo da {fmt_ars(importe_val)}. El importe se escribe "
+            "**siempre en positivo**: lo que define el signo es el **Tipo** "
+            "(Gasto o Ingreso), no el número. Para registrar una devolución, "
+            "poné el monto en positivo y elegí *Tipo = Ingreso*."
         )
         return
 

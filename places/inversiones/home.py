@@ -1,7 +1,14 @@
-"""Lugar B — Inversiones / Mercado. Estructura triple (scoring / cartera / vivo).
+"""Lugar B — Inversiones / Mercado.
 
-Fase 3a: Scoring y **Cartera** activos. Mercado en vivo (Fase 5) muestra su
-lugar reservado — encuadre visible del roadmap, sin prometer de más.
+**Scoring retirado el 5/8/2026** (decisión de Franco): *"es demasiado y no
+tiene influjo real de información"*. Era una pestaña que mostraba un ranking de
+~20 empresas que no cambiaba nada de lo que él hacía. Con eso, la resolución de
+sectores de la cartera pasa a ser **100% Yahoo**, que ya cubría el total de su
+renta variable. Detalle y motivo en `docs/decisiones/ADR-0002-...` (marcado
+como retirado) y en la bitácora de cartera.
+
+Queda Cartera, y Mercado en vivo con su lugar reservado — encuadre visible del
+roadmap, sin prometer de más.
 """
 
 from __future__ import annotations
@@ -9,18 +16,12 @@ from __future__ import annotations
 import streamlit as st
 
 from places.inversiones.cartera import view as cartera_view
-from places.inversiones.scoring import view as scoring_view
 
 
 def render() -> None:
     st.title("📈 Inversiones / Mercado")
 
-    tab_scoring, tab_cartera, tab_vivo = st.tabs(
-        ["📊 Análisis y Scoring", "💼 Cartera", "📡 Mercado en vivo"]
-    )
-
-    with tab_scoring:
-        scoring_view.render()
+    tab_cartera, tab_vivo = st.tabs(["💼 Cartera", "📡 Mercado en vivo"])
 
     with tab_cartera:
         cartera_view.render()

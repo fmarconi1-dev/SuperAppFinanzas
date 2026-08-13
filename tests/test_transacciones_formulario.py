@@ -142,3 +142,73 @@ def test_la_firma_se_define_antes_de_la_bifurcacion():
     bifurcacion = _bifurcacion_por_modo(func)
     previas = _asignados([n for n in func.body if not _contiene(n, bifurcacion)])
     assert "firma_val" in previas
+
+
+# ---------------------------------------------------------------------------
+# Editar una transacción no puede depender del signo con que se cargó
+# ---------------------------------------------------------------------------
+#
+# Bug reportado por Franco el 5/8/2026: *"en la edición no me deja editar solo
+# el tipo de transacción, si o si me exige que sea positivo o negativo, y a
+# veces solamente me equivoqué de categoría"*.
+#
+# Causa: `tipo_default` se decidía con `pasivos > 0`. Una transacción con
+# `pasivos` **negativo** caía en "Ingreso", el importe se tomaba de `ingresos`
+# —que vale 0— y el campo precargaba **vacío**. Al guardar, la validación "el
+# importe debe ser positivo" la rechazaba: esa fila no se podía editar de
+# ninguna manera, ni siquiera para corregirle la categoría.
+#
+# Igual que el resto del archivo, esto se verifica **leyendo el código**, no
+# importando el módulo: `transacciones.py` importa Streamlit y traerlo obliga
+# a tener el runtime entero para correr la suite.
+
+
+def _precarga(pasivos: float, ingresos: float) -> tuple[str, str]:
+    """Réplica de la decisión que toma `_form_alta_edicion` al entrar en
+    edición. Los tests de abajo la usan para documentar el comportamiento
+    esperado; que el **código** siga esa regla lo garantiza
+    `test_el_form_decide_el_tipo_con_distinto_de_cero`."""
+    tipo = "Gasto" if pasivos != 0 else "Ingreso"
+    importe = abs(pasivos if tipo == "Gasto" else ingresos)
+    if importe == 0:
+        return tipo, ""
+    if importe == int(importe):
+        return tipo, str(int(importe))
+    return tipo, f"{importe:.2f}".replace(".", ",")
+
+
+@pytest.mark.parametrize("pasivos,ingresos,tipo_esp,texto_esp", [
+    (50_000.0, 0.0, "Gasto", "50000"),
+    (0.0, 120_000.0, "Ingreso", "120000"),
+    (1_234.56, 0.0, "Gasto", "1234,56"),
+    (-5_000.0, 0.0, "Gasto", "5000"),     # el caso roto: gasto en negativo
+    (-1_200.0, 0.0, "Gasto", "1200"),
+])
+def test_el_importe_precarga_siempre_con_algo(pasivos, ingresos,
+                                              tipo_esp, texto_esp):
+    tipo, texto = _precarga(pasivos, ingresos)
+    assert tipo == tipo_esp
+    assert texto == texto_esp
+    assert texto != "", (
+        "el campo precargó vacío: al guardar va a cortar con 'Importe "
+        "inválido' y esa transacción queda imposible de editar"
+    )
+
+
+def test_un_pasivo_negativo_no_se_lee_como_ingreso():
+    """Era la raíz del bug: el signo no cambia de qué columna sale el importe."""
+    assert _precarga(-5_000.0, 0.0)[0] == "Gasto"
+
+
+def test_el_form_decide_el_tipo_con_distinto_de_cero():
+    """Fija la corrección en el código. Sin esto, los tests de arriba seguirían
+    pasando aunque alguien volviera a poner `> 0`, porque replican la lógica en
+    vez de importarla."""
+    codigo = MODULO.read_text(encoding="utf-8")
+    assert 'tipo_default = "Gasto" if pasivos_default != 0 else "Ingreso"' in codigo
+    assert 'tipo_default = "Gasto" if pasivos_default > 0 else "Ingreso"' not in codigo
+
+
+def test_el_importe_por_defecto_se_toma_en_valor_absoluto():
+    codigo = MODULO.read_text(encoding="utf-8")
+    assert "importe_default = abs(" in codigo

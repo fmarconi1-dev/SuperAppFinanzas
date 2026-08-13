@@ -60,9 +60,10 @@ from places.inversiones.cartera.kpis import (
 )
 from places.inversiones.cartera.analisis import (
     SIN_DATO,
+    por_emisor,
+    por_pais,
     por_sector,
     por_tipo_de_renta,
-    sectores_desde_snapshot,
     tipo_de_renta,
 )
 from places.inversiones.cartera import ajustes as mod_ajustes
@@ -131,19 +132,7 @@ def _mep_actual() -> tuple[float | None, str]:
 
 
 @st.cache_data(ttl=_TTL_PRECIOS, show_spinner=False)
-def _sectores_del_scoring() -> tuple[dict, str | None]:
-    """``{ticker: sector}`` del snapshot del scoring (ADR-0002: la app solo
-    LEE el snapshot, no calcula scoring). Es la primera fuente del sector
-    porque ya está en memoria y no cuesta una llamada de red; lo que no cubre
-    lo resuelve Yahoo. `cargar_snapshot` nunca lanza: sin red ni copia local
-    devuelve vacío."""
-    from places.inversiones.scoring.snapshot import cargar_snapshot
-
-    datos, origen = cargar_snapshot()
-    return sectores_desde_snapshot(datos), origen
-
-
-def _resolver_sectores(valuadas, sectores_scoring: dict) -> tuple[dict, dict]:
+def _resolver_sectores(valuadas) -> tuple[dict, dict]:
     """``(sectores, industrias)`` de la renta variable, resueltos y cacheados.
 
     Solo se consultan los papeles de **renta variable**: a un bono, al pagaré
@@ -158,7 +147,7 @@ def _resolver_sectores(valuadas, sectores_scoring: dict) -> tuple[dict, dict]:
     ]
     with connect() as conn:
         try:
-            refrescar_sectores(conn, tickers, sectores_scoring)
+            refrescar_sectores(conn, tickers)
             conn.commit()
         except Exception:
             pass          # la composición se muestra igual con lo que haya
@@ -310,10 +299,10 @@ def _operaciones_cerradas(ledger) -> None:
             "Fecha": st.column_config.DateColumn(format="DD/MM/YYYY"),
             "Unidades": st.column_config.NumberColumn(format="%.2f"),
             "PPC del día": st.column_config.NumberColumn(
-                format="$ %.2f",
+                format="localized", step=0.01,
                 help="Costo promedio ponderado vigente al momento de vender"),
-            "Precio venta": st.column_config.NumberColumn(format="$ %.2f"),
-            "Resultado": st.column_config.NumberColumn(format="$ %.0f"),
+            "Precio venta": st.column_config.NumberColumn(format="localized", step=0.01),
+            "Resultado": st.column_config.NumberColumn(format="localized", step=1),
             "Rend. %": st.column_config.NumberColumn(format="%.1f%%"),
             "Rend. US$ %": st.column_config.NumberColumn(
                 format="%.1f%%",
@@ -340,6 +329,57 @@ def _operaciones_cerradas(ledger) -> None:
                 st.markdown(f"- {a}")
 
 
+def _grafico_grupos(grupos, titulo: str = "") -> None:
+    """Barras horizontales del peso de cada grupo.
+
+    **Horizontales y no torta**, a propósito: una torta con más de cinco tajos
+    se vuelve ilegible, y acá los sectores pueden ser ocho o diez. La barra
+    horizontal además deja leer nombres largos ("Financial Services") sin
+    rotarlos ni cortarlos, que era justo el problema de la versión anterior.
+
+    `Sin dato` va en gris: es una etiqueta de ignorancia, no una categoría que
+    compita con las demás por atención.
+    """
+    import plotly.graph_objects as go
+    from core.theme._theme import COLOR_NEUTRO, COLORES_MA
+
+    visibles = [g for g in grupos if g.valor_ars]
+    if not visibles:
+        return
+
+    # De menor a mayor: Plotly dibuja el eje Y de abajo hacia arriba, así que
+    # el grupo más grande queda arriba.
+    visibles = sorted(visibles, key=lambda g: g.valor_ars)
+    colores = [
+        COLOR_NEUTRO if g.nombre == SIN_DATO
+        else COLORES_MA[i % len(COLORES_MA)]
+        for i, g in enumerate(visibles)
+    ]
+    fig = go.Figure(go.Bar(
+        x=[g.pct for g in visibles],
+        y=[g.nombre for g in visibles],
+        orientation="h",
+        marker_color=colores,
+        text=[f"{_fmt(g.pct, 1)}%" for g in visibles],
+        textposition="outside",
+        cliponaxis=False,
+        customdata=[[g.valor_ars, g.n] for g in visibles],
+        hovertemplate=("<b>%{y}</b><br>%{x:.1f}% de la cartera"
+                       "<br>$ %{customdata[0]:,.0f}"
+                       "<br>%{customdata[1]} posición(es)<extra></extra>"),
+    ))
+    fig.update_layout(
+        title=titulo or None,
+        height=max(150, 42 * len(visibles) + 60),
+        margin=dict(l=0, r=48, t=32 if titulo else 8, b=8),
+        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False),
+        yaxis=dict(title=None),
+        showlegend=False,
+        bargap=0.35,
+    )
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+
+
 def _tabla_grupos(grupos, mep, ayuda_pct: str) -> None:
     """Tabla de composición: peso, valor y resultado no realizado por grupo."""
     tope = max((g.pct for g in grupos), default=100.0) or 100.0
@@ -358,10 +398,10 @@ def _tabla_grupos(grupos, mep, ayuda_pct: str) -> None:
                 format="%.1f%%", min_value=0.0, max_value=float(tope),
                 help=ayuda_pct),
             "Posiciones": st.column_config.NumberColumn(format="%d"),
-            "Valor": st.column_config.NumberColumn(format="$ %.0f"),
-            "US$": st.column_config.NumberColumn(format="US$ %.0f"),
+            "Valor": st.column_config.NumberColumn(format="localized", step=1),
+            "US$": st.column_config.NumberColumn(format="localized", step=1),
             "No realizado": st.column_config.NumberColumn(
-                format="$ %.0f",
+                format="localized", step=1,
                 help="Lo que vale hoy menos lo que costó. NO es el resultado "
                      "total: ese no se puede sumar por grupo sin que la "
                      "devaluación lo infle"),
@@ -375,7 +415,7 @@ def _composicion(valuadas, efectivo_ars, sectores, industrias, mep,
     """Cómo está repartida la plata: por tipo de renta, sector e industria.
 
     El **tipo de renta** sale de la categoría del Excel y cubre todo. El
-    **sector** y la **industria** se resuelven solos (scoring → Yahoo, con
+    **sector** y la **industria** se resuelven solos (Yahoo, con
     caché y override): a un bono, al pagaré o a la cripto no se les asigna
     ninguno, porque no les falta el dato — no lo tienen.
     """
@@ -386,23 +426,59 @@ def _composicion(valuadas, efectivo_ars, sectores, industrias, mep,
         return
 
     ayuda = "Sobre el patrimonio, con el efectivo adentro"
-    izq, der = st.columns(2)
-    with izq:
-        st.markdown("**Por tipo de renta**")
-        st.caption("Desde la categoría de tu Excel: cubre el 100%.")
-        _tabla_grupos(por_renta, mep, ayuda)
-    with der:
-        st.markdown("**Por sector**")
-        grupos_sec = por_sector(valuadas, sectores)
-        sin_dato = next((g for g in grupos_sec if g.nombre == SIN_DATO), None)
-        cubierto = 100.0 - (sin_dato.pct if sin_dato else 0.0)
+
+    # ⚠️ Cada corte va a **ancho completo y uno debajo del otro**, no en dos
+    # columnas. Antes iban lado a lado y en pantallas angostas las tablas se
+    # cortaban y no se entendían (lo reportó Franco el 5/8/2026). Además son
+    # cortes sobre universos distintos —toda la cartera, la renta variable, la
+    # renta fija—: ponerlos al lado sugiere que se comparan entre sí, y no.
+
+    st.markdown("**Por tipo de renta**")
+    st.caption("Desde la categoría de tu Excel: cubre el 100% de la cartera.")
+    _grafico_grupos(por_renta)
+    _tabla_grupos(por_renta, mep, ayuda)
+
+    st.divider()
+
+    st.markdown("**Por sector (renta variable)**")
+    grupos_sec = por_sector(valuadas, sectores)
+    sin_dato = next((g for g in grupos_sec if g.nombre == SIN_DATO), None)
+    cubierto = 100.0 - (sin_dato.pct if sin_dato else 0.0)
+    st.caption(
+        f"Solo acciones y CEDEARs: a un bono, al pagaré o a la cripto no les "
+        f"falta el sector, **no lo tienen**. Se resuelve solo y cubre el "
+        f"**{_fmt(cubierto, 0)}%**. Los ETF van con su subyacente (*ETF · Oro*): "
+        "son una canasta, asignarles un sector sería inventarlo."
+    )
+    _grafico_grupos(grupos_sec)
+    _tabla_grupos(grupos_sec, mep, "Sobre la renta variable")
+
+    grupos_emisor = por_emisor(valuadas)
+    if grupos_emisor:
+        st.divider()
+        st.markdown("**Por emisor (renta fija)**")
         st.caption(
-            f"Solo la **renta variable**: a un bono, al pagaré o a la cripto no "
-            f"les falta el sector, no lo tienen. Resuelto solo — cubre el "
-            f"**{_fmt(cubierto, 0)}%**. Los ETF no tienen sector porque son una "
-            "canasta: van con su subyacente (*ETF · Oro*)."
+            "A un bono no se le puede preguntar el sector; lo que define su "
+            "riesgo es **quién te debe la plata**. *Soberano* es el Tesoro "
+            "Nacional, *subsoberano* una provincia, *corporativo* una empresa "
+            "— las ON y los pagarés."
         )
-        _tabla_grupos(grupos_sec, mep, "Sobre la renta variable")
+        _grafico_grupos(grupos_emisor)
+        _tabla_grupos(grupos_emisor, mep, "Sobre la renta fija")
+
+        grupos_pais = por_pais(valuadas)
+        if len(grupos_pais) > 1:
+            st.markdown("**Por país (renta fija)**")
+            _grafico_grupos(grupos_pais)
+            _tabla_grupos(grupos_pais, mep, "Sobre la renta fija")
+        elif grupos_pais:
+            st.caption(
+                f"Toda tu renta fija es de **{grupos_pais[0].nombre}**. "
+                "El corte por país aparece solo si algún día tenés deuda de "
+                "más de un lugar."
+            )
+
+    st.divider()
 
     with st.expander("Ver por industria (el detalle dentro de cada sector)"):
         st.caption(
@@ -499,8 +575,8 @@ def _vencimientos(valuadas: dict, instrumentos: dict, uid: int) -> None:
                 format="%d", help="Vacío cuando la fecha no es exacta: contar "
                                   "días contra un año redondeado sería "
                                   "inventar precisión."),
-            "Valor": st.column_config.NumberColumn(format="$ %.0f"),
-            "US$": st.column_config.NumberColumn(format="US$ %.2f"),
+            "Valor": st.column_config.NumberColumn(format="localized", step=1),
+            "US$": st.column_config.NumberColumn(format="localized", step=0.01),
             "Fuente": st.column_config.TextColumn(
                 help="'a mano' = la fecha la fijaste vos, no salió del Excel."),
         },
@@ -619,7 +695,7 @@ def _rendimiento_caja(cs, resumen, divs, rem) -> None:
                 hide_index=True, use_container_width=True,
                 column_config={
                     "Año": st.column_config.NumberColumn(format="%d"),
-                    "Interés": st.column_config.NumberColumn(format="$ %.0f"),
+                    "Interés": st.column_config.NumberColumn(format="localized", step=1),
                     "TNA": st.column_config.NumberColumn(
                         format="%.2f%%",
                         help="Ponderada por capital y plazo dentro del año"),
@@ -640,9 +716,9 @@ def _rendimiento_caja(cs, resumen, divs, rem) -> None:
                 ]),
                 hide_index=True, use_container_width=True,
                 column_config={
-                    "Bruto": st.column_config.NumberColumn(format="$ %.0f"),
-                    "Retención": st.column_config.NumberColumn(format="$ %.0f"),
-                    "Neto": st.column_config.NumberColumn(format="$ %.0f"),
+                    "Bruto": st.column_config.NumberColumn(format="localized", step=1),
+                    "Retención": st.column_config.NumberColumn(format="localized", step=1),
+                    "Neto": st.column_config.NumberColumn(format="localized", step=1),
                     "Ret. %": st.column_config.NumberColumn(format="%.1f%%"),
                 },
             )
@@ -667,9 +743,9 @@ def _rendimiento_caja(cs, resumen, divs, rem) -> None:
             hide_index=True, use_container_width=True,
             column_config={
                 "Fecha": st.column_config.DateColumn(format="DD/MM/YYYY"),
-                "Capital": st.column_config.NumberColumn(format="$ %.0f"),
-                "Cobrado": st.column_config.NumberColumn(format="$ %.0f"),
-                "Interés": st.column_config.NumberColumn(format="$ %.2f"),
+                "Capital": st.column_config.NumberColumn(format="localized", step=1),
+                "Cobrado": st.column_config.NumberColumn(format="localized", step=1),
+                "Interés": st.column_config.NumberColumn(format="localized", step=0.01),
                 "Días": st.column_config.NumberColumn(format="%d"),
                 "TNA": st.column_config.NumberColumn(
                     format="%.1f%%",
@@ -1076,7 +1152,6 @@ def render(user_id: int | None = None) -> None:
 
     precios = _precios_cacheados()
     mep, origen_mep = _mep_actual()
-    sectores_scoring, _origen_scoring = _sectores_del_scoring()
 
     with connect() as conn:
         tasas_devengadas = {
@@ -1273,8 +1348,7 @@ def render(user_id: int | None = None) -> None:
         st.html(_kpi_card(
             "Resultado en dólares",
             f"{'+' if tot_usd >= 0 else '−'}US$ {_fmt(abs(tot_usd), 0)}",
-            f"{'▲' if tot_usd >= 0 else '▼'} {_fmt(k.rendimiento_total_usd_pct, 1)}%"
-            " · el número que importa",
+            f"{'▲' if tot_usd >= 0 else '▼'} {_fmt(k.rendimiento_total_usd_pct, 1)}%",
             "positivo" if tot_usd >= 0 else "negativo"))
     if k.tir_usd is not None or k.tir_ars is not None:
         t1, t2 = st.columns(2)
@@ -1338,13 +1412,13 @@ def render(user_id: int | None = None) -> None:
         column_config={
             "Cantidad": st.column_config.NumberColumn(format="%.2f"),
             "PPC": st.column_config.NumberColumn(
-                format="$ %.2f",
+                format="localized", step=0.01,
                 help="Costo promedio ponderado de lo que tenés hoy"),
-            "Precio": st.column_config.NumberColumn(format="$ %.2f"),
-            "Valor": st.column_config.NumberColumn(format="$ %.0f"),
-            "US$": st.column_config.NumberColumn(format="US$ %.0f"),
+            "Precio": st.column_config.NumberColumn(format="localized", step=0.01),
+            "Valor": st.column_config.NumberColumn(format="localized", step=1),
+            "US$": st.column_config.NumberColumn(format="localized", step=1),
             "No realizado": st.column_config.NumberColumn(
-                format="$ %.0f",
+                format="localized", step=1,
                 help="Valor de hoy menos el costo de lo que tenés. NO incluye "
                      "ventas pasadas ni dividendos: eso vive en Operaciones "
                      "cerradas y en el bloque de arriba",
@@ -1381,7 +1455,7 @@ def render(user_id: int | None = None) -> None:
         "fecha de cada operación."
     )
 
-    sectores, industrias = _resolver_sectores(valuadas, sectores_scoring)
+    sectores, industrias = _resolver_sectores(valuadas)
     _composicion(valuadas, cash_ars + (cash_usd * mep if mep else 0.0),
                  sectores, industrias, mep, uid)
 

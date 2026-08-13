@@ -233,13 +233,16 @@ def set_override_sector(conn, ticker: str, sector: str,
     )
 
 
-def refrescar_sectores(conn, tickers, sectores_scoring: dict | None = None,
-                       fetch=None, forzar: bool = False) -> tuple[int, list[str]]:
+def refrescar_sectores(conn, tickers, fetch=None,
+                       forzar: bool = False) -> tuple[int, list[str]]:
     """Resuelve y cachea los tickers que todavía no tengan sector.
 
-    Precedencia: **caché/override → snapshot del scoring → Yahoo**. El scoring
-    va antes que Yahoo porque ya está cargado en memoria y no cuesta una
-    llamada de red.
+    Precedencia: **caché/override → Yahoo**.
+
+    El escalón del **snapshot del scoring** se retiró el 5/8/2026 junto con el
+    módulo. Antes iba antes que Yahoo porque ya estaba en memoria y no costaba
+    una llamada de red, pero cubría ~20 tickers de un universo que Yahoo
+    resuelve entero: se comprobó que la cobertura sigue en 100% sin él.
 
     **Los que no resuelven también se cachean**, con `fuente = 'sin_dato'`.
     Si no, un ticker que Yahoo no conoce dispararía una búsqueda en **cada**
@@ -250,7 +253,6 @@ def refrescar_sectores(conn, tickers, sectores_scoring: dict | None = None,
     llamador. Nunca lanza — un ticker que no resuelve queda en "Sin dato".
     """
     cache = leer_sectores_cache(conn)
-    scoring = {k.upper(): v for k, v in (sectores_scoring or {}).items()}
     resueltos, faltan = 0, []
     for t in {str(x).strip().upper() for x in tickers if x}:
         anterior = cache.get(t)
@@ -262,12 +264,7 @@ def refrescar_sectores(conn, tickers, sectores_scoring: dict | None = None,
             continue
         if anterior is not None and anterior.fuente == "override":
             continue
-        del_scoring = scoring.get(t)
-        ficha = (
-            FichaTicker(ticker=t, sector=del_scoring, tipo="EQUITY",
-                        fuente="scoring")
-            if del_scoring else resolver_ficha(t, fetch)
-        )
+        ficha = resolver_ficha(t, fetch)
         if ficha is not None and ficha.sector:
             guardar_ficha_en_cache(conn, ficha)
             resueltos += 1
