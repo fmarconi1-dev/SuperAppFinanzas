@@ -9,6 +9,28 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 5 de agosto de 2026 — Vencimientos, y las correcciones que pediste
+
+**Lo nuevo: la app te dice qué se te vence.** Y lo mejor es que **no hubo que cargar nada**: las fechas ya estaban escritas en tu Excel, adentro del nombre de cada bono ("Bono Tesoro Nacional Vto. 30/11/2029"). La app ahora las lee sola.
+
+Ojo con una cosa, para que no te ilusiones de más: de tu renta fija **viva** solo resuelve el AN29. El AE38 y el pagaré no traen fecha en ningún lado y los tenés que poner a mano si los querés. Y para el AE38 la pregunta está mal planteada igual: **ese bono no vence hasta 2038, pero te empieza a devolver plata en julio de 2027**. Lo que te sirve saber no es cuándo termina sino cuándo cobrás — y eso es lo que sigue.
+
+**Investigué de dónde sacar eso** (el calendario de cobros de cada bono, que además destraba la TIR esperada y la duration). Encontré una fuente que sirve: **Docta Capital**. Necesito que crees una cuenta gratuita en `app.docta.com.ar` cuando quieras seguir por ahí. El plan gratis da 15 consultas por día, que parece poquísimo pero alcanza de sobra: el calendario de un bono no cambia, se baja una vez y se guarda.
+
+**Las cinco correcciones que pediste:**
+
+1. **Editar transacciones.** Era peor de lo que pensabas: una transacción con el gasto cargado **en negativo** quedaba **imposible de editar**, ni siquiera para cambiarle la categoría. Arreglado.
+2. **Scoring eliminado.** Los sectores de tu cartera ahora los resuelve Yahoo solo, que ya los cubría todos. Tu tablero público de scoring sigue funcionando aparte: nunca fue parte de esta app.
+3. **Números con puntos de miles**, en las tablas igual que en las tarjetas de arriba.
+4. **"El número que importa"** sacado.
+5. **"Cómo está repartida" rehecha.** Los cuadros van ahora **uno debajo del otro y a lo ancho**, con gráficos de barras. Además de que ya no se cortan, es más honesto: son cortes sobre cosas distintas (toda la cartera, tus acciones, tus bonos), y ponerlos al lado daba a entender que se comparaban entre sí. Y para los bonos agregué un corte nuevo: **quién te debe la plata** (el Estado, una provincia o una empresa), que es lo que de verdad define el riesgo de un bono — preguntarle el "sector" a un bono no significa nada.
+
+**Lo que más me importa contarte de todo esto.** Al hacer el cambio de los números **rompí la pantalla Mensual**: quedó con un error que impedía que cargara. Y la batería de pruebas dijo *"532 correctas"* igual, porque tenía la información y la trató como si faltara una librería en vez de como código roto.
+
+Lo encontraste vos, mirando que aparecían **2 pruebas salteadas donde tenían que ser 0**. Esa convención la habíamos escrito hace unos días justamente para eso. Ahora hay una prueba nueva que revisa que **todos** los archivos del proyecto se puedan leer, y falla diciendo el archivo y la línea. La probé al revés: con el error puesto, la caza.
+
+---
+
 ## 4 de agosto de 2026 (arreglo) — La app se moría al cargar el ajuste de TXAR
 
 **Qué viste:** cargaste el ajuste y la app se cayó entera con `database is locked`.

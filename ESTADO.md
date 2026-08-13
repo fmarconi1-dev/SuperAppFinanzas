@@ -249,6 +249,20 @@ Los detectó él, no los tests — la única forma de encontrarlos era **reimpor
 
 📌 **PENDIENTE DE FRANCO:** **desplegar** (10 commits esperando, incluido este fix) y **programar el backup diario** en el Programador de tareas. Pasos en el RUNBOOK. El test cubre el mecanismo; lo que no puede cubrir es que `flyctl` esté logueado y que la tarea corra. Si el deploy corta con `cpu_overcommit_exceeded`, la salida está en el RUNBOOK (`--strategy immediate`).
 
+✅ **SESIÓN DEL 5/8/2026 — vencimientos + tanda de correcciones (desplegado).**
+
+* **Vencimientos de renta fija (M14).** Las fechas se leen de la descripción del instrumento; no hubo que cargar nada. ⚠️ **De la renta fija viva de Franco resuelve 1 de 3**: AE38 y el pagaré no traen fecha. Y para el AE38 la pregunta está mal planteada — no vence hasta 2038 pero **amortiza desde el 9/7/2027**.
+* **Fuente de cronogramas: encontrada.** `Docta Capital` cubre soberanos, sub-soberanos y ONs, con cashflows, TIR y duration. **Pendiente de Franco: crear la cuenta gratuita.** El límite de 15 req/día alcanza porque un cronograma es dato estático. Detalle en `docs/CRONOGRAMAS-RENTA-FIJA.md`.
+* **Scoring eliminado** (pedido de Franco). ADR-0002 marcada como **RETIRADA**. Sectores 100% Yahoo.
+* **Bug de edición de transacciones**: una fila con `pasivos` negativo era **imposible de editar**. Arreglado.
+* **Composición rehecha**: cortes a ancho completo, gráficos de barras, y corte nuevo de renta fija **por emisor** (soberano/subsoberano/corporativo) y país.
+
+⚠️ **EL INCIDENTE DE LA SESIÓN, y la lección.** El reemplazo masivo de formatos numéricos dejó `mensual.py` con un `SyntaxError`: **esa pantalla estaba caída** y la suite decía *"532 passed"*. `test_nombres_definidos` lo había detectado pero lo trataba como **`skip`** — su regla era "si no importa, salteá", pensada para dependencias faltantes en CI. **Un `SyntaxError` no es una dependencia faltante.**
+
+**Lo encontró Franco mirando que había 2 skipped donde el RUNBOOK dice que tiene que haber 0.** Esa convención se escribió el 4/8 y se ganó el sueldo al día siguiente. Ahora `test_el_archivo_compila` compila todos los `.py` de `core/` y `places/` y **falla** con archivo y línea; compilar no necesita importar, así que corre en CI aunque falten las dependencias. Verificado al revés.
+
+🧭 **Regla que queda:** cuando un número de la suite no da lo esperado, mirarlo **aunque todo esté en verde**. Un `skip` puede estar tapando un `fail`.
+
 ## 🚩 Bloqueos / decisiones abiertas
 
 - Fuente de datos de mercado ARG: 🟢 candidatos en `gauss314/skills` (`bcra-macro`, `data912`, `byma`, `mae`). Se valida y elige en Fase 5. Ver `docs/DATOS-MERCADO-ARG.md`.
