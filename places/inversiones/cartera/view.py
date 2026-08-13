@@ -368,15 +368,29 @@ def _grafico_grupos(grupos, titulo: str = "") -> None:
                        "<br>$ %{customdata[0]:,.0f}"
                        "<br>%{customdata[1]} posición(es)<extra></extra>"),
     ))
+    # El eje X se estira un 18% más allá de la barra más larga. Sin ese aire,
+    # el porcentaje que va **por fuera** de la barra se sale del área del
+    # gráfico y termina pisando lo que tiene al lado.
+    tope = max((g.pct for g in visibles), default=100.0) or 100.0
+
+    # ⚠️ El título **no se pasa** cuando está vacío, en vez de pasarlo en
+    # `None`. Con `title=None` Plotly serializa un `null` que el lado JS
+    # dibuja como la palabra literal **"undefined"** encima del gráfico,
+    # pisando las barras y el texto de arriba. Pasó en producción el 5/8/2026.
     fig.update_layout(
-        title=titulo or None,
-        height=max(150, 42 * len(visibles) + 60),
-        margin=dict(l=0, r=48, t=32 if titulo else 8, b=8),
-        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False),
-        yaxis=dict(title=None),
+        height=max(160, 46 * len(visibles) + 70),
+        margin=dict(l=0, r=16, t=36 if titulo else 12, b=12),
+        # `automargin` deja que las etiquetas largas ("Financial Services",
+        # "Communication Services") corran el eje en vez de recortarse.
+        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False,
+                   range=[0, tope * 1.18]),
+        yaxis=dict(title=None, automargin=True, ticksuffix="  "),
         showlegend=False,
         bargap=0.35,
+        uniformtext=dict(mode="hide", minsize=10),
     )
+    if titulo:
+        fig.update_layout(title=titulo)
     st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
 
 

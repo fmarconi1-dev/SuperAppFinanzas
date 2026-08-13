@@ -405,3 +405,15 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
 - **Arreglo:** `test_el_archivo_compila`, que **compila todos los `.py`** de `core/` y `places/` y **falla** con el archivo y la línea. Compilar no necesita importar, así que corre en CI aunque falten Streamlit o Plotly — que es justo cuando más hace falta. **Verificado al revés:** con el `SyntaxError` de vuelta el test falla nombrando `mensual.py`; sin él, pasa.
 - 🧭 **Lección de proceso, la que más vale:** los 2 `skipped` eran el único rastro, y estaban a la vista desde el principio. **La convención de "0 skipped en local" del RUNBOOK funcionó**: sin ella, ese conteo no le hubiera llamado la atención a nadie. Cuando un número de la suite no da lo esperado, hay que mirarlo aunque todo esté "en verde".
 - **Estado:** suite **575 passed, 3 skipped** (local, con oráculos).
+
+## 2026-08-05 (arreglo) — El panel de vencimientos tiraba abajo la pantalla
+- **Autor:** Claude (Opus 5). **Dos bugs en producción, encontrados por Franco con la app abierta.**
+
+**1. `AttributeError: 'list' object has no attribute 'get'`.** `proximos()` hacía `valuadas.get(ticker)` asumiendo un diccionario, pero **la vista maneja las posiciones valuadas como una lista**. La pestaña Cartera entera se caía al llegar al panel de vencimientos.
+  - ⚠️ **Por qué los 29 tests no lo vieron: estaban escritos contra la suposición del módulo, no contra el llamador.** Se inventó un `{ticker: posicion}` en el fixture y todo dio verde mientras la app moría. **Un test que fabrica su propia entrada no prueba la integración.**
+  - **Arreglo:** `_por_ticker()` normaliza lista o dict en el borde del módulo, y **4 tests nuevos que pasan la lista** — la forma real. Verificado al revés: sin la normalización, 3 fallan.
+  - 🧭 **Regla que queda:** toda función que consuma posiciones valuadas se testea **con la lista**, que es lo que llega de verdad. Si el test necesita otra forma, es señal de que hay que mirar el llamador.
+
+**2. La palabra `undefined` pisando los gráficos.** `fig.update_layout(title=titulo or None)` con el título vacío serializa un `null` que el lado JS de Plotly **dibuja como el texto literal "undefined"**, encima de las barras y del párrafo de arriba. Ahora el título **no se pasa** si no hay: se aplica solo cuando existe.
+  - De paso, el layout quedó más robusto: `automargin` en el eje Y (para que "Communication Services" no se recorte) y **18% de aire a la derecha**, porque el porcentaje va por fuera de la barra y sin margen se salía del área.
+- **Estado:** suite **579 passed, 3 skipped** (local, con oráculos).

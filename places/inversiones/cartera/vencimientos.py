@@ -206,7 +206,24 @@ def resolver(instrumentos: dict, conn=None) -> dict[str, Vencimiento]:
 # Para la vista
 # ---------------------------------------------------------------------------
 
-def proximos(vencs: dict, valuadas: dict | None = None,
+def _por_ticker(valuadas) -> dict | None:
+    """Normaliza las posiciones a ``{ticker: posicion}``.
+
+    **Acepta lista o diccionario a propósito.** La vista maneja las posiciones
+    valuadas como una **lista** y este módulo asumía un diccionario, así que
+    `valuadas.get(...)` reventaba con
+    ``AttributeError: 'list' object has no attribute 'get'`` — en producción,
+    el 5/8/2026. Los tests no lo vieron porque estaban escritos contra la
+    suposición del módulo y no contra el llamador real.
+    """
+    if valuadas is None:
+        return None
+    if isinstance(valuadas, dict):
+        return valuadas
+    return {getattr(p, "ticker", None): p for p in valuadas}
+
+
+def proximos(vencs: dict, valuadas=None,
              hoy: date | None = None, incluir_vencidos: bool = False) -> list[dict]:
     """Filas listas para mostrar, **de lo que vence antes a lo que vence
     después**, y con lo que no tiene fecha al final.
@@ -218,11 +235,12 @@ def proximos(vencs: dict, valuadas: dict | None = None,
     Vive acá y no en la vista para poder testearse sin Streamlit.
     """
     hoy = hoy or date.today()
+    indexadas = _por_ticker(valuadas)
     filas: list[dict] = []
 
     for ticker, v in vencs.items():
-        pos = (valuadas or {}).get(ticker)
-        if valuadas is not None:
+        pos = (indexadas or {}).get(ticker)
+        if indexadas is not None:
             if pos is None or getattr(pos, "cerrada", False):
                 continue
             if not getattr(pos, "cant_actual", 0):
@@ -248,7 +266,7 @@ def proximos(vencs: dict, valuadas: dict | None = None,
     return filas
 
 
-def resumen(vencs: dict, valuadas: dict | None = None,
+def resumen(vencs: dict, valuadas=None,
             hoy: date | None = None, dias: int = DIAS_PROXIMO) -> dict:
     """Cuánto vence en los próximos `dias`, y qué falta resolver."""
     hoy = hoy or date.today()

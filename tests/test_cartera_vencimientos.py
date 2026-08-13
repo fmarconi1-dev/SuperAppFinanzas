@@ -249,3 +249,75 @@ def test_el_resumen_lista_lo_que_falta_resolver(conn):
     insts = {"#UMV": _Inst("Pagare MAV", "")}
     r = v.resumen(v.resolver(insts, conn), {"#UMV": _Pos()}, HOY)
     assert r["sin_fecha"] == ["#UMV"]
+
+
+# ---------------------------------------------------------------------------
+# La forma REAL con la que llama la vista
+# ---------------------------------------------------------------------------
+#
+# ⚠️ Bug en producción (5/8/2026):
+#
+#     AttributeError: 'list' object has no attribute 'get'
+#
+# `proximos()` hacía `valuadas.get(ticker)` asumiendo un diccionario, pero la
+# vista maneja las posiciones valuadas como **lista**. El panel de vencimientos
+# reventaba la pantalla entera de Cartera.
+#
+# Los tests de arriba no lo vieron **porque estaban escritos contra la
+# suposición del módulo, no contra el llamador**. Pasar un dict inventado los
+# hacía verdes mientras la app moría. De acá en adelante, todo test de una
+# función que consume posiciones tiene que probar **la lista**, que es lo que
+# llega de verdad.
+
+
+def _lista(*posiciones):
+    """Las posiciones tal como las pasa `view.py`: una lista, no un dict."""
+    return list(posiciones)
+
+
+class _PosT(_Pos):
+    def __init__(self, ticker, **kw):
+        super().__init__(**kw)
+        self.ticker = ticker
+
+
+def test_proximos_acepta_la_lista_que_manda_la_vista(conn):
+    vencs = v.resolver({
+        "AN29": _Inst("Bono Tesoro Nacional Vto. 30/11/2029", "Bonos"),
+        "S17A6": _Inst("Letra Tesoro Vto. 17/09/2026", "Letras"),
+    }, conn)
+    posiciones = _lista(_PosT("AN29"), _PosT("S17A6"))
+
+    filas = v.proximos(vencs, posiciones, HOY)
+    assert [f["Ticker"] for f in filas] == ["S17A6", "AN29"]
+
+
+def test_resumen_acepta_la_lista_que_manda_la_vista(conn):
+    """Es la llamada exacta que rompía: `resumen(vencs, valuadas, hoy)`."""
+    vencs = v.resolver(
+        {"S17A6": _Inst("Letra Tesoro Vto. 17/09/2026", "Letras")}, conn)
+    posiciones = _lista(_PosT("S17A6", ars=500_000.0, usd=327.0))
+
+    r = v.resumen(vencs, posiciones, HOY)
+    assert r["n_proximos"] == 1
+    assert r["ars_proximos"] == pytest.approx(500_000.0)
+    assert r["proximo"]["Ticker"] == "S17A6"
+
+
+def test_la_lista_filtra_igual_que_el_diccionario(conn):
+    """Un bono que ya vendiste no te vence, venga en lista o en dict."""
+    vencs = v.resolver({
+        "AN29": _Inst("Bono Tesoro Nacional Vto. 30/11/2029", "Bonos"),
+        "S17A6": _Inst("Letra Tesoro Vto. 17/09/2026", "Letras"),
+    }, conn)
+    vivos = _lista(_PosT("AN29"), _PosT("S17A6", cant=0))
+
+    assert [f["Ticker"] for f in v.proximos(vencs, vivos, HOY)] == ["AN29"]
+
+
+def test_una_lista_vacia_no_es_lo_mismo_que_no_pasar_nada(conn):
+    """Sin posiciones vivas no vence nada; sin el dato, se muestran todas."""
+    vencs = v.resolver(
+        {"AN29": _Inst("Bono Tesoro Nacional Vto. 30/11/2029", "Bonos")}, conn)
+    assert v.proximos(vencs, [], HOY) == []
+    assert len(v.proximos(vencs, None, HOY)) == 1
