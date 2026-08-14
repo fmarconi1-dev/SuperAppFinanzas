@@ -242,3 +242,90 @@ def test_sin_precio_el_riesgo_queda_vacio_pero_no_rompe():
     r = rf.riesgo(_ae38(), precio=None, hoy=HOY)
     assert (r.tir, r.duration, r.duration_modificada) == (None, None, None)
     assert r.ticker == "AE38"
+
+
+# ---------------------------------------------------------------------------
+# El puente entre la posición valuada y la moneda del bono
+# ---------------------------------------------------------------------------
+#
+# ⚠️ Es el punto donde la TIR se arruina en silencio. `PosicionValuada.precio`
+# está **en pesos**; los flujos de un bono hard-dollar están **en dólares**.
+# Compararlos da un número plausible y equivocado.
+#
+# Se testea por AST y no importando la vista, porque `view.py` trae Streamlit
+# entero — el mismo criterio que `test_transacciones_formulario.py`.
+
+import ast                                          # noqa: E402
+from pathlib import Path                            # noqa: E402
+
+VISTA = (Path(__file__).resolve().parents[1]
+         / "places" / "inversiones" / "cartera" / "view.py")
+
+
+def _nodo_de(nombre: str) -> ast.FunctionDef:
+    arbol = ast.parse(VISTA.read_text(encoding="utf-8"))
+    for nodo in ast.walk(arbol):
+        if isinstance(nodo, ast.FunctionDef) and nodo.name == nombre:
+            return nodo
+    raise AssertionError(f"no existe la función {nombre}() en view.py")
+
+
+def _fuente_de(nombre: str) -> str:
+    return ast.unparse(_nodo_de(nombre))
+
+
+def _llamadas_de(nombre: str) -> set[str]:
+    """Los nombres **llamados** dentro de la función.
+
+    Por AST y no por subcadena: buscar el texto `refrescar_cronogramas` daba un
+    falso positivo porque `_boton_refrescar_cronogramas` lo **contiene**. Un
+    test que se equivoca así erosiona la confianza en todos los demás.
+    """
+    llamadas = set()
+    for n in ast.walk(_nodo_de(nombre)):
+        if not isinstance(n, ast.Call):
+            continue
+        f = n.func
+        if isinstance(f, ast.Name):
+            llamadas.add(f.id)
+        elif isinstance(f, ast.Attribute):
+            llamadas.add(f.attr)
+    return llamadas
+
+
+def test_el_precio_de_un_bono_en_dolares_sale_del_valor_en_dolares():
+    """No de `precio`, que está en pesos."""
+    fuente = _fuente_de("_precio_por_100_en_moneda_del_bono")
+    assert "valor_usd_actual" in fuente
+    assert "USD" in fuente
+
+
+def test_la_vista_pasa_la_moneda_del_bono_al_calculo():
+    """`riesgo()` exige moneda explícita justamente para que quien llama tenga
+    que decidirla. Si la vista dejara el default, el pedido se perdería."""
+    fuente = _fuente_de("_renta_fija")
+    assert "moneda=moneda" in fuente
+    assert "HARD" in fuente          # de ahí sale si es USD o ARS
+
+
+def test_la_vista_no_consulta_la_red_al_abrirse():
+    """Con 15 consultas por día, pedir cronogramas al renderizar vaciaría la
+    cuota con solo mirar la pantalla. Solo el botón consulta."""
+    llamadas = _llamadas_de("_renta_fija")
+    assert "leer_cronograma" in llamadas
+    assert "refrescar_cronogramas" not in llamadas
+    assert "traer_cronograma" not in llamadas
+    assert "buscar_simbolo" not in llamadas
+
+
+def test_solo_el_boton_refresca():
+    llamadas = _llamadas_de("_boton_refrescar_cronogramas")
+    assert "refrescar_cronogramas" in llamadas
+    assert "button" in llamadas
+
+
+def test_la_tabla_de_pagos_lleva_la_moneda_de_cada_pago():
+    """Sin la columna, dos filas en monedas distintas se leerían como
+    comparables. Un total único exigiría un TC futuro que no se conoce."""
+    fuente = _fuente_de("_renta_fija")
+    assert "'Moneda': p.moneda" in fuente
