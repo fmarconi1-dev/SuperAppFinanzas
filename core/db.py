@@ -858,6 +858,47 @@ def _migrate(conn: sqlite3.Connection) -> None:
             )
         """)
 
+        # ============================================================
+        # M15 (Fase 4): cronogramas de pago de la renta fija.
+        # ============================================================
+        # Cada cupón y cada amortización de un bono, con su fecha. Es lo que
+        # destraba el calendario de cobros, la TIR esperada y la duration.
+        #
+        # **La caché no es una optimización: es el uso correcto de la fuente.**
+        # El plan gratuito de Docta da 15 requests por día, y alcanza porque un
+        # cronograma es dato **estático** — el AE38 va a pagar lo mismo en las
+        # mismas fechas el mes que viene que hoy. Se baja una vez por bono y
+        # queda acá. Verificado el 5/8/2026: 34 flujos para el AE38.
+        #
+        # Los importes se guardan **por 100 nominales**, que es como los sirve
+        # la API. Escalar a la tenencia real es una multiplicación al leer, y
+        # así el mismo cronograma sirve aunque cambie la cantidad.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS cartera_cronogramas (
+                ticker          TEXT NOT NULL,
+                fecha_pago      TEXT NOT NULL,
+                capital         REAL NOT NULL DEFAULT 0,
+                interes         REAL NOT NULL DEFAULT 0,
+                total           REAL NOT NULL DEFAULT 0,
+                residual        REAL,
+                PRIMARY KEY (ticker, fecha_pago)
+            )
+        """)
+        # Estado por ticker, **incluida la caché negativa**: sin esto, un
+        # instrumento que la fuente no tiene —el pagaré del MAV— se
+        # consultaría en cada carga de la pantalla, para siempre, gastando la
+        # cuota diaria a lo pavo. Es la misma lección de `cartera_sectores`.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS cartera_cronogramas_meta (
+                ticker          TEXT PRIMARY KEY,
+                clase           TEXT,
+                nominales_base  REAL NOT NULL DEFAULT 100,
+                fuente          TEXT,
+                n_flujos        INTEGER NOT NULL DEFAULT 0,
+                actualizado_en  TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        """)
+
         cur.execute("COMMIT")
     except Exception:
         cur.execute("ROLLBACK")

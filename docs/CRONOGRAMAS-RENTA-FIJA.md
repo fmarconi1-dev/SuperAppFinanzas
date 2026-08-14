@@ -1,7 +1,44 @@
 # Cronogramas de renta fija — investigación de fuentes
 
-> **Estado:** 🟢 fuente encontrada y viable. **Falta la decisión de Franco** (crear cuenta) antes de escribir código.
+> **Estado:** ✅ **VERIFICADA CONTRA LA CUENTA REAL** el 5/8/2026. Cubre 3 de
+> los 4 instrumentos de Franco. El módulo `core/market_data/cronogramas.py`
+> está construido; falta la persistencia y la vista.
 > **Fecha:** 5/8/2026.
+
+## ✅ Resultado de la verificación (datos reales, cuenta de Franco)
+
+| Instrumento | ¿Está? | Flujos | Próximo pago | Clase |
+|---|---|---|---|---|
+| **AE38** | ✔ | 34 | 11/01/2027 | `HARD_DOLLAR` |
+| **AN29** | ✔ | 8 | 30/11/2026 | `HARD_DOLLAR` |
+| **RUCDO** | ✔ | 12 | 07/12/2026 | `ON` |
+| `#UMV060770008` | ❌ | — | — | es del **MAV**, fuera del catálogo |
+
+⚠️ **Corrección a un dato del proyecto.** `MEJORAS.md` afirmaba que la primera
+amortización del AE38 es el **9/7/2027**. El cronograma real dice **12/07/2027**,
+con capital **4,5455** (= 100/22, o sea las 22 cuotas del 4,545% — esa parte
+estaba bien). **El 9 de julio es feriado en Argentina**, así que el pago cae al
+primer día hábil siguiente. Para un calendario de cobros manda la fecha en que
+la plata **entra**, no la teórica.
+
+Primeros pagos del AE38 por 100 nominales, tal cual los devuelve la API:
+
+```
+2027-01-11   capital 0.0000   interes 2.5342   total 2.5342   residual 100.00
+2027-07-12   capital 4.5455   interes 2.4932   total 7.0387   residual  95.45
+2028-01-10   capital 4.5455   interes 2.3798   total 6.9253   residual  90.91
+```
+
+Se lee entero: el 11/1/2027 es **cupón puro** (no devuelve capital, el residual
+queda en 100) y recién el 12/7/2027 empieza a amortizar.
+
+## ⚠️ La trampa de la documentación
+
+El ejemplo `curl` de la doc escribe el endpoint de autenticación como
+`/api/v1/auth/token/` **con barra final**. La especificación OpenAPI —que es la
+autoridad— lo define **sin** barra. Copiar el ejemplo devuelve **HTTP 404**, que
+es especialmente engañoso porque **parece un problema de credenciales y no lo
+es**. Costó una vuelta entera. Hay tests que fijan los paths.
 
 ## Por qué hace falta
 

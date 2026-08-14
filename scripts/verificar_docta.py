@@ -31,24 +31,54 @@ sys.path.insert(0, str(RAIZ))
 POR_DEFECTO = ["AE38", "AN29", "RUCDO", "#UMV060770008"]
 
 
-def _cargar_env() -> None:
-    """Lee el `.env` de la raíz. Sin dependencias: el archivo es trivial."""
+def _cargar_env() -> list[str]:
+    """Lee el `.env` de la raíz y devuelve las claves que encontró.
+
+    Sin dependencias: el archivo es trivial. Se limpia el BOM que a veces deja
+    el Bloc de notas de Windows al guardar en UTF-8 — sin eso, la primera
+    variable del archivo queda con un nombre invisible distinto y **parece que
+    no está**.
+    """
     ruta = RAIZ / ".env"
     if not ruta.exists():
-        return
-    for linea in ruta.read_text(encoding="utf-8").splitlines():
-        limpia = linea.strip()
+        return []
+    encontradas = []
+    for linea in ruta.read_text(encoding="utf-8-sig").splitlines():
+        limpia = linea.strip().lstrip("﻿")
         if not limpia or limpia.startswith("#") or "=" not in limpia:
             continue
         clave, _, valor = limpia.partition("=")
-        os.environ.setdefault(clave.strip(), valor.strip().strip('"').strip("'"))
+        clave = clave.strip()
+        os.environ[clave] = valor.strip().strip('"').strip("'")
+        encontradas.append(clave)
+    return encontradas
+
+
+def _enmascarar(valor: str) -> str:
+    """Muestra lo justo para reconocer la credencial sin exponerla."""
+    if not valor:
+        return "(vacío)"
+    if len(valor) <= 8:
+        return f"{valor[:2]}… ({len(valor)} car.)"
+    return f"{valor[:4]}…{valor[-4:]} ({len(valor)} car.)"
 
 
 def main(argv: list[str]) -> int:
-    _cargar_env()
+    claves = _cargar_env()
     from core.market_data import cronogramas as cr
 
     tickers = argv[1:] or POR_DEFECTO
+
+    # 1. ¿Se leyó el `.env`? Es la primera pregunta y la más aburrida, y por
+    #    eso mismo la que más veces es la respuesta.
+    ruta_env = RAIZ / ".env"
+    print(f"Archivo .env: {'encontrado' if ruta_env.exists() else 'NO EXISTE'}"
+          f"  ({ruta_env})")
+    if claves:
+        print(f"  Variables leídas: {', '.join(claves)}")
+    print(f"  DOCTA_CLIENT_ID     = {_enmascarar(os.environ.get('DOCTA_CLIENT_ID', ''))}")
+    print(f"  DOCTA_CLIENT_SECRET = {_enmascarar(os.environ.get('DOCTA_CLIENT_SECRET', ''))}")
+    print()
 
     if not cr.hay_credenciales():
         print("FALTAN CREDENCIALES.")
@@ -56,11 +86,22 @@ def main(argv: list[str]) -> int:
         print("  `.env` de la raíz (NO en .env.example, que se commitea).")
         return 1
 
-    print("Pidiendo token ...", end=" ", flush=True)
-    if cr.obtener_token() is None:
+    # 2. El token, con el motivo real si falla. La versión silenciosa que usa
+    #    la app devuelve None y ya; acá hace falta saber POR QUÉ.
+    print(f"Pidiendo token a {cr.URL_TOKEN} ...", end=" ", flush=True)
+    token, motivo = cr.obtener_token_detallado()
+    if token is None:
         print("FALLO.")
-        print("  El token no se pudo obtener. Revisá que el client_id y el")
-        print("  client_secret sean los de https://app.docta.com.ar/dashboard/account/api")
+        print()
+        print(f"  MOTIVO: {motivo}")
+        print()
+        print("  Qué mirar, en orden:")
+        print("   * HTTP 401 → las credenciales no son válidas. Regeneralas en")
+        print("     https://app.docta.com.ar/dashboard/account/api")
+        print("   * HTTP 404 → cambió la URL del endpoint de autenticación.")
+        print("   * 'faltan las variables' → el .env no se leyó (ver arriba).")
+        print("   * Si los valores enmascarados de arriba no coinciden con los")
+        print("     que copiaste, hay comillas o espacios de más en el .env.")
         return 1
     print("ok")
     print()

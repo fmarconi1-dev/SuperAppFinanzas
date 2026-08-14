@@ -250,3 +250,167 @@ def test_las_credenciales_no_viajan_en_la_url():
     cr.traer_cronograma("AL30", fetch=espiar)
     assert not any("secreto-de-prueba" in u or "id-de-prueba" in u
                    for u in vistas)
+
+
+# ---------------------------------------------------------------------------
+# Las URLs, contra la especificación (no contra los ejemplos de la doc)
+# ---------------------------------------------------------------------------
+#
+# ⚠️ El 5/8/2026 la primera prueba real dio **HTTP 404** en el token. La causa
+# no era la credencial: el ejemplo `curl` de la documentación escribe
+# `/api/v1/auth/token/` **con barra final**, y la especificación OpenAPI —que
+# es la autoridad— define `/api/v1/auth/token` **sin** barra.
+#
+# Un 404 en autenticación es especialmente engañoso porque parece un problema
+# de credenciales. Estos tests fijan los paths para que nadie los "arregle"
+# copiando otra vez del ejemplo.
+
+def test_el_token_va_sin_barra_final():
+    assert cr.URL_TOKEN.endswith("/api/v1/auth/token")
+    assert not cr.URL_TOKEN.endswith("/")
+
+
+def test_los_paths_son_los_de_la_especificacion():
+    assert cr.BASE == "https://api.doctacapital.com.ar"
+    assert "/api/v1/bonds/instruments/search?query=" in cr.URL_BUSQUEDA
+    assert "/api/v1/bonds/analytics/" in cr.URL_CASHFLOW
+    assert "/cashflow?nominal_units=" in cr.URL_CASHFLOW
+
+
+def test_la_busqueda_lee_la_forma_documentada():
+    """La respuesta real trae `data[].ticker`, con `asset_class` y
+    `sub_asset_class` al lado. Se toma el `ticker` y nada más."""
+    real = json.dumps({
+        "data": [{"ticker": "AL30", "asset_class": "BONO AL30",
+                  "sub_asset_class": "HARD_DOLLAR"}],
+        "query": "AL30",
+        "pagination": {"next_cursor": None, "has_next": False},
+        "metadata": {"total_records": 1},
+    })
+    assert cr.buscar_simbolo(
+        "AL30", fetch=_fetch({"instruments/search": real})) == "AL30"
+
+
+# ---------------------------------------------------------------------------
+# La caché (M15): el uso correcto de una fuente con 15 requests por día
+# ---------------------------------------------------------------------------
+
+from core.db import connect, init_db          # noqa: E402
+
+
+@pytest.fixture()
+def db(tmp_path, monkeypatch):
+    ruta = tmp_path / "finanzas.db"
+    monkeypatch.setenv("DB_PATH", str(ruta))
+    init_db(ruta)
+    conn = connect(ruta)
+    yield conn
+    conn.close()
+
+
+def _guardar_al30(db):
+    cron = cr.traer_cronograma("AL30", fetch=_fetch({"cashflow": CASHFLOW_AL30}))
+    n = cr.guardar_cronograma(db, cron)
+    db.commit()
+    return n
+
+
+def test_lo_guardado_se_lee_igual(db):
+    assert _guardar_al30(db) == 2
+    cron = cr.leer_cronograma(db, "AL30")
+    assert cron is not None
+    assert cron.clase == "HARD_DOLLAR"
+    assert [f.fecha for f in cron.flujos] == [date(2027, 7, 9), date(2028, 1, 9)]
+    assert cron.flujos[1].capital == pytest.approx(8.0)
+
+
+def test_se_escala_a_la_tenencia_sin_gastar_cuota(db):
+    """Los importes se guardan **por 100 nominales**, como los sirve la API.
+    Escalar es una multiplicación al leer: el mismo cronograma cacheado sigue
+    sirviendo aunque cambie la cantidad, **sin otra consulta**."""
+    _guardar_al30(db)
+    cron = cr.leer_cronograma(db, "AL30", nominales=9500)
+    assert cron.flujos[1].capital == pytest.approx(8.0 * 95)
+    assert cron.flujos[1].total == pytest.approx(8.36 * 95)
+    assert cron.flujos[1].residual == pytest.approx(88.0 * 95)
+
+
+def test_refrescar_no_vuelve_a_pedir_lo_que_ya_tiene(db):
+    """Con 15 consultas por día, reintentar en cada carga vaciaría la cuota."""
+    llamadas = []
+
+    def contar(url, datos=None, cabeceras=None):
+        llamadas.append(url)
+        return TOKEN_OK if "auth/token" in url else CASHFLOW_AL30
+
+    cr.refrescar_cronogramas(db, ["AL30"], fetch=contar)
+    db.commit()
+    n_primera = sum(1 for u in llamadas if "cashflow" in u)
+
+    cr.refrescar_cronogramas(db, ["AL30"], fetch=contar)
+    assert n_primera == 1
+    assert sum(1 for u in llamadas if "cashflow" in u) == 1
+
+
+def test_forzar_si_vuelve_a_pedir(db):
+    llamadas = []
+
+    def contar(url, datos=None, cabeceras=None):
+        llamadas.append(url)
+        return TOKEN_OK if "auth/token" in url else CASHFLOW_AL30
+
+    cr.refrescar_cronogramas(db, ["AL30"], fetch=contar)
+    db.commit()
+    cr.refrescar_cronogramas(db, ["AL30"], fetch=contar, forzar=True)
+    assert sum(1 for u in llamadas if "cashflow" in u) == 2
+
+
+def test_el_pagare_se_marca_sin_consultar(db):
+    """⚠️ **Caché negativa.** Confirmado el 5/8/2026 contra la cuenta real: el
+    pagaré del MAV no está en el catálogo. Sin marcarlo, se consultaría en cada
+    carga de la pantalla y se comería la cuota diaria sin traer nada nunca."""
+    def no_deberia_llamarse(*a, **k):
+        raise AssertionError("consultó por el pagaré")
+
+    n, faltan = cr.refrescar_cronogramas(db, ["#UMV060770008"],
+                                         fetch=no_deberia_llamarse)
+    db.commit()
+    assert (n, faltan) == (0, ["#UMV060770008"])
+    assert cr.ya_consultado(db, "#UMV060770008") is True
+
+    # Y en la segunda vuelta tampoco consulta.
+    cr.refrescar_cronogramas(db, ["#UMV060770008"], fetch=no_deberia_llamarse)
+
+
+def test_lo_que_la_fuente_no_tiene_no_se_reintenta(db):
+    """Igual que el pagaré, pero para un ticker que sí se consultó y vino
+    vacío: la constancia de 'ya pregunté' vale tanto como el dato."""
+    llamadas = []
+
+    def vacio(url, datos=None, cabeceras=None):
+        llamadas.append(url)
+        return TOKEN_OK if "auth/token" in url else '{"data": []}'
+
+    cr.refrescar_cronogramas(db, ["RARO"], fetch=vacio)
+    db.commit()
+    cr.refrescar_cronogramas(db, ["RARO"], fetch=vacio)
+    assert sum(1 for u in llamadas if "cashflow" in u) == 1
+
+
+def test_sin_la_migracion_no_se_rompe(db):
+    """Los cronogramas son una mejora, no un requisito para ver la cartera."""
+    db.execute("DROP TABLE cartera_cronogramas")
+    db.execute("DROP TABLE cartera_cronogramas_meta")
+    db.commit()
+    assert cr.leer_cronograma(db, "AL30") is None
+    assert cr.ya_consultado(db, "AL30") is False
+
+
+def test_volver_a_guardar_reemplaza_en_vez_de_duplicar(db):
+    """Un refresco no puede dejar los flujos viejos mezclados con los nuevos:
+    el calendario mostraría pagos fantasma."""
+    _guardar_al30(db)
+    _guardar_al30(db)
+    n = db.execute("SELECT COUNT(*) FROM cartera_cronogramas "
+                   "WHERE ticker = 'AL30'").fetchone()[0]
+    assert n == 2

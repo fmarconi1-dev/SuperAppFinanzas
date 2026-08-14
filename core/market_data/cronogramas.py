@@ -56,13 +56,22 @@ from dataclasses import dataclass
 from datetime import date, datetime
 
 __all__ = [
+    "obtener_token_detallado",
     "BASE", "Flujo", "Cronograma", "hay_credenciales", "obtener_token",
     "buscar_simbolo", "traer_cronograma", "reset_token",
+    "guardar_cronograma", "leer_cronograma", "marcar_sin_cronograma",
+    "ya_consultado", "refrescar_cronogramas",
 ]
 
 BASE = "https://api.doctacapital.com.ar"
-URL_TOKEN = f"{BASE}/api/v1/auth/token/"
-URL_BUSQUEDA = f"{BASE}/api/v1/bonds/instruments/search?query={{q}}"
+
+# ⚠️ **Sin barra final.** El ejemplo `curl` de la documentación la lleva
+# (`/auth/token/`) pero la especificación OpenAPI —que es la autoridad— define
+# el path como `/api/v1/auth/token`. Copiar el ejemplo daba **HTTP 404**, que
+# es especialmente engañoso: parece un problema de credenciales y no lo es.
+# Pasó el 5/8/2026 en la primera prueba real.
+URL_TOKEN = f"{BASE}/api/v1/auth/token"
+URL_BUSQUEDA = f"{BASE}/api/v1/bonds/instruments/search?query={{q}}&limit=10"
 URL_CASHFLOW = (f"{BASE}/api/v1/bonds/analytics/{{simbolo}}/cashflow"
                 "?nominal_units={nominales}")
 
@@ -147,18 +156,23 @@ def _fetch_http(url: str, datos: bytes | None = None,
         return r.read().decode("utf-8", errors="replace")
 
 
-def obtener_token(fetch=None, forzar: bool = False) -> str | None:
-    """Token Bearer por *client credentials*, cacheado hasta que vence.
+def obtener_token_detallado(fetch=None,
+                            forzar: bool = False) -> tuple[str | None, str]:
+    """``(token, motivo)``. Igual que `obtener_token` pero **explica el fallo**.
 
-    Devuelve ``None`` si no hay credenciales o si la autenticación falla —
-    **nunca lanza**. Pedir un token en cada request gastaría la cuota al doble,
-    de ahí la caché.
+    Existe porque la versión silenciosa es lo correcto para la app —una fuente
+    caída no puede tirar una pantalla— pero es **inservible para diagnosticar**.
+    El 5/8/2026 el script de verificación falló y lo único que pudo decir fue
+    "el token no se pudo obtener", que no ayuda a nadie. `scripts/verificar_docta.py`
+    usa esta variante; el resto del código usa la silenciosa.
     """
     global _TOKEN
     if not forzar and _TOKEN and _TOKEN[1] > time.time() + _MARGEN_TOKEN:
-        return _TOKEN[0]
+        return _TOKEN[0], "cacheado"
     if not hay_credenciales():
-        return None
+        faltan = [v for v in ("DOCTA_CLIENT_ID", "DOCTA_CLIENT_SECRET")
+                  if not os.environ.get(v)]
+        return None, f"faltan las variables: {', '.join(faltan)}"
 
     cuerpo = json.dumps({
         "grant_type": "client_credentials",
@@ -168,20 +182,46 @@ def obtener_token(fetch=None, forzar: bool = False) -> str | None:
     try:
         crudo = (fetch or _fetch_http)(
             URL_TOKEN, cuerpo, {"Content-Type": "application/json"})
+    except urllib.error.HTTPError as exc:
+        detalle = ""
+        try:
+            detalle = exc.read().decode("utf-8", errors="replace")[:400]
+        except Exception:
+            pass
+        return None, f"HTTP {exc.code} {exc.reason}. Respuesta: {detalle}"
+    except urllib.error.URLError as exc:
+        return None, f"no se pudo conectar: {exc.reason}"
+    except Exception as exc:                      # pragma: no cover
+        return None, f"{type(exc).__name__}: {exc}"
+
+    try:
         datos = json.loads(crudo) if isinstance(crudo, str) else crudo
-        token = datos.get("access_token")
-        if not token:
-            return None
-        # ⚠️ `or 3600` NO: en Python el 0 es falso, así que un `expires_in: 0`
-        # —un token ya vencido— se convertiría en una hora de validez y el
-        # módulo seguiría mandando un token muerto. Lo cazó un test.
-        segundos = datos.get("expires_in")
-        vence = time.time() + (float(segundos) if segundos is not None
-                               else 3600.0)
-        _TOKEN = (str(token), vence)
-        return _TOKEN[0]
     except Exception:
-        return None
+        return None, f"la respuesta no es JSON: {str(crudo)[:200]}"
+
+    token = datos.get("access_token") if isinstance(datos, dict) else None
+    if not token:
+        claves = list(datos) if isinstance(datos, dict) else type(datos).__name__
+        return None, (f"la respuesta no trae `access_token`. "
+                      f"Vino: {claves}. Cuerpo: {str(datos)[:300]}")
+
+    # ⚠️ `or 3600` NO: en Python el 0 es falso, así que un `expires_in: 0`
+    # —un token ya vencido— se convertiría en una hora de validez y el
+    # módulo seguiría mandando un token muerto. Lo cazó un test.
+    segundos = datos.get("expires_in")
+    vence = time.time() + (float(segundos) if segundos is not None else 3600.0)
+    _TOKEN = (str(token), vence)
+    return _TOKEN[0], "ok"
+
+
+def obtener_token(fetch=None, forzar: bool = False) -> str | None:
+    """Token Bearer por *client credentials*, cacheado hasta que vence.
+
+    Devuelve ``None`` si no hay credenciales o si la autenticación falla —
+    **nunca lanza**. Pedir un token en cada request gastaría la cuota al doble,
+    de ahí la caché. Para diagnosticar un fallo, ver `obtener_token_detallado`.
+    """
+    return obtener_token_detallado(fetch, forzar)[0]
 
 
 def _get(url: str, fetch=None) -> dict | None:
@@ -286,3 +326,137 @@ def traer_cronograma(ticker: str, nominales: float = 100.0,
         flujos=sorted(flujos, key=lambda x: x.fecha),
         clase=meta.get("subasset_class"),
     )
+
+
+# ---------------------------------------------------------------------------
+# Persistencia (M15)
+# ---------------------------------------------------------------------------
+#
+# **La caché no es una optimización: es el uso correcto de la fuente.** El plan
+# gratuito da 15 requests por día y alcanza porque un cronograma es dato
+# estático. Se baja una vez por bono y queda en la DB. Y la **caché negativa**
+# es igual de importante: sin ella, el pagaré —que la fuente no tiene— se
+# consultaría en cada carga de la pantalla, para siempre.
+
+def guardar_cronograma(conn, cron: "Cronograma", fuente: str = "docta") -> int:
+    """Guarda el cronograma en la DB. Devuelve cuántos flujos escribió."""
+    conn.execute("DELETE FROM cartera_cronogramas WHERE ticker = ?",
+                 (cron.ticker,))
+    filas = [(cron.ticker, f.fecha.isoformat(), f.capital, f.interes,
+              f.total, f.residual) for f in cron.flujos]
+    conn.executemany(
+        "INSERT OR REPLACE INTO cartera_cronogramas "
+        "(ticker, fecha_pago, capital, interes, total, residual) "
+        "VALUES (?, ?, ?, ?, ?, ?)", filas)
+    conn.execute(
+        "INSERT INTO cartera_cronogramas_meta "
+        "(ticker, clase, nominales_base, fuente, n_flujos, actualizado_en) "
+        "VALUES (?, ?, ?, ?, ?, datetime('now')) "
+        "ON CONFLICT(ticker) DO UPDATE SET clase = excluded.clase, "
+        "  nominales_base = excluded.nominales_base, fuente = excluded.fuente, "
+        "  n_flujos = excluded.n_flujos, actualizado_en = datetime('now')",
+        (cron.ticker, cron.clase, cron.nominales, fuente, len(filas)))
+    return len(filas)
+
+
+def marcar_sin_cronograma(conn, ticker: str, motivo: str = "sin_dato") -> None:
+    """**Caché negativa.** Deja constancia de que se buscó y no había.
+
+    Sin esto, el pagaré del MAV dispararía una consulta en cada carga de la
+    pantalla y se comería la cuota diaria sin traer nada nunca.
+    """
+    conn.execute(
+        "INSERT INTO cartera_cronogramas_meta "
+        "(ticker, fuente, n_flujos, actualizado_en) "
+        "VALUES (?, ?, 0, datetime('now')) "
+        "ON CONFLICT(ticker) DO UPDATE SET fuente = excluded.fuente, "
+        "  n_flujos = 0, actualizado_en = datetime('now')",
+        (str(ticker).strip().upper(), motivo))
+
+
+def leer_cronograma(conn, ticker: str,
+                    nominales: float | None = None) -> Cronograma | None:
+    """El cronograma cacheado, escalado a `nominales` si se pide.
+
+    Los importes están guardados **por 100 nominales** (como los sirve la API),
+    así que escalar es una multiplicación — y por eso el mismo cronograma
+    guardado sigue sirviendo aunque cambie la tenencia, sin gastar cuota.
+    """
+    t = str(ticker or "").strip().upper()
+    try:
+        meta = conn.execute(
+            "SELECT clase, nominales_base, n_flujos FROM "
+            "cartera_cronogramas_meta WHERE ticker = ?", (t,)).fetchone()
+        if meta is None or not meta["n_flujos"]:
+            return None
+        filas = conn.execute(
+            "SELECT fecha_pago, capital, interes, total, residual "
+            "FROM cartera_cronogramas WHERE ticker = ? ORDER BY fecha_pago",
+            (t,)).fetchall()
+    except Exception:
+        return None
+
+    base = float(meta["nominales_base"] or 100.0) or 100.0
+    escala = (float(nominales) / base) if nominales else 1.0
+
+    flujos = []
+    for r in filas:
+        fecha = _a_fecha(r["fecha_pago"])
+        if fecha is None:
+            continue
+        flujos.append(Flujo(
+            fecha=fecha,
+            capital=(r["capital"] or 0.0) * escala,
+            interes=(r["interes"] or 0.0) * escala,
+            total=(r["total"] or 0.0) * escala,
+            residual=((r["residual"] * escala)
+                      if r["residual"] is not None else None),
+        ))
+    if not flujos:
+        return None
+    return Cronograma(ticker=t, nominales=(nominales or base),
+                      flujos=flujos, clase=meta["clase"])
+
+
+def ya_consultado(conn, ticker: str) -> bool:
+    """Si ya se preguntó por este ticker — **tenga o no cronograma**."""
+    try:
+        fila = conn.execute(
+            "SELECT 1 FROM cartera_cronogramas_meta WHERE ticker = ?",
+            (str(ticker).strip().upper(),)).fetchone()
+        return fila is not None
+    except Exception:
+        return False
+
+
+def refrescar_cronogramas(conn, tickers, fetch=None,
+                          forzar: bool = False) -> tuple[int, list[str]]:
+    """Baja los cronogramas que falten y los cachea.
+
+    **No vuelve a pedir lo que ya preguntó** salvo `forzar=True`: con 15
+    consultas por día, reintentar en cada carga vaciaría la cuota en minutos.
+
+    Devuelve ``(resueltos, sin_datos)``. Nunca lanza: sin credenciales o con la
+    fuente caída, la cartera se muestra igual con lo cacheado.
+    """
+    resueltos, faltan = 0, []
+    for t in {str(x).strip().upper() for x in tickers if x}:
+        if not forzar and ya_consultado(conn, t):
+            if leer_cronograma(conn, t) is None:
+                faltan.append(t)
+            continue
+        if t.startswith("#"):
+            # Pagarés y cheques del MAV: fuera del catálogo, confirmado el
+            # 5/8/2026. Se marca sin consultar para no gastar cuota.
+            marcar_sin_cronograma(conn, t, "fuera_del_catalogo")
+            faltan.append(t)
+            continue
+
+        cron = traer_cronograma(t, fetch=fetch)
+        if cron is None or not cron.flujos:
+            marcar_sin_cronograma(conn, t)
+            faltan.append(t)
+            continue
+        guardar_cronograma(conn, cron)
+        resueltos += 1
+    return resueltos, faltan
