@@ -1,0 +1,47 @@
+#!/bin/sh
+# Hook pre-commit de la Superapp — TRES capas. Fuente versionada: scripts/hook-pre-commit
+# Instalar/reinstalar:  cp scripts/hook-pre-commit .git/hooks/pre-commit
+#
+# Capa 1: candado anti-fuga de datos financieros (incondicional, sin dependencias).
+# Capa 2: reindexado del mapa del repo (avisa, NUNCA bloquea).
+# Capa 3: framework pre-commit (.pre-commit-config.yaml) si está instalado.
+
+# ---- Capa 1: bloqueo de datos ----
+BLOQUEADOS=$(git diff --cached --name-only | grep -Ei '\.(xlsx|xls|db|sqlite3?|csv)$|(^|/)\.env($|\.)' | grep -Ev '\.env\.example$')
+if [ -n "$BLOQUEADOS" ]; then
+    echo "COMMIT BLOQUEADO: se intento commitear archivos de datos financieros personales:" 1>&2
+    echo "$BLOQUEADOS" | sed 's/^/  - /' 1>&2
+    echo "Regla del repo: data/, *.xlsx, *.db, *.csv y .env NUNCA se versionan." 1>&2
+    exit 1
+fi
+
+# ---- Capa 2: mapa del repo (reindexa y suma MAPA.md/.mapa al commit; solo avisa) ----
+RAIZ="$(git rev-parse --show-toplevel)"
+PY=""
+if command -v python3 >/dev/null 2>&1; then PY=python3;
+elif command -v py >/dev/null 2>&1; then PY="py -3";
+elif command -v python >/dev/null 2>&1; then PY=python; fi
+if [ -n "$PY" ] && [ -f "$RAIZ/scripts/indexar.py" ]; then
+    if $PY "$RAIZ/scripts/indexar.py" "$RAIZ" >/dev/null 2>&1; then
+        git add -- "$RAIZ/MAPA.md" "$RAIZ/.mapa/mapa.json" "$RAIZ/.mapa/buscar.py" 2>/dev/null
+        VENCIDAS="$($PY "$RAIZ/scripts/indexar.py" "$RAIZ" --frescura 2>/dev/null)"
+        if [ -n "$VENCIDAS" ]; then
+            echo "mapa: bitacoras desactualizadas —"
+            echo "$VENCIDAS" | sed 's/^/  /'
+            echo "  actualizalas y sellalas:  $PY scripts/indexar.py . --sellar <carpeta>"
+        fi
+    else
+        echo "mapa: el indexado fallo; el commit sigue igual"
+    fi
+fi
+
+# ---- Capa 3: framework pre-commit (si existe) ----
+if [ "${SKIP_PRECOMMIT_FRAMEWORK:-0}" != "1" ]; then
+    if [ -x /usr/bin/python ] && /usr/bin/python -c 'import pre_commit' 2>/dev/null; then
+        exec /usr/bin/python -mpre_commit hook-impl --config=.pre-commit-config.yaml --hook-type=pre-commit --hook-dir "$(cd "$(dirname "$0")" && pwd)" -- "$@"
+    elif command -v pre-commit > /dev/null 2>&1; then
+        exec pre-commit hook-impl --config=.pre-commit-config.yaml --hook-type=pre-commit --hook-dir "$(cd "$(dirname "$0")" && pwd)" -- "$@"
+    fi
+fi
+# Sin framework disponible: las capas 1 y 2 ya corrieron; se permite el commit.
+exit 0

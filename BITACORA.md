@@ -1,6 +1,31 @@
 # BITÁCORA — changelog narrativo global
 
+<!-- huella: 55f78f895f03 -->
+
+Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías).
+
+## Buscar acá si
+
+- el arranque de la app, la navegación entre lugares o la restauración de sesión → `app.py`
+- deploy, Docker, Fly.io → `Dockerfile`, `fly.toml`, `docker-entrypoint.sh`, `docs/DEPLOY.md` y `docs/RUNBOOK.md`
+- cómo se trabaja en este repo → `GUIA-DE-TRABAJO.md`, `claude.md`, `/MAPA.md`
+- qué se hizo y qué sigue → `ESTADO.md` (foto), este archivo (crónica), `EN-HUMANO.md` (en llano)
+
+## Crónica
+
 Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión relevante. Lo fino de cada módulo va en su `bitacora_de_trabajo.md`.
+
+---
+
+## 2026-08-18 — Mapa vivo del repo + ESTADO.md adelgazado (skill `mapa-de-proyectos`)
+**Autor:** Claude (Fable 5), con Franco.
+- **Por qué:** el repo llegó a ~23.500 LOC y ~100 archivos, y la memoria del proyecto (ESTADO 52 KB + EN-HUMANO 61 KB + bitácoras) obligaba a cada sesión nueva a releer historia para orientarse. Los tres documentos de gobierno eran, según el propio historial de git, los archivos que más co-cambiaban del repo.
+- **Mapa:** `MAPA.md` (generado, ~184 líneas) + `.mapa/` (índice JSON + `buscar.py`) + `scripts/indexar.py`. Cada carpeta con código tiene ahora una **`BITACORA.md` router** (Resumen · "Buscar acá si" · Qué hay · **Trampas** · Estado), sellada con huella del código: complementa a la `bitacora_de_trabajo.md` (crónica), no la reemplaza. Las trampas caras del proyecto (orden de import Excel-primero, bonos /100, db.py módulo plano, identidad patrimonio−aportes, etc.) quedaron en la ficha de la carpeta donde muerden.
+- **Hook pre-commit, ahora de TRES capas** y versionado en `scripts/hook-pre-commit` (antes vivía solo en `.git/hooks`): (1) candado anti-datos intacto; (2) reindexado del mapa — suma `MAPA.md`/`.mapa` al commit y avisa (sin bloquear) si una bitácora quedó vencida; (3) framework `pre-commit` si está. Tolerante a Windows (`python3`/`py -3`/`python`).
+- **`ESTADO.md`: 285 → 58 líneas.** La narrativa de 3a/3b/arranque de F4 se movió **tal cual** a `docs/archivo/ESTADO-historial.md`; quedan la foto, el próximo paso, bloqueos y las notas operativas permanentes. Protocolo actualizado en `README.md`, `claude.md` y `GUIA-DE-TRABAJO.md`: leer `MAPA.md` al abrir, sellar bitácoras al cerrar.
+- **Verificado:** suite **664 passed, 3 skipped** (sandbox con oráculos CSV; los 3 skipped son el gate de recon sin `CARTERA_XLSX`) + reindexado sin bitácoras vencidas.
+- **Decisiones que quedaron abiertas (propuestas 3 y 4 del estudio):** split de `view.py` de cartera en paneles y corte del ciclo core↔core/auth vía `core/context.py`. A confirmar con Franco.
+**Estado al cierre:** solo documentación e infraestructura de índice; cero cambios de comportamiento de la app. Pendiente: commit + push de Franco.
 
 ---
 

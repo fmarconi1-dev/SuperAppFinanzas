@@ -6,12 +6,13 @@ Contexto operativo para cualquier Claude (u otro agente) que trabaje acá. Resum
 Superapp web personal de Franco que unifica **Finanzas Personales** (ex Mis-Finanzas-App) e **Inversiones/Mercado** (cartera + scoring + mercado en vivo) en un monorepo Streamlit/Python. Uso personal primero; escalable después. Estado: esqueleto (Fase 0).
 
 ## Antes de trabajar (siempre)
-1. Leé `ESTADO.md`. Es la foto actual y el handoff.
-2. Leé `ROADMAP.md` y el `README.md` + `bitacora_de_trabajo.md` del módulo a tocar.
+1. Leé `ESTADO.md`. Es la foto actual y el handoff (corto a propósito; la historia está en `docs/archivo/`).
+2. Leé `MAPA.md` para ubicar código sin releer el repo (`python .mapa/buscar.py "<término>"` para lo puntual). Después leé `ROADMAP.md` y la `BITACORA.md` + `bitacora_de_trabajo.md` de la carpeta a tocar.
 3. **Revisá `docs/HERRAMIENTAS-EVALUADAS.md` antes de codear** cada fase: reutilizá los repos/skills que apliquen (charts, datos, cálculo) en vez de reinventar; si aparece uno nuevo, evalualo y anotalo.
 4. Confirmá la tarea con Franco antes de codear. Marcala como EN CURSO en `ESTADO.md`.
 
 ## Al terminar (siempre)
+0. Si tocaste código de una carpeta, actualizá su `BITACORA.md` y sellala (`python scripts/indexar.py . --sellar <carpeta>`); el reindexado lo hace el hook pre-commit.
 1. Actualizá la `bitacora_de_trabajo.md` del módulo.
 1b. Actualizá `EN-HUMANO.md` (lenguaje llano: qué se hizo / para qué sirve / qué sigue) y dá un resumen 'en humano' en el chat. Cada avance importante; mínimo 1 vez por sesión.
 2. Actualizá `ESTADO.md` con el próximo paso concreto.

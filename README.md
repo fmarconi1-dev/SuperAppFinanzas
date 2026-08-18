@@ -14,9 +14,10 @@ App web personal que unifica, en un solo lugar y bajo un login único, tres cosa
 Este proyecto está pensado para ser continuado por **varias conversaciones/Claudes distintos, de a uno por vez**. Para que no se pisen, hay un protocolo. Leé en este orden:
 
 1. **`ESTADO.md`** — la foto de dónde está el proyecto AHORA y qué sigue. Es lo primero que se lee y lo último que se actualiza.
-2. **`GUIA-DE-TRABAJO.md`** — el protocolo de trabajo: cómo tomar una tarea, cómo dejar el handoff, qué no hacer.
-3. **`ROADMAP.md`** — las fases del proyecto y su estado.
-4. **`claude.md`** — reglas duras para agentes IA (resumen operativo).
+2. **`MAPA.md`** — el índice del código: qué carpeta resuelve qué, sin releer el repo. Generado por `scripts/indexar.py`; consultas puntuales con `python .mapa/buscar.py "<término>"`.
+3. **`GUIA-DE-TRABAJO.md`** — el protocolo de trabajo: cómo tomar una tarea, cómo dejar el handoff, qué no hacer.
+4. **`ROADMAP.md`** — las fases del proyecto y su estado.
+5. **`claude.md`** — reglas duras para agentes IA (resumen operativo).
 
 ---
 
@@ -32,6 +33,7 @@ Este proyecto está pensado para ser continuado por **varias conversaciones/Clau
 | `GUIA-DE-TRABAJO.md` | Protocolo para trabajar sin pisarse. |
 | `ROADMAP.md` | Fases y estado. |
 | `BITACORA.md` | Changelog narrativo global. |
+| `MAPA.md` + `.mapa/` | Índice vivo del código (generado; cada carpeta tiene su `BITACORA.md` router). |
 | `MEJORAS.md` | Backlog + ideas a futuro (incluye uso de skills/agentes). |
 | `claude.md` | Reglas para agentes IA. |
 | `core/` | Núcleo compartido: auth, db, config, market_data, theme. |

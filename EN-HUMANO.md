@@ -9,6 +9,18 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 18 de agosto de 2026 — El proyecto ahora tiene mapa (y el archivo de estado dejó de ser una novela)
+
+**Qué se hizo.** Dos cosas de orden, ninguna toca la app que usás:
+
+1. **Le puse un mapa al proyecto.** Un archivo nuevo (`MAPA.md`) que funciona como el índice de un libro: dice qué hay en cada carpeta y, sobre todo, tiene una tabla de "si buscás tal cosa, andá acá" — dólar MEP, backups, el formulario de gastos, lo que sea. Además, cada carpeta tiene ahora una ficha corta con sus trampas conocidas (esas cosas que costaron caro descubrir, como "el orden de importación importa" o "los bonos vienen multiplicados por 100"). El mapa se regenera solo cada vez que se hace un commit.
+
+2. **Adelgacé `ESTADO.md`.** Tenía 285 líneas donde el 80% era historia de fases ya cerradas; cada Claude nuevo tenía que leerse todo eso antes de arrancar. Ahora son 58 líneas con la foto de hoy y el próximo paso. **No se borró nada:** la historia completa está guardada tal cual en `docs/archivo/`.
+
+**Para qué te sirve.** Cada sesión conmigo (o con quien sea) arranca más rápido y más barata: en vez de releer medio proyecto para ubicarse, se lee un índice de dos páginas. Y las lecciones aprendidas ya no viven solo en la memoria de las bitácoras largas — están en la ficha de la carpeta donde muerden.
+
+**Qué sigue.** Vos: commitear y pushear esta sesión (todo es documentación, no hay riesgo). Después seguimos con la Fase 4, y quedan dos propuestas mías esperando tu OK: partir la pantalla de Cartera en pedazos más chicos y un arreglo menor de plomería interna.
+
 ## 5 de agosto de 2026 — Vencimientos, y las correcciones que pediste
 
 **Lo nuevo: la app te dice qué se te vence.** Y lo mejor es que **no hubo que cargar nada**: las fechas ya estaban escritas en tu Excel, adentro del nombre de cada bono ("Bono Tesoro Nacional Vto. 30/11/2029"). La app ahora las lee sola.

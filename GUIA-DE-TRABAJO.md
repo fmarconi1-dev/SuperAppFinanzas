@@ -10,9 +10,9 @@ Este proyecto lo van a llevar adelante **varias conversaciones con Claude (u otr
 
 **Al abrir la sesión (handoff-in):**
 
-1. Leer `ESTADO.md` completo. Entender la fase actual, la tarea en curso y los pendientes.
-2. Leer `ROADMAP.md` para ubicarse en la fase.
-3. Leer el `README.md` y la `bitacora_de_trabajo.md` del módulo que vas a tocar.
+1. Leer `ESTADO.md` completo (es una foto corta; la historia vive en `docs/archivo/`). Entender la fase actual, la tarea en curso y los pendientes.
+2. Leer **`MAPA.md`** para ubicar el código sin releer el repo: la tabla "Donde buscar que" resuelve la mayoría de los "¿dónde está X?"; para lo puntual, `python .mapa/buscar.py "<término>"`. **No barrer el repo con grep si el mapa ya tiene la respuesta.**
+3. Leer `ROADMAP.md` para ubicarse en la fase, y la `BITACORA.md` + `bitacora_de_trabajo.md` de la carpeta que vas a tocar (la primera es el router y las trampas; la segunda, la crónica).
 4. **Revisar `docs/HERRAMIENTAS-EVALUADAS.md` y `docs/DATOS-MERCADO-ARG.md`**: antes de codear una fase, chequear si alguno de los repos/skills evaluados (o uno nuevo) aporta a *esta* etapa. Si conviene, usarlo; si aparece uno nuevo, evaluarlo y anotarlo ahí. **No reinventar lo que ya existe probado.**
 5. Confirmar con Franco qué tarea se toma **antes** de empezar. Marcar en `ESTADO.md` la tarea como `🔵 EN CURSO` con fecha y quién.
 
@@ -30,6 +30,7 @@ Este proyecto lo van a llevar adelante **varias conversaciones con Claude (u otr
 11. Actualizar `ESTADO.md`: mover la tarea a hecha o dejarla como en curso con el punto exacto donde quedó y **el próximo paso concreto**.
 12. Actualizar el estado de la fase en `ROADMAP.md` si corresponde.
 13. Confirmar que los tests están verdes (cuando haya tests).
+14. **Refrescar el mapa:** si tocaste código de una carpeta, actualizá su `BITACORA.md` (Resumen / Buscar acá si / Trampas) y sellala: `python scripts/indexar.py . --sellar <carpeta>`. El reindexado general lo hace solo el hook pre-commit; si el hook avisa "bitacoras desactualizadas", no lo ignores.
 
 > Regla mnemónica: **"leo ESTADO → tomo una tarea → dejo ESTADO mejor de como lo encontré".**
 
