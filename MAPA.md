@@ -1,14 +1,14 @@
-# MAPA — superapp
+# MAPA — SuperAppFinanzas
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-08-18 14:26 UTC · 102 archivos · 23,724 LOC -->
+<!-- 2026-08-18 14:29 UTC · 102 archivos · 23,724 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-08-14 8f8ba73 Panel de renta fija: calendario de cobros, TIR y duration · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-08-18 2b84de3 docs: mapa vivo del repo (MAPA.md + bitacoras-router + hook) + ESTADO adelgazado
 
 ## Donde buscar que
 
@@ -119,7 +119,7 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 | `core/db.py` | 1081 | 35 | `_migrate`, `get_db_path`, `connect`, `init_db` |
 | `core/workspaces.py` | 261 | 13 | `_hash_code`, `_uid`, `get_personal_workspace_id`, `ensure_personal_workspace` |
 | `places/finanzas/core/metrics.py` | 363 | 11 | `_uid`, `anios_con_datos`, `filtrar_anio`, `load_transactions` |
-| `places/finanzas/core/__init__.py` | 5 | 11 | — |
+| `core/__init__.py` | 5 | 11 | — |
 | `places/inversiones/cartera/posiciones.py` | 471 | 10 | `Posicion`, `_acumular`, `posiciones`, `posiciones_desde_db` |
 | `core/auth/current_user.py` | 49 | 9 | `set_current_user_id`, `get_current_user_id`, `require_current_user_id` |
 | `places/inversiones/cartera/parser.py` | 638 | 8 | `Instrumento`, `Movimiento`, `_sin_tildes`, `_norm` |
@@ -132,16 +132,16 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 ## Flujo interno
 
 - `tests/` → `places/inversiones/cartera/` (30)
-- `tests/` → `places/finanzas/core/` (19)
-- `tests/` → `core/` (18)
+- `tests/` → `core/` (27)
 - `places/finanzas/views/` → `places/finanzas/helpers/` (13)
 - `places/finanzas/views/` → `places/finanzas/core/` (12)
 - `places/finanzas/core/` → `core/` (11)
+- `tests/` → `places/finanzas/core/` (10)
 - `places/finanzas/views/` → `core/` (8)
 - `places/finanzas/core/` → `core/auth/` (6)
+- `core/` → `core/auth/` (4)
 - `places/inversiones/cartera/` → `core/market_data/` (4)
 - `tests/` → `core/market_data/` (4)
-- `core/` → `core/auth/` (4)
 - `./` → `core/auth/` (3)
 
 ## Se tocan juntos
@@ -163,13 +163,13 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
 - `api.doctacapital.com.ar` — `core/market_data/cronogramas.py`, `docs/CRONOGRAMAS-RENTA-FIJA.md`, `tests/test_market_data_cronogramas.py`
 - `app.docta.com.ar` — `docs/CRONOGRAMAS-RENTA-FIJA.md`, `scripts/verificar_docta.py`
-- `docs.docta.com.ar` — `docs/CRONOGRAMAS-RENTA-FIJA.md`
-- `mcp.docta.com.ar` — `docs/CRONOGRAMAS-RENTA-FIJA.md`
-- `superapp-finanzas.fly.dev` — `docs/RUNBOOK.md`
 - `api.argentinadatos.com` — `core/market_data/mep.py`
 - `data912.com` — `core/market_data/precios.py`
 - `query1.finance.yahoo.com` — `core/market_data/precios.py`
 - `query2.finance.yahoo.com` — `core/market_data/sectores.py`
+- `docs.docta.com.ar` — `docs/CRONOGRAMAS-RENTA-FIJA.md`
+- `mcp.docta.com.ar` — `docs/CRONOGRAMAS-RENTA-FIJA.md`
+- `superapp-finanzas.fly.dev` — `docs/RUNBOOK.md`
 
 ## Configuracion requerida
 
