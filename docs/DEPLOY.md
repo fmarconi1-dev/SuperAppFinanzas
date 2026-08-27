@@ -48,7 +48,7 @@ No borrar la app vieja hasta usar la nueva unos días. Después: `fly apps destr
 
 ## Pendiente
 - [ ] Dominio FreeDomain apuntando al deploy.
-- [ ] `requirements.lock` (pip freeze de build conocida-buena) para builds reproducibles.
+- [x] `requirements.lock` (pip freeze de build conocida-buena) para builds reproducibles. **Hecho el 27/8/2026.** El `Dockerfile` ya lo usaba si existía, así que no hubo que tocar el deploy. Ojo con una cosa al regenerarlo: ese día `pip` resolvía `pandas>=2.0.0` como **pandas 3.0.5**, un salto de major contra el que la suite nunca corrió, así que el lock se generó con los topes `pandas<3` / `numpy<2.3` y quedó en **pandas 2.3.3**. Verificado corriendo la suite completa en un venv de Python 3.11 con esos pines exactos: **679 passed**. Instrucciones de regeneración en la cabecera del propio archivo.
 
 ## Dominio
 Opción gratis: **DigitalPlat FreeDomain** (`.dpdns.org`, `.us.kg`, etc.) apuntando al deploy vía Cloudflare DNS. Ej.: `superappfinanzas.dpdns.org`. Ver `docs/HERRAMIENTAS-EVALUADAS.md`. Para uso personal alcanza; si se vuelve comercial, migrar a dominio propio.

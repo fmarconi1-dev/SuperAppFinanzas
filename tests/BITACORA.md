@@ -1,6 +1,6 @@
 # tests/
 
-<!-- huella: 6a0fab801e43 -->
+<!-- huella: feb2186c897b -->
 
 Resumen: La suite completa (~360 tests) en carpeta plana: unidad + regresión + gates de reconciliación contra el Excel-oráculo. Es el gate del repo: nada se cierra sin verde.
 

@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from core.auth import get_user_by_id, login
-from core.auth.current_user import set_current_user_id
+from core.context import set_current_user_id
 from core.auth.session_tokens import QUERY_PARAM, verify_token
 from core import workspaces_ui
 from core.db import connect, init_db

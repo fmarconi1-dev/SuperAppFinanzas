@@ -9,7 +9,7 @@ from typing import Optional
 import pandas as pd
 
 from places.finanzas.core.categorizer import efective_grupo
-from core.auth.current_user import require_current_user_id
+from core.context import require_current_user_id
 from places.finanzas.core.metrics import (
     load_categorias_full,
     load_transactions,

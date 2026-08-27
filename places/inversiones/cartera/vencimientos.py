@@ -20,9 +20,26 @@ que venga después. Por eso `precision` viaja junto a la fecha y la vista
 muestra "2028", no "31/12/2028". Es la misma disciplina que el `estimado` de
 los ajustes y el `s/d` del análisis por sector.
 
-Lo que no tiene fecha se corrige a mano y queda en `cartera_vencimientos`
-(M14), con la misma cascada probada en `cartera_sectores`: **el override manual
-gana siempre** sobre lo parseado.
+**La segunda fuente: el cronograma (27/8/2026).** Desde M15 la app baja de
+Docta el cronograma de pagos de cada bono y lo guarda en la base. Ese dato
+responde la pregunta sin parsear nada: **la última fecha del cronograma es el
+vencimiento**. Con eso el AE38 —que decía `"Bono USD 2038"`, con el año en el
+nombre y no como vencimiento— deja de quedar en `s/d`.
+
+No cuesta cuota: `leer_cronograma()` lee de la **caché local** (M15), no de la
+API. Si el cronograma no está cacheado, esta fuente simplemente no opina.
+
+**Cuándo gana el cronograma.** Le gana a la descripción porque es de otra
+naturaleza: la descripción es un nombre tipeado en una planilla, el cronograma
+es el calendario de pagos del emisor. Pero **cuando las dos fuentes son
+exactas y no coinciden, la diferencia no se traga**: se guarda en
+`Vencimiento.discrepancia` y `resumen()` la reporta. Un dato pisado en silencio
+es indistinguible de un dato bueno (misma disciplina que el `estimado` de los
+ajustes).
+
+Lo que no tiene fecha en ninguna de las dos se corrige a mano y queda en
+`cartera_vencimientos` (M14), con la misma cascada probada en
+`cartera_sectores`: **el override manual gana siempre**.
 """
 
 from __future__ import annotations
@@ -33,7 +50,8 @@ from datetime import date, datetime
 
 __all__ = [
     "Vencimiento", "CATEGORIAS_CON_VENCIMIENTO", "parse_vencimiento",
-    "resolver", "set_override", "quitar_override", "proximos", "resumen",
+    "vencimiento_de_cronograma", "resolver", "set_override", "quitar_override",
+    "proximos", "resumen",
 ]
 
 #: Categorías de `Config` que vencen. Las acciones y los CEDEAR no vencen: no
@@ -50,6 +68,10 @@ _RE_FECHA = re.compile(
 #: parte del nombre del bono y no dice cuándo vence.
 _RE_ANIO = re.compile(r"v(?:to|cto|encimiento)\.?\s*(\d{4})\b", re.IGNORECASE)
 
+#: Cómo se nombra cada fuente en la tabla. Vacío = salió de la descripción,
+#: que es el caso por defecto y no merece ocupar la columna.
+ETIQUETA_FUENTE = {"manual": "a mano", "cronograma": "cronograma"}
+
 #: Umbral de "esto te vence pronto". 90 días da tiempo a decidir la
 #: reinversión sin que el aviso sea ruido permanente.
 DIAS_PROXIMO = 90
@@ -63,8 +85,12 @@ class Vencimiento:
     fecha: date | None
     #: ``"dia"`` | ``"anio"`` | ``"sin_dato"``. Determina qué se puede afirmar.
     precision: str = "sin_dato"
-    #: ``"descripcion"`` | ``"manual"``.
+    #: ``"descripcion"`` | ``"cronograma"`` | ``"manual"``.
     fuente: str = "descripcion"
+    #: La **otra** fecha, cuando dos fuentes exactas no coinciden. Se conserva
+    #: en vez de descartarse: si el cronograma le gana a la descripción hay que
+    #: poder ver contra qué le ganó. ``None`` = las fuentes no se contradicen.
+    discrepancia: date | None = None
 
     @property
     def es_exacto(self) -> bool:
@@ -130,6 +156,49 @@ def parse_vencimiento(descripcion: str | None) -> tuple[date | None, str]:
 
 
 # ---------------------------------------------------------------------------
+# El cronograma como fuente (M15)
+# ---------------------------------------------------------------------------
+
+def vencimiento_de_cronograma(conn, ticker: str, leer=None) -> date | None:
+    """La fecha del **último pago** del bono, que es su vencimiento.
+
+    Lee de la caché de cronogramas (M15); no le pega a la API ni gasta cuota.
+    Devuelve ``None`` si no hay cronograma guardado para ese ticker — que es
+    el caso normal de un pagaré o de un bono que Docta no cubre, y **no es un
+    error**.
+
+    `leer` se inyecta en los tests para no depender de la base.
+    """
+    if conn is None:
+        return None
+    if leer is None:
+        try:
+            from core.market_data.cronogramas import leer_cronograma as leer
+        except Exception:            # sin el módulo, esta fuente no opina
+            return None
+    try:
+        cron = leer(conn, ticker)
+    except Exception:                # base sin M15: no puede romper nada
+        return None
+    flujos = getattr(cron, "flujos", None) if cron is not None else None
+    if not flujos:
+        return None
+
+    fechas = [f.fecha for f in flujos if getattr(f, "fecha", None) is not None]
+    return max(fechas) if fechas else None
+
+
+def _cronogramas(conn, tickers, leer=None) -> dict[str, date]:
+    """``{ticker: fecha}`` para los tickers que tengan cronograma cacheado."""
+    out: dict[str, date] = {}
+    for t in tickers:
+        f = vencimiento_de_cronograma(conn, t, leer)
+        if f is not None:
+            out[t] = f
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Overrides manuales (M14)
 # ---------------------------------------------------------------------------
 
@@ -173,30 +242,52 @@ def _overrides(conn) -> dict[str, date]:
 # Resolución
 # ---------------------------------------------------------------------------
 
-def resolver(instrumentos: dict, conn=None) -> dict[str, Vencimiento]:
+def resolver(instrumentos: dict, conn=None, leer_cronograma=None
+             ) -> dict[str, Vencimiento]:
     """``{ticker: Vencimiento}`` para lo que vence.
 
     `instrumentos`: ``{ticker: obj}`` con `descripcion` y `categoria_activo`
     (los de `ingest.instrumentos_desde_config` o `_instrumentos_de_db`).
 
-    Cascada: **override manual → descripción**. Los instrumentos que no vencen
-    (acciones, CEDEAR, cripto) quedan fuera del resultado: a una acción no le
-    *falta* el vencimiento, no tiene.
+    Cascada: **override manual → cronograma (M15) → descripción**. Los
+    instrumentos que no vencen (acciones, CEDEAR, cripto) quedan fuera del
+    resultado: a una acción no le *falta* el vencimiento, no tiene.
+
+    Cuando el cronograma y una descripción exacta **no coinciden**, gana el
+    cronograma y la fecha descartada queda en `discrepancia` — visible, no
+    tragada.
     """
     manual = _overrides(conn) if conn is not None else {}
     out: dict[str, Vencimiento] = {}
 
-    for ticker, inst in (instrumentos or {}).items():
-        categoria = getattr(inst, "categoria_activo", None) or ""
-        es_pagare = str(ticker).startswith("#")
-        if categoria not in CATEGORIAS_CON_VENCIMIENTO and not es_pagare:
-            continue
+    # Los que vencen, para no pedirle cronogramas a las acciones.
+    candidatos = [
+        t for t, inst in (instrumentos or {}).items()
+        if (getattr(inst, "categoria_activo", None) or "")
+        in CATEGORIAS_CON_VENCIMIENTO or str(t).startswith("#")
+    ]
+    porCronograma = (_cronogramas(conn, candidatos, leer_cronograma)
+                     if conn is not None else {})
+
+    for ticker in candidatos:
+        inst = instrumentos[ticker]
 
         if ticker in manual:
             out[ticker] = Vencimiento(ticker, manual[ticker], "dia", "manual")
             continue
 
         fecha, precision = parse_vencimiento(getattr(inst, "descripcion", None))
+        del_cronograma = porCronograma.get(ticker)
+
+        if del_cronograma is not None:
+            # Solo hay contradicción si la otra fuente también era exacta.
+            choca = precision == "dia" and fecha != del_cronograma
+            out[ticker] = Vencimiento(
+                ticker, del_cronograma, "dia", "cronograma",
+                discrepancia=fecha if choca else None,
+            )
+            continue
+
         out[ticker] = Vencimiento(ticker, fecha, precision, "descripcion")
 
     return out
@@ -255,7 +346,7 @@ def proximos(vencs: dict, valuadas=None,
             "Días": dias,
             "Valor": getattr(pos, "valor_ars_actual", None) if pos else None,
             "US$": getattr(pos, "valor_usd_actual", None) if pos else None,
-            "Fuente": "a mano" if v.fuente == "manual" else "",
+            "Fuente": ETIQUETA_FUENTE.get(v.fuente, ""),
             "_orden": v.fecha or date.max,
             "_exacto": v.es_exacto,
         })
@@ -272,6 +363,7 @@ def resumen(vencs: dict, valuadas=None,
     hoy = hoy or date.today()
     filas = proximos(vencs, valuadas, hoy)
     pronto = [f for f in filas if f["Días"] is not None and 0 <= f["Días"] <= dias]
+    vivos = {f["Ticker"] for f in filas}
     return {
         "n_total": len(filas),
         "n_proximos": len(pronto),
@@ -279,4 +371,12 @@ def resumen(vencs: dict, valuadas=None,
         "usd_proximos": sum(f["US$"] or 0.0 for f in pronto),
         "sin_fecha": [f["Ticker"] for f in filas if f["Días"] is None],
         "proximo": min(pronto, key=lambda f: f["Días"]) if pronto else None,
+        # Dos fuentes exactas que no coinciden. No se muestra un ganador y se
+        # tira la otra: se avisa, porque una de las dos está mal y hay que
+        # mirarla. Solo de lo que todavía tenés.
+        "discrepancias": [
+            {"Ticker": t, "cronograma": v.fecha, "descripcion": v.discrepancia}
+            for t, v in vencs.items()
+            if v.discrepancia is not None and t in vivos
+        ],
     }

@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Iterable, Optional
 
-from core.auth.current_user import require_current_user_id
+from core.context import require_current_user_id
 
 DEFAULT_DB_PATH = Path("data/finanzas.db")
 BACKUP_DIR = Path("data/backups")

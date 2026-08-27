@@ -17,6 +17,24 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-08-27 (2ª sesión) — Cuatro tareas chicas: vencimientos, benchmark, lock y el ciclo de imports
+**Autor:** Claude (Opus 5), con Franco.
+
+Franco pidió algo más corto que el importador con LLM (M4) y terminó tomando las cuatro opciones propuestas. Se hicieron **de a una, con la suite verde entre cada una**. Arranque: 664 passed. Cierre: **718 passed, 3 skipped**.
+
+- **Vencimientos desde el cronograma de Docta.** `vencimientos.py` resolvía 1 de 3 de la renta fija viva porque parseaba la descripción del instrumento. El dato faltante **ya estaba en la base** desde M15 (el cronograma de pagos) y nadie lo miraba: la última fecha del cronograma es el vencimiento. Cascada nueva: override manual → cronograma → descripción, sin gastar cuota de API. Cuando las dos fuentes exactas discrepan, gana el cronograma pero **la fecha descartada queda visible** (`discrepancia`) y la vista avisa. Detalle en la bitácora de cartera.
+- **Benchmark money-weighted contra SPY/Merval** (`core/market_data/indices.py` + `places/inversiones/cartera/benchmark.py`). *"Si hubieras puesto la misma plata en las mismas fechas en el índice, ¿cuánto tendrías hoy?"*. No compara acumulados —Franco aportó en 24 momentos y el índice no— y usa `adjclose` para no regalarle a la cartera los dividendos que el índice sí paga. Sin migración: cachea en `cartera_precios_cache`.
+- **`requirements.lock`. ⚠️ Acá apareció el hallazgo de la sesión.** Ese día `pip` en Python 3.11 resolvía `pandas>=2.0.0` como **pandas 3.0.5** — un salto de major contra el que la suite nunca corrió. Un `pip freeze` a ciegas habría congelado eso y el próximo deploy habría sido la primera vez que alguien lo ejecuta. Se generó con topes (`pandas<3`, `numpy<2.3`) y quedó en **pandas 2.3.3**, y se **verificó de verdad**: venv de Python 3.11 con esos pines exactos + la suite entera → **679 passed, 0 failed**. El `Dockerfile` ya usaba el lock si existía, así que no hubo que tocar el deploy.
+- **Ciclo core↔core/auth cortado** (propuesta 4 del estudio del 18/8). Los contextvars se mudaron a `core/context.py`, un módulo que **no importa nada del proyecto**; `core/auth/current_user.py` y `current_workspace.py` quedaron como fachadas que re-exportan **los mismos objetos** (si fueran copias, `set()` por una puerta y `get()` por la otra divergirían sin error visible). Beneficio medible: `core/db.py` y los seis módulos de lógica de Finanzas dejaron de arrastrar **bcrypt** solo para leer un entero. `tests/test_context.py` mide el grafo de imports en procesos limpios para que el ciclo no vuelva.
+
+**Nota de método:** los procesos en segundo plano **no sobreviven** entre llamadas del sandbox (ni con `nohup` ni con `setsid`); las tareas largas hay que partirlas. Y la verificación del lock no se pudo hacer en el sandbox (Python 3.10: `rpds-py` del lock exige ≥3.11), así que se corrió empaquetando el repo y ejecutándolo en un entorno 3.11.
+
+**Y una quinta, pedida sobre el cierre: el split de `view.py`** (propuesta 3 del 18/8). El archivo tenía **1.990 líneas** y lo tocaba el **28% de los commits del repo** (27 de 97; el segundo archivo de código más commiteado es `core/db.py` con 11). Quedó un orquestador de **760 líneas** y **diez paneles** en `cartera/paneles/`, el mayor de 231. Fue un `mv`: las costuras ya estaban porque cada panel era una función independiente, y `render()` no cambió una línea (los paneles se reimportan con el mismo nombre). **Verificado por AST contra `HEAD`: 23 funciones idénticas, 0 perdidas, 0 duplicadas.** Rompió 5 tests que escaneaban el fuente de `view.py` buscando funciones por nombre — se los apuntó a los dos lugares, para que afirmen *qué hace* la función y no dónde vive.
+
+**Estado al cierre:** suite **740 passed, 3 skipped**. Commit pendiente de Franco. Sin cambios de esquema ni de datos.
+
+---
+
 ## 2026-08-27 — Higiene de gobernanza: el "próximo paso" apuntaba a una tarea muerta
 **Autor:** Claude (Opus 5), con Franco.
 - **Qué se encontró.** Estudio completo de la app (102 archivos, ~23.700 LOC) para decidir la jornada. Los documentos de gobierno se habían **desincronizado entre sí** en tres puntos, y uno era caro: `ESTADO.md` —la única fuente de verdad según `GUIA-DE-TRABAJO.md`— tenía como **próximo paso concreto** la *"Fase 4, punto 3: voz consistente + hitos"*, que `MEJORAS.md` registra como **⛔ descartada por Franco el 4/8/2026** con la nota explícita *"anotado para que no se vuelva a proponer"*. O sea: durante 23 días el handoff apuntó a una tarea que ya se había decidido no hacer, y la Fase 4 quedó de hecho **sin próximo paso definido**.

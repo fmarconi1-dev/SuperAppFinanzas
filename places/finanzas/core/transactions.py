@@ -14,7 +14,7 @@ import sqlite3
 from datetime import date
 from typing import Optional
 
-from core.auth.current_user import require_current_user_id
+from core.context import require_current_user_id
 from core.db import backup_db
 from core.workspaces import member_label_of, resolve_workspace_id
 

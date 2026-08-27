@@ -21,7 +21,7 @@ from typing import Optional
 
 import pandas as pd
 
-from core.auth.current_user import require_current_user_id
+from core.context import require_current_user_id
 from core.workspaces import resolve_workspace_id
 from places.finanzas.core.metrics import (
     compute_kpis,

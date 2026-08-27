@@ -15,7 +15,7 @@ import sqlite3
 
 import streamlit as st
 
-from core.auth.current_workspace import set_current_workspace_id
+from core.context import set_current_workspace_id
 from core.workspaces import list_user_workspaces
 
 # Tokens Cosmic Slate (ver core/theme): violeta = acento, esmeralda = positivo.

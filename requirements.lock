@@ -1,0 +1,93 @@
+# requirements.lock — build reproducible de la imagen de deploy.
+#
+# QUÉ ES. El árbol COMPLETO de dependencias con versión exacta, incluidas las
+# transitivas que `requirements.txt` no nombra. El `Dockerfile` ya lo usa solo
+# si existe (`COPY requirements.txt requirements.lock*` + el `if`), así que
+# alcanza con que este archivo exista: **no hay que tocar el deploy**.
+#
+# POR QUÉ EXISTE. `requirements.txt` declara rangos (`pandas>=2.0.0`). Dos
+# builds separadas por un mes instalan cosas distintas sin que nadie lo pida, y
+# la que rompe es siempre la que se despliega un viernes.
+#
+# ---------------------------------------------------------------------------
+# ⚠️ LA DECISIÓN QUE HAY QUE ENTENDER ANTES DE REGENERARLO: pandas.
+# ---------------------------------------------------------------------------
+# Generado el 27/8/2026 en **Python 3.11** (la del Dockerfile). Ese día `pip`
+# resolvía `pandas>=2.0.0` como **pandas 3.0.5** — un salto de major con
+# cambios incompatibles, contra el que la suite NUNCA corrió. Un lock tiene que
+# congelar una build *conocida-buena*, no la más nueva: por eso se generó con
+# los topes `pandas<3` / `numpy<2.3` y quedó pineado **pandas 2.3.3**, que es
+# exactamente la versión con la que la suite da **677 passed, 3 skipped**.
+#
+# No se pudo probar pandas 3 acá: **exige Python >=3.11** y el entorno donde se
+# corrió la suite es 3.10. Migrar a pandas 3 es una tarea deliberada — correr
+# la suite entera en 3.11 con pandas 3 y mirar los números de la cartera — no
+# algo que deba pasar solo porque alguien regeneró un lock.
+#
+# CÓMO SE REGENERA (en Python 3.11, con los topes puestos a propósito):
+#     python3.11 -m venv /tmp/lockenv
+#     /tmp/lockenv/bin/pip install -r requirements.txt "pandas<3" "numpy<2.3"
+#     /tmp/lockenv/bin/pip freeze | grep -viE "^(pip|setuptools|wheel)==" | sort -f
+#
+# VERIFICADO (27/8/2026). No es un `pip freeze` a ciegas: se armó un venv de
+# Python 3.11 con exactamente estos pines y se corrió la suite entera encima →
+# **679 passed, 0 failed** (31 skipped: son los tests-oráculo, que necesitan los
+# CSV y el Excel de Franco y no corren fuera de su máquina, igual que en CI).
+#
+# Y DESPUÉS DE CADA REGENERACIÓN: repetir esa corrida antes de desplegar.
+# Un lock que nadie verificó es igual de peligroso que no tener lock.
+# ---------------------------------------------------------------------------
+
+altair==6.2.2
+anyio==4.14.2
+attrs==26.1.0
+bcrypt==5.0.0
+blinker==1.9.0
+cachetools==7.1.7
+certifi==2026.7.22
+charset-normalizer==3.5.1
+click==8.5.0
+et_xmlfile==2.0.0
+gitdb==4.0.12
+GitPython==3.1.60
+h11==0.16.0
+httptools==0.8.0
+idna==3.19
+iniconfig==2.3.0
+itsdangerous==2.2.0
+Jinja2==3.1.6
+jsonschema-specifications==2025.9.1
+jsonschema==4.26.0
+MarkupSafe==3.0.3
+narwhals==2.25.0
+numpy==2.2.6
+openpyxl==3.1.5
+packaging==26.3
+pandas==2.3.3
+pillow==12.3.0
+plotly==7.0.0
+pluggy==1.6.0
+protobuf==7.36.0
+pyarrow==25.0.1
+pydeck==0.9.3
+Pygments==2.21.0
+pytest==9.1.1
+python-dateutil==2.9.0.post0
+python-dotenv==1.2.3
+python-multipart==0.0.32
+pytz==2026.3.post1
+referencing==0.37.0
+requests==2.34.2
+rpds-py==2026.6.3
+six==1.17.0
+smmap==5.0.3
+starlette==1.6.0
+streamlit==1.58.0
+tenacity==9.1.4
+toml==0.10.2
+typing_extensions==4.16.0
+tzdata==2026.3
+urllib3==2.7.0
+uvicorn==0.52.4
+watchdog==6.0.0
+websockets==17.1

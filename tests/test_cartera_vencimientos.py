@@ -321,3 +321,139 @@ def test_una_lista_vacia_no_es_lo_mismo_que_no_pasar_nada(conn):
         {"AN29": _Inst("Bono Tesoro Nacional Vto. 30/11/2029", "Bonos")}, conn)
     assert v.proximos(vencs, [], HOY) == []
     assert len(v.proximos(vencs, None, HOY)) == 1
+
+
+# ---------------------------------------------------------------------------
+# El cronograma como segunda fuente (27/8/2026)
+# ---------------------------------------------------------------------------
+#
+# El caso que motiva todo esto es el **AE38**: su descripción es
+# `"Bono USD 2038"`, donde el 2038 es parte del *nombre* y no un vencimiento,
+# así que el parser —bien— devuelve `sin_dato`. Pero desde M15 la app tiene
+# guardado su cronograma de pagos, y la última fecha de ese cronograma **es**
+# el vencimiento. El dato ya estaba en la base; nadie lo miraba.
+
+
+class _Flujo:
+    def __init__(self, fecha):
+        self.fecha = fecha
+
+
+class _Cron:
+    def __init__(self, *fechas):
+        self.flujos = [_Flujo(f) for f in fechas]
+
+
+def _leer_fake(mapa):
+    """Un `leer_cronograma` de mentira: ``{ticker: _Cron}``."""
+    return lambda conn, ticker, nominales=None: mapa.get(ticker)
+
+
+def test_vencimiento_de_cronograma_toma_el_ultimo_pago():
+    leer = _leer_fake({"AE38": _Cron(date(2027, 7, 12), date(2038, 1, 9),
+                                     date(2030, 1, 9))})
+    assert v.vencimiento_de_cronograma(
+        object(), "AE38", leer) == date(2038, 1, 9)
+
+
+def test_sin_cronograma_no_opina():
+    assert v.vencimiento_de_cronograma(object(), "XXXX", _leer_fake({})) is None
+
+
+def test_cronograma_vacio_no_opina():
+    leer = _leer_fake({"AE38": _Cron()})
+    assert v.vencimiento_de_cronograma(object(), "AE38", leer) is None
+
+
+def test_el_cronograma_no_puede_romper_nada():
+    """Si leer el cronograma explota, la fuente calla — no tumba la pantalla."""
+    def revienta(conn, ticker, nominales=None):
+        raise RuntimeError("base sin M15")
+    assert v.vencimiento_de_cronograma(object(), "AE38", revienta) is None
+
+
+def test_el_ae38_deja_de_quedar_sin_fecha(conn):
+    """El caso real: sin cronograma es `s/d`; con cronograma, exacto."""
+    instrumentos = {"AE38": _Inst("Bono USD 2038")}
+
+    sin = v.resolver(instrumentos, conn, _leer_fake({}))
+    assert sin["AE38"].fecha is None
+    assert sin["AE38"].precision == "sin_dato"
+    assert sin["AE38"].etiqueta == "s/d"
+
+    con = v.resolver(instrumentos, conn,
+                     _leer_fake({"AE38": _Cron(date(2038, 1, 9))}))
+    assert con["AE38"].fecha == date(2038, 1, 9)
+    assert con["AE38"].precision == "dia"
+    assert con["AE38"].fuente == "cronograma"
+    assert con["AE38"].etiqueta == "09/01/2038"
+
+
+def test_el_cronograma_mejora_una_precision_de_solo_anio(conn):
+    """`Vto. 2028` sabe el año; el cronograma sabe el día. Gana el día."""
+    r = v.resolver({"TZX28": _Inst("Bono Tesoro Vto. 2028")}, conn,
+                   _leer_fake({"TZX28": _Cron(date(2028, 6, 30))}))
+    assert r["TZX28"].fecha == date(2028, 6, 30)
+    assert r["TZX28"].precision == "dia"
+    assert r["TZX28"].dias_restantes(HOY) is not None
+
+
+def test_el_override_manual_le_gana_al_cronograma(conn):
+    """La cascada no cambió de cabeza: lo que fija Franco manda."""
+    v.set_override(conn, "AE38", date(2038, 12, 31))
+    r = v.resolver({"AE38": _Inst("Bono USD 2038")}, conn,
+                   _leer_fake({"AE38": _Cron(date(2038, 1, 9))}))
+    assert r["AE38"].fecha == date(2038, 12, 31)
+    assert r["AE38"].fuente == "manual"
+
+
+def test_dos_fuentes_exactas_que_no_coinciden_no_se_tragan(conn):
+    """Gana el cronograma, pero la fecha descartada queda visible."""
+    r = v.resolver({"AN29": _Inst("Bono Tesoro Nacional Vto. 30/11/2029")},
+                   conn, _leer_fake({"AN29": _Cron(date(2029, 12, 2))}))
+    assert r["AN29"].fecha == date(2029, 12, 2)
+    assert r["AN29"].fuente == "cronograma"
+    assert r["AN29"].discrepancia == date(2029, 11, 30)
+
+
+def test_fuentes_que_coinciden_no_reportan_discrepancia(conn):
+    r = v.resolver({"AN29": _Inst("Bono Tesoro Nacional Vto. 30/11/2029")},
+                   conn, _leer_fake({"AN29": _Cron(date(2029, 11, 30))}))
+    assert r["AN29"].discrepancia is None
+    assert r["AN29"].fecha == date(2029, 11, 30)
+
+
+def test_resumen_reporta_las_discrepancias(conn):
+    r = v.resolver({"AN29": _Inst("Bono Tesoro Nacional Vto. 30/11/2029")},
+                   conn, _leer_fake({"AN29": _Cron(date(2029, 12, 2))}))
+    res = v.resumen(r, None, HOY)
+    assert len(res["discrepancias"]) == 1
+    assert res["discrepancias"][0]["Ticker"] == "AN29"
+    assert res["discrepancias"][0]["descripcion"] == date(2029, 11, 30)
+
+
+def test_la_tabla_dice_de_donde_salio_la_fecha(conn):
+    r = v.resolver({"AE38": _Inst("Bono USD 2038")}, conn,
+                   _leer_fake({"AE38": _Cron(date(2038, 1, 9))}))
+    fila = v.proximos(r, None, HOY)[0]
+    assert fila["Fuente"] == "cronograma"
+
+
+def test_a_las_acciones_no_se_les_pide_cronograma(conn):
+    """Una acción no vence: no puede ni siquiera consultarse."""
+    pedidos = []
+
+    def leer(conn_, ticker, nominales=None):
+        pedidos.append(ticker)
+        return None
+
+    v.resolver({"GGAL": _Inst("Grupo Galicia", "Acciones"),
+                "AE38": _Inst("Bono USD 2038", "Bonos")}, conn, leer)
+    assert pedidos == ["AE38"]
+
+
+def test_sin_conn_sigue_funcionando_con_la_descripcion():
+    """La vista puede llamar sin base; la descripción alcanza."""
+    r = v.resolver({"AN29": _Inst("Bono Tesoro Nacional Vto. 30/11/2029")})
+    assert r["AN29"].fecha == date(2029, 11, 30)
+    assert r["AN29"].fuente == "descripcion"

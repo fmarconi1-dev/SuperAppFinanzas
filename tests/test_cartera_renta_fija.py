@@ -258,16 +258,26 @@ def test_sin_precio_el_riesgo_queda_vacio_pero_no_rompe():
 import ast                                          # noqa: E402
 from pathlib import Path                            # noqa: E402
 
-VISTA = (Path(__file__).resolve().parents[1]
-         / "places" / "inversiones" / "cartera" / "view.py")
+#: Dónde buscar las funciones del panel. Desde el **split del 27/8/2026** los
+#: paneles viven en `cartera/paneles/`; `view.py` quedó como orquestador y las
+#: reimporta. Se miran los dos lugares para que el test siga valiendo si algo
+#: vuelve a moverse: lo que se afirma es *qué hace la función*, no en qué
+#: archivo está.
+_CARTERA = (Path(__file__).resolve().parents[1]
+            / "places" / "inversiones" / "cartera")
+FUENTES = (_CARTERA / "paneles" / "renta_fija.py", _CARTERA / "view.py")
 
 
 def _nodo_de(nombre: str) -> ast.FunctionDef:
-    arbol = ast.parse(VISTA.read_text(encoding="utf-8"))
-    for nodo in ast.walk(arbol):
-        if isinstance(nodo, ast.FunctionDef) and nodo.name == nombre:
-            return nodo
-    raise AssertionError(f"no existe la función {nombre}() en view.py")
+    for ruta in FUENTES:
+        if not ruta.exists():
+            continue
+        arbol = ast.parse(ruta.read_text(encoding="utf-8"))
+        for nodo in ast.walk(arbol):
+            if isinstance(nodo, ast.FunctionDef) and nodo.name == nombre:
+                return nodo
+    donde = " ni ".join(r.name for r in FUENTES)
+    raise AssertionError(f"no existe la función {nombre}() en {donde}")
 
 
 def _fuente_de(nombre: str) -> str:

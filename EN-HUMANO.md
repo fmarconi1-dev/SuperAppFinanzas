@@ -9,6 +9,60 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 27 de agosto de 2026 (segunda parte) — Cuatro cosas chicas, y una que casi te rompe el próximo deploy
+
+Pediste algo más corto que el importador de CSV y terminamos haciendo las cuatro opciones. Te las cuento de la más útil a la más invisible.
+
+### 1. El AE38 ya te muestra cuándo vence
+
+Te acordás que en agosto te avisé que la app te decía el vencimiento de **uno solo** de tus tres bonos vivos. El AE38 se llama *"Bono USD 2038"*, y ese 2038 es parte del nombre, no una fecha de vencimiento — la app hacía bien en no adivinarla.
+
+Resulta que **el dato ya lo tenías**. En agosto conectamos Docta, que baja el calendario de pagos de cada bono y lo guarda. Y la última fecha de ese calendario **es** el vencimiento. Estaban las dos cosas en tu base de datos y no se hablaban entre ellas. Ahora sí.
+
+Le puse una condición que me parece importante: si el calendario del bono y la descripción de tu Excel dicen fechas **distintas**, la app no elige una y tira la otra en silencio. Te muestra las dos y te avisa, porque si difieren es que una está mal y conviene que la mires vos.
+
+### 2. Ahora sabés si le ganaste al mercado
+
+Panel nuevo en Cartera: **"Contra el mercado"**. Elegís S&P 500 o Merval y te dice cuánto tendrías hoy **si hubieras puesto la misma plata, en las mismas fechas, en el índice** en lugar de en tus papeles.
+
+Ojo con por qué está planteado así, porque es la única forma honesta. La cuenta fácil sería "vos hiciste +36%, el S&P hizo +52%, perdiste". Eso es tramposo: vos fuiste metiendo plata de a poco, en 24 momentos distintos a lo largo de casi dos años. El índice, en esa comparación, es como si hubiera puesto todo el primer día. Son dos preguntas distintas. La comparación buena simula **tus** aportes, en **tus** fechas.
+
+Un detalle que suma varios puntos: uso el índice **con dividendos reinvertidos**. Tus dividendos la app ya te los cuenta; si te comparaba contra un S&P sin dividendos te estaba regalando como un punto y medio por año.
+
+### 3. La que casi te rompe el próximo deploy
+
+Esta era la tarea más aburrida de las cuatro —"congelar las versiones de las librerías para que la app se arme siempre igual"— y fue donde apareció el problema.
+
+Cuando fui a mirar qué versiones instalar, me encontré con que **la librería que hace todas las cuentas de tablas (pandas) sacó una versión nueva mayor**, la 3.0, con cambios que rompen cosas. Si yo congelaba "lo último que hay hoy", tu próximo deploy habría sido **la primera vez en la historia que tu app corre con esa versión** — y te ibas a enterar en producción.
+
+Así que congelé la versión anterior, la que tus pruebas vienen usando. Y después lo verifiqué de verdad: armé un entorno limpio con esas versiones exactas y corrí las 679 pruebas encima. Todas pasaron.
+
+Actualizar a pandas 3 en algún momento se puede, pero es una tarea con su propio día: hay que correr todo y mirar que los números de la cartera no se muevan. No algo que pase de casualidad un martes.
+
+### 4. Plomería (no vas a ver nada)
+
+Ordené un enredo interno: había dos partes del código que se necesitaban mutuamente, y por ese enredo los módulos que hacen las cuentas de tus gastos cargaban una librería de encriptación de contraseñas **para leer un número**. Ya no. Dejé pruebas que hacen que el enredo no pueda volver.
+
+---
+
+### 5. Y sobre el final, partimos la pantalla de Cartera
+
+Me diste el OK y lo hice. El archivo de la pantalla de Cartera tenía **1.990 líneas** y era, por lejos, el que más se toca del proyecto: **27 de los 97 commits de la historia** pasaron por ahí. El problema no era que fuera grande, era que para cambiar *una* cosa había que abrirlo entero — y así fue como una vez se coló una función usada sin importar, que reventaba recién al apretar el botón.
+
+Ahora hay **un archivo por panel**: la composición, el benchmark nuevo, los vencimientos, cuándo cobrás, las operaciones cerradas, la plata quieta, los ajustes, la subida de archivos. El archivo principal quedó en 760 líneas y ya no hace de todo: decide quién puede entrar, arma los números de arriba y llama a cada panel en orden.
+
+**Lo importante: no cambié nada de lo que hace.** Fue mudar código de un archivo a otro. Y no te lo digo de palabra — comparé una por una las funciones contra la versión anterior: **23 idénticas, ninguna perdida, ninguna duplicada**. Las dos que difieren son las que había tocado a propósito esta misma tarde.
+
+Se rompieron 5 pruebas y estuvo bien que se rompieran: eran pruebas que iban a buscar funciones *por nombre dentro del archivo viejo*. Las apunté al lugar nuevo.
+
+---
+
+**Cómo quedó todo.** Las pruebas pasaron de 664 a **740**, todas en verde. No se tocó ni la estructura de la base ni tus datos.
+
+**Qué sigue.** Vos: subir esto. Ya no queda nada esperando tu OK — las dos propuestas que venían del 18 de agosto están hechas. Lo próximo grande es el importador de CSV cuando quieras encararlo.
+
+---
+
 ## 27 de agosto de 2026 — El cuaderno de "qué sigue" te estaba mandando a hacer algo que ya habías decidido no hacer
 
 **Qué se hizo.** Repasé la app entera para arrancar la jornada y me encontré con algo que conviene contarte tal cual: **el archivo que dice "próximo paso" te apuntaba a una tarea que vos mismo descartaste el 4 de agosto.**

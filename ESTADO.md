@@ -4,14 +4,14 @@
 > Antes de editar código, actualizá la tabla "Tarea en curso". Al cerrar, dejá el "Próximo paso concreto".
 > Este archivo es una **foto, no una crónica**: la narrativa de cada sesión va a la `bitacora_de_trabajo.md` del módulo y a `/BITACORA.md`; lo que ya cerró se muda a `docs/archivo/ESTADO-historial.md`. Para ubicar código sin releer el repo: **`/MAPA.md`**.
 
-<!-- ultima_actualizacion: 2026-08-27 · autor: Claude (Opus 5) · handoff: higiene de gobernanza. Se reapuntó el próximo paso de la Fase 4 (el que figuraba estaba DESCARTADO en MEJORAS.md), se sincronizó ROADMAP.md con el estado real y se vació Borrar/. Cero cambios de código. -->
+<!-- ultima_actualizacion: 2026-08-27 (2ª sesión) · autor: Claude (Opus 5) · handoff: cuatro tareas chicas cerradas — vencimientos desde el cronograma de Docta, benchmark money-weighted vs SPY/Merval, requirements.lock verificado y el ciclo core↔core/auth cortado con core/context.py. Suite 664 → 740, incluido el split de view.py en paneles. Commit pendiente de Franco. -->
 
 ## 🧭 Dónde estamos
 
 - **Fase actual: Fase 4 — Mejoras del Lugar A**, en curso. Orden aceptado por Franco: (1) respaldo ✅ · (2) CI ✅ · (3) ~~voz consistente + hitos~~ **⛔ DESCARTADA por Franco el 4/8/2026** (cosmética; queda anotada en `MEJORAS.md` para que no se vuelva a proponer) · (4) **importador CSV con LLM (M4)** ← el siguiente ítem vivo · (5) API sidecar (M5) → WhatsApp.
 - **Ojo:** este ESTADO arrastró hasta el 27/8 un "próximo paso" que apuntaba al punto (3), ya descartado. Corregido. La Fase 4 tiene **dos ítems vivos y nada más**: M4 y M5.
 - **Cartera (Lugar B.1): Fases 3a y 3b COMPLETAS y en producción.** Última sesión de código (bitácora del 5/8, commits del 13–14/8): tanda de correcciones de Franco, scoring **retirado** (ADR-0002), vencimientos M14 y **panel de renta fija** con cronogramas de Docta (M15): calendario de cobros, TIR esperada y duration.
-- **Suite:** **650 passed, 3 skipped** al cierre de la última sesión (los 3 skipped son los tests-oráculo, que solo corren en la máquina de Franco; regla del RUNBOOK: antes de un deploy, local debe dar **0 skipped**).
+- **Suite:** **740 passed, 3 skipped** al cierre del 27/8 (los 3 skipped son los tests-oráculo, que solo corren en la máquina de Franco; regla del RUNBOOK: antes de un deploy, local debe dar **0 skipped**).
 - **Hosting:** Fly.io, app `superapp-finanzas` (volumen `finanzas_data`, backup remoto programable con `scripts/`). Ver `docs/DEPLOY.md` y `docs/RUNBOOK.md`.
 - **Repo git:** hasta `8f8ba73` (panel de renta fija). La historia completa de cómo se llegó acá: `docs/archivo/ESTADO-historial.md`, `/BITACORA.md` y las bitácoras por módulo.
 
@@ -20,7 +20,12 @@
 | Tarea | Estado | Autor | Desde |
 |---|---|---|---|
 | Mapa vivo del repo (MAPA.md + bitácoras-router + hook) + ESTADO adelgazado | ✅ HECHA Y PUSHEADA (`2b84de3`, `83905cd`) | Claude (Fable 5) | 2026-08-18 |
-| Higiene de gobernanza: reapuntar Fase 4, sincronizar ROADMAP, vaciar `Borrar/` | ✅ HECHA (pendiente de commit/push de Franco) | Claude (Opus 5) | 2026-08-27 |
+| Higiene de gobernanza: reapuntar Fase 4, sincronizar ROADMAP, vaciar `Borrar/` | ✅ HECHA Y PUSHEADA (`aac89a7`, `690239f`) | Claude (Opus 5) | 2026-08-27 |
+| Vencimientos desde el cronograma de Docta (AE38) | ✅ HECHA (pendiente de commit) | Claude (Opus 5) | 2026-08-27 |
+| Benchmark money-weighted vs SPY/Merval | ✅ HECHA (pendiente de commit) | Claude (Opus 5) | 2026-08-27 |
+| `requirements.lock` verificado en Python 3.11 | ✅ HECHA (pendiente de commit) | Claude (Opus 5) | 2026-08-27 |
+| Ciclo core↔core/auth cortado (`core/context.py`, propuesta 4) | ✅ HECHA (pendiente de commit) | Claude (Opus 5) | 2026-08-27 |
+| Split de `view.py` de cartera en paneles (propuesta 3) | ✅ HECHA (pendiente de commit) | Claude (Opus 5) | 2026-08-27 |
 | Fase 4 — **M4: importador de CSV con LLM** | ⬜ siguiente (a confirmar con Franco) | — | — |
 
 ## ✅ Hecho hasta ahora (resumen; detalle en ROADMAP.md y en el archivo)
@@ -28,19 +33,21 @@
 - **Fase 0** cimientos · **Fase 1** Lugar A migrado · **Fase 2** shell unificado (el scoring que traía se retiró el 5/8) — cerradas 07/2026.
 - **Fase 3a** cartera nativa (parser 2 formatos, M9/M10, MEP histórico ADR-0004, KPIs por método del patrimonio, gate de recon contra el Excel) y **Fase 3b** rendimientos finos (ledger PPC móvil ADR-0005, cauciones/dividendos, composición por tipo de renta y sector, ajustes M13) — cerradas 07/2026, desplegadas.
 - **Fase 4** arrancó por el respaldo (backup remoto + restore ensayado) y el CI (workflow `tests.yml` + job `sin-datos`) — 07–08/2026.
-- **Renta fija:** vencimientos (M14) + cronogramas Docta con caché (M15) + panel con calendario de cobros, TIR y duration — 08/2026.
+- **Renta fija:** vencimientos (M14) + cronogramas Docta con caché (M15) + panel con calendario de cobros, TIR y duration — 08/2026. El 27/8 los vencimientos pasaron a leerse del cronograma cuando está cacheado (el AE38 dejó de quedar sin fecha).
+- **Contra el mercado (27/8):** benchmark money-weighted vs SPY y Merval en la pantalla de Cartera — los mismos aportes, en las mismas fechas, puestos en el índice.
+- **Infra (27/8):** `requirements.lock` verificado en Python 3.11 · ciclo core↔core/auth cortado con `core/context.py` · **`view.py` de cartera partido en paneles** (1.990 → 760 líneas + diez módulos en `paneles/`), verificado por AST contra la versión anterior.
 
 ## ⏭️ Próximo paso concreto
 
-1. **Franco — dos verificaciones que solo podés hacer vos:**
-   - ¿El **backup diario** quedó programado en el Programador de tareas? (RUNBOOK). Sigue sin confirmarse desde el 4/8.
-   - ¿Se **desplegó** la tanda del 13–14/8 (Docta M15 + panel de renta fija, hasta `8f8ba73`)? El último deploy con registro es el del **5/8**. Si no salió, el panel de renta fija está en `main` pero no en producción.
+1. **Franco — verificaciones:**
+   - ✅ **Backup diario programado en el Programador de tareas** — confirmado por Franco el 27/8/2026. El pendiente que venía del 4/8 queda **cerrado**.
+   - ⬜ ¿Se **desplegó** la tanda del 13–14/8 (Docta M15 + panel de renta fija, hasta `8f8ba73`)? El último deploy con registro en bitácora es el del **5/8**; Franco cree que sí pero no lo recuerda. Se chequea en un segundo con `fly releases -a superapp-finanzas` (o `fly status`) y se anota acá. Si no salió, el panel de renta fija está en `main` pero no en producción.
 2. **Fase 4 — M4: importador de CSV con LLM.** Es el ítem grande vivo. Esfuerzo 3-5 días, riesgo medio: el modo de falla es **silencioso** (categoriza mal y no te enterás), por eso el **preview antes de tocar la base no es opcional**. Antes de codear: leer `/MAPA.md`, confirmar con Franco y marcarlo en la tabla de arriba.
-3. Decisiones abiertas del estudio del repo (2026-08-18), **todavía sin respuesta de Franco**: **split de `view.py` de cartera en paneles** (1.878 LOC, el archivo más grande del repo) y **cortar el ciclo core↔core/auth** con un `core/context.py` (propuestas 3 y 4).
+3. **No quedan decisiones abiertas del estudio del repo (2026-08-18):** las propuestas 3 (split de `view.py`) y 4 (`core/context.py`) se ejecutaron las dos el 27/8.
 
-**Pendientes menores** (sin apuro): retirar `radar-financiero` de Fly cuando la superapp lleve unos días validada · `requirements.lock` · dominio propio (estético) · amortizaciones parciales de bonos vivos (primer evento real: AE38 el **12/7/2027**; ver MEJORAS).
+**Pendientes menores** (sin apuro): retirar `radar-financiero` de Fly cuando la superapp lleve unos días validada · dominio propio (estético) · amortizaciones parciales de bonos vivos (primer evento real: AE38 el **12/7/2027**; ver MEJORAS).
 
-**Fuera de fase pero próximo en la fila del Lugar B** (`MEJORAS.md`): **benchmarks money-weighted** contra SPY/Merval — `flujos_de_capital()` ya entrega los aportes con fecha e importe; falta la serie histórica del índice.
+**Fuera de fase, lo que queda en la fila del Lugar B** (`MEJORAS.md`): traer la tenencia de cripto de Binance (read-only) · exposición por moneda (necesita una regla acordada con Franco) · correlación fija-vs-variable (necesita serie histórica del patrimonio) · amortizaciones parciales (recién en 07/2027).
 
 ## 🚩 Bloqueos / decisiones abiertas
 

@@ -6,6 +6,33 @@
 
 <!-- ultima_actualizacion: 2026-07-23 -->
 
+
+## 2026-08-27 — Vencimientos desde el cronograma + benchmark money-weighted
+**Autor:** Claude (Opus 5), con Franco.
+
+**1. El AE38 dejó de quedar sin fecha.** `vencimientos.py` (M14) parseaba las fechas de la descripción del instrumento, y por eso de la renta fija **viva** resolvía 1 de 3: el AE38 dice `"Bono USD 2038"` —donde el 2038 es parte del nombre, no un vencimiento— y el pagaré no trae descripción. Pero desde M15 la app **ya tenía guardado el cronograma de pagos de Docta**, y la última fecha de ese cronograma *es* el vencimiento. Los dos módulos nunca se habían hablado. Ahora la cascada es **override manual → cronograma (M15) → descripción**, y no gasta cuota de API: `leer_cronograma()` lee de la caché local.
+- **Cuando las dos fuentes exactas no coinciden, no se traga la diferencia.** Gana el cronograma (es el dato del emisor, no un string tipeado en una planilla), pero la fecha descartada queda en `Vencimiento.discrepancia`, `resumen()` la reporta y la vista muestra un aviso con las dos fechas. Un dato pisado en silencio es indistinguible de uno bueno — misma disciplina que el `estimado` de los ajustes.
+- La columna "Fuente" de la tabla ahora dice de dónde salió cada fecha (vacío = descripción, `cronograma`, `a mano`).
+- 18 tests nuevos, incluido el caso real del AE38 y el de que a una acción ni siquiera se le consulta el cronograma.
+
+**2. Benchmark money-weighted contra SPY y Merval** (`benchmark.py` + `core/market_data/indices.py`). Responde *"si hubieras puesto la misma plata, en las mismas fechas, en el índice, ¿cuánto tendrías hoy?"*.
+- **Por qué no alcanzaba con comparar rendimientos:** Franco aportó en 24 momentos a lo largo de 602 días; el índice "aportó" todo el día uno. Comparar los acumulados le pregunta a cada uno algo distinto. Hay un test (`test_money_weighted_no_es_lo_mismo_que_comparar_acumulados`) construido a propósito para que dé +10% donde el índice hizo +100%, y así nadie "simplifique" el módulo hacia la respuesta fácil.
+- **`adjclose`, no `close`:** el cierre ajustado incluye dividendos reinvertidos. La app ya cuenta los dividendos de Franco en `rendimientos.py`; compararlos contra un SPY sin dividendos le regalaría ~1,3% anual.
+- **Sin migración nueva:** la serie se cachea en `cartera_precios_cache`, que ya guarda exactamente esa forma (ticker, fecha, precio, moneda, fuente).
+- Un aporte anterior al arranque de la serie **no se estima**: queda en `sin_precio` y la vista avisa que el número es parcial. La TIR del índice sale del mismo motor de bisección que la de la cartera, sobre los mismos flujos.
+- 26 tests nuevos, todos sin red.
+
+**3. Split de `view.py` (propuesta 3 del estudio del 18/8, aprobada por Franco ese mismo día).** El archivo tenía **1.990 líneas** y lo tocaba el **28% de los commits del repo** (27 de 97) — más que ningún otro archivo de código, con `core/db.py` segundo a 11. El costo real no era el tamaño sino el radio: cambiar un panel obligaba a abrirlo entero, y así se coló el `backup_db` sin importar que atajó `test_nombres_definidos`.
+- **Fue un `mv`, no un rediseño.** Las costuras ya estaban: cada panel era una función independiente. Quedó `view.py` con 760 líneas (gate de acceso, resolución de datos, KPIs, tabla de posiciones y el orden de los paneles) y **diez módulos en `paneles/`**, el mayor de 231 líneas.
+- **`render()` no cambió una sola línea:** los paneles se reimportan con el mismo nombre que tenían adentro del archivo.
+- **Verificación, no confianza.** Se comparó por AST cada función contra la versión en `HEAD`: **23 idénticas, 0 perdidas, 0 duplicadas**; las 2 que difieren son `_vencimientos` y `render`, editadas a propósito antes en esta misma sesión.
+- El split **rompió 5 tests y estuvo bien**: `test_cartera_renta_fija.py` escanea el código fuente por AST (no importa la vista, que arrastra Streamlit) y buscaba las funciones dentro de `view.py`. Ahora busca en `paneles/renta_fija.py` **y** en `view.py`, para que lo que el test afirme sea *qué hace* la función y no en qué archivo vive.
+
+**Verificado:** suite **740 passed, 3 skipped** (arrancó la sesión en 664).
+**Estado al cierre:** commit pendiente de Franco. Sin decisiones abiertas en el módulo.
+
+---
+
 ## Estado del módulo
 **Fase de implementación:** Fase 3a / 6
 **Situación:** ✅ **Fase 3a COMPLETA** — los 5 pasos cerrados (parser · M9+ingest · market_data · vista con upload · **recon USD modo MEP actual**). La cartera vive en la app y reconcilia contra el Excel en cantidades y en costos. Próximo: merge a `main` + deploy, y luego 3b

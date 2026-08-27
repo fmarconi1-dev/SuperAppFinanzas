@@ -72,11 +72,11 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 - 🟡 ✅ **Workflow de CI** (hecho 4/8/2026): `tests.yml` corre la suite en Python 3.11 en cada push y PR, más un gate anti-datos del lado del servidor.
 - 🔴 💡 **Análisis enriquecido** (en curso desde el 5/8/2026):
   - ✅ Exposición por **sector e industria** (Fase 3b).
-  - ✅ **Vencimientos** de renta fija (M14): las fechas se leen de la descripción del instrumento. ⚠️ De la renta fija **viva** de Franco resuelve 1 de 3 — AE38 y el pagaré no traen fecha.
+  - ✅ **Vencimientos** de renta fija (M14 + cronograma). Al principio las fechas se leían solo de la descripción del instrumento y de la renta fija **viva** eso resolvía 1 de 3. **Resuelto el 27/8/2026**: cuando hay cronograma de Docta cacheado, el vencimiento sale de ahí (la última fecha de pago), así que el AE38 dejó de quedar en `s/d`. El pagaré sigue a mano: no tiene cronograma en ninguna fuente.
   - ✅ **TIR esperada y duration** — **HECHO (13-14/8/2026, `f1f892b`+`8f8ba73`).** Fuente `Docta Capital` (ver `docs/CRONOGRAMAS-RENTA-FIJA.md`); la cuenta ya está creada y las credenciales viven en `.env` (`DOCTA_CLIENT_ID`/`SECRET`). Cronogramas cacheados (M15): el plan gratuito de 15 req/día alcanza de sobra porque un cronograma es dato estático.
   - ✅ **Calendario de cobros** — **HECHO (13-14/8/2026)**, en el panel de renta fija. Sale del mismo cronograma. Para un bono amortizable importa más que el vencimiento: el AE38 no vence hasta 2038 pero empieza a devolver capital el **12/7/2027**.
   - 🟡 Correlación fija-vs-variable — necesita serie histórica del patrimonio.
-- 🟡 💡 **Comparación contra benchmarks (SPY, Merval)** — **próximo en la fila del Lugar B** (fuera de la Fase 4; se toma cuando Franco lo priorice). **Money-weighted, no simple**: Franco aportó en 24 momentos distintos y el índice no, así que comparar acumulados sería tramposo. La pregunta correcta es *"si hubieras puesto la misma plata en las mismas fechas en SPY, hoy tendrías US$ X"*. `flujos_de_capital()` ya da los aportes con fecha e importe; falta la serie histórica del índice.
+- 🔴 ✅ **Comparación contra benchmarks (SPY, Merval)** — **HECHO el 27/8/2026.** Money-weighted como estaba planteado: los mismos aportes, en las mismas fechas, puestos en el índice. `core/market_data/indices.py` trae la serie (con `adjclose`, para no comparar contra un SPY sin dividendos) y `places/inversiones/cartera/benchmark.py` hace la simulación; el panel está en la pantalla de Cartera. Los aportes anteriores al inicio de la serie no se estiman: se informan.
 - ✅ Alertas de vencimientos de bonos/ON — hecho el 5/8/2026 (M14). Ver arriba el caveat sobre su alcance real.
 - 🟢 💡 Simulador "qué pasa si" (agregar/quitar posiciones y ver impacto en estructura).
 
@@ -93,6 +93,9 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 
 ## Plataforma / infra
 
+- 🟢 ✅ **`requirements.lock`** (27/8/2026): builds reproducibles, verificado corriendo la suite en Python 3.11 con los pines exactos. Ojo al regenerarlo con el tope de pandas — ver la cabecera del archivo.
+- 🟢 ✅ **Ciclo core↔core/auth cortado** con `core/context.py` (27/8/2026, propuesta 4 del estudio del repo).
+- 🟢 ✅ **Split de `view.py` de cartera en paneles** (27/8/2026, propuesta 3): de 1.990 líneas a un orquestador de 760 + diez paneles en `paneles/`. Verificado por AST contra la versión anterior: 23 funciones idénticas, 0 perdidas.
 - 🟡 💡 Migrar de Fly.io a DonWeb VPS si se prioriza pago en ARS e infra local (evaluar costo operativo — ver premortem).
 - 🟢 💡 Multiusuario / SaaS (Fase 7): tenancy, planes, aislamiento de datos, billing.
 - 🟢 💡 App móvil / PWA.

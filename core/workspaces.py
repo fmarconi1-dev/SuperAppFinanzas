@@ -17,8 +17,8 @@ import secrets
 import sqlite3
 from typing import Optional
 
-from core.auth.current_user import require_current_user_id
-from core.auth.current_workspace import get_current_workspace_id
+from core.context import require_current_user_id
+from core.context import get_current_workspace_id
 
 
 # ---------------------------------------------------------------- helpers
