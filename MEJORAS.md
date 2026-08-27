@@ -49,7 +49,8 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 - 🟡 ✅ **Workflow de CI** (4/8/2026).
 
 ### Pendiente
-- 🟡 💡 **M4 · Importador inteligente de CSV con LLM.** Subir el CSV de cualquier banco y que una llamada offline infiera el mapeo de columnas y sugiera categorías, con **preview obligatorio** antes de tocar la base. **Esfuerzo:** 3-5 días. **Riesgo:** medio — el modo de fallo es silencioso (categoriza mal y no te enterás), por eso el preview no es opcional.
+- 🟡 📋 **M4 · Importador inteligente de CSV con LLM.** ← **PRÓXIMO ÍTEM VIVO DE LA FASE 4** (confirmado el 27/8/2026 al detectar que `ESTADO.md` apuntaba al punto 3, descartado).
+   Subir el CSV de cualquier banco y que una llamada offline infiera el mapeo de columnas y sugiera categorías, con **preview obligatorio** antes de tocar la base. **Esfuerzo:** 3-5 días. **Riesgo:** medio — el modo de fallo es silencioso (categoriza mal y no te enterás), por eso el preview no es opcional.
 - 🟡 💡 **M5 · API sidecar para agente conversacional.** FastAPI en la misma máquina de Fly, misma SQLite, token bearer rotable + rate-limit por IP + validación Pydantic + log de auditoría. Endpoints `GET /summary` y `POST /transaction`. **Esfuerzo:** 1 semana. **Riesgo:** medio, hay que cuidar la superficie de ataque del endpoint público.
 - 🟢 💡 **Chatbot de WhatsApp.** Tier gratis de WhatsApp Business Cloud API. **Pre-requisito: M5.**
 - 🟢 💡 Portar lo que quede del backlog de UX del repo original (`docs/MEJORAS-UX.md` allá).
@@ -72,10 +73,10 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 - 🔴 💡 **Análisis enriquecido** (en curso desde el 5/8/2026):
   - ✅ Exposición por **sector e industria** (Fase 3b).
   - ✅ **Vencimientos** de renta fija (M14): las fechas se leen de la descripción del instrumento. ⚠️ De la renta fija **viva** de Franco resuelve 1 de 3 — AE38 y el pagaré no traen fecha.
-  - 🟡 **TIR esperada y duration** — **destrabadas**: se encontró fuente (`Docta Capital`, ver `docs/CRONOGRAMAS-RENTA-FIJA.md`). Falta que Franco cree la cuenta gratuita. Un cronograma es dato estático, así que con caché el plan gratuito de 15 req/día alcanza de sobra.
-  - 🟡 **Calendario de cobros** — sale del mismo cronograma. Para un bono amortizable importa más que el vencimiento: el AE38 no vence hasta 2038 pero empieza a devolver capital el **9/7/2027**.
+  - ✅ **TIR esperada y duration** — **HECHO (13-14/8/2026, `f1f892b`+`8f8ba73`).** Fuente `Docta Capital` (ver `docs/CRONOGRAMAS-RENTA-FIJA.md`); la cuenta ya está creada y las credenciales viven en `.env` (`DOCTA_CLIENT_ID`/`SECRET`). Cronogramas cacheados (M15): el plan gratuito de 15 req/día alcanza de sobra porque un cronograma es dato estático.
+  - ✅ **Calendario de cobros** — **HECHO (13-14/8/2026)**, en el panel de renta fija. Sale del mismo cronograma. Para un bono amortizable importa más que el vencimiento: el AE38 no vence hasta 2038 pero empieza a devolver capital el **12/7/2027**.
   - 🟡 Correlación fija-vs-variable — necesita serie histórica del patrimonio.
-- 🟡 💡 **Comparación contra benchmarks (SPY, Merval)** — próximo en la fila. **Money-weighted, no simple**: Franco aportó en 24 momentos distintos y el índice no, así que comparar acumulados sería tramposo. La pregunta correcta es *"si hubieras puesto la misma plata en las mismas fechas en SPY, hoy tendrías US$ X"*. `flujos_de_capital()` ya da los aportes con fecha e importe; falta la serie histórica del índice.
+- 🟡 💡 **Comparación contra benchmarks (SPY, Merval)** — **próximo en la fila del Lugar B** (fuera de la Fase 4; se toma cuando Franco lo priorice). **Money-weighted, no simple**: Franco aportó en 24 momentos distintos y el índice no, así que comparar acumulados sería tramposo. La pregunta correcta es *"si hubieras puesto la misma plata en las mismas fechas en SPY, hoy tendrías US$ X"*. `flujos_de_capital()` ya da los aportes con fecha e importe; falta la serie histórica del índice.
 - ✅ Alertas de vencimientos de bonos/ON — hecho el 5/8/2026 (M14). Ver arriba el caveat sobre su alcance real.
 - 🟢 💡 Simulador "qué pasa si" (agregar/quitar posiciones y ver impacto en estructura).
 

@@ -27,7 +27,7 @@ Navegación con login único entre lugares. Embeber el scoring leyendo el snapsh
 - ✅ 101 tests en verde. Pendiente: deploy verificado por Franco.
 **Salida:** un login que lleva a Finanzas y a Scoring. ✔
 
-## 🔵 Fase 3 — Cartera (Lugar B.1) — **giro a NATIVA** (ADR-0003)
+## ✅ Fase 3 — Cartera (Lugar B.1) — **giro a NATIVA** (ADR-0003) (cerrada 2026-07-30)
 El plan original (Excel-in-the-loop) se reemplazó por **cartera nativa**: DB propia de movimientos, el Excel pasa a oráculo de reconciliación. **Fase 3a** = import + carga recurrente con dedupe + alta manual + posiciones + KPIs (5 pasos). **3b** = realized PnL, cauciones/dividendos como rendimientos, análisis sector/tipo de renta.
 - ✅ **3a paso 1:** parser del broker (ambos formatos) + 43 tests.
 - ✅ **3a paso 2:** modelo de datos M9 (`cartera_movimientos` con TC congelado por fila, dedupe) + ingest + gate `tests/test_cartera_recon.py` (reconcilia exacto contra el Excel).
@@ -39,13 +39,19 @@ El plan original (Excel-in-the-loop) se reemplazó por **cartera nativa**: DB pr
 - ✅ **3b punto 2 — resultado realizado por operación (ADR-0005), DESPLEGADO.** Motor cronológico `ledger.py` con PPC móvil: el costo de una venta es el vigente ESE día, no el promedio de toda la historia. Cambió el realizado en 9 tickers (−4,6%); patrimonio, TIR y el gate de recon, intactos. 45 operaciones, 38 ganadoras.
 - ✅ **3b punto 3 — cauciones, dividendos y cuenta remunerada.** `rendimientos.py`: 101 cauciones apareadas, interés $33.365 a una **TNA ponderada del 25,60%**; dividendos netos de retención por instrumento; total de la caja $120.562.
 - ✅ **3b punto 4 — composición por tipo de renta y sector.** `analisis.py`: renta fija 60,1% · variable 38,3% · cripto 1,3% · efectivo 0,3%; sector sobre la renta variable con 65,7% de cobertura del scoring.
-- ✅ **FASE 3b COMPLETA (2026-07-30).** Suite 324 + 3 del gate. **Pendiente: desplegar los puntos 3 y 4.**
-- ⬜ **Queda de 3b para más adelante:** las **amortizaciones parciales** de bonos vivos. No urgente: la primera amortización del AE38 es el **9/7/2027** y el AN29 es bullet a 2029. Anotado en `MEJORAS.md`.
+- ✅ **FASE 3b COMPLETA (2026-07-30).** Suite 324 + 3 del gate. Desplegada con la tanda del **5/8/2026**.
+- ⬜ **Queda de 3b para más adelante:** las **amortizaciones parciales** de bonos vivos. No urgente: la primera amortización del AE38 es el **12/7/2027** (se creía 9/7, pero **el 9 de julio es feriado** y el pago cae al hábil siguiente; verificado contra el cronograma de Docta el 5/8/2026) y el AN29 es bullet a 2029. Anotado en `MEJORAS.md`.
+- ✅ **Extras posteriores al cierre (08/2026):** vencimientos de renta fija (M14) · cronogramas de Docta con caché (M15) · **panel de renta fija** con calendario de cobros, TIR esperada y duration. En `main` hasta `8f8ba73`; **⚠️ falta confirmar el deploy** — el último con registro es el del 5/8.
 **Gate:** `tests/test_cartera_recon.py` (cartera app == Excel, fila por fila; cantidades y costos ARS exactos).
-**Salida:** la cartera online, con los mismos números que la planilla y más al día que ella.
+**Salida:** la cartera online, con los mismos números que la planilla y más al día que ella. ✔
 
-## ⬜ Fase 4 — Mejoras del Lugar A
-Ejecutar el backlog de `MEJORAS.md` sobre Finanzas Personales (incluye lo heredado del `MEJORAS.md` de Mis-Finanzas).
+## 🔵 Fase 4 — Mejoras del Lugar A (en curso desde 07/2026)
+Ejecutar el backlog de `MEJORAS.md` sobre Finanzas Personales. El backlog heredado de `Mis-Finanzas-App` ya se relevó y se volcó a `MEJORAS.md` el 30/7 — **no hace falta volver al repo viejo**, y dos de sus ítems más grandes (grupo familiar D2, módulo de inversiones) ya estaban hechos.
+- ✅ **Punto 1 — respaldo externo + restore ensayado + RUNBOOK** (30/7 y 4/8/2026).
+- ✅ **Punto 2 — CI** (`tests.yml` + job anti-datos `sin-datos`, 4/8/2026).
+- ⛔ **Punto 3 — voz consistente + hitos: DESCARTADO por Franco el 4/8/2026.** Cosmético; no resuelve nada que le moleste usando la app. Anotado en `MEJORAS.md` para que no se vuelva a proponer. **No es el próximo paso** (el `ESTADO.md` lo arrastró por error hasta el 27/8).
+- ⬜ **Punto 4 — M4: importador inteligente de CSV con LLM.** ← **el próximo ítem vivo.** Subir el CSV de cualquier banco, inferir el mapeo de columnas y sugerir categorías. **Preview obligatorio antes de tocar la base** (el modo de falla es silencioso). Esfuerzo 3-5 días, riesgo medio.
+- ⬜ **Punto 5 — M5: API sidecar (FastAPI).** Misma máquina de Fly, misma SQLite, token bearer rotable + rate-limit + Pydantic + log de auditoría. `GET /summary` y `POST /transaction`. Esfuerzo ~1 semana. **Es el prerequisito del chatbot de WhatsApp.**
 **Salida:** Lugar A pulido.
 
 ## ⬜ Fase 5 — Mercado en Vivo (Lugar B.3) + fuente de datos ARG

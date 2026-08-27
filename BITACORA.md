@@ -17,6 +17,19 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-08-27 — Higiene de gobernanza: el "próximo paso" apuntaba a una tarea muerta
+**Autor:** Claude (Opus 5), con Franco.
+- **Qué se encontró.** Estudio completo de la app (102 archivos, ~23.700 LOC) para decidir la jornada. Los documentos de gobierno se habían **desincronizado entre sí** en tres puntos, y uno era caro: `ESTADO.md` —la única fuente de verdad según `GUIA-DE-TRABAJO.md`— tenía como **próximo paso concreto** la *"Fase 4, punto 3: voz consistente + hitos"*, que `MEJORAS.md` registra como **⛔ descartada por Franco el 4/8/2026** con la nota explícita *"anotado para que no se vuelva a proponer"*. O sea: durante 23 días el handoff apuntó a una tarea que ya se había decidido no hacer, y la Fase 4 quedó de hecho **sin próximo paso definido**.
+- **Por qué importa más de lo que parece.** El protocolo del repo dice "gana `ESTADO.md`" cuando dos versiones de la realidad no coinciden. Acá la que estaba mal era `ESTADO.md`, así que la regla de desempate habría hecho que la sesión siguiente empezara a codear lo descartado. **Una decisión de NO hacer algo necesita propagarse a todos los documentos, no solo al backlog donde se anotó.**
+- **Segunda desincronización:** `ROADMAP.md` seguía marcando **Fase 3 🔵 en curso** y **Fase 4 ⬜ pendiente**, cuando 3a/3b están cerradas desde el 30/7 y la Fase 4 arrancó ese mismo día; arrastraba además *"pendiente: desplegar los puntos 3 y 4 de 3b"* (salió con la tanda del 5/8) y la fecha vieja del AE38 (**9/7/2027**, corregida a **12/7/2027** el 5/8 porque el 9 es feriado). Reescrita la Fase 4 con sus cinco puntos y su estado real.
+- **Tercera:** `MEJORAS.md` daba TIR esperada, duration y calendario de cobros como 🟡 pendientes y *"falta que Franco cree la cuenta de Docta"* — las tres se hicieron el 13-14/8 y las credenciales ya están en `.env`. Marcadas ✅.
+- **Pregunta abierta que salió del cruce:** el último deploy **con registro** es el del 5/8. La tanda del 13-14/8 (Docta M15 + panel de renta fija, hasta `8f8ba73`) está en `main` pero **no hay constancia de que se haya desplegado**. Anotado en `ESTADO.md` como verificación de Franco.
+- **`Borrar/` vaciada:** 355 archivos y 5,8 MB de `HEAD.lock`, `maintenance.lock` y `tmp_obj_*` acumulados desde el 4/8. Se conservaron a propósito el código del scoring retirado (referenciado desde `MAPA.md`) y los dos `.tar.gz` de respaldo del 18/8. **Novedad operativa:** el sandbox de Cowork ya puede borrar en el mount de OneDrive si se pide permiso explícito; la regla de "solo `mv`" dejó de ser la única salida. `git status` limpio y `git fsck` sin daños después.
+- **Verificado:** los 102 módulos compilan (`compileall`, exit 0) y ningún `.md` vigente vuelve a apuntar a la tarea descartada como próximo paso.
+**Estado al cierre:** solo documentación; cero cambios de comportamiento. **Próximo paso real de la Fase 4: M4, el importador de CSV con LLM** (a confirmar con Franco antes de codear). Pendiente: commit + push de Franco.
+
+---
+
 ## 2026-08-18 — Mapa vivo del repo + ESTADO.md adelgazado (skill `mapa-de-proyectos`)
 **Autor:** Claude (Fable 5), con Franco.
 - **Por qué:** el repo llegó a ~23.500 LOC y ~100 archivos, y la memoria del proyecto (ESTADO 52 KB + EN-HUMANO 61 KB + bitácoras) obligaba a cada sesión nueva a releer historia para orientarse. Los tres documentos de gobierno eran, según el propio historial de git, los archivos que más co-cambiaban del repo.

@@ -9,6 +9,26 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 27 de agosto de 2026 — El cuaderno de "qué sigue" te estaba mandando a hacer algo que ya habías decidido no hacer
+
+**Qué se hizo.** Repasé la app entera para arrancar la jornada y me encontré con algo que conviene contarte tal cual: **el archivo que dice "próximo paso" te apuntaba a una tarea que vos mismo descartaste el 4 de agosto.**
+
+Era la de "voz consistente y celebrar hitos" (que la app te felicite por la transacción número 10, la 100, el primer año). La miraste ese día y dijiste que no valía la pena, que era cosmética y no te resolvía nada. Eso quedó bien anotado en el archivo de ideas… **pero nadie lo borró del archivo de "qué sigue"**. Y como la regla del proyecto es "si dos papeles se contradicen, gana el de qué sigue", la próxima sesión habría arrancado justo por ahí.
+
+Ya está corregido, y con el motivo escrito al lado para que no vuelva a pasar. **El próximo paso real de la fase actual es el importador inteligente de CSV**: subir el resumen de cualquier banco y que la app sola entienda qué columna es qué y te sugiera las categorías. Con una condición que no es negociable: **te muestra una vista previa antes de tocar nada**, porque si se equivoca categorizando no hay forma de que te enteres solo.
+
+**Las otras dos cosas que no cerraban.** El mapa de fases decía que la Cartera seguía "en curso" cuando la cerraste hace un mes, y el archivo de ideas daba por pendientes tres cosas que ya están hechas (la TIR, la duration y el calendario de cobros de tus bonos). Todo sincronizado.
+
+**Una pregunta para vos.** La última vez que hay constancia de que subiste la app a internet fue el **5 de agosto**. Pero el 13 y el 14 se hizo el panel de renta fija (el calendario de cuándo cobrás cada bono). Si nunca lo subiste, ese panel existe en tu computadora y en GitHub, **pero no en la app que abrís desde el celular**. Vale la pena que lo chequees.
+
+**Y una limpieza.** La carpeta `Borrar` tenía **355 archivos basura** acumulados desde principios de agosto — casi 6 MB de restos que deja git cuando trabaja sobre OneDrive. Vaciada. Dejé adentro a propósito el código viejo del scoring y dos copias de respaldo, porque esos los decidís vos.
+
+**Para qué te sirve.** Esto no agrega nada a la app, pero evita que la próxima sesión (conmigo o con quien sea) arranque construyendo algo que ya habías dicho que no.
+
+**Qué sigue.** Vos: subir estos cambios (es todo texto, riesgo cero) y chequear las dos cosas de arriba — el respaldo diario programado y si el panel de bonos llegó a internet. Después arrancamos con el importador de CSV, si te parece bien. Y siguen esperando tu OK las dos propuestas del 18 de agosto: partir la pantalla de Cartera en pedazos más chicos y un arreglo de plomería interna.
+
+---
+
 ## 18 de agosto de 2026 — El proyecto ahora tiene mapa (y el archivo de estado dejó de ser una novela)
 
 **Qué se hizo.** Dos cosas de orden, ninguna toca la app que usás:
