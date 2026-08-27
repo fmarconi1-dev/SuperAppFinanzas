@@ -1,35 +1,42 @@
-# Prompt de inicio — Fase 4 (Mejoras del Lugar A: Finanzas Personales)
+# Prompt de inicio — Fase 4, punto 4 (M4: importador de CSV con LLM)
 
 Copiá y pegá el bloque de abajo en un chat nuevo. Antes, dale acceso a la carpeta `SuperAppFinanzas/`.
 
-Estado al escribirlo: **Fase 3b completa** (puntos 2, 3 y 4; el punto 1 —amortizaciones parciales— quedó en `MEJORAS.md` con motivo). Suite: 342 passed, 3 skipped.
+Estado al escribirlo (27/8/2026, cierre de jornada): **Fase 4 con los puntos 1 y 2 hechos, el 3 descartado y el 4 (M4) como siguiente.** Suite: **743 passed, 0 skipped** en local. Desplegado el 27/8.
 
 ---
 
 > Soy Franco. Trabajamos en mi **Superapp de Finanzas**: un monorepo Streamlit que unifica mis finanzas personales y mis inversiones en una app web. Está en producción en Fly.io (`superapp-finanzas`), es un repo git privado en `main` y lo subo yo con GitHub Desktop. Dale acceso a la carpeta `SuperAppFinanzas/` antes de empezar.
 >
-> **Las Fases 3a y 3b están cerradas.** La cartera ya me dice cuánto tengo, cuánto gané, en cuánto tiempo, en qué acerté operación por operación, cuánto me rindió la plata quieta y dónde está parada. **Hoy arrancamos la Fase 4: mejoras del Lugar A (Finanzas Personales).**
->
 > ## Antes de proponer o tocar nada, leé en este orden y confirmame que entendiste
 >
-> 1. `ESTADO.md` — foto actual y el plan. **El más importante.**
-> 2. `GUIA-DE-TRABAJO.md` + `claude.md` — protocolo y reglas duras.
-> 3. `docs/decisiones/` — los cinco ADR. Son decisiones tomadas: no se reabren sin motivo.
-> 4. La `bitacora_de_trabajo.md` del módulo que vayas a tocar.
-> 5. `MEJORAS.md` y `docs/HERRAMIENTAS-EVALUADAS.md` — el backlog y las herramientas ya evaluadas (**reutilizá en vez de reinventar**).
+> 1. `ESTADO.md` — foto actual y próximo paso. **El más importante.**
+> 2. `MAPA.md` — el índice del repo. La tabla "Donde buscar que" resuelve casi todos los "¿dónde está X?". Para lo puntual: `python .mapa/buscar.py "<término>"`. **No barras el repo con grep si el mapa ya tiene la respuesta.**
+> 3. `GUIA-DE-TRABAJO.md` + `claude.md` — protocolo y reglas duras.
+> 4. `MEJORAS.md` — el backlog. Lo que no es de la fase actual va ahí, no al código.
+> 5. La `BITACORA.md` (router + trampas) y la `bitacora_de_trabajo.md` (crónica) de la carpeta que vayas a tocar.
+> 6. `docs/decisiones/` — los cinco ADR. Son decisiones tomadas: no se reabren sin motivo.
 >
 > ## Reglas que no se rompen
 >
-> * **Nunca commitear datos:** `data/`, `*.xlsx`, `*.db`, `.env`. Hay un pre-commit hook que lo bloquea; no lo puentees.
-> * **Una fase a la vez**, cerrada y desplegable.
+> * **Nunca commitear datos:** `data/`, `*.xlsx`, `*.db`, `.env`. Hay un pre-commit hook de tres capas; no lo puentees.
+> * **Una fase a la vez**, cerrada y desplegable. Lo nuevo que se te ocurra va a `MEJORAS.md`.
 > * **Portar lógica de mi Excel exige test de reconciliación fila a fila.** El Excel es el oráculo.
 > * Usá la skill **`ui-ux-web-moderno`** en toda tarea de UI.
 > * El agente **no ejecuta trades ni mueve dinero**. Nunca.
 > * Documentación y commits **en español**.
-> * Al cerrar: actualizás la bitácora del módulo, `EN-HUMANO.md` y `ESTADO.md`.
+> * Al cerrar: bitácora del módulo + `EN-HUMANO.md` + `ESTADO.md`, y sellá la bitácora de la carpeta tocada (`python scripts/indexar.py . --sellar <carpeta>`).
 > * **Los push y los deploy los hago yo.** Vos dejás el commit listo y me avisás.
-> * **Entorno local:** la suite se corre desde `.venv` con **Python 3.11** (la del `Dockerfile`). Tengo también 3.12 y 3.14; con 3.14 y sin dependencias la suite ni siquiera colecta. `py -3.11 -m venv .venv` → `.venv\Scripts\activate.bat` → `pip install -r requirements.txt`. Desde el 4/8/2026 **hay CI**: `tests.yml` corre la suite en cada push, así que si algo rojea me entero sin correr nada. Igual corrola local antes de pedirme que pushee.
-> * **Ojo con git + OneDrive:** `rm` falla con "Operation not permitted", solo `mv` funciona. Los `.git/*.lock` y `tmp_obj_*` que queden se mueven a `Borrar/` (carpeta que yo borro antes de cada push). Está en la nota operativa de `ESTADO.md`.
+>
+> ## Cómo correr la suite (leé esto, me hizo perder tiempo)
+>
+> ```powershell
+> .venv\Scripts\python.exe -m pytest -q
+> ```
+>
+> **Usá el ejecutable del venv directo, no actives.** Tengo Python 3.11 (la del `Dockerfile`, en `.venv`), 3.12 y 3.14 en el sistema. Si corrés `python -m pytest` a secas agarra la 3.14, que no tiene las dependencias, y la suite **ni siquiera colecta**. Y en PowerShell `activate.bat` no hace nada: es de cmd.
+>
+> Tiene que dar **743 passed, 0 skipped**. Los 3 que en otros entornos aparecen como `skipped` son los tests-oráculo (necesitan mi Excel y mis CSV, que no se versionan). **Regla del RUNBOOK: antes de un deploy, en mi máquina tiene que dar 0 skipped.** Si ves un número de skipped que no esperabas, miralo aunque todo esté verde: un `skip` ya tapó un `SyntaxError` que dejó una pantalla caída.
 >
 > ## Explicame "en humano"
 >
@@ -37,70 +44,76 @@ Estado al escribirlo: **Fase 3b completa** (puntos 2, 3 y 4; el punto 1 —amort
 >
 > ## Lo que ya está construido (no lo rehagas)
 >
-> **Lugar B.1 — Cartera** (`places/inversiones/cartera/`, ~4.400 líneas) + `core/market_data/`:
+> **Lugar A — Finanzas Personales** (`places/finanzas/`): 5 pestañas (Dashboard, Transacciones, Diario, Mensual, Configuración) + onboarding y tour. Grupo familiar / espacios compartidos (D2) completo. Import de `Diario.csv`/`Mensual.csv`, export a Excel, backup automático en cada escritura.
 >
-> * `parser.py` — los dos formatos del export de inviu, moneda inferida, espejos de dividendo, pagarés (`#TICKER`). Expone `clave_dedupe`/`hash_dedupe`: **la regla de identidad de un movimiento vive en un solo lugar**.
-> * `ingest.py` — import con dedupe por `UNIQUE(user_id, hash_dedupe)`, TC MEP congelado por operación, autodetección del archivo subido, `remapear_tickers_base()` y `corregir_movimiento()` (corrige un movimiento mal informado por el broker **recalculando el hash**).
-> * `posiciones.py` — costo promedio ponderado, costo USD a TC histórico, capital aportado, TIR por bisección.
-> * `ledger.py` — **motor cronológico**: recorre los movimientos por fecha con PPC móvil y emite una operación cerrada por venta (ADR-0005).
-> * `kpis.py` — valuación y KPIs en dos planos: tenencia viva y rendimiento total (método del patrimonio).
-> * `rendimientos.py` — cauciones apareadas con su TNA ponderada, dividendos netos de retención, cuenta remunerada.
-> * `analisis.py` — composición por tipo de renta, sector e industria.
-> * `ajustes.py` — **ajustes de tenencia** (M13): splits, ratios de CEDEAR, papeles anteriores al registro y cupones recibidos. Tabla aparte de los movimientos; el costo declarado genera aporte sintético de capital.
-> * `core/market_data/sectores.py` — sector e industria automáticos (override → scoring → Yahoo), con caché en DB, caché negativa y `fetch` inyectable.
-> * `tenencias.py`, `view.py`, `export.py` — foto del custodio + tenencias manuales, la pestaña Cartera, export a Excel.
+> **Lugar B.1 — Cartera** (`places/inversiones/cartera/`): parser de los dos formatos del export de inviu con dedupe · ledger cronológico con PPC móvil (ADR-0005) · posiciones y KPIs por método del patrimonio · TIR por bisección · rendimientos (cauciones, dividendos, cuenta remunerada) · vencimientos (M14, ahora resueltos también desde el cronograma) · panel de renta fija con cronogramas de Docta (M15: calendario de cobros, TIR esperada, duration) · composición por tipo de renta / sector / industria / emisor · **benchmark money-weighted contra SPY y Merval** · ajustes de tenencia (M13) · export a Excel.
+> La pantalla está partida: `view.py` es el **orquestador** (760 líneas) y cada panel vive en `cartera/paneles/`.
 >
-> **434 tests, 3 skipped.** El gate `tests/test_cartera_recon.py` reconcilia contra mi Excel y se saltea solo si no está `CARTERA_XLSX`. **Corré la suite antes y después de tocar cualquier cosa.**
+> **Núcleo** (`core/`): SQLite con migraciones M1–M15 + backups · auth con bcrypt y tokens firmados · `core/context.py` (usuario y workspace activos, **sin dependencias**) · theme Cosmic Slate · `market_data/` (MEP de argentinadatos, precios data912/Yahoo, sectores, cronogramas de Docta, series de índices).
+>
+> **Infra:** Fly.io, CI (`tests.yml`), pre-commit de tres capas, `requirements.lock` verificado, mapa vivo del repo con indexador.
 >
 > ## Trampas del dominio que ya nos costaron caro — no las repitas
 >
-> Cada punto fue un error real que costó horas.
+> Cada punto fue un error real.
 >
-> 1. **Nunca sumes resultado instrumento por instrumento para obtener el total de la cartera.** En una cartera bimonetaria, pasar importes en USD a pesos con el TC de cada fecha hace que la devaluación infle el resultado. Verificado: $9,92M por componentes contra $2,27M por patrimonio. El método correcto es **patrimonio**: `resultado = (tenencia + efectivo) − (depósitos − retiros)`. **Todo agregado nuevo se contrasta contra una identidad contable independiente antes de mostrarse.**
+> 1. **Nunca sumes resultado instrumento por instrumento para el total de la cartera.** En una cartera bimonetaria, pasar USD a pesos con el TC de cada fecha hace que la devaluación infle el resultado ($9,92M por componentes contra $2,27M por patrimonio). El método correcto es **patrimonio**: `resultado = (tenencia + efectivo) − (depósitos − retiros)`.
 > 2. **El capital invertido no es la suma de las compras.** Eso es capital *rotado*. Es depósitos menos retiros.
-> 3. **La amortización devuelve capital + interés.** Sin restarle el costo del capital de esas unidades, las letras dan rendimientos de 100%+.
-> 4. **El export de movimientos NO alcanza para reconstruir la cartera.** Los pagarés no traen cantidad y los ajustes de ratio de CEDEAR no generan movimiento. Por eso hay dos fuentes: movimientos = histórico y costos; tenencia del broker = foto actual. Su diferencia **es** la reconciliación.
-> 5. **No guardes valores derivados en el momento del import.** `ticker_base` se guardaba al importar; si el import corría sin el mapa de instrumentos, las variantes en dólares quedaban sueltas — y el dedupe impedía que se autocorrigiera. O derivás al leer, o hay una reparación explícita.
-> 6. **Cuando un número no cierra, sospechá de la cantidad antes que del precio.** El BTC mostraba US$192 en vez de US$203: la cantidad venía del saldo inicial (0,003) y la real era 0,00316847.
-> 7. **Los precios del broker vencen** (hoy 3 días). Sin expiración la cartera queda congelada en la fecha del snapshot.
-> 8. **data912 sirve los bonos multiplicados por 100** (AE38: 127.360 contra 1.262,6 del broker).
-> 9. **El BCRA no publica MEP** (su serie es el mayorista A3500). La fuente es `argentinadatos`, ADR-0004.
+> 3. **La amortización devuelve capital + interés.** Sin restar el costo del capital de esas unidades, las letras dan 100%+.
+> 4. **El export de movimientos NO alcanza para reconstruir la cartera.** Dos fuentes: movimientos = histórico y costos; tenencia del broker = foto actual. Su diferencia **es** la reconciliación.
+> 5. **No guardes valores derivados al importar.** O derivás al leer, o hay una reparación explícita.
+> 6. **Cuando un número no cierra, sospechá de la cantidad antes que del precio.**
+> 7. **Los precios del broker vencen** (hoy 3 días).
+> 8. **data912 sirve los bonos ×100** (AE38: 127.360 contra 1.262,6 del broker).
+> 9. **El BCRA no publica MEP** (su serie es el mayorista A3500). Fuente: `argentinadatos` (ADR-0004).
 > 10. **Para XIRR usá bisección, no Newton** — con flujos irregulares Newton diverge.
 > 11. **Un warning de `fly deploy` que dice "not listening on the expected address" puede ser falso positivo.** Antes de tocar código: `fly status`, `fly releases` y `/_stcore/health`.
-> 12. **Un hecho posterior no puede cambiar un resultado anterior.** El realizado se mide con el **PPC vigente al momento de la venta** (ADR-0005), no con el promedio de toda la historia: el ajuste de ratio del SPY —70 unidades gratis fechadas tres meses **después** de una venta— le abarataba el costo a esa venta hacia atrás.
-> 13. **El realizado y el costo del remanente van juntos.** Medir uno con el PPC del día y el otro con el promedio global rompe la identidad `costo liberado + costo remanente = total comprado`.
-> 14. **Corregir un movimiento ya importado exige recalcular el `hash_dedupe`.** Si solo se arregla el Excel, la fila corregida entra como movimiento nuevo y quedan las dos. Hay tests de las dos rutas.
-> 15. **Las tasas se ponderan por capital y tiempo, no se promedian.** Promediar las TNA de 101 cauciones le da el mismo peso a una de $20.000 por un día que a una de $2,7M por cinco.
-> 16. **"No tengo el dato" y "no existe el dato" son cosas distintas.** A un bono no le *falta* el sector: no tiene. Filtrá antes de agrupar, o el "Sin dato" se come el 75% del cuadro y no dice nada.
-> 17. **Si un formulario se bifurca, las dos ramas tienen que definir lo mismo.** `_form_alta_edicion` de transacciones tiene modo rápido y modo detallado que caen al **mismo** guardado; `firma_val` se definía solo en el detallado y "Agregar gasto" desde el celular reventaba con `UnboundLocalError`. Definí las variables compartidas **antes** del `if`, no las dupliques.
-> 18. **Antes de elegir un endpoint, probalo.** El "natural" para traer sectores (`quoteSummary` de Yahoo) exige un *crumb* con cookie y devuelve `Unauthorized`; `v1/finance/search` da sector **e industria** sin autenticación. Y siempre exigí **coincidencia exacta de símbolo**: buscando `URA` (ETF de uranio) Yahoo devuelve también `UROY` (una minera).
-> 19. **Toda consulta externa necesita caché negativa.** Si solo se cachea lo que resuelve, un ticker desconocido dispara una búsqueda en cada carga de la pantalla, para siempre.
-> 20. **El broker se equivoca.** La compra de ASML del 16/5/2025 vino con **dos ceros de menos** ($60,10 en vez de $6.010). La guarda `Realizacion.sospechosa` (>1.000%) lo detectó sola. Cuando un rendimiento es absurdo, es un dato malo, no un trade.
-> 21. **Una venta "descubierta" no es un error de cálculo: es un hecho que falta.** Las tres que aparecieron tenían tres causas distintas — un **split** (BYMA, 9→18 sin movimiento), un papel **anterior al registro** (TXAR) y un **cupón recibido gratis** (GGALX). Se cargan en `cartera_ajustes` (M13). Antes de tocar el ledger, preguntá **qué pasó en el mundo**.
-> 22. **Todo costo que se carga a mano necesita su aporte de capital.** El método del patrimonio no mira costos: mira plata que entra y sale. Declarar que las TXAR costaron $233.439 sin registrar ese aporte hace que su venta cuente **$186.751 de ganancia inventada**. La regla es `aporte sintético = costo del ajuste`, automática, y va también a `flujos_de_capital()` **con su fecha** o la TIR sale inflada.
-> 23. **Un número recordado y uno verificado se ven iguales en una tabla.** El costo de TXAR se despejó de un "la vendí como a −20%". Si no se guarda que era una estimación (`estimado`), en seis meses nadie puede distinguirlo del resumen del broker.
-> 24. **El parser NO lleva el TC MEP: se congela al importar.** Correr el ledger sobre objetos del parser da resultados en pesos **de cero** para todo lo denominado en dólares (`Evento.importes` con `tc_mep=None`). Pasó el 4/8/2026: se le anunció a Franco un realizado de $2.858.763 y la app mostraba $5.432.244 — no había ningún bug, la verificación estaba rota. **Los totales en pesos se validan contra la DB o la app, nunca contra el parser.** Para cantidades y para instrumentos en pesos, el parser sirve.
-> 25. **Python no valida los nombres hasta que ejecuta la línea.** Usé `backup_db` en `view.py` sin importarlo y el botón habría reventado recién al apretarlo, igual que el `firma_val`. `tests/test_nombres_definidos.py` lee el **bytecode** de cada módulo y verifica que todo `LOAD_GLOBAL` exista. Corré la suite antes de dar por buena cualquier vista.
+> 12. **Un hecho posterior no puede cambiar un resultado anterior.** El realizado se mide con el PPC vigente al momento de la venta (ADR-0005).
+> 13. **El realizado y el costo del remanente van juntos:** `costo liberado + costo remanente = total comprado`.
+> 14. **Corregir un movimiento ya importado exige recalcular el `hash_dedupe`.**
+> 15. **Las tasas se ponderan por capital y tiempo, no se promedian.**
+> 16. **"No tengo el dato" y "no existe el dato" son cosas distintas.** A un bono no le *falta* el sector: no tiene.
+> 17. **Si un formulario se bifurca, las dos ramas tienen que definir lo mismo.** Definí las variables compartidas **antes** del `if`.
+> 18. **Antes de elegir un endpoint, probalo.** Y exigí coincidencia exacta de símbolo.
+> 19. **Toda consulta externa necesita caché negativa**, o un ticker desconocido dispara una búsqueda por carga, para siempre.
+> 20. **El broker se equivoca.** Una compra vino con dos ceros de menos. Cuando un rendimiento es absurdo, es un dato malo, no un trade.
+> 21. **Una venta "descubierta" no es un error de cálculo: es un hecho que falta.** Antes de tocar el ledger, preguntá **qué pasó en el mundo**.
+> 22. **Todo costo cargado a mano necesita su aporte de capital**, con su fecha, o la TIR sale inflada.
+> 23. **Un número recordado y uno verificado se ven iguales en una tabla.** Si es estimación, se guarda que lo es.
+> 24. **El parser NO lleva el TC MEP: se congela al importar.** Los totales en pesos se validan contra la DB o la app, **nunca contra el parser**.
+> 25. **Python no valida los nombres hasta que ejecuta la línea.** `tests/test_nombres_definidos.py` lee el bytecode. Corré la suite antes de dar por buena cualquier vista.
+> 26. **Nunca compares tu rendimiento acumulado contra el de un índice.** Yo aporté en 24 momentos distintos y el índice no: son dos preguntas diferentes. La comparación honesta es **money-weighted** (`cartera/benchmark.py`): los mismos aportes, en las mismas fechas, puestos en el índice. Hay un test construido a propósito para que dé +10% donde el índice hizo +100%.
+> 27. **Para un benchmark usá `adjclose`, no `close`.** El cierre ajustado incluye dividendos reinvertidos; la app ya cuenta los míos, así que compararme contra un SPY sin dividendos me regala ~1,3% anual.
+> 28. **Un lock congela lo verificado, no lo último.** El 27/8 `pip` resolvía `pandas>=2.0.0` como **pandas 3.0.5**, un major contra el que la suite nunca corrió. `requirements.lock` quedó en pandas 2.3.3 con topes explícitos. **Antes de regenerarlo, leé su cabecera.**
+> 29. **El dato que falta puede estar ya en la base.** Los vencimientos parseaban la descripción y resolvían 1 de 3, mientras el cronograma de Docta —guardado desde M15— tenía la fecha exacta. Antes de construir una fuente nueva, fijate si dos módulos que ya existen no se están hablando.
+> 30. **Dos fuentes exactas que se contradicen no se resuelven en silencio.** Gana la mejor, pero la descartada queda visible (`Vencimiento.discrepancia`) y la vista avisa.
+> 31. **`core/context.py` no puede importar nada del proyecto**, o vuelve el ciclo core↔core/auth. Y `core/auth/current_user.py` es una **fachada**: re-exporta los mismos objetos, no copias. Hay tests que miden el grafo de imports en procesos limpios.
+> 32. **Hay tests que escanean el código fuente por AST**, no que importan el módulo (`view.py` arrastra Streamlit entero). Si movés una función de archivo se rompen, y está bien: apuntalos a los dos lugares, para que afirmen *qué hace* la función y no dónde vive.
 >
 > ## Cómo verificar de verdad
 >
-> Los bugs que importaron **no los encontraron los tests**: los encontré yo usando la app, o aparecieron al mirar los números reales. Los tests pasaban porque probaban el camino limpio. **Reproducí mi secuencia real de uso**, incluyendo el orden equivocado y datos que ya existen en la base. Si un cálculo cambia, comparalo contra el número de mi Excel o contra un cálculo manual, y **mostrame la tabla antes/después**.
+> Los bugs que importaron **no los encontraron los tests**: los encontré yo usando la app, o aparecieron al mirar los números reales. Los tests pasaban porque probaban el camino limpio. **Reproducí mi secuencia real de uso**, incluyendo el orden equivocado y datos que ya existen en la base. Si un cálculo cambia, comparalo contra mi Excel o contra un cálculo manual, y **mostrame la tabla antes/después**.
 >
-> ## Tarea de hoy: Fase 4 — Mejoras del Lugar A (Finanzas Personales)
+> ## Tarea de hoy: Fase 4, punto 4 — M4, el importador inteligente de CSV
 >
-> Ejecutar el backlog de `MEJORAS.md` sobre Finanzas Personales, **incluido lo heredado del `MEJORAS.md` del repo original `Mis-Finanzas-App`** (hay que traerlo y pegarlo en la sección del Lugar A, que hoy está casi vacía).
+> Es el ítem grande que queda vivo de la Fase 4 (el punto 3, "voz consistente + hitos", **lo descarté el 4/8/2026**: es cosmético; no lo vuelvas a proponer).
 >
-> **Antes de arrancar, proponeme un orden.** Quiero que primero releves qué hay en ese backlog y me lo presentes priorizado, no que empieces a codear el primer ítem de la lista.
+> **Qué quiero:** subir el CSV de cualquier banco y que la app infiera sola el mapeo de columnas (fecha, descripción, importe, signo) y sugiera categorías, apoyándose en el `categorizer.py` que ya existe.
 >
-> **Pendientes sueltos que quedaron anotados:**
+> **La condición que no se negocia:** **preview obligatorio antes de tocar la base.** El modo de falla de esto es *silencioso* — categoriza mal y no me entero — así que tengo que poder ver y corregir fila por fila lo que va a entrar, antes de que entre. Nada de "importar y después arreglás".
 >
-> * Preguntarle al broker por la fila del **TTM26** del 4/2/2026 (17.395 nominales por $17,78 — el resto de ese día se compró a $1,458). Si el precio correcto fuera ~1,40, ese bono rindió 9,1% y no 13,3%. **No lo toques sin que yo confirme.**
-> * **Workflow de CI** que corra la suite en cada push (`.github/workflows/` hoy solo tiene un README).
-> * **Amortizaciones parciales** de bonos vivos: quedó fuera de la 3b con motivo. Primera fecha real: **9/7/2027** (AE38). Detalle en `MEJORAS.md`.
-> * Retirar `radar-financiero` (`fly apps destroy radar-financiero`).
-> * `requirements.lock` para builds reproducibles.
-> * Dominio propio (FreeDomain). Es estético, va último.
+> **Esfuerzo estimado:** 3-5 días. **Riesgo:** medio.
 >
-> Confirmame el plan antes de codear y avisame si al leer el código encontrás algo que no cierra. Si algo de lo que te pido choca con una decisión ya tomada en un ADR, decímelo en vez de improvisar.
+> **Antes de codear:** proponeme el diseño en criollo y esperá mi OK. En particular quiero decidir juntos: de dónde sale la inferencia (llamada a un LLM vs. heurísticas locales), qué pasa cuando el CSV trae una moneda o un formato de fecha que no esperábamos, y cómo se ve el preview.
 >
-> **Actualizá este prompt cuando la Fase 4 cierre:** la "tarea de hoy" pasa a ser la fase siguiente y las trampas nuevas se suman a la lista.
+> ## Pendientes sueltos (no son la tarea de hoy)
+>
+> * Preguntarle al broker por la fila del **TTM26** del 4/2/2026 (17.395 nominales por $17,78 — el resto de ese día se compró a $1,458). **No lo toques sin que yo confirme.**
+> * Retirar `radar-financiero` de Fly (`fly apps destroy radar-financiero`) — es mío, cuando quiera.
+> * Dominio propio (FreeDomain). Estético, va último.
+> * **Amortizaciones parciales** de bonos vivos: primera fecha real **12/7/2027** (AE38). Queda fuera con motivo; ver `MEJORAS.md`.
+> * En la fila del Lugar B: cripto desde Binance (read-only) · exposición por moneda (necesita una regla acordada conmigo) · correlación fija-vs-variable (necesita serie histórica del patrimonio).
+>
+> Confirmame el plan antes de codear y avisame si al leer el código encontrás algo que no cierra. Si algo de lo que te pido choca con un ADR, decímelo en vez de improvisar.
+>
+> **Actualizá este prompt cuando M4 cierre:** la "tarea de hoy" pasa a ser M5 (API sidecar), y las trampas nuevas se suman a la lista.
