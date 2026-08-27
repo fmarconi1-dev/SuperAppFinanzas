@@ -15,8 +15,16 @@ import textwrap
 import pytest
 
 from core import context
-from core.auth import current_user as fachada_user
-from core.auth import current_workspace as fachada_ws
+
+# ⚠️ Las fachadas se importan **dentro** de cada test, no acá arriba.
+#
+# `core/auth/current_user.py` dispara el `__init__.py` del paquete, que importa
+# bcrypt. Con un import a nivel de módulo, un intérprete sin dependencias
+# (correr la suite con el Python del sistema en vez del venv es un error fácil:
+# está anotado como trampa en el prompt de inicio) tumba la **colección** del
+# archivo entero — y con ella los tres tests de arriba, que miden el grafo de
+# imports, no necesitan bcrypt, y son justamente la red que sostiene este
+# refactor. Importándolas adentro, esos tres corren igual.
 
 
 def _en_proceso_limpio(codigo: str) -> str:
@@ -87,6 +95,8 @@ def test_la_logica_de_finanzas_no_arrastra_bcrypt():
 # hasta que alguien mezclara los imports en el mismo flujo.
 
 def test_la_fachada_de_usuario_es_el_mismo_contextvar():
+    from core.auth import current_user as fachada_user
+
     context.set_current_user_id(42)
     assert fachada_user.get_current_user_id() == 42
     assert fachada_user.require_current_user_id() == 42
@@ -94,12 +104,16 @@ def test_la_fachada_de_usuario_es_el_mismo_contextvar():
 
 
 def test_y_al_reves_tambien():
+    from core.auth import current_user as fachada_user
+
     fachada_user.set_current_user_id(7)
     assert context.get_current_user_id() == 7
     context.set_current_user_id(None)
 
 
 def test_la_fachada_de_workspace_es_el_mismo_contextvar():
+    from core.auth import current_workspace as fachada_ws
+
     context.set_current_workspace_id(3)
     assert fachada_ws.get_current_workspace_id() == 3
     fachada_ws.set_current_workspace_id(9)
@@ -108,6 +122,9 @@ def test_la_fachada_de_workspace_es_el_mismo_contextvar():
 
 
 def test_las_funciones_son_literalmente_las_mismas():
+    from core.auth import current_user as fachada_user
+    from core.auth import current_workspace as fachada_ws
+
     assert fachada_user.set_current_user_id is context.set_current_user_id
     assert fachada_user.get_current_user_id is context.get_current_user_id
     assert fachada_ws.get_current_workspace_id is context.get_current_workspace_id

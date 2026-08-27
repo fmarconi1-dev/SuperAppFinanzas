@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-08-27 02:29 UTC · 122 archivos · 25,595 LOC -->
+<!-- 2026-08-27 02:37 UTC · 122 archivos · 25,612 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-08-26 690239f Update mapa.json · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-08-26 91ddf38 aa · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -95,7 +95,7 @@ Rama `main` — ultimo commit: 2026-08-26 690239f Update mapa.json · **hay camb
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (~360 tests) en carpeta plana: unidad + regresión + gates de reconciliación contra el Excel-oráculo. Es el gate del repo: nada se cierra sin verde. | 33 | 8,156 | **vencida** |
+| `tests/` | La suite completa (~360 tests) en carpeta plana: unidad + regresión + gates de reconciliación contra el Excel-oráculo. Es el gate del repo: nada se cierra sin verde. | 33 | 8,173 | **vencida** |
 | `places\inversiones\cartera/` | Cartera nativa (B.1): parser de exports del broker (2 formatos), ledger cronológico con PPC móvil, posiciones, KPIs por método del patrimonio, renta fija y la vista con upload. | 15 | 5,639 | **vencida** |
 | `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 10 | 2,006 | **vencida** |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | **vencida** |
