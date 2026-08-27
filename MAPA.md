@@ -8,7 +8,7 @@
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-08-18 83905cd chore: reindexo del mapa post-commit (el hook lo genera durante el commit y queda un paso atras) · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-08-26 aac89a7 Limpieza
 
 ## Donde buscar que
 
@@ -147,16 +147,16 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `EN-HUMANO.md` + `ESTADO.md` (31 commits)
+- `EN-HUMANO.md` + `ESTADO.md` (32 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)
+- `BITACORA.md` + `ESTADO.md` (24 commits)
+- `BITACORA.md` + `EN-HUMANO.md` (23 commits)
 - `ESTADO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (23 commits)
-- `BITACORA.md` + `ESTADO.md` (23 commits)
-- `BITACORA.md` + `EN-HUMANO.md` (22 commits)
 - `places/inversiones/cartera/bitacora_de_trabajo.md` + `places/inversiones/cartera/view.py` (21 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/view.py` (17 commits)
 - `BITACORA.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (15 commits)
 - `ESTADO.md` + `places/inversiones/cartera/view.py` (14 commits)
-- `places/inversiones/cartera/bitacora_de_trabajo.md` + `places/inversiones/cartera/ingest.py` (8 commits)
+- `BITACORA.md` + `ROADMAP.md` (8 commits)
 
 ## Fuentes externas
 
