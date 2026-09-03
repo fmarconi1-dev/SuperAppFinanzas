@@ -4,11 +4,12 @@
 > Antes de editar código, actualizá la tabla "Tarea en curso". Al cerrar, dejá el "Próximo paso concreto".
 > Este archivo es una **foto, no una crónica**: la narrativa de cada sesión va a la `bitacora_de_trabajo.md` del módulo y a `/BITACORA.md`; lo que ya cerró se muda a `docs/archivo/ESTADO-historial.md`. Para ubicar código sin releer el repo: **`/MAPA.md`**.
 
-<!-- ultima_actualizacion: 2026-08-27 (2ª sesión) · autor: Claude (Opus 5) · handoff: cuatro tareas chicas cerradas — vencimientos desde el cronograma de Docta, benchmark money-weighted vs SPY/Merval, requirements.lock verificado y el ciclo core↔core/auth cortado con core/context.py. Suite 664 → 740, incluido el split de view.py en paneles. Commit pendiente de Franco. -->
+<!-- ultima_actualizacion: 2026-08-27 (2ª sesión) · autor: Claude (Opus 5) · handoff: cuatro tareas chicas cerradas — vencimientos desde el cronograma de Docta, benchmark money-weighted vs SPY/Merval, requirements.lock verificado y el ciclo core↔core/auth cortado con core/context.py. Suite 664 → 740, incluido el split de view.py en paneles. Y en una 3ª sesión: ADR-0006 (captura source-first), que reescribe el rumbo del Lugar A y absorbe M4/M5 en una Fase 5 nueva. Commit pendiente de Franco. -->
 
 ## 🧭 Dónde estamos
 
-- **Fase actual: Fase 4 — Mejoras del Lugar A**, en curso. Orden aceptado por Franco: (1) respaldo ✅ · (2) CI ✅ · (3) ~~voz consistente + hitos~~ **⛔ DESCARTADA por Franco el 4/8/2026** (cosmética; queda anotada en `MEJORAS.md` para que no se vuelva a proponer) · (4) **importador CSV con LLM (M4)** ← el siguiente ítem vivo · (5) API sidecar (M5) → WhatsApp.
+- **Fase actual: Fase 5 — Captura *source-first* del Lugar A (ADR-0006)**, arranca. La Fase 4 queda cerrada en lo que hizo (respaldo + CI) y sus puntos 4 y 5 se absorbieron acá.
+- **Fase 4 (histórico) — Mejoras del Lugar A.** Orden aceptado por Franco: (1) respaldo ✅ · (2) CI ✅ · (3) ~~voz consistente + hitos~~ **⛔ DESCARTADA por Franco el 4/8/2026** (cosmética; queda anotada en `MEJORAS.md` para que no se vuelva a proponer) · (4) **importador CSV con LLM (M4)** ← el siguiente ítem vivo · (5) API sidecar (M5) → WhatsApp.
 - **Ojo:** este ESTADO arrastró hasta el 27/8 un "próximo paso" que apuntaba al punto (3), ya descartado. Corregido. La Fase 4 tiene **dos ítems vivos y nada más**: M4 y M5.
 - **Cartera (Lugar B.1): Fases 3a y 3b COMPLETAS y en producción.** Última sesión de código (bitácora del 5/8, commits del 13–14/8): tanda de correcciones de Franco, scoring **retirado** (ADR-0002), vencimientos M14 y **panel de renta fija** con cronogramas de Docta (M15): calendario de cobros, TIR esperada y duration.
 - **Suite:** **740 passed, 3 skipped** al cierre del 27/8 (los 3 skipped son los tests-oráculo, que solo corren en la máquina de Franco; regla del RUNBOOK: antes de un deploy, local debe dar **0 skipped**).
@@ -26,7 +27,7 @@
 | `requirements.lock` verificado en Python 3.11 | ✅ HECHA (pendiente de commit) | Claude (Opus 5) | 2026-08-27 |
 | Ciclo core↔core/auth cortado (`core/context.py`, propuesta 4) | ✅ HECHA (pendiente de commit) | Claude (Opus 5) | 2026-08-27 |
 | Split de `view.py` de cartera en paneles (propuesta 3) | ✅ HECHA (pendiente de commit) | Claude (Opus 5) | 2026-08-27 |
-| Fase 4 — **M4: importador de CSV con LLM** | ⬜ siguiente (a confirmar con Franco) | — | — |
+| **Fase 5 · Paso 0 — Cuentas y perímetro (M16)** | ⬜ siguiente | — | — |
 
 ## ✅ Hecho hasta ahora (resumen; detalle en ROADMAP.md y en el archivo)
 
@@ -42,7 +43,7 @@
 1. **Franco — verificaciones:**
    - ✅ **Backup diario programado en el Programador de tareas** — confirmado por Franco el 27/8/2026. El pendiente que venía del 4/8 queda **cerrado**.
    - ⬜ ¿Se **desplegó** la tanda del 13–14/8 (Docta M15 + panel de renta fija, hasta `8f8ba73`)? El último deploy con registro en bitácora es el del **5/8**; Franco cree que sí pero no lo recuerda. Se chequea en un segundo con `fly releases -a superapp-finanzas` (o `fly status`) y se anota acá. Si no salió, el panel de renta fija está en `main` pero no en producción.
-2. **Fase 4 — M4: importador de CSV con LLM.** Es el ítem grande vivo. Esfuerzo 3-5 días, riesgo medio: el modo de falla es **silencioso** (categoriza mal y no te enterás), por eso el **preview antes de tocar la base no es opcional**. Antes de codear: leer `/MAPA.md`, confirmar con Franco y marcarlo en la tabla de arriba.
+2. **Fase 5, Paso 0 — Cuentas y perímetro (migración M16).** Arranca la arquitectura del ADR-0006. **Gate innegociable: ningún número histórico se mueve un peso** — test que compara todos los agregados antes y después de migrar. Sin backfill, la migración es puramente aditiva. Antes de codear: leer `/MAPA.md` y el ADR-0006 completo, y marcar la tarea acá.
 3. **No quedan decisiones abiertas del estudio del repo (2026-08-18):** las propuestas 3 (split de `view.py`) y 4 (`core/context.py`) se ejecutaron las dos el 27/8.
 
 **Pendientes menores** (sin apuro): retirar `radar-financiero` de Fly cuando la superapp lleve unos días validada · dominio propio (estético) · amortizaciones parciales de bonos vivos (primer evento real: AE38 el **12/7/2027**; ver MEJORAS).

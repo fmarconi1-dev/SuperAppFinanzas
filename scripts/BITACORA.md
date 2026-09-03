@@ -1,6 +1,6 @@
 # scripts/
 
-<!-- huella: cb4c6eb70b4e -->
+<!-- huella: 7ddaa70daf94 -->
 
 Resumen: Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas, chequeo de cobertura de Docta y el indexador del mapa.
 

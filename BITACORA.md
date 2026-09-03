@@ -17,6 +17,24 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-08-27 (3ª sesión) — El diagnóstico que cambia el rumbo del Lugar A (ADR-0006)
+**Autor:** Claude (Opus 5), con Franco.
+
+- **La pregunta de Franco:** el mayor problema de las apps de finanzas personales es que el usuario deja de cargar y el costo de ponerse al día se vuelve prohibitivo. ¿Cómo se resuelve?
+- **El diagnóstico habitual está mal planteado.** No es que el usuario se olvide —eso lleva a recordatorios, rachas e hitos, que atacan la motivación— sino que **la exactitud de la app es función de la disciplina del usuario**, y todo sistema con esa propiedad se degrada. La curva del atraso no es lineal porque la memoria se degrada antes que el volumen: **pasadas ~72 horas, "cargar los gastos" ya es reconstruir desde el resumen.** Y si vas a leer el resumen igual, el resumen tenía que ser la fuente desde el día uno.
+- **Ya lo habíamos resuelto, en Cartera.** Trampa nº4: dos fuentes (movimientos = histórico, tenencia del broker = foto actual) y **su diferencia es la reconciliación**. La Cartera nunca depende de que Franco recuerde cargar una operación. Finanzas Personales no tiene ancla: su verdad es la suma de lo tipeado. **ADR-0006 porta ese patrón al Lugar A.**
+- **Lo que se descartó en el camino, con motivo:** agregación bancaria directa (el Decreto 353/2025 creó el Sistema de Finanzas Abiertas pero el BCRA no publicó estándares; Belvo cubre BR/MX/CO, no Argentina) · registrar saldos como ancla (redundante: importar el resumen ya da el control total) · gamificación (ya descartada el 4/8; acá quedó el porqué).
+- **Números reales de Franco:** débito la mayor parte (vive en la caja de ahorro), dos tarjetas de crédito con resumen mensual, efectivo 10-15%. **Y el efectivo también tiene ancla: las extracciones figuran en la caja de ahorro.** Cobertura alcanzable ~85-90% con cero actos de memoria, y el hueco restante con magnitud conocida.
+- **El dedupe que pidió Franco no es uno, son seis clases** y cada una se resuelve distinto: reimportación (hash determinístico), pago-vs-resumen (clasificación, no matching), WhatsApp-vs-archivo (fuzzy, propuesto), doble listado del banco, billeteras (no aplica: no usa) y cuotas.
+- ⚠️ **Dos correcciones que evitaron errores que fallan hacia abajo.** (1) Franco propuso **eliminar el motivo "Pago tarjeta"**: no se puede — hoy es el único rastro del consumo con crédito de todos los meses cerrados, y borrarlo derrumba el gasto histórico (trampa nº12). (2) Mi primera versión usaba una **fecha de corte fija**, y como un pago cubre consumos del mes anterior, sin backfill el primer mes desaparecía entero. **Regla adoptada: un pago es traspaso si y solo si el resumen que lo cubre fue importado** — la reconciliación *es* el interruptor, y degrada seguro (si falta el resumen, se pierde el detalle, nunca la plata).
+- **Plan:** ROADMAP reescrito. La Fase 4 cierra en lo que hizo (respaldo + CI) y **M4 y M5 quedan absorbidos por una Fase 5 nueva** de 7 pasos (~2,5 semanas); las fases posteriores se renumeraron a 6, 7 y 8. M4 no se descarta: **se reordena de primer paso a último**, porque construir el extractor genérico antes de la arquitectura de cuentas era resolver el problema fácil primero.
+
+- 🐛 **Bug latente encontrado y arreglado en `scripts/indexar.py`.** `co_cambios()` devolvía `{}, {}` cuando `git log` no respondía, pero el llamador hace `.most_common()`, que un dict no tiene → `AttributeError`. Y `git()` devuelve `""` **en silencio** si el comando falla o pasa su timeout de 20s, cosa que ocurre de verdad con el repo en OneDrive y el disco lento (esta misma sesión la suite pasó de 22s a 105s por eso). Como el indexador corre en el **hook pre-commit**, el efecto real era: *un git lento te deja sin poder commitear*. Fix de una línea (`Counter()` en vez de `{}`) más el porqué escrito al lado.
+
+**Estado al cierre:** documentación, una decisión y un fix de una línea en un script. Suite 740 passed, 3 skipped. Commit pendiente de Franco.
+
+---
+
 ## 2026-08-27 (2ª sesión) — Cuatro tareas chicas: vencimientos, benchmark, lock y el ciclo de imports
 **Autor:** Claude (Opus 5), con Franco.
 

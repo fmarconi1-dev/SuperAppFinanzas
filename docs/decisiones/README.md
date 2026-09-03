@@ -8,3 +8,4 @@ Formato: Contexto · Decisión · Alternativas · Consecuencias · Estado.
 - `ADR-0003-cartera-nativa.md` — Cartera con DB propia; el Excel pasa a oráculo de reconciliación. ✅ Aceptada.
 - `ADR-0004-fuente-mep-historico.md` — MEP histórico desde `argentinadatos` (el BCRA no publica MEP). ✅ Aceptada.
 - `ADR-0005-realizado-ppc-movil.md` — El resultado realizado se mide con el PPC vigente al vender. ✅ Aceptada.
+- `ADR-0006-captura-source-first.md` — Finanzas Personales pasa de transaction-first a source-first: cuentas y perímetro, tres fuentes que proponen, y el agente que dedupea. ✅ Aceptada.

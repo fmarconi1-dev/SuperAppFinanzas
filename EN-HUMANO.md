@@ -9,6 +9,26 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 27 de agosto de 2026 (tercera parte) — Por qué las apps de gastos se abandonan, y qué vamos a hacer distinto
+
+Hoy no tocamos código: tomamos una decisión que cambia hacia dónde va la app.
+
+**Tu pregunta.** Todas las apps de finanzas personales fallan igual: dejás de cargar unos días, después ponerte al día es un garrón, y abandonás.
+
+**Lo que encontramos.** El diagnóstico de siempre es "el usuario se olvida", y por eso todo el mundo propone recordatorios y felicitaciones. Está mal. El problema es que **la app solo es exacta si vos sos disciplinado**, y eso no se sostiene. Hay un número que lo explica: **pasadas 72 horas ya no te acordás, así que cargar los gastos se convierte en copiarlos del resumen del banco.** Y si vas a terminar mirando el resumen igual, el resumen tendría que haber sido la fuente desde el principio.
+
+**Lo mejor: esto ya lo resolviste una vez.** Tu Cartera nunca tuvo este problema, porque la foto del broker es un ancla que no se olvida. Si vos no cargás nada, tu patrimonio sigue siendo correcto. Finanzas Personales no tiene ancla: su verdad es la suma de lo que tipeaste. Vamos a darle la misma ancla.
+
+**Cómo queda.** Tres fuentes que no dependen de tu memoria: los movimientos de la caja de ahorro (donde está todo tu débito), los resúmenes de tus dos tarjetas, y WhatsApp solo para el efectivo. Son **3 descargas por mes** en lugar de unos 90 actos de acordarte. Y lo lindo: hasta el efectivo tiene ancla, porque **las extracciones figuran en tu cuenta** — la app va a saber cuánta plata en efectivo pasó por tus manos aunque no sepa en qué se fue, y te va a decir cuánto le falta en vez de mentirte.
+
+**Lo que de verdad cambia:** con esto, **atrasarte deja de costarte datos**. Si no abrís la app en tres semanas, los archivos siguen ahí, exactos. Hoy atrasarte te cuesta la información para siempre.
+
+**Dos cosas que frené a tiempo.** Vos propusiste borrar la categoría "Pago tarjeta": no se puede, porque hoy es el único rastro de tu consumo con tarjeta en todos los meses cerrados, y borrarla te derrumba el gasto de 2025 y 2026. Y yo había propuesto una fecha de corte fija, que también estaba mal: como el pago de la tarjeta corresponde a compras del mes anterior, el primer mes se habría perdido entero. La regla quedó mejor: **el pago se descuenta solo si el resumen que lo explica fue cargado.** Si te olvidás de cargar un resumen, no perdés la plata, perdés el detalle.
+
+**Qué sigue.** Reescribimos el plan: son 7 pasos, unas dos semanas y media. Empezamos por lo más aburrido y más importante — darle a la app la noción de "cuentas" — con una condición: **ningún número de tu historia se puede mover un peso.** Para el segundo paso voy a necesitar que me pases un export real de los movimientos de tu cuenta.
+
+---
+
 ## 27 de agosto de 2026 (segunda parte) — Cuatro cosas chicas, y una que casi te rompe el próximo deploy
 
 Pediste algo más corto que el importador de CSV y terminamos haciendo las cuatro opciones. Te las cuento de la más útil a la más invisible.

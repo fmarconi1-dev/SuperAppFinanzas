@@ -50,18 +50,37 @@ Ejecutar el backlog de `MEJORAS.md` sobre Finanzas Personales. El backlog hereda
 - ✅ **Punto 1 — respaldo externo + restore ensayado + RUNBOOK** (30/7 y 4/8/2026).
 - ✅ **Punto 2 — CI** (`tests.yml` + job anti-datos `sin-datos`, 4/8/2026).
 - ⛔ **Punto 3 — voz consistente + hitos: DESCARTADO por Franco el 4/8/2026.** Cosmético; no resuelve nada que le moleste usando la app. Anotado en `MEJORAS.md` para que no se vuelva a proponer. **No es el próximo paso** (el `ESTADO.md` lo arrastró por error hasta el 27/8).
-- ⬜ **Punto 4 — M4: importador inteligente de CSV con LLM.** ← **el próximo ítem vivo.** Subir el CSV de cualquier banco, inferir el mapeo de columnas y sugerir categorías. **Preview obligatorio antes de tocar la base** (el modo de falla es silencioso). Esfuerzo 3-5 días, riesgo medio.
-- ⬜ **Punto 5 — M5: API sidecar (FastAPI).** Misma máquina de Fly, misma SQLite, token bearer rotable + rate-limit + Pydantic + log de auditoría. `GET /summary` y `POST /transaction`. Esfuerzo ~1 semana. **Es el prerequisito del chatbot de WhatsApp.**
-**Salida:** Lugar A pulido.
+- ↪️ **Puntos 4 y 5 — ABSORBIDOS POR LA FASE 5 (27/8/2026).** M4 (importador de CSV con LLM) y M5 (API sidecar) no se hacen tal como estaban planteados: se reordenan dentro de una arquitectura mayor. **Ver ADR-0006.** M4 pasa a ser el *último* paso de la Fase 5 en vez del primero, y M5 deja de ser un fin en sí mismo para convertirse en la vía de captura del efectivo.
+**Salida:** Lugar A pulido en respaldo y CI. Lo demás se hace desde la Fase 5.
 
-## ⬜ Fase 5 — Mercado en Vivo (Lugar B.3) + fuente de datos ARG
+---
+
+## 🔵 Fase 5 — Captura *source-first* del Lugar A (ADR-0006)
+
+**El problema que resuelve.** Toda app de finanzas personales se degrada porque su exactitud es función de la disciplina del usuario, y pasadas ~72 horas "cargar los gastos" ya es reconstruir desde el resumen. La Cartera nunca tuvo ese problema porque la foto del broker es un ancla que no se olvida (trampa nº4). **Esta fase le da esa ancla a Finanzas Personales.**
+
+**El cambio de fondo:** el gasto deja de ser "la suma de lo que Franco tipeó" y pasa a ser "lo que sale del perímetro de sus cuentas". Las fuentes proponen; Franco confirma; el agente dedupea. Alcance confirmado: 4 cuentas (caja de ahorro, 2 tarjetas, efectivo), exportación en Excel, **sin backfill**, sin billeteras.
+
+- ⬜ **Paso 0 — Cuentas y perímetro (M16).** `cuentas` + `cuenta_id`/`cuenta_contraparte_id`; el traspaso reusa `Flujo Capital`, que ya existe y que `metrics.py` no cuenta como gasto. **Gate: ningún número histórico se mueve un peso.** ~1 día.
+- ⬜ **Paso 1 — Importador de movimientos de caja de ahorro (Excel).** La fuente más grande: débito, transferencias y extracciones. Reusa el parseo de la Cartera + `hash_dedupe`/`UNIQUE`. ~2 días.
+- ⬜ **Paso 2 — Clasificador de traspasos + mapa de comercios aprendido.** ~1,5 días.
+- ⬜ **Paso 3 — Resúmenes de tarjeta (×2) + reconciliación pago↔resumen.** La reconciliación **es** lo que convierte un pago en traspaso. ~2 días.
+- ⬜ **Paso 4 — Cuenta efectivo + captura por WhatsApp** (acá entra el viejo M5). ~1 semana.
+- ⬜ **Paso 5 — Dedupe entre fuentes + panel de reconciliación.** ~1,5 días.
+- ⬜ **Paso 6 — Generalización con LLM** (el M4 original, ahora último). ~3 días.
+
+**Reglas duras de la fase:** el LLM **nunca decide plata** (extrae formato y propone etiquetas; el hash, el matching por monto y los totales son determinísticos y con tests) · las fuentes producen **propuestas**, nunca escrituras · un traspaso solo se marca como tal **cuando existe la fuente que cubre el otro lado**.
+
+**Salida:** una app que no se degrada cuando Franco se atrasa. **Total ~2,5 semanas.**
+
+## ⬜ Fase 6 — Mercado en Vivo (Lugar B.3) + fuente de datos ARG
 Resolver la fuente de precios local (`docs/DATOS-MERCADO-ARG.md`), cotizaciones en vivo, cartera conectada a precios automáticos.
 **Salida:** la sección más nueva; la más incierta.
 
-## ⬜ Fase 6 (futuro) — Portar la matemática del Excel a Python
+## ⬜ Fase 7 (futuro) — Portar la matemática del Excel a Python
 Módulo por módulo (FF de renta fija, TIRs, B&S), cada uno con reconciliación fila-a-fila antes de retirar el Excel.
 **Salida:** independencia del Excel.
 
-## ⬜ Fase 7 (futuro, opcional) — Multiusuario / escalar
+## ⬜ Fase 8 (futuro, opcional) — Multiusuario / escalar
 Solo si se abre a otros: aislamiento de datos, planes, costos.
 **Salida:** plataforma multiusuario.

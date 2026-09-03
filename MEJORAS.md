@@ -49,9 +49,10 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 - 🟡 ✅ **Workflow de CI** (4/8/2026).
 
 ### Pendiente
-- 🟡 📋 **M4 · Importador inteligente de CSV con LLM.** ← **PRÓXIMO ÍTEM VIVO DE LA FASE 4** (confirmado el 27/8/2026 al detectar que `ESTADO.md` apuntaba al punto 3, descartado).
+- 🟡 ↪️ **M4 · Importador inteligente de CSV con LLM — ABSORBIDO POR LA FASE 5** (27/8/2026, ADR-0006). No se descarta: se **reordena**. Era el primer paso y pasa a ser el último, porque construir el extractor genérico antes de tener la arquitectura de cuentas y fuentes era resolver el problema fácil primero. Ver ROADMAP Fase 5, Paso 6.
    Subir el CSV de cualquier banco y que una llamada offline infiera el mapeo de columnas y sugiera categorías, con **preview obligatorio** antes de tocar la base. **Esfuerzo:** 3-5 días. **Riesgo:** medio — el modo de fallo es silencioso (categoriza mal y no te enterás), por eso el preview no es opcional.
-- 🟡 💡 **M5 · API sidecar para agente conversacional.** FastAPI en la misma máquina de Fly, misma SQLite, token bearer rotable + rate-limit por IP + validación Pydantic + log de auditoría. Endpoints `GET /summary` y `POST /transaction`. **Esfuerzo:** 1 semana. **Riesgo:** medio, hay que cuidar la superficie de ataque del endpoint público.
+- 🟡 ↪️ **M5 · API sidecar — ABSORBIDO POR LA FASE 5** (27/8/2026, ADR-0006): deja de ser un fin en sí mismo y pasa a ser la **vía de captura del efectivo** (Paso 4), que es el 10-15% del gasto que ninguna fuente automática ve.
+- 🟡 💡 **(detalle original de M5)** FastAPI en la misma máquina de Fly, misma SQLite, token bearer rotable + rate-limit por IP + validación Pydantic + log de auditoría. Endpoints `GET /summary` y `POST /transaction`. **Esfuerzo:** 1 semana. **Riesgo:** medio, hay que cuidar la superficie de ataque del endpoint público.
 - 🟢 💡 **Chatbot de WhatsApp.** Tier gratis de WhatsApp Business Cloud API. **Pre-requisito: M5.**
 - 🟢 💡 Portar lo que quede del backlog de UX del repo original (`docs/MEJORAS-UX.md` allá).
 

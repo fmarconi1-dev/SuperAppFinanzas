@@ -238,7 +238,14 @@ def co_cambios(raiz, max_commits=400, max_archivos=15):
     salida = git(raiz, "log", f"-{max_commits}", "--name-only", "--format=%x00%H",
                  "--no-merges")
     if not salida:
-        return {}, {}
+        # ⚠️ Counter(), no {}: el llamador hace `.most_common()`, que un dict
+        # no tiene. `git()` devuelve "" en silencio si el comando falla o pasa
+        # su timeout de 20s — y eso pasa de verdad cuando el repo vive en
+        # OneDrive y el disco está lento. El resultado era un AttributeError
+        # que **rompía el hook pre-commit**, o sea que un git lento te dejaba
+        # sin poder commitear. El co-cambio es un dato opcional del mapa: si
+        # no está, el mapa se genera igual.
+        return Counter(), Counter()
     pares, toques = Counter(), Counter()
     for bloque in salida.split("\x00")[1:]:
         lineas = [l.strip() for l in bloque.splitlines()[1:] if l.strip()]

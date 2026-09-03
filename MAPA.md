@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-08-27 15:51 UTC · 122 archivos · 25,612 LOC -->
+<!-- 2026-09-03 15:18 UTC · 122 archivos · 25,619 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-08-26 6d144d6 aa · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-08-27 5898002 Update PROMPT-INICIO-FASE-4.md · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -102,7 +102,7 @@ Rama `main` — ultimo commit: 2026-08-26 6d144d6 aa · **hay cambios sin commit
 | `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M15 + backups), workspaces del grupo familiar (D2) y su UI. Auth y theme viven en subcarpetas propias. | 5 | 1,553 | **vencida** |
 | `places\inversiones\cartera\paneles/` | Los paneles de la pantalla de Cartera, uno por archivo. Salieron de `view.py` en el split del 27/8/2026, que movió código sin cambiarlo. | 11 | 1,521 | **vencida** |
 | `core\market_data/` | Datos de mercado para valuar la cartera: MEP histórico (argentinadatos), precios ARG (data912) y globales (yahoo), sectores por ticker y cronogramas de renta fija (Docta). | 6 | 1,387 | **vencida** |
-| `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas, chequeo de cobertura de Docta y el indexador del mapa. | 6 | 1,253 | **vencida** |
+| `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas, chequeo de cobertura de Docta y el indexador del mapa. | 6 | 1,260 | **vencida** |
 | `core\theme/` | Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semántica + template Plotly unificado, ajustes responsive y logo. | 5 | 680 | **vencida** |
 | `core\auth/` | Autenticación compartida: usuarios con bcrypt, pantalla de login/signup, tokens de sesión firmados y los contextvars de usuario/workspace activos. | 6 | 462 | **vencida** |
 | `Borrar\scoring-retirado-1786650535/` | _sin describir_ | 3 | 325 | — |
