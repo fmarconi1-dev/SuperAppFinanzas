@@ -505,11 +505,11 @@ def eventos_desde_db(conn, user_id: int, con_ajustes: bool = True) -> list[Event
         ))
 
     if con_ajustes:
-        from .ajustes import eventos_desde_ajustes, listar
-        try:
-            out.extend(eventos_desde_ajustes(listar(conn, user_id)))
-        except Exception:
-            # Una base sin la migración M13 no puede dejar sin cartera al
-            # usuario: los ajustes son una mejora, no un requisito.
-            pass
+        # Misma lectura que usan posiciones y capital aportado: si una
+        # tolerara un error que la otra no, el ledger y la tabla de
+        # posiciones contarían unidades distintas. Tolera **solo** una base
+        # sin M13 (trampa 36; antes era `except Exception`).
+        from .ajustes import eventos_desde_ajustes
+        from .posiciones import _ajustes_o_vacio
+        out.extend(eventos_desde_ajustes(_ajustes_o_vacio(conn, user_id)))
     return out

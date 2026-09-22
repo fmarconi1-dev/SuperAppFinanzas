@@ -14,7 +14,7 @@ Estas capacidades ya existen como skills/agentes y deben usarse en las fases ind
 ### `ui-ux-web-moderno` — 🔴 obligatoria en toda tarea de UI
 Inteligencia de diseño UX/UI web moderno (tokens de color, tipografía, spacing, dashboards financieros, micro-interacciones, dark mode, accesibilidad, y aplicación en Streamlit vía CSS injection).
 - **Cuándo:** siempre que se trabaje el tema (`core/theme`), dashboards, formularios, o se toque "cómo se ve/siente" la app.
-- **Fases:** transversal, con foco en Fase 1 (unificar estética "Cosmic Slate"), Fase 3 (dashboard de cartera) y Fase 5 (mercado en vivo).
+- **Fases:** transversal, con foco en Fase 1 (unificar estética "Cosmic Slate"), Fase 3 (dashboard de cartera) y Fase 6 (mercado en vivo).
 
 ### `agente-tesis-inversion` — 🟡 ayudante de ideas de inversión (a futuro)
 Genera tesis de inversión institucional sobre un ticker (múltiplos + DCF, deuda, comparables, 5 escenarios, técnicos).
@@ -33,7 +33,7 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 - **Argentina (gratis):** `bcra-macro` (MEP/CCL/CER/UVA/tasas, oficial), `data912` (mercado en vivo ~20s: acciones/CEDEARs/bonos/opciones/MEP/CCL), `byma` (panel + bonos + cronograma de amortización), `mae` (renta fija + flujos de fondos para TIR), `cafci` (FCI), `indec` (inflación/macro, oficial).
 - **Globales:** `yahoo-finance` (ya en uso), `sec-data`, `morningstar` (CEDEARs), `tradingview`, `google-finance`, `fred-macro`.
 - **Herramientas:** `option-pricing` (BS/binomial/MC/griegas/IV → reemplaza `opciones argy.xlsx`), `backtesting` (ratios de riesgo, Altman Z, Piotroski, DuPont, Markowitz → enriquece el scoring).
-- **Cuándo:** `bcra-macro`/`byma`/`mae` en Fase 3 (cartera); `data912` en Fase 5 (mercado en vivo); `option-pricing` al portar opciones (Fase 6); `sec-data`/`morningstar`/`backtesting` como apoyo del scoring y del agente de tesis.
+- **Cuándo:** `bcra-macro`/`byma`/`mae` en Fase 3 (cartera); `data912` en Fase 6 (mercado en vivo); `option-pricing` al portar opciones (Fase 7); `sec-data`/`morningstar`/`backtesting` como apoyo del scoring y del agente de tesis.
 - **Cómo:** diseñar `core/market_data/` con capa de abstracción por proveedor + caché + **fallback a carga manual**. Priorizar las fuentes oficiales (`bcra-macro`, `indec`); tratar las comunitarias (`data912`/`byma`/`mae`) con caché y monitoreo. Detalle y caveats en `docs/DATOS-MERCADO-ARG.md`.
 
 ## Mejoras de producto — Lugar A (Finanzas Personales)
@@ -81,7 +81,9 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 - ✅ Alertas de vencimientos de bonos/ON — hecho el 5/8/2026 (M14). Ver arriba el caveat sobre su alcance real.
 - 🟢 💡 Simulador "qué pasa si" (agregar/quitar posiciones y ver impacto en estructura).
 
-### Scoring (B.2)
+### Scoring (B.2) — ⛔ retirado el 5/8/2026 (ADR-0002)
+> Queda anotado por si algún día vuelve; hoy no es backlog vivo.
+
 - 🟡 💡 Escalar el universo de tickers (hoy ~20).
 - 🟡 💡 Métricas de solvencia propias para bancos/financieras (Tier 1) — hoy se excluye el D/E.
 - 🟢 💡 Histórico de scores por ticker (evolución en el tiempo).
@@ -94,6 +96,11 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 
 ## Plataforma / infra
 
+- 🟡 💡 **Pendientes de la auditoría del 22/9/2026** (no se hicieron por alcance; ver `/BITACORA.md`):
+  - **Tests de login y contraseñas** (`core/auth/auth.py` 29%, `login.py` 21% de cobertura) y del **panel de importar** (18%) y la **edición de categorías** (35%). Cobertura total: 78% (`--cov`, con `coverage` en el venv).
+  - `indices.serie_historica` cae a `close` si Yahoo no sirve `adjclose` **sin avisar** (trampa 27): el benchmark podría mezclar series con y sin dividendos. Marcar el origen de la serie.
+  - `ajustes.listar` descarta en silencio un ajuste con fecha corrupta (hoy imposible desde la app, que guarda ISO).
+  - **Borrar en `origin` las 4 ramas mergeadas** de las Fases 3a/3b (las locales ya se borraron) — lo hace Franco: `git push origin --delete fase-3a/cartera-nativa fase-3b/analisis-sector fase-3b/rendimientos-caja fase-3b/rendimientos-finos`.
 - 🟢 ✅ **`requirements.lock`** (27/8/2026): builds reproducibles, verificado corriendo la suite en Python 3.11 con los pines exactos. Ojo al regenerarlo con el tope de pandas — ver la cabecera del archivo.
 - 🟢 ✅ **Ciclo core↔core/auth cortado** con `core/context.py` (27/8/2026, propuesta 4 del estudio del repo).
 - 🟢 ✅ **Split de `view.py` de cartera en paneles** (27/8/2026, propuesta 3): de 1.990 líneas a un orquestador de 760 + diez paneles en `paneles/`. Verificado por AST contra la versión anterior: 23 funciones idénticas, 0 perdidas.

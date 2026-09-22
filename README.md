@@ -1,11 +1,11 @@
 # Superapp de Finanzas
 
-App web personal que unifica, en un solo lugar y bajo un login único, tres cosas que hoy viven separadas:
+App web personal que unifica, en un solo lugar y bajo un login único:
 
-- **🏠 Finanzas Personales** — seguimiento de ingresos, gastos, presupuesto (ex `Mis-Finanzas-App`).
-- **📈 Inversiones / Mercado** — con estructura triple: (1) dashboard de cartera, (2) análisis y scoring, (3) mercado en vivo.
+- **🏠 Finanzas Personales** — ingresos, gastos, presupuesto, grupo familiar (ex `Mis-Finanzas-App`).
+- **📈 Inversiones** — (1) **cartera** nativa: posiciones, rendimiento por el método del patrimonio, TIR, renta fija con cronogramas, benchmark contra el mercado; (2) **mercado en vivo** (placeholder, Fase 6). El scoring se retiró el 5/8/2026 (ADR-0002).
 
-> **Estado global:** ⬜ Fase 0 (cimientos). Este repo arranca como **esqueleto**: estructura, documentación y reglas de trabajo. Todavía no hay código de aplicación. El plan completo está en `PLAN DE TRABAJO - Superapp Finanzas.md`.
+> **Estado global (22/9/2026):** en producción en Fly.io (`superapp-finanzas`). Fases 0–4 cerradas; la **Fase 5** (captura *source-first* del Lugar A, ADR-0006) está aprobada y sin arrancar. La foto al día está siempre en `ESTADO.md`; el plan original, en `PLAN DE TRABAJO - Superapp Finanzas.md` (histórico: la numeración de fases vigente es la de `ROADMAP.md`).
 
 ---
 
@@ -38,17 +38,24 @@ Este proyecto está pensado para ser continuado por **varias conversaciones/Clau
 | `claude.md` | Reglas para agentes IA. |
 | `core/` | Núcleo compartido: auth, db, config, market_data, theme. |
 | `places/finanzas/` | Lugar A — Finanzas Personales. |
-| `places/inversiones/` | Lugar B — cartera + scoring + mercado_vivo. |
+| `places/inversiones/` | Lugar B — cartera + mercado_vivo (placeholder). |
 | `data/` | Datos locales **(nunca se commitea)**. |
-| `jobs/` | Procesos batch (GitHub Actions). |
+| `jobs/` | Procesos batch. Vacío desde que se retiró el scoring (5/8/2026). |
 | `tests/` | El gate: pytest en CI. |
 | `docs/` | Documentación viva: arquitectura, deploy, runbook, decisiones (ADR), premortems. |
 | `.github/workflows/` | CI/CD y batch. |
 
-## Stack previsto
+## Stack
 
-Python 3.11 · Streamlit · SQLite · Plotly/pandas · yfinance · pytest · Docker + Fly.io (hosting recomendado para el MVP). Detalle y alternativas de hosting en `PLAN DE TRABAJO - Superapp Finanzas.md` §5.
+Python 3.11 · Streamlit · SQLite · Plotly/pandas · pytest · Docker + Fly.io. Dependencias fijadas en `requirements.lock` (verificado en 3.11; leé su cabecera antes de regenerarlo).
 
 ## Cómo se corre
 
-_(Se completará en Fase 1, cuando exista `app.py`. Por ahora el repo es solo estructura.)_
+Siempre con el Python del venv (3.11), **no** con el `python` del sistema — en la máquina de Franco hay también 3.12 y 3.14, y la 3.14 no tiene dependencias:
+
+```powershell
+.venv\Scripts\python.exe -m streamlit run app.py     # la app
+.venv\Scripts\python.exe -m pytest -q                # la suite (local: 0 skipped)
+```
+
+Deploy y operación: `docs/DEPLOY.md` y `docs/RUNBOOK.md`.

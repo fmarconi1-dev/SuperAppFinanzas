@@ -13,7 +13,7 @@ from datetime import date
 import pytest
 
 from core import db as core_db
-from core.auth.current_workspace import set_current_workspace_id
+from core.context import set_current_workspace_id
 from core.db import connect, init_db
 from core.workspaces import (
     create_family_workspace,
@@ -204,6 +204,11 @@ def test_reparacion_relinkea_filas_huerfanas(db):
         "INSERT OR REPLACE INTO configuracion (clave, valor, user_id, workspace_id) "
         "VALUES ('saldo_inicial_caja', '123.45', 1, NULL)",
     )
+    # La base rota del 17/7 es anterior a la marca de reparaciones únicas
+    # (22/9/2026): tenía `user_version` 0. Sin esto el test simularía un
+    # estado que nunca existió. Con la marca puesta, M8.5 ya no corre — ver
+    # `test_db_reparaciones_unicas.py`.
+    db.execute("PRAGMA user_version = 0")
     db.commit()
     db.close()
 

@@ -40,8 +40,11 @@ Sin red en tests: `fetch` inyectable, como el resto de `core/market_data/`.
 from __future__ import annotations
 
 import json
+import sqlite3
 import urllib.parse
 from datetime import date, datetime, timedelta
+
+from core.market_data._errores import ERRORES_DE_RED
 
 __all__ = [
     "INDICES", "URL_YAHOO", "DIAS_ATRAS",
@@ -121,7 +124,9 @@ def serie_historica(clave: str, fetch=None, rango: str = "10y") -> dict[str, flo
             cierres = ind["adjclose"][0]["adjclose"]
         except (KeyError, IndexError, TypeError):
             cierres = ind["quote"][0]["close"]
-    except Exception:
+    except ERRORES_DE_RED + (KeyError, IndexError, TypeError):
+        # Fuente caída o respuesta con otra forma. Un bug nuestro, en cambio,
+        # tiene que verse (trampa 36; antes era `except Exception`).
         return {}
 
     out: dict[str, float] = {}
@@ -150,12 +155,9 @@ def guardar_serie(conn, clave: str, serie: dict[str, float]) -> int:
     ticker, moneda = INDICES.get(str(clave).upper(), (clave, "USD"))
     n = 0
     for iso, precio in (serie or {}).items():
-        try:
-            guardar_precio_en_cache(conn, ticker, precio, iso,
-                                    moneda or "USD", fuente="yahoo")
-            n += 1
-        except Exception:
-            continue
+        guardar_precio_en_cache(conn, ticker, precio, iso,
+                                moneda or "USD", fuente="yahoo")
+        n += 1
     return n
 
 
@@ -168,7 +170,7 @@ def cargar_serie(conn, clave: str) -> dict[str, float]:
             "WHERE ticker = ? AND moneda = ? ORDER BY fecha",
             (ticker, moneda or "USD"),
         ).fetchall()
-    except Exception:
+    except sqlite3.OperationalError:     # sin la tabla (tests recortados)
         return {}
     return {str(r["fecha"])[:10]: float(r["precio"]) for r in filas
             if r["precio"] is not None}
@@ -185,8 +187,8 @@ def serie_con_fallback(conn, clave: str, fetch=None,
     if serie:
         try:
             guardar_serie(conn, clave, serie)
-        except Exception:
-            pass                    # cachear es una mejora, no un requisito
+        except sqlite3.OperationalError:
+            pass                    # base ocupada: cachear es una mejora, no un requisito
         return serie, "proveedor"
     return cargar_serie(conn, clave), "cache"
 

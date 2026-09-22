@@ -1,6 +1,6 @@
 # places/finanzas/views/
 
-<!-- huella: cae905f01072 -->
+<!-- huella: 2f2ff6f56b44 -->
 
 Resumen: Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`.
 
@@ -16,6 +16,7 @@ Resumen: Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica
 
 - **El bug del 4/8/2026**: el form de transacciones se bifurca en modo rápido/detallado y las dos ramas caen al mismo guardado; una variable definida en una sola rama tumba la app **al enviar** (así murió `firma_val`). `tests/test_transacciones_formulario.py` caza la forma del problema por AST: si agregás una variable a un modo, definila **antes** del `if`.
 - El modo rápido es el que se usa desde el celular: probá ahí.
+- Desde el 22/9/2026 `tests/test_smoke_pantallas.py` **abre** las 5 pestañas con `AppTest` y datos sintéticos: una pestaña que tire excepción al renderizar ya no llega a producción. No reemplaza probar un formulario enviándolo.
 
 ## Estado
 

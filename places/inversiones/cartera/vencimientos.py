@@ -48,6 +48,8 @@ import re
 from dataclasses import dataclass
 from datetime import date, datetime
 
+from core.db import es_tabla_faltante
+
 __all__ = [
     "Vencimiento", "CATEGORIAS_CON_VENCIMIENTO", "parse_vencimiento",
     "vencimiento_de_cronograma", "resolver", "set_override", "quitar_override",
@@ -172,14 +174,15 @@ def vencimiento_de_cronograma(conn, ticker: str, leer=None) -> date | None:
     if conn is None:
         return None
     if leer is None:
-        try:
-            from core.market_data.cronogramas import leer_cronograma as leer
-        except Exception:            # sin el módulo, esta fuente no opina
-            return None
+        from core.market_data.cronogramas import leer_cronograma as leer
     try:
         cron = leer(conn, ticker)
-    except Exception:                # base sin M15: no puede romper nada
-        return None
+    except Exception as exc:
+        # Base sin M15: no puede romper nada. **Solo eso** (trampa 36): hasta
+        # el 22/9/2026 un bug también se tragaba y el bono quedaba sin fecha.
+        if es_tabla_faltante(exc):
+            return None
+        raise
     flujos = getattr(cron, "flujos", None) if cron is not None else None
     if not flujos:
         return None
@@ -226,8 +229,10 @@ def _overrides(conn) -> dict[str, date]:
         filas = conn.execute(
             "SELECT ticker, fecha FROM cartera_vencimientos WHERE es_override = 1"
         )
-    except Exception:                    # base sin M14: no puede romper nada
-        return {}
+    except Exception as exc:             # base sin M14: no puede romper nada
+        if es_tabla_faltante(exc):
+            return {}
+        raise
     out: dict[str, date] = {}
     for r in filas:
         try:

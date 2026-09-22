@@ -1,6 +1,6 @@
 # places/inversiones/cartera/paneles/
 
-<!-- huella: ac0b54a44ba9 -->
+<!-- huella: 130727952e9e -->
 
 Resumen: Los paneles de la pantalla de Cartera, uno por archivo. Salieron de `view.py` en el split del 27/8/2026, que movió código sin cambiarlo.
 
@@ -29,10 +29,14 @@ Resumen: Los paneles de la pantalla de Cartera, uno por archivo. Salieron de `vi
 - `_TTL_PRECIOS` vive en `_comun.py`, no en `view.py`: los decoradores `@st.cache_data` de varios paneles lo necesitan y al revés sería un import circular.
 - **Hay tests que leen el código fuente por AST**, no que importan el módulo (`view.py` arrastra Streamlit entero). Si movés una función de archivo, mirá `tests/test_cartera_renta_fija.py`: busca en `paneles/renta_fija.py` **y** en `view.py`, a propósito, para que lo que se afirme sea qué hace la función y no dónde vive.
 - Un panel no debe importar `view.py`. La dirección es siempre `view.py → paneles/`.
+- **`st.success(...)` seguido de `st.rerun()` no se ve**: el rerun lo borra antes. `renta_fija._refrescar` guarda el aviso en `session_state` y lo muestra en la vuelta siguiente — así se ve también "Docta no contestó".
+- `renta_fija` distingue "la fuente no lo tiene" (`ya_consultado`, cartel informativo) de "todavía no se pudo bajar" (warning con la acción). Antes del 22/9/2026 los dos decían "es esperable, no hay nada que arreglar".
+- `_datos._resolver_sectores` solo tolera `sqlite3.OperationalError` (base ocupada); una falla de Yahoo ya no llega hasta acá y un bug se ve.
+- `_procesar_carga` (el import de un solo archivo, anterior a *Importar todo*) se borró el 22/9/2026: `view.py` lo importaba pero nadie lo llamaba.
 
 ## Estado
 
-- **Funciona:** split verificado por AST contra la versión anterior — 23 funciones idénticas, 0 perdidas, 0 duplicadas. Suite 740 passed.
+- **Funciona:** split verificado por AST contra la versión anterior (27/8). Desde el 22/9/2026 `tests/test_db_concurrencia.py` revisa también estos paneles (antes miraba solo `view.py` y pasaba en blanco) y `tests/test_smoke_pantallas.py` abre la pantalla completa.
 
 ## Proximo paso
 

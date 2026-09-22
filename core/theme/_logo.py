@@ -1,12 +1,10 @@
-"""Helpers para mostrar el logo en HTML inline.
-
-El logo es un SVG simple (círculos concéntricos con un barrido tipo radar) que
-embebemos directamente para evitar problemas de paths/CDN en producción.
+"""El logo de la app (`assets/logo.svg`).
 
 Nota: `st.html()` (Streamlit ≥1.33) sanitiza el HTML con DOMPurify y elimina
-los `<svg>` inline. Por eso para mostrar el logo en hero blocks usamos
-`render_logo()` que dibuja el SVG como st.image() nativo en una columna
-centrada (esto sí funciona porque Streamlit sirve la imagen como recurso).
+los `<svg>` inline. Por eso `render_logo()` dibuja el SVG con `st.image()`
+nativo en una columna centrada (Streamlit sirve la imagen como recurso).
+`inline_logo()` y `try_set_logo()`, que no usaba nadie, se borraron el
+22/9/2026.
 """
 
 from __future__ import annotations
@@ -17,30 +15,6 @@ import streamlit as st
 
 
 _LOGO_PATH = "assets/logo.svg"
-
-
-_LOGO_SVG_BODY = """\
-<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="display:inline-block; vertical-align: middle;">
-  <circle cx="32" cy="32" r="30" fill="#0e1117"/>
-  <circle cx="32" cy="32" r="26" fill="none" stroke="#6ee7b7" stroke-width="2.5" opacity="0.55"/>
-  <circle cx="32" cy="32" r="17" fill="none" stroke="#6ee7b7" stroke-width="2" opacity="0.75"/>
-  <circle cx="32" cy="32" r="6" fill="#6ee7b7"/>
-  <line x1="32" y1="32" x2="55" y2="14"
-        stroke="#6ee7b7" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
-</svg>"""
-
-
-def inline_logo(size: int = 64) -> str:
-    """Devuelve el SVG del logo como string HTML.
-
-    OJO: `st.html()` sanitiza con DOMPurify y elimina `<svg>` inline. Esta
-    función queda por compatibilidad pero NO debe usarse para renderizar el
-    logo en hero blocks — usar `render_logo()` en su lugar.
-    """
-    return _LOGO_SVG_BODY.replace(
-        '<svg viewBox',
-        f'<svg width="{size}" height="{size}" viewBox',
-    )
 
 
 def render_logo(size: int = 64) -> None:
@@ -62,17 +36,3 @@ def render_logo(size: int = 64) -> None:
             st.markdown("### 🎯")
 
 
-def try_set_logo() -> None:
-    """Si la versión de Streamlit lo soporta (≥1.34), fija el logo arriba.
-
-    Funciona aunque la sidebar esté colapsada — Streamlit lo muestra como
-    icon-image en la esquina superior."""
-    try:
-        st.logo(
-            image="assets/logo-horizontal.svg",
-            icon_image="assets/logo.svg",
-        )
-    except Exception:
-        # Streamlit <1.34 no tiene st.logo(). No es crítico — el favicon
-        # (page_icon) y los hero inline siguen mostrando la identidad.
-        pass

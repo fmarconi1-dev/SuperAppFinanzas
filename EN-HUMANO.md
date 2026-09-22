@@ -9,6 +9,25 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 22 de septiembre de 2026 — Una revisión a fondo antes de arrancar lo nuevo
+
+Hoy no agregamos nada: revisamos la app entera buscando problemas escondidos, arreglamos los que aparecieron y ordenamos la casa. **Ninguno de tus números cambió**: comparé tu cartera y tus gastos (sobre una copia de la base de producción) antes y después de todos los arreglos, y dieron idénticos, peso por peso.
+
+**Lo más serio que encontramos.** Si alguna vez apretabas el botón para que un pagaré "rinda una tasa", **la pantalla de Cartera se caía entera y ya no volvía**: no había forma de deshacerlo desde la app. Estuvo escondido dos meses porque nunca lo usaste. Ya está arreglado, hay un botón para quitar la tasa y, como decidiste, **el precio que informa el broker manda sobre la tasa**.
+
+**Otro que te habría confundido.** Cuando Docta (la fuente de los cupones de tus bonos) o Yahoo (la de los sectores) no contestaban —porque se caían o porque se te acababan las 15 consultas del día—, la app anotaba el bono como "no existe en la fuente" **para siempre**, y encima te decía que era normal. Es como si el cajero de un banco estuviera en el almuerzo y concluyeras que no tenés cuenta. Ahora distingue "no contestó" (lo vuelve a intentar) de "no lo tiene" (lo anota).
+
+**Tres cosas más que no se veían:**
+- Cada vez que la app se reiniciaba —y en Fly eso pasa seguido— volvía a aplicar unos arreglos viejos a tus categorías. Si alguna vez cambiabas "Compra Divisa" de grupo, se te iba a volver a cambiar sola. Ahora esos arreglos corren una sola vez.
+- Si en tus CSV había un importe mal escrito (una letra O en vez de un cero, por ejemplo), entraba como un gasto de $0 sin avisar. Ahora te avisa cuál fila fue. Revisé tus CSV reales: no tienen ninguno.
+- El comando para reimportar tus CSV desde la consola estaba roto, y nadie se había enterado.
+
+**Para qué te sirve lo demás.** Saqué código que no usaba nadie, sincronicé los documentos que contaban historias distintas (esta vez los revisé todos, para que no se repita lo de la tarea descartada que seguía apareciendo como "próximo paso") y agregué una red nueva: **tests que abren las pantallas de verdad**, como lo harías vos. Hasta ahora los tests revisaban las cuentas pero ninguno abría una pantalla, y por eso los errores los encontrabas vos. Comprobé que el test nuevo habría cazado el problema del pagaré.
+
+**Qué sigue.** Te toca a vos: revisar y subir el cambio (GitHub Desktop) y publicarlo en internet. Después, cuando vos digas, arrancamos la etapa grande que ya aprobaste: que Finanzas Personales se alimente de los resúmenes del banco en vez de tu memoria.
+
+---
+
 ## 27 de agosto de 2026 (tercera parte) — Por qué las apps de gastos se abandonan, y qué vamos a hacer distinto
 
 Hoy no tocamos código: tomamos una decisión que cambia hacia dónde va la app.

@@ -59,11 +59,14 @@ def _renta_fija(valuadas, instrumentos: dict, uid: int) -> None:
 
     hoy = date.today()
     with connect() as conn:
-        cronogramas, tenencias, sin_datos = {}, {}, []
+        cronogramas, tenencias, sin_datos, sin_consultar = {}, {}, [], []
         for p in vivas:
             cron = mod_cron.leer_cronograma(conn, p.ticker)
             if cron is None:
-                sin_datos.append(p.ticker)
+                # "La fuente no lo tiene" ≠ "todavía no se pudo preguntar"
+                # (trampa 16): solo lo primero es esperable.
+                (sin_datos if mod_cron.ya_consultado(conn, p.ticker)
+                 else sin_consultar).append(p.ticker)
                 continue
             cronogramas[p.ticker] = cron
             tenencias[p.ticker] = p.cantidad
@@ -181,9 +184,14 @@ def _renta_fija(valuadas, instrumentos: dict, uid: int) -> None:
     if sin_datos:
         st.info(
             "Sin cronograma: **" + "**, **".join(sin_datos) + "**. "
-            "Los pagarés y cheques del MAV no están en el catálogo de la "
-            "fuente — es esperable y no hay nada que arreglar.",
+            "La fuente no los tiene (los pagarés y cheques del MAV no están "
+            "en su catálogo) — es esperable y no hay nada que arreglar.",
             icon=":material/info:")
+    if sin_consultar:
+        st.warning(
+            "Todavía sin bajar: **" + "**, **".join(sin_consultar) + "**. "
+            "Usá *Bajar los que falten* acá abajo.",
+            icon=":material/schedule:")
 
     _boton_refrescar_cronogramas(vivas, uid)
 
@@ -206,24 +214,37 @@ def _boton_refrescar_cronogramas(vivas, uid: int) -> None:
             f"gasta **hasta {len(candidatos)}** (solo de los que falten). "
             f"Los pagarés no se consultan: no están en el catálogo."
         )
+        # El resultado se guarda para mostrarlo **después** del rerun: un
+        # `st.success` seguido de `st.rerun()` se borra antes de verse, y un
+        # "la fuente no contestó" invisible es tan malo como no avisar.
+        aviso = st.session_state.pop("cartera_cron_aviso", None)
+        if aviso:
+            tipo, texto = aviso
+            (st.success if tipo == "ok" else st.warning)(
+                texto, icon=(":material/check_circle:" if tipo == "ok"
+                             else ":material/cloud_off:"))
+
         c1, c2 = st.columns([1, 1])
         with c1:
             if st.button("Bajar los que falten", key="cartera_cron_faltantes"):
-                with connect() as conn:
-                    n, faltan = mod_cron.refrescar_cronogramas(
-                        conn, candidatos)
-                    conn.commit()
-                st.success(f"{n} cronograma(s) nuevos."
-                           + (f" Sin datos: {', '.join(faltan)}." if faltan else ""),
-                           icon=":material/check_circle:")
-                st.rerun()
+                _refrescar(candidatos, forzar=False)
         with c2:
             if st.button("Forzar actualización de todos",
                          key="cartera_cron_forzar"):
-                with connect() as conn:
-                    n, faltan = mod_cron.refrescar_cronogramas(
-                        conn, candidatos, forzar=True)
-                    conn.commit()
-                st.success(f"{n} cronograma(s) actualizados.",
-                           icon=":material/check_circle:")
-                st.rerun()
+                _refrescar(candidatos, forzar=True)
+
+
+def _refrescar(candidatos, forzar: bool) -> None:
+    with connect() as conn:
+        n, faltan, no_consultados = mod_cron.refrescar_cronogramas(
+            conn, candidatos, forzar=forzar)
+        conn.commit()
+    texto = f"{n} cronograma(s) {'actualizados' if forzar else 'nuevos'}."
+    if faltan:
+        texto += f" La fuente no tiene: {', '.join(faltan)}."
+    if no_consultados:
+        texto += (f" **Docta no contestó** (caída o cuota diaria agotada): "
+                  f"{', '.join(no_consultados)} quedan para reintentar.")
+    st.session_state["cartera_cron_aviso"] = (
+        "error" if no_consultados else "ok", texto)
+    st.rerun()

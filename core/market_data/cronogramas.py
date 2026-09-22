@@ -29,6 +29,14 @@ Por eso `refrescar_cronograma()` **no vuelve a pedir lo que ya tiene** salvo
 que se lo fuerce, y la **caché negativa** deja constancia de lo que no está
 para no reintentarlo en cada carga.
 
+⚠️ **"No lo tiene" y "no contestó" son cosas distintas (trampa 16).** Hasta el
+22/9/2026 las dos terminaban en la caché negativa: un 429 por cuota agotada,
+un timeout o Docta caída marcaban el bono como "sin cronograma" **para
+siempre**, y la pantalla decía que era esperable. Ahora solo una respuesta
+válida y vacía (o un 404) va a la caché negativa; una falla de la fuente
+levanta `FuenteNoDisponible` adentro del módulo, no marca nada y se reintenta
+la próxima vez.
+
 ---
 
 ## Resguardos (los que el repo exige para toda fuente externa)
@@ -48,6 +56,7 @@ from __future__ import annotations
 
 import json
 import os
+import sqlite3
 import time
 import urllib.error
 import urllib.parse
@@ -55,8 +64,11 @@ import urllib.request
 from dataclasses import dataclass
 from datetime import date, datetime
 
+from core.market_data._errores import ERRORES_DE_RED as _ERRORES_DE_RED
+from core.market_data._errores import FuenteNoDisponible
+
 __all__ = [
-    "obtener_token_detallado",
+    "obtener_token_detallado", "FuenteNoDisponible",
     "BASE", "Flujo", "Cronograma", "hay_credenciales", "obtener_token",
     "buscar_simbolo", "traer_cronograma", "reset_token",
     "guardar_cronograma", "leer_cronograma", "marcar_sin_cronograma",
@@ -224,16 +236,29 @@ def obtener_token(fetch=None, forzar: bool = False) -> str | None:
     return obtener_token_detallado(fetch, forzar)[0]
 
 
-def _get(url: str, fetch=None) -> dict | None:
-    """GET autenticado. Devuelve el JSON o ``None``. Nunca lanza."""
-    token = obtener_token(fetch)
+def _get_estricto(url: str, fetch=None) -> dict | None:
+    """GET autenticado. El JSON, ``None`` si la fuente dice que **no existe**
+    (HTTP 404), o `FuenteNoDisponible` si **no contestó**."""
+    token, motivo = obtener_token_detallado(fetch)
     if not token:
-        return None
+        raise FuenteNoDisponible(f"sin token: {motivo}")
     try:
         crudo = (fetch or _fetch_http)(
             url, None, {"Authorization": f"Bearer {token}"})
         return json.loads(crudo) if isinstance(crudo, str) else crudo
-    except Exception:
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            return None
+        raise FuenteNoDisponible(f"HTTP {exc.code} {exc.reason}") from exc
+    except _ERRORES_DE_RED as exc:
+        raise FuenteNoDisponible(f"{type(exc).__name__}: {exc}") from exc
+
+
+def _get(url: str, fetch=None) -> dict | None:
+    """GET autenticado. Devuelve el JSON o ``None``. Nunca lanza por la red."""
+    try:
+        return _get_estricto(url, fetch)
+    except FuenteNoDisponible:
         return None
 
 
@@ -284,12 +309,25 @@ def traer_cronograma(ticker: str, nominales: float = 100.0,
     `nominales` escala los importes. Se pide **100** por defecto y se escala
     después: así el mismo cronograma cacheado sirve aunque cambie la tenencia,
     sin gastar otra consulta.
+
+    Nunca lanza: si la fuente no contesta también devuelve ``None``. Para
+    distinguir los dos casos, `refrescar_cronogramas` usa `_traer`.
     """
+    try:
+        return _traer(ticker, nominales, fetch)
+    except FuenteNoDisponible:
+        return None
+
+
+def _traer(ticker: str, nominales: float = 100.0,
+           fetch=None) -> Cronograma | None:
+    """Como `traer_cronograma`, pero una falla de la fuente **lanza**
+    `FuenteNoDisponible` en vez de parecerse a "no lo tiene"."""
     t = str(ticker or "").strip().upper()
     if not t or t.startswith("#"):
         return None
 
-    datos = _get(
+    datos = _get_estricto(
         URL_CASHFLOW.format(simbolo=urllib.parse.quote(t),
                             nominales=int(nominales)),
         fetch,
@@ -393,7 +431,9 @@ def leer_cronograma(conn, ticker: str,
             "SELECT fecha_pago, capital, interes, total, residual "
             "FROM cartera_cronogramas WHERE ticker = ? ORDER BY fecha_pago",
             (t,)).fetchall()
-    except Exception:
+    except sqlite3.OperationalError:
+        # Base sin M15 (tests con esquema recortado). Solo el error de SQLite:
+        # un error de programación tiene que verse, no parecer "sin dato".
         return None
 
     base = float(meta["nominales_base"] or 100.0) or 100.0
@@ -425,22 +465,31 @@ def ya_consultado(conn, ticker: str) -> bool:
             "SELECT 1 FROM cartera_cronogramas_meta WHERE ticker = ?",
             (str(ticker).strip().upper(),)).fetchone()
         return fila is not None
-    except Exception:
+    except sqlite3.OperationalError:          # base sin M15
         return False
 
 
-def refrescar_cronogramas(conn, tickers, fetch=None,
-                          forzar: bool = False) -> tuple[int, list[str]]:
+def refrescar_cronogramas(conn, tickers, fetch=None, forzar: bool = False
+                          ) -> tuple[int, list[str], list[str]]:
     """Baja los cronogramas que falten y los cachea.
 
     **No vuelve a pedir lo que ya preguntó** salvo `forzar=True`: con 15
     consultas por día, reintentar en cada carga vaciaría la cuota en minutos.
 
-    Devuelve ``(resueltos, sin_datos)``. Nunca lanza: sin credenciales o con la
-    fuente caída, la cartera se muestra igual con lo cacheado.
+    Devuelve ``(resueltos, sin_datos, no_consultados)``:
+
+    * `sin_datos` — la fuente contestó que no lo tiene: va a la caché negativa.
+    * `no_consultados` — la fuente **no contestó** (sin token, caída, cuota
+      agotada). **No se marcan**: se reintentan la próxima vez. Al primer
+      fallo se corta, porque con la cuota agotada los que siguen fallarían
+      igual.
+
+    Nunca lanza por la red: sin credenciales o con la fuente caída, la cartera
+    se muestra igual con lo cacheado.
     """
-    resueltos, faltan = 0, []
-    for t in {str(x).strip().upper() for x in tickers if x}:
+    resueltos, faltan, no_consultados = 0, [], []
+    pendientes = sorted({str(x).strip().upper() for x in tickers if x})
+    for i, t in enumerate(pendientes):
         if not forzar and ya_consultado(conn, t):
             if leer_cronograma(conn, t) is None:
                 faltan.append(t)
@@ -452,11 +501,16 @@ def refrescar_cronogramas(conn, tickers, fetch=None,
             faltan.append(t)
             continue
 
-        cron = traer_cronograma(t, fetch=fetch)
+        try:
+            cron = _traer(t, fetch=fetch)
+        except FuenteNoDisponible:
+            no_consultados.extend(x for x in pendientes[i:]
+                                  if not x.startswith("#"))
+            break
         if cron is None or not cron.flujos:
             marcar_sin_cronograma(conn, t)
             faltan.append(t)
             continue
         guardar_cronograma(conn, cron)
         resueltos += 1
-    return resueltos, faltan
+    return resueltos, faltan, no_consultados

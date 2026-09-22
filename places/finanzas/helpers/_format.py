@@ -54,13 +54,3 @@ def fmt_usd(value: float | None) -> str:
     return f"USD {value:,.2f}"
 
 
-def fmt_pct(value: float | None) -> str:
-    if value is None or _is_nan(value):
-        return "—"
-    return f"{value * 100:.2f}%"
-
-
-def fmt_pct_signed(value: float | None) -> str:
-    if value is None or _is_nan(value):
-        return "—"
-    return f"{value * 100:+.1f}%"

@@ -41,7 +41,6 @@ Este módulo es puro (sin DB, sin red): recibe filas, devuelve
 from __future__ import annotations
 
 import hashlib
-import re
 import unicodedata
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
@@ -217,8 +216,17 @@ def _parse_fecha(valor) -> date | None:
     return None
 
 
-def _parse_numero(valor) -> float:
-    """Número desde float/int o string con formato argentino ('1.234,56')."""
+def _parse_numero(valor, advertencias: list[str] | None = None,
+                  campo: str = "número") -> float:
+    """Número desde float/int o string con formato argentino ('1.234,56').
+
+    Si trae los dos separadores y el **último es el punto** (``1,234.56``), es
+    formato de EE.UU.: las comas son miles. Hasta el 22/9/2026 se leía como
+    ``1,23456`` — mil veces menos, sin error (trampa 6).
+
+    Un texto ilegible da 0.0 **y se anota en `advertencias`**: un cero
+    silencioso no se distingue de un cero real.
+    """
     if valor is None or valor == "":
         return 0.0
     if isinstance(valor, (int, float)) and not isinstance(valor, bool):
@@ -226,11 +234,15 @@ def _parse_numero(valor) -> float:
     texto = str(valor).strip().replace("$", "").replace(" ", "")
     if not texto:
         return 0.0
-    if "," in texto:
-        texto = texto.replace(".", "").replace(",", ".")
+    if "," in texto and "." in texto and texto.rfind(".") > texto.rfind(","):
+        texto = texto.replace(",", "")                      # 1,234.56
+    elif "," in texto:
+        texto = texto.replace(".", "").replace(",", ".")    # 1.234,56
     try:
         return float(texto)
     except ValueError:
+        if advertencias is not None:
+            advertencias.append(f"{campo} ilegible: {str(valor).strip()!r} → 0")
         return 0.0
 
 
@@ -335,12 +347,12 @@ def _parse_fila(celdas: list, idx: dict[str, Instrumento]) -> Movimiento | None:
         return None
     f_liq = _parse_fecha(campos[1])
     descripcion = str(campos[2] or "").strip()
-    monto = _parse_numero(campos[3])
-    cantidad = _parse_numero(campos[4])
-    precio = _parse_numero(campos[5])
+    advertencias: list[str] = []
+    monto = _parse_numero(campos[3], advertencias, "Monto")
+    cantidad = _parse_numero(campos[4], advertencias, "Cantidad")
+    precio = _parse_numero(campos[5], advertencias, "Precio")
     moneda_decl = str(campos[6]).strip().upper() if campos[6] else None
 
-    advertencias: list[str] = []
     if formato == "viejo":
         categoria = MAPA_OPERACION.get(_norm(operacion), "OTROS")
         if categoria == "OTROS" and _norm(operacion) not in MAPA_OPERACION:

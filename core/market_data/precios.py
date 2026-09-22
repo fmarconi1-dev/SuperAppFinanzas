@@ -23,6 +23,8 @@ from __future__ import annotations
 import json
 from datetime import date, datetime
 
+from core.market_data._errores import ERRORES_DE_RED
+
 __all__ = [
     "PANELES_ARG",
     "URL_YAHOO",
@@ -83,9 +85,13 @@ def precios_arg(fetch=None, paneles=PANELES_ARG) -> dict[str, float]:
     for panel in paneles:
         try:
             datos = _cargar(f(_URL_DATA912.format(panel=panel)))
-        except Exception:
-            continue
-        for fila in datos or []:
+        except ERRORES_DE_RED:
+            continue        # panel caído; un bug nuestro, en cambio, se ve
+        if not isinstance(datos, list):
+            continue        # respuesta con otra forma (p. ej. un error en JSON)
+        for fila in datos:
+            if not isinstance(fila, dict):
+                continue
             symbol = str(fila.get("symbol", "")).strip()
             if not symbol:
                 continue
@@ -111,7 +117,9 @@ def precio_yahoo(symbol: str, fetch=None) -> float | None:
         meta = datos["chart"]["result"][0]["meta"]
         precio = meta.get("regularMarketPrice")
         return float(precio) if isinstance(precio, (int, float)) else None
-    except Exception:
+    except ERRORES_DE_RED + (KeyError, IndexError, TypeError, AttributeError):
+        # Fuente caída o respuesta con otra forma (`chart.result: null` es un
+        # símbolo inexistente). Un bug fuera de esta lectura se ve.
         return None
 
 

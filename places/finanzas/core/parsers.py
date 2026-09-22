@@ -28,7 +28,21 @@ CSV_SEPARATOR = ";"
 
 
 def parse_currency(raw: object) -> float:
-    """Convierte un string con formato de moneda en español a float.
+    """Como `parse_currency_estricto`, pero un importe ilegible da ``0.0``.
+
+    ⚠️ El ``0.0`` de un ilegible es indistinguible de un cero real. Quien
+    importa datos tiene que usar `parse_currency_estricto` y **avisar**: hasta
+    el 22/9/2026 el comentario de acá decía que "la capa de ingest registra el
+    incidente", y el ingest no registraba nada — un ``1.5OO`` entraba como un
+    gasto de $0 sin rastro.
+    """
+    valor = parse_currency_estricto(raw)
+    return 0.0 if valor is None else valor
+
+
+def parse_currency_estricto(raw: object) -> Optional[float]:
+    """Convierte un string con formato de moneda en español a float, o
+    ``None`` si **no se puede leer** (que no es lo mismo que cero).
 
     Casos cubiertos (verificados contra el CSV real del usuario):
 
@@ -78,10 +92,9 @@ def parse_currency(raw: object) -> float:
     try:
         return sign * float(s)
     except ValueError:
-        # No pudimos parsear: devolvemos cero y dejamos que la capa de ingest
-        # registre el incidente. Nunca silenciamos retornando None porque
-        # corromper Caja es peor que mostrar un cero en una fila puntual.
-        return 0.0
+        # Ilegible: ``None``, no cero. `parse_currency` lo convierte en 0.0
+        # para no corromper Caja con un hueco; el ingest avisa cuál fue.
+        return None
 
 
 def parse_date(raw: object) -> Optional[date]:

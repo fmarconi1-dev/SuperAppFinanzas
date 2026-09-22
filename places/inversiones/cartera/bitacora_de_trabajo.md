@@ -4,8 +4,22 @@
 > Formato de cada entrada: `fecha · autor (Claude+modelo / Franco) · qué se hizo · por qué · estado`.
 > Regla: no cerrar una sesión sin dejar la entrada acá y actualizar `/ESTADO.md` en la raíz.
 
-<!-- ultima_actualizacion: 2026-07-23 -->
+<!-- ultima_actualizacion: 2026-09-22 -->
 
+
+## 2026-09-22 — B1 (la pantalla se caía con una tasa devengada) y la caché negativa
+**Autor:** Claude (Opus 5.5), con Franco.
+
+- **B1.** `view._resolver` leía `fecha_val`, que `render()` asignaba **después** de llamar a `valuar()`. Con un pagaré con tasa cargada, `NameError` y pantalla caída; y como no había forma de quitar la tasa desde la app, caída para siempre. Latente desde M11 (29/7): en producción ninguna tasa estaba cargada (backup del 26/8). Arreglado moviendo la asignación arriba; botón **Quitar** en el expander de tasas.
+- **Precedencia (Franco):** el precio del broker, con la foto fresca, gana sobre la tasa devengada. Quedó override → broker → devengado → cripto → mercado → última tenencia. Hoy no mueve ningún número (no hay tasas cargadas).
+- **Ajustes:** las cuatro lecturas con `except Exception` independientes (posiciones, capital aportado, flujos de la TIR, ledger) pasan a una sola (`posiciones._ajustes_o_vacio`) que solo tolera una base sin M13.
+- **Renta fija:** el panel distingue "Docta no lo tiene" de "todavía no se pudo bajar", y el aviso del botón de refresco ya no se pierde en el `st.rerun()`.
+- **Parser:** `1,234.56` se lee bien y los ilegibles quedan en las advertencias del movimiento.
+- **Split, segunda pasada:** 38 imports muertos fuera de `view.py`, `_procesar_carga` borrado; `test_db_concurrencia` ahora revisa también `paneles/`.
+- **Red:** `tests/test_smoke_pantallas.py` abre la pantalla con un pagaré con tasa y prueba el botón Quitar; con B1 reintroducido, falla con el error exacto.
+- **Gate:** huella de posiciones, capital, efectivo, flujos y realizado sobre una copia del backup de producción: idéntica antes y después.
+
+---
 
 ## 2026-08-27 — Vencimientos desde el cronograma + benchmark money-weighted
 **Autor:** Claude (Opus 5), con Franco.

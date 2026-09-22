@@ -18,7 +18,10 @@ Sin red en tests: todas las funciones aceptan un ``fetch`` inyectable
 from __future__ import annotations
 
 import json
+import sqlite3
 from datetime import date, datetime, timedelta
+
+from core.market_data._errores import ERRORES_DE_RED
 
 __all__ = [
     "URL_MEP",
@@ -146,14 +149,16 @@ def serie_mep_con_fallback(conn, fetch=None) -> tuple[dict[str, float], str]:
     Devuelve ``(serie, origen)`` con origen ``"proveedor"`` | ``"cache"``.
     Los overrides manuales siempre pisan al proveedor.
     """
+    # Solo la fuente caída, una respuesta con otra forma o la base ocupada caen
+    # a la caché. Un bug nuestro se ve (trampa 36; antes `except Exception`).
     try:
         serie = obtener_serie_mep(fetch)
-        if serie:
-            guardar_serie_en_cache(conn, serie)
-            origen = "proveedor"
-        else:
+        if not serie:
             raise ValueError("serie vacía")
-    except Exception:
+        guardar_serie_en_cache(conn, serie)
+        origen = "proveedor"
+    except ERRORES_DE_RED + (KeyError, TypeError, AttributeError,
+                             sqlite3.OperationalError):
         serie, origen = {}, "cache"
     # La caché ya incluye lo recién guardado + los overrides manuales.
     cacheada = cargar_serie_desde_cache(conn)

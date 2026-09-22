@@ -1,8 +1,8 @@
 # core/
 
-<!-- huella: 699e421651b7 -->
+<!-- huella: 6b757f194d66 -->
 
-Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M15 + backups), workspaces del grupo familiar (D2) y su UI. Auth y theme viven en subcarpetas propias.
+Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M15 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth y theme viven en subcarpetas propias.
 
 ## Buscar acá si
 
@@ -11,10 +11,12 @@ Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M15 + backups), w
 - el badge Personal/Familiar o el switcher del sidebar se comportan raro
 - un import circular entre core y core/auth → **cortado** el 27/8/2026 con `context.py`
 - quién es el usuario o el workspace activo, desde lógica sin Streamlit → `context.py`
+- "reinicié la app y se deshizo lo que cambié" (una categoría reclasificada, una subcategoría vaciada) → reparaciones únicas de `db.py` (`_NIVEL_REPARACIONES`, `PRAGMA user_version`)
+- tolerar una base sin cierta migración → `es_tabla_faltante()` en `db.py` (y nada más ancho)
 
 ## Qué hay acá
 
-- `db.py` — conexión, schema completo, las 15 migraciones y el backup automático con retención. El hub del repo: lo usan 35 archivos.
+- `db.py` — conexión, schema completo, las 15 migraciones, las reparaciones únicas (M3, M7, M8.5), `es_tabla_faltante()` y el backup automático con retención. El hub del repo.
 - `workspaces.py` — lógica del grupo familiar D2 (crear/unirse/salir, código hasheado SHA-256, multi-owner, resolver el activo).
 - `workspaces_ui.py` — badge de modo, switcher del sidebar, activación desde la sesión.
 - `context.py` — los contextvars de usuario y workspace activos. **No importa nada del proyecto**, y esa es su razón de ser.
@@ -26,7 +28,10 @@ Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M15 + backups), w
 - Los guards de migración importan: M4 re-disparada post-M8 desvinculó workspaces en producción (incidente del 17/7, reparado con M8.5).
 - Hay dos imports **diferidos** hacia `core.workspaces` dentro de `db.py` para no cerrar el ciclo con `core/auth`.
 - `context.py` **no puede importar nada de `core/`**. Si lo hace, vuelve el ciclo que vino a cortar. Hay un test que lo verifica (`tests/test_context.py`).
-- `core/auth/current_user.py` y `current_workspace.py` son **fachadas**: re-exportan los objetos de `context.py`, no copias. Definir un ContextVar propio en cualquiera de los dos haría que `set()` por una puerta y `get()` por la otra devolvieran cosas distintas, sin error visible.
+- `context.py` es la **única** fuente de los contextvars. Las fachadas `core/auth/current_user.py` y `current_workspace.py` se borraron el 22/9/2026 (nadie las usaba en producción); `tests/test_context.py` falla si aparece otro `ContextVar` en `core/` o `places/`.
+- ⚠️ **Una reparación de datos corre una vez, no en cada arranque** (22/9/2026). M3, M7 y M8.5 son `UPDATE`/`DELETE` de filas y corrían en cada deploy y cada vez que Fly despertaba la máquina: M3 volvía a pasar "Compra Divisa" a Inversión aunque el usuario la reclasificara, M7 rellenaba subcategorías vaciadas a propósito y M8.5 **borraba** la fila buena de un espacio si aparecía una huérfana. Ahora van detrás de `PRAGMA user_version` (`_NIVEL_REPARACIONES = 1`), marcado dentro de la misma transacción. **Toda migración nueva que toque filas va detrás de esa marca** (subí el nivel). Tests: `tests/test_db_reparaciones_unicas.py`.
+- M5 tenía el mismo guard incompleto que M4 el 17/7: su rebuild no conoce `workspace_id`. Desde el 22/9 exige además `not _es_post_d2(tabla)`.
+- **`except Exception` está prohibido para "la base no tiene la migración"** (trampa 36): se usa `es_tabla_faltante(exc)` y todo lo demás se relanza. Antes, un error cualquiera sacaba los ajustes de la cartera sin avisar.
 
 ## Estado
 

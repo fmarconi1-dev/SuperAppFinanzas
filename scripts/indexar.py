@@ -41,6 +41,7 @@ IGNORAR_DIRS = {
 IGNORAR_ARCHIVOS = {"*.pyc", "*.pyo", "*.so", "*.dylib", "*.dll", "*.class", "*.o",
                     "*.a", "*.zip", "*.tar.gz", "*.png", "*.jpg", "*.jpeg", "*.gif",
                     "*.pdf", "*.xlsx", "*.xls", "*.db", "*.sqlite", "*.sqlite3",
+                    "*.db-shm", "*.db-wal", "*.db-journal",
                     "*.parquet", "*.lock", "*.min.js", "*.map"}
 LENGUAJES = {
     ".py": "python", ".pyi": "python", ".js": "javascript", ".mjs": "javascript",
@@ -104,6 +105,12 @@ def cargar_gitignore(raiz):
 
 
 def ignorado(rel, pats):
+    # ⚠️ En Windows `rel` llega con `\`; los patrones del .gitignore usan `/`.
+    # Sin normalizar, `rel.startswith("backups-remotos/")` nunca era cierto y
+    # el indexador leía las carpetas ignoradas: el MAPA commiteado listaba
+    # `Borrar/` y sacaba "fuentes externas" de los `.db-shm` de los backups de
+    # producción (hasta el 22/9/2026).
+    rel = str(rel).replace("\\", "/")
     partes = Path(rel).parts
     if any(p in IGNORAR_DIRS for p in partes):
         return True

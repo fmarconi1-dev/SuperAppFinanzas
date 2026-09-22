@@ -28,7 +28,7 @@ def render() -> None:
 
     with tab_vivo:
         st.info(
-            "**Llega en Fase 5.** Cotizaciones del mercado argentino en vivo. "
+            "**Llega en Fase 6.** Cotizaciones del mercado argentino en vivo. "
             "Depende de validar la fuente de datos (candidatas ya identificadas: "
             "BCRA, data912, BYMA, MAE).",
             icon="🚧",

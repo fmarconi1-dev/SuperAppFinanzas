@@ -22,8 +22,14 @@ al nombre del fondo — nunca se inventa un sector.
 * **Override manual** (`es_override = 1`): gana sobre cualquier proveedor.
   Cuando el criterio de Franco no coincida con el estándar, manda él.
 * **`fetch` inyectable**: los tests corren sin red.
-* **Nunca lanza**: si la búsqueda falla, devuelve `None` y el ticker queda en
-  "Sin dato". La composición de la cartera no puede romperse por esto.
+* **Nunca lanza por la red**: si la búsqueda falla, devuelve `None` y el
+  ticker queda en "Sin dato". La composición de la cartera no puede romperse
+  por esto.
+* ⚠️ **Pero "Yahoo no contestó" no es "Yahoo no lo conoce"** (trampa 16).
+  Hasta el 22/9/2026 un rate-limit de Yahoo —frecuente desde las IPs de un
+  cloud como Fly— dejaba el ticker en la caché negativa **para siempre**, y
+  esto corre en cada carga de la pantalla. Ahora `refrescar_sectores` solo
+  cachea como `sin_dato` una respuesta válida sin coincidencia.
 
 Decisión tomada con Franco (2026-07-30): ante discrepancia entre Yahoo y su
 criterio, **manda Yahoo** — así la cartera queda comparable contra cualquier
@@ -39,6 +45,8 @@ import unicodedata
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
+
+from core.market_data._errores import ERRORES_DE_RED, FuenteNoDisponible
 
 __all__ = [
     "URL_BUSQUEDA", "ETIQUETAS_ETF", "FichaTicker",
@@ -132,24 +140,40 @@ def buscar_ficha(simbolo: str, fetch=None) -> FichaTicker | None:
     Solo acepta la coincidencia **exacta** de símbolo: la búsqueda devuelve
     parecidos (buscando ``URA`` aparece también ``UROY``) y quedarse con el
     primero le pondría a un ETF de uranio el sector de una minera.
+
+    Nunca lanza por la red. Para distinguir "no está" de "no contestó", ver
+    `_buscar_ficha`.
     """
+    try:
+        return _buscar_ficha(simbolo, fetch)
+    except FuenteNoDisponible:
+        return None
+
+
+def _buscar_ficha(simbolo: str, fetch=None) -> FichaTicker | None:
+    """Como `buscar_ficha`, pero si Yahoo no contesta **lanza**
+    `FuenteNoDisponible` en vez de devolver ``None`` ("no está")."""
     try:
         crudo = (fetch or _fetch_http)(
             URL_BUSQUEDA.format(q=urllib.parse.quote(simbolo)))
         datos = json.loads(crudo) if isinstance(crudo, str) else crudo
-        for q in datos.get("quotes") or []:
-            if str(q.get("symbol", "")).upper() != simbolo.upper():
-                continue
-            return FichaTicker(
-                ticker=simbolo.upper(),
-                sector=q.get("sector") or None,
-                industria=q.get("industry") or None,
-                tipo=q.get("quoteType") or None,
-                nombre=q.get("longname") or q.get("shortname") or None,
-                fuente="yahoo",
-            )
-    except Exception:
-        return None
+    except ERRORES_DE_RED as exc:
+        raise FuenteNoDisponible(f"{type(exc).__name__}: {exc}") from exc
+    if not isinstance(datos, dict):
+        raise FuenteNoDisponible(f"respuesta inesperada: {type(datos).__name__}")
+    for q in datos.get("quotes") or []:
+        if not isinstance(q, dict):
+            continue
+        if str(q.get("symbol", "")).upper() != simbolo.upper():
+            continue
+        return FichaTicker(
+            ticker=simbolo.upper(),
+            sector=q.get("sector") or None,
+            industria=q.get("industry") or None,
+            tipo=q.get("quoteType") or None,
+            nombre=q.get("longname") or q.get("shortname") or None,
+            fuente="yahoo",
+        )
     return None
 
 
@@ -161,12 +185,22 @@ def resolver_ficha(ticker: str, fetch=None) -> FichaTicker | None:
     sufijo del mercado local: ``TGNO4`` → ``TGNO4.BA``.
 
     A los ETF, que no traen sector, se les arma la etiqueta desde el nombre.
+
+    Nunca lanza por la red: si Yahoo no contesta, devuelve ``None``.
     """
+    try:
+        return _resolver_ficha(ticker, fetch)
+    except FuenteNoDisponible:
+        return None
+
+
+def _resolver_ficha(ticker: str, fetch=None) -> FichaTicker | None:
+    """Como `resolver_ficha`, pero lanza `FuenteNoDisponible`."""
     base = (ticker or "").strip().upper()
     if not base or base.startswith("#"):
         return None            # pagarés y cheques: no son una empresa
     for simbolo in (base, f"{base}.BA"):
-        ficha = buscar_ficha(simbolo, fetch)
+        ficha = _buscar_ficha(simbolo, fetch)
         if ficha is None:
             continue
         if ficha.es_etf and not ficha.sector:
@@ -249,12 +283,18 @@ def refrescar_sectores(conn, tickers, fetch=None,
     carga de la pantalla, para siempre. Con `forzar=True` se reintenta todo
     (para el botón de refresco manual).
 
+    **Si Yahoo no contesta, no se cachea nada** y se corta la vuelta: con un
+    rate-limit los que siguen fallarían igual. Se reintentan en la próxima
+    carga (que el `st.cache_data` de la vista espacia).
+
     Devuelve ``(resueltos, sin_resolver)``. No hace commit: lo decide el
-    llamador. Nunca lanza — un ticker que no resuelve queda en "Sin dato".
+    llamador. Nunca lanza por la red — un ticker que no resuelve queda en
+    "Sin dato".
     """
     cache = leer_sectores_cache(conn)
     resueltos, faltan = 0, []
-    for t in {str(x).strip().upper() for x in tickers if x}:
+    pendientes = sorted({str(x).strip().upper() for x in tickers if x})
+    for i, t in enumerate(pendientes):
         anterior = cache.get(t)
         if not forzar and anterior is not None:
             # Ya se consultó: tenga sector o no. Los overrides nunca se tocan.
@@ -264,7 +304,12 @@ def refrescar_sectores(conn, tickers, fetch=None,
             continue
         if anterior is not None and anterior.fuente == "override":
             continue
-        ficha = resolver_ficha(t, fetch)
+        try:
+            ficha = _resolver_ficha(t, fetch)
+        except FuenteNoDisponible:
+            faltan.extend(x for x in pendientes[i:]
+                          if not (cache.get(x) and cache[x].sector))
+            break
         if ficha is not None and ficha.sector:
             guardar_ficha_en_cache(conn, ficha)
             resueltos += 1

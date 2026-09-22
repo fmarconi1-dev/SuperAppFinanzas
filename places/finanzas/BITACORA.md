@@ -1,6 +1,6 @@
 # places/finanzas/
 
-<!-- huella: 815a1a53f088 -->
+<!-- huella: 68d408bbce8d -->
 
 Resumen: Lugar A — Finanzas Personales (ex Mis-Finanzas-App / Radar Financiero): home con onboarding y las 5 pestañas. La lógica vive en `core/` local, las pantallas en `views/`.
 
@@ -21,7 +21,8 @@ Resumen: Lugar A — Finanzas Personales (ex Mis-Finanzas-App / Radar Financiero
 
 ## Estado
 
-- **Funciona:** en producción desde Fase 1; Fase 4 (pulido) en curso.
+- **Funciona:** en producción desde Fase 1. La Fase 4 cerró (respaldo + CI); la **Fase 5 (ADR-0006)** reescribe cómo se captura el gasto en este lugar — aprobada, sin arrancar.
+- **Smoke test:** `tests/test_smoke_pantallas.py` abre `home.render()` con las 5 pestañas y datos sintéticos (22/9/2026).
 
 ## Proximo paso
 

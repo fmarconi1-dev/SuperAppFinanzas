@@ -1,5 +1,7 @@
 # Plan de Trabajo — Superapp de Finanzas
 
+> 📜 **Documento histórico (9/7/2026).** Es el plan con el que arrancó el proyecto y se conserva tal cual. La numeración de fases y el estado vigentes están en `ROADMAP.md` y `ESTADO.md` (p. ej., acá "Fase 5" es Mercado en vivo; hoy es la Fase 6).
+
 > Documento maestro. Pensado para arrancar la ejecución en otro chat (Fable 5). Junto con `Premortem - Superapp Finanzas.html` forma la base del proyecto.
 > **Fecha:** 9 de julio de 2026 · **Autor:** Franco (fmarconi1-dev)
 

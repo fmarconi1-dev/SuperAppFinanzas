@@ -55,46 +55,6 @@ def _empty_state() -> None:
     )
 
 
-def _procesar_carga(archivo, user_id: int) -> None:
-    """Importa el export subido: instrumentos → movimientos → TC congelado."""
-    with connect() as conn:
-        instrumentos = _instrumentos_de_db(conn, user_id)
-        if not instrumentos:
-            st.warning(
-                "No hay instrumentos configurados todavía: los tickers no se "
-                "van a poder mapear a su moneda y categoría. Cargá primero el "
-                "mapa de instrumentos desde tu Excel (hoja Config).",
-                icon=":material/warning:",
-            )
-        movimientos = parse_archivo_excel(archivo, instrumentos=instrumentos)
-        if not movimientos:
-            st.error(
-                "El archivo no tiene movimientos reconocibles. ¿Es el export "
-                "de movimientos del broker?",
-                icon=":material/error:",
-            )
-            return
-        insertados, saltados = importar_movimientos(conn, movimientos, user_id)
-        serie, _ = serie_mep_con_fallback(conn)
-        congelados, sin_tc = congelar_tc_mep(conn, serie, user_id)
-
-    st.success(
-        f"Listo: {insertados} movimientos nuevos"
-        + (f" · {saltados} ya estaban (no se duplicaron)" if saltados else "")
-        + (f" · TC del día congelado en {congelados} filas" if congelados else ""),
-        icon=":material/check_circle:",
-    )
-    if sin_tc:
-        st.info(
-            f"{len(sin_tc)} fecha(s) sin cotización de MEP: "
-            f"{', '.join(sin_tc[:3])}{'…' if len(sin_tc) > 3 else ''}. "
-            "Se pueden cargar a mano más adelante.",
-            icon=":material/info:",
-        )
-    _precios_cacheados.clear()
-    _mep_actual.clear()
-
-
 def _importar_todo(archivos, user_id: int) -> None:
     """Carga completa en un paso: detecta cada archivo y lo procesa en orden.
 

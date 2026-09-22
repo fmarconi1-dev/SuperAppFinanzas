@@ -42,26 +42,16 @@ código, no lo cambió**: los paneles se reimportan con el mismo nombre, así qu
 from __future__ import annotations
 
 import os
-from datetime import date
 
 import pandas as pd
 import streamlit as st
 
-from core.db import backup_db, connect
+from core.db import connect
 from core.market_data import (
-    guardar_precio_en_cache,
     leer_precio_cache,
     leer_precio_mas_reciente,
-    precio_yahoo,
-    precios_arg,
     resolver_precio,
     set_override_precio,
-)
-from core.market_data.mep import mep_para_fecha, serie_mep_con_fallback
-from core.market_data.sectores import (
-    refrescar_sectores,
-    sectores_para,
-    set_override_sector,
 )
 from places.inversiones.cartera.ingest import (
     TIPO_DESCONOCIDO,
@@ -69,13 +59,9 @@ from places.inversiones.cartera.ingest import (
     TIPO_EXPORT_APP,
     TIPO_MOVIMIENTOS,
     TIPO_TENENCIA,
-    cargar_instrumentos_en_db,
-    congelar_tc_mep,
     corregir_movimiento,
     detectar_tipo,
-    importar_movimientos,
     movimientos_de_ticker,
-    remapear_tickers_base,
 )
 from places.inversiones.cartera.kpis import (
     completar_patrimonio,
@@ -83,23 +69,8 @@ from places.inversiones.cartera.kpis import (
     precio_devengado,
     valuar,
 )
-from places.inversiones.cartera.analisis import (
-    SIN_DATO,
-    por_emisor,
-    por_pais,
-    por_sector,
-    por_tipo_de_renta,
-    tipo_de_renta,
-)
-from places.inversiones.cartera import ajustes as mod_ajustes
-from places.inversiones.cartera import renta_fija as mod_rf
-from places.inversiones.cartera import vencimientos as mod_venc
-from places.inversiones.cartera import benchmark as mod_bench
-from core.market_data import indices as mod_indices
-from core.market_data import cronogramas as mod_cron
 from places.inversiones.cartera.export import exportar_cartera
 from places.inversiones.cartera.ledger import eventos_desde_db, recorrer
-from places.inversiones.cartera.parser import Instrumento, parse_archivo_excel
 from places.inversiones.cartera.rendimientos import (
     cauciones_desde_db,
     flujos_caja_desde_db,
@@ -114,8 +85,6 @@ from places.inversiones.cartera.posiciones import (
 )
 from places.inversiones.cartera.tenencias import (
     comparar_con_movimientos,
-    guardar_foto,
-    parse_tenencias,
     set_tenencia_manual,
     tenencias_manuales,
     ultima_foto,
@@ -124,7 +93,7 @@ from places.inversiones.cartera.tenencias import (
 # --- Los paneles ------------------------------------------------------------
 # Cada uno vive en su archivo desde el split del 27/8/2026. Se importan con el
 # MISMO nombre que tenían acá adentro, así `render()` no cambió una línea.
-from places.inversiones.cartera.paneles._comun import _TTL_PRECIOS, _fmt, _kpi_card
+from places.inversiones.cartera.paneles._comun import _fmt, _kpi_card
 from places.inversiones.cartera.paneles._datos import (
     _aplicar_tenencia,
     _instrumentos_de_db,
@@ -139,7 +108,6 @@ from places.inversiones.cartera.paneles.composicion import _composicion
 from places.inversiones.cartera.paneles.importar import (
     _empty_state,
     _importar_todo,
-    _procesar_carga,
 )
 from places.inversiones.cartera.paneles.mercado import _benchmark
 from places.inversiones.cartera.paneles.operaciones import _operaciones_cerradas
@@ -277,6 +245,14 @@ def render(user_id: int | None = None) -> None:
         {t.ticker: t.precio for t in foto.posiciones if t.precio}
         if foto is not None and foto_fresca else {}
     )
+    # ⚠️ Antes de `_resolver`, no después: `_resolver` la lee cuando `valuar()`
+    # lo llama, y hasta el 22/9/2026 se asignaba recién abajo. Con una tasa
+    # devengada cargada, la pantalla entera moría con `NameError` (una variable
+    # de la función que encierra, no global: `test_nombres_definidos` no la ve).
+    fecha_val = (
+        foto.fecha_valuacion if foto is not None
+        else pd.Timestamp.today().date()
+    )
 
     def _resolver(ticker: str, inst) -> tuple[float | None, str]:
         with connect() as conn:
@@ -284,11 +260,18 @@ def render(user_id: int | None = None) -> None:
             manual = leer_precio_cache(conn, ticker)
             if manual is not None and manual[1]:
                 return manual[0], "override"
-            # 2) Instrumentos sin mercado cuyo precio el broker NO informa:
-            #    se devenga la tasa pactada. Solo aplica si se cargó una tasa.
-            #    OJO: si el broker informa precio, ESE manda — un pagaré se
-            #    compra a descuento y su precio converge al nominal, así que el
-            #    valor del custodio ya refleja la ganancia devengada.
+            # 2) Precio del broker: cuando hay tenencia importada y fresca, es
+            #    el que usa la valuación oficial de esa fecha. Así los totales
+            #    de la app coinciden con lo que muestra el broker, en vez de
+            #    diferir por unos pesos según el momento del feed en vivo.
+            #    **Manda también sobre la tasa devengada** (decisión de Franco,
+            #    22/9/2026): un pagaré se compra a descuento y su precio
+            #    converge al nominal, así que el valor del custodio ya refleja
+            #    lo devengado.
+            if ticker in precios_broker:
+                return precios_broker[ticker], "broker"
+            # 3) Instrumentos sin mercado sin precio del broker (o con la foto
+            #    caducada): se devenga la tasa pactada, si se cargó una.
             tasa = tasas_devengadas.get(ticker)
             if tasa:
                 p = posiciones.get(ticker)
@@ -300,25 +283,19 @@ def render(user_id: int | None = None) -> None:
                     )
                     if pd_:
                         return pd_, "devengado"
-            # 3) Precio del broker: cuando hay tenencia importada, es el que
-            #    usa la valuación oficial de esa fecha. Así los totales de la
-            #    app coinciden con lo que muestra el broker, en vez de diferir
-            #    por unos pesos según el momento del feed en vivo.
-            if ticker in precios_broker:
-                return precios_broker[ticker], "broker"
-            # 3) Cripto: no cotiza en el mercado local → yahoo (USD) a ARS.
+            # 4) Cripto: no cotiza en el mercado local → yahoo (USD) a ARS.
             if inst is not None and inst.categoria_activo == "Cripto":
                 btc = _precio_btc_usd()
                 if btc and mep:
                     return btc * mep, "proveedor"
-            # 4) Mercado en vivo / caché de hoy.
+            # 5) Mercado en vivo / caché de hoy.
             precio, origen = resolver_precio(
                 conn, ticker, precios_proveedor=precios,
                 divide_por_100=bool(inst and inst.divide_por_100),
             )
             if precio is not None:
                 return precio, origen
-            # 5) Último precio conocido (instrumentos ilíquidos: el pagaré no
+            # 6) Último precio conocido (instrumentos ilíquidos: el pagaré no
             #    cotiza en ningún panel, su precio solo viene de la tenencia).
             ultimo = leer_precio_mas_reciente(conn, ticker)
             if ultimo is not None:
@@ -354,10 +331,6 @@ def render(user_id: int | None = None) -> None:
         flujos = flujos_de_capital(conn, uid)
     if foto is not None:
         cash_ars, cash_usd = foto.efectivo_ars, foto.efectivo_usd
-    fecha_val = (
-        foto.fecha_valuacion if foto is not None
-        else pd.Timestamp.today().date()
-    )
     completar_patrimonio(k, capital, cash_ars, cash_usd, mep, flujos, fecha_val)
 
     # ---- KPIs -----------------------------------------------------------
@@ -609,11 +582,11 @@ def render(user_id: int | None = None) -> None:
     with st.expander("Instrumentos que devengan una tasa (pagarés, cheques)"):
         st.caption(
             "Los pagarés y cheques de pago diferido no cotizan: rinden la tasa "
-            "que pactaste. Cargá esa tasa y la app los valúa devengando desde "
-            "la compra, en vez de usar el precio de referencia del broker "
-            "(que puede no reflejarla)."
+            "que pactaste. Si tu tenencia del broker está al día, manda su "
+            "precio; si caducó o el broker no informa uno, la app los valúa "
+            "devengando esta tasa desde la compra."
         )
-        d1, d2, d3 = st.columns([2, 2, 1])
+        d1, d2, d3, d4 = st.columns([2, 2, 1, 1])
         with d1:
             tk_dev = st.selectbox(
                 "Instrumento",
@@ -637,6 +610,19 @@ def render(user_id: int | None = None) -> None:
                     )
                     conn.commit()
                 st.success(f"{tk_dev} devenga {tasa_dev:.2f}% anual en dólares.",
+                           icon=":material/check_circle:")
+                st.rerun()
+        with d4:
+            st.write("")
+            if st.button("Quitar", key="cartera_btn_dev_quitar",
+                         disabled=tk_dev not in tasas_devengadas,
+                         help="Deja de devengar: vuelve a valuarse por precio."):
+                with connect() as conn:
+                    conn.execute(
+                        "UPDATE cartera_instrumentos SET tasa_anual_usd = NULL "
+                        "WHERE ticker = ? AND user_id = ?", (tk_dev, uid))
+                    conn.commit()
+                st.success(f"{tk_dev} ya no devenga tasa.",
                            icon=":material/check_circle:")
                 st.rerun()
         if tasas_devengadas:
@@ -727,7 +713,6 @@ def render(user_id: int | None = None) -> None:
     col_exp, col_ref = st.columns([1, 3])
     with col_exp:
         import io
-        from datetime import date as _date
         buf = io.BytesIO()
         nombres = {t.ticker: t.nombre for t in foto.posiciones} if foto else {}
         tipos = {

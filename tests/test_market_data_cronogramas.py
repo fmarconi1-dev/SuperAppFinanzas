@@ -372,10 +372,10 @@ def test_el_pagare_se_marca_sin_consultar(db):
     def no_deberia_llamarse(*a, **k):
         raise AssertionError("consultó por el pagaré")
 
-    n, faltan = cr.refrescar_cronogramas(db, ["#UMV060770008"],
-                                         fetch=no_deberia_llamarse)
+    n, faltan, no_consultados = cr.refrescar_cronogramas(
+        db, ["#UMV060770008"], fetch=no_deberia_llamarse)
     db.commit()
-    assert (n, faltan) == (0, ["#UMV060770008"])
+    assert (n, faltan, no_consultados) == (0, ["#UMV060770008"], [])
     assert cr.ya_consultado(db, "#UMV060770008") is True
 
     # Y en la segunda vuelta tampoco consulta.
@@ -395,6 +395,85 @@ def test_lo_que_la_fuente_no_tiene_no_se_reintenta(db):
     db.commit()
     cr.refrescar_cronogramas(db, ["RARO"], fetch=vacio)
     assert sum(1 for u in llamadas if "cashflow" in u) == 1
+
+
+def _http_error(codigo: int):
+    import urllib.error
+    return urllib.error.HTTPError("https://x", codigo, "error", {}, None)
+
+
+@pytest.mark.parametrize("falla", [
+    OSError("timeout"), _http_error(429), _http_error(500), _http_error(401),
+], ids=["timeout", "429-cuota", "500", "401"])
+def test_si_la_fuente_no_contesta_no_se_marca_sin_datos(db, falla):
+    """⚠️ Trampa 16. Hasta el 22/9/2026 una cuota agotada (429), un timeout o
+    Docta caída marcaban el bono como "sin cronograma" **para siempre**, y la
+    pantalla decía que era esperable. No tenerlo no es que no exista."""
+    def cae(url, datos=None, cabeceras=None):
+        if "auth/token" in url:
+            return TOKEN_OK
+        raise falla
+
+    n, faltan, no_consultados = cr.refrescar_cronogramas(db, ["AL30"], fetch=cae)
+    db.commit()
+    assert (n, faltan, no_consultados) == (0, [], ["AL30"])
+    assert cr.ya_consultado(db, "AL30") is False
+
+    # Y cuando la fuente vuelve, se baja sin necesidad de forzar.
+    n, _, _ = cr.refrescar_cronogramas(
+        db, ["AL30"], fetch=_fetch({"cashflow": CASHFLOW_AL30}))
+    assert n == 1
+
+
+def test_sin_token_tampoco_se_marca(db):
+    def rechaza(url, datos=None, cabeceras=None):
+        raise _http_error(401)
+
+    cr.reset_token()
+    _, faltan, no_consultados = cr.refrescar_cronogramas(db, ["AL30"],
+                                                         fetch=rechaza)
+    assert (faltan, no_consultados) == ([], ["AL30"])
+    assert cr.ya_consultado(db, "AL30") is False
+
+
+def test_un_404_si_es_no_existe(db):
+    """El 404 es la fuente diciendo "no lo tengo": eso sí va a la caché."""
+    def no_esta(url, datos=None, cabeceras=None):
+        if "auth/token" in url:
+            return TOKEN_OK
+        raise _http_error(404)
+
+    _, faltan, no_consultados = cr.refrescar_cronogramas(db, ["RARO"],
+                                                         fetch=no_esta)
+    assert (faltan, no_consultados) == (["RARO"], [])
+    assert cr.ya_consultado(db, "RARO") is True
+
+
+def test_al_primer_fallo_se_corta(db):
+    """Con la cuota agotada, los que siguen fallarían igual: no se insiste."""
+    pedidos = []
+
+    def cuota(url, datos=None, cabeceras=None):
+        if "auth/token" in url:
+            return TOKEN_OK
+        pedidos.append(url)
+        raise _http_error(429)
+
+    _, _, no_consultados = cr.refrescar_cronogramas(
+        db, ["AE38", "AL30", "GD30"], fetch=cuota)
+    assert len(pedidos) == 1
+    assert no_consultados == ["AE38", "AL30", "GD30"]
+
+
+def test_un_error_de_programacion_no_se_disfraza_de_fuente_caida(db):
+    """Solo los errores de red se tragan; un bug tiene que verse."""
+    def bug(url, datos=None, cabeceras=None):
+        if "auth/token" in url:
+            return TOKEN_OK
+        raise AttributeError("bug")
+
+    with pytest.raises(AttributeError):
+        cr.refrescar_cronogramas(db, ["AL30"], fetch=bug)
 
 
 def test_sin_la_migracion_no_se_rompe(db):

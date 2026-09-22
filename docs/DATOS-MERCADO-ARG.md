@@ -50,7 +50,7 @@ Son skills del estándar SKILL.md; se instalan con `npx skills add gauss314/skil
 2. **En la app:** portar la lógica de fetch a módulos propios en `core/market_data/` (respetando la licencia MIT), con la capa de abstracción + caché + fallback descrita arriba.
 
 ## Decisión
-_(pendiente de Fase 5 — registrar como ADR cuando se elija la combinación final. Recomendación inicial: `bcra-macro` + `data912` + `byma` + `mae` para AR; `option-pricing` + `backtesting` como herramientas; `yahoo-finance` + `sec-data` para el scoring.)_
+_(pendiente de Fase 6 — registrar como ADR cuando se elija la combinación final. Recomendación inicial: `bcra-macro` + `data912` + `byma` + `mae` para AR; `option-pricing` + `backtesting` como herramientas; `yahoo-finance` + `sec-data` para el scoring.)_
 
 ### Resuelto en Fase 3a (2026-07-23) — `core/market_data`
 Lo que la **cartera** necesita ya está implementado y verificado contra las APIs reales:

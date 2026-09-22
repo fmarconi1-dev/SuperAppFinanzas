@@ -45,7 +45,7 @@ El plan original (Excel-in-the-loop) se reemplazó por **cartera nativa**: DB pr
 **Gate:** `tests/test_cartera_recon.py` (cartera app == Excel, fila por fila; cantidades y costos ARS exactos).
 **Salida:** la cartera online, con los mismos números que la planilla y más al día que ella. ✔
 
-## 🔵 Fase 4 — Mejoras del Lugar A (en curso desde 07/2026)
+## ✅ Fase 4 — Mejoras del Lugar A (cerrada 2026-08-27 en lo que hizo; lo pendiente pasó a la Fase 5)
 Ejecutar el backlog de `MEJORAS.md` sobre Finanzas Personales. El backlog heredado de `Mis-Finanzas-App` ya se relevó y se volcó a `MEJORAS.md` el 30/7 — **no hace falta volver al repo viejo**, y dos de sus ítems más grandes (grupo familiar D2, módulo de inversiones) ya estaban hechos.
 - ✅ **Punto 1 — respaldo externo + restore ensayado + RUNBOOK** (30/7 y 4/8/2026).
 - ✅ **Punto 2 — CI** (`tests.yml` + job anti-datos `sin-datos`, 4/8/2026).
@@ -53,9 +53,11 @@ Ejecutar el backlog de `MEJORAS.md` sobre Finanzas Personales. El backlog hereda
 - ↪️ **Puntos 4 y 5 — ABSORBIDOS POR LA FASE 5 (27/8/2026).** M4 (importador de CSV con LLM) y M5 (API sidecar) no se hacen tal como estaban planteados: se reordenan dentro de una arquitectura mayor. **Ver ADR-0006.** M4 pasa a ser el *último* paso de la Fase 5 en vez del primero, y M5 deja de ser un fin en sí mismo para convertirse en la vía de captura del efectivo.
 **Salida:** Lugar A pulido en respaldo y CI. Lo demás se hace desde la Fase 5.
 
+**Mantenimiento entre fases (22/9/2026) — auditoría + limpieza, sin features nuevas.** Siete bugs corregidos (la pantalla de Cartera se caía con una tasa devengada; la caché negativa de Docta/Yahoo confundía "no contestó" con "no existe"; el mapa leía carpetas ignoradas; migraciones que re-corrían en cada arranque; importes ilegibles como $0 silencioso; el CLI del import de Finanzas roto; texto de fase viejo en la app), `except` achicados, código muerto fuera, smoke tests de pantallas con `AppTest`. **Ningún número de la base de producción cambió** (huella antes/después idéntica). Detalle en `/BITACORA.md`.
+
 ---
 
-## 🔵 Fase 5 — Captura *source-first* del Lugar A (ADR-0006)
+## ⬜ Fase 5 — Captura *source-first* del Lugar A (ADR-0006) — aprobada, sin arrancar
 
 **El problema que resuelve.** Toda app de finanzas personales se degrada porque su exactitud es función de la disciplina del usuario, y pasadas ~72 horas "cargar los gastos" ya es reconstruir desde el resumen. La Cartera nunca tuvo ese problema porque la foto del broker es un ancla que no se olvida (trampa nº4). **Esta fase le da esa ancla a Finanzas Personales.**
 

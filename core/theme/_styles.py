@@ -36,7 +36,6 @@ Selectores estables: `data-testid` (los usa Streamlit en sus propios tests).
 
 from __future__ import annotations
 
-import streamlit as st
 
 from places.finanzas.helpers._html import render_html
 

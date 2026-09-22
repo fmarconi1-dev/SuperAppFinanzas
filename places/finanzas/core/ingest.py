@@ -28,11 +28,13 @@ import os
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Optional
 
-# Soportamos correr como `python -m places.finanzas.core.ingest` o `python core/ingest.py`.
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
+# ⚠️ Se corre SOLO como `python -m places.finanzas.core.ingest` desde la raíz.
+# Hasta el 22/9/2026 acá había un `sys.path.insert(0, places/finanzas)`
+# heredado de Mis-Finanzas-App: hacía que `core` resolviera a
+# `places/finanzas/core` y el CLI moría con `No module named 'core.workspaces'`.
+# Los tests no lo veían porque importan el `core` bueno antes.
 from core.workspaces import ensure_personal_workspace
 from core.db import (
     connect,
@@ -45,7 +47,7 @@ from places.finanzas.core.parsers import (
     CSV_SEPARATOR,
     is_valid_transaction_row,
     normalize_motivo,
-    parse_currency,
+    parse_currency_estricto,
     parse_date,
 )
 from places.finanzas.core.categorizer import DEFAULT_CATEGORIAS, DEFAULT_GRUPOS
@@ -84,6 +86,17 @@ class ImportResult:
         return "\n".join(lines)
 
 
+def _importe(raw, donde: str, advertencias: list[str]) -> float:
+    """El importe de una celda. Si es ilegible entra como 0 **y se avisa**:
+    un cero silencioso es un gasto que desaparece sin rastro (22/9/2026)."""
+    valor = parse_currency_estricto(raw)
+    if valor is None:
+        advertencias.append(f"{donde}: importe ilegible {str(raw).strip()!r} "
+                            "→ se cargó $0. Corregilo en el CSV y reimportá.")
+        return 0.0
+    return valor
+
+
 # ---------- Lectura CSV ----------
 
 def _read_csv_rows(path: Path) -> list[list[str]]:
@@ -118,15 +131,18 @@ def import_diario(
 
         # Primera fila con motivo "Caja" = saldo inicial. NO es transacción.
         if motivo == "Caja" and saldo_inicial is None:
-            saldo_inicial = parse_currency(caja_raw)
+            saldo_inicial = _importe(caja_raw, f"Diario fila {line_no} (saldo inicial)",
+                                     result.advertencias)
             continue
 
         # Filas vacías o de cierre del CSV: ignorar silenciosamente.
         if not is_valid_transaction_row(fecha, motivo):
             continue
 
-        pasivos = parse_currency(pasivos_raw)
-        ingresos = parse_currency(ingresos_raw)
+        pasivos = _importe(pasivos_raw, f"Diario fila {line_no} (Pasivos)",
+                           result.advertencias)
+        ingresos = _importe(ingresos_raw, f"Diario fila {line_no} (Ingresos)",
+                            result.advertencias)
 
         transacciones.append((fecha.isoformat(), pasivos, ingresos, motivo, user_id))  # wid se agrega al insertar
 
@@ -174,7 +190,8 @@ _MENSUAL_IGNORE_PREFIXES = (
 
 
 def import_mensual(
-    mensual_path: Path, anio: int, conn, user_id: int = _DEFAULT_INGEST_USER_ID
+    mensual_path: Path, anio: int, conn, user_id: int = _DEFAULT_INGEST_USER_ID,
+    advertencias: Optional[list[str]] = None,
 ) -> int:
     """Lee Mensual.csv y popula `presupuesto` con las columnas PREVISIÓN.
 
@@ -183,7 +200,11 @@ def import_mensual(
       - Desde la fila siguiente, col 0 = motivo, cols 1, 3, 5, ..., 23 = PREVISIÓN
         para enero...diciembre (12 meses, paso 2).
       - Filas con motivo vacío o que empiezan con TOTAL/Diferencia/SALDO se ignoran.
+
+    Los importes ilegibles se anotan en `advertencias` (si se pasa).
     """
+    if advertencias is None:
+        advertencias = []
     wid = ensure_personal_workspace(conn, user_id)
     rows = _read_csv_rows(mensual_path)
 
@@ -210,7 +231,8 @@ def import_mensual(
                 col_idx = 1 + (mes - 1) * 2  # PREVISIÓN de cada mes
                 if col_idx >= len(raw_row):
                     break
-                monto = parse_currency(raw_row[col_idx])
+                monto = _importe(raw_row[col_idx],
+                                 f"Mensual {motivo!r} mes {mes}", advertencias)
                 if monto == 0:
                     # No insertamos previsiones de cero: el SQL outer-join las trata como NaN
                     # y eso es preferible a "previsiones falsamente cero".
@@ -296,7 +318,9 @@ def run_import(
             )
 
         diario_result = import_diario(diario_path, conn, user_id=user_id)
-        presupuesto_filas = import_mensual(mensual_path, anio, conn, user_id=user_id)
+        presupuesto_filas = import_mensual(
+            mensual_path, anio, conn, user_id=user_id,
+            advertencias=diario_result.advertencias)
         nuevas_categorias = init_categorias(conn, user_id=user_id)
 
         diario_result.presupuesto_filas = presupuesto_filas

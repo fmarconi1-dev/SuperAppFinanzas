@@ -33,11 +33,7 @@ from typing import Optional
 
 import pandas as pd
 
-from places.finanzas.core.categorizer import (
-    DEFAULT_CATEGORIAS,
-    DEFAULT_GRUPOS,
-    efective_grupo,
-)
+from places.finanzas.core.categorizer import efective_grupo
 from core.context import require_current_user_id
 from core.workspaces import resolve_workspace_id
 from core.db import get_config

@@ -4,15 +4,13 @@
 > Formato de cada entrada: `fecha · autor (Claude+modelo / Franco) · qué se hizo · por qué · estado`.
 > Regla: no cerrar una sesión sin dejar la entrada acá y actualizar `/ESTADO.md` en la raíz.
 
-<!-- ultima_actualizacion: — -->
+<!-- ultima_actualizacion: 2026-09-22 -->
 
 ## Estado del módulo
-**Fase de implementación:** Fase 1 / 4
-**Situación:** ⬜ No iniciado
+**Fase de implementación:** en producción desde Fase 1 (Fase 5 aprobada, sin arrancar)
+**Situación:** ✅ en producción
 
 ## Registro
-
-_(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.md`)_
 
 ## 2026-07-10 — Migración desde Mis-Finanzas-App (Fase 1)
 - **Autor:** Claude (Fable 5), con Franco.
@@ -40,3 +38,10 @@ _(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.m
 - **Verificado de verdad:** con el bug reintroducido a propósito, **fallan 3 tests**; con el fix, pasan los 10.
 - ⚠️ **Se hace por AST y no ejecutando el formulario** porque renderizar Streamlit en un test exige un runtime entero. Es una heurística acotada, no análisis de flujo completo: apunta a la clase de error que ya ocurrió. Está dicho en el docstring.
 - **Estado:** suite **362 passed, 3 skipped**.
+
+## 2026-09-22 — Importes ilegibles, CLI del ingest y smoke tests
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** `parsers.parse_currency_estricto` (ilegible → `None`) y el ingest avisa cada importe ilegible en `ImportResult.advertencias`, con fila y valor; el CLI `python -m places.finanzas.core.ingest` vuelve a arrancar (se sacó un `sys.path.insert` heredado que hacía resolver `core` a `places/finanzas/core`); borradas `budget.previsiones_anuales`/`realidad_mensual` (sin uso; la primera filtraba `workspace_id = user_id`), `categorizer.grupo_de`, `_format.fmt_pct*`. Smoke test que abre las 5 pestañas.
+- **Por qué:** auditoría del 22/9 — un `1.5OO` entraba como gasto de $0 sin rastro, y el comentario del parser prometía un aviso que nadie daba.
+- **Estado:** ✅ tus CSV reales no tienen ningún importe ilegible (importados a una base temporal: 0 advertencias); el test de reconciliación contra el Excel sigue verde.
+

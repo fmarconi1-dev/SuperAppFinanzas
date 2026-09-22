@@ -10,18 +10,18 @@ Decisiones de diseño:
     Así la app es siempre auto-consistente: no hay forma de que la DB tenga
     un Caja "stale" porque no existe la columna.
   * El schema es idempotente: `init_db()` se puede correr N veces sin perder
-    datos. Si una migración futura agrega columnas, lo manejamos con `ALTER TABLE`
-    condicional (todavía no es necesario).
+    datos. Las migraciones de esquema detectan su propio estado (columnas,
+    PKs) y las **reparaciones de datos únicas** se marcan con
+    `PRAGMA user_version` (ver `_NIVEL_REPARACIONES`).
 """
 
 from __future__ import annotations
 
 import os
 import sqlite3
-import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Optional
 
 from core.context import require_current_user_id
 
@@ -93,19 +93,46 @@ CREATE TABLE IF NOT EXISTS usuarios (
 # Tablas que en Fase 3 van a filtrarse por current_user_id.
 _USER_SCOPED_TABLES = ("transacciones", "categorias", "presupuesto", "configuracion")
 
+#: Nivel de las **reparaciones de datos únicas** (M3, M7 y M8.5), guardado en
+#: `PRAGMA user_version`. No son migraciones de esquema: son `UPDATE`/`DELETE`
+#: sobre filas, y hasta el 22/9/2026 corrían **en cada arranque** —o sea en
+#: cada deploy y cada vez que Fly despertaba la máquina—:
+#:
+#: * M3 volvía a pasar "Compra Divisa" a Inversión aunque el usuario la
+#:   hubiera reclasificado a propósito;
+#: * M7 volvía a llenar subcategorías vaciadas a propósito;
+#: * M8.5, la reparación del incidente del 17/7, **borraba** la fila correcta
+#:   de un espacio si aparecía otra huérfana (`workspace_id NULL`) y la mandaba
+#:   al espacio personal aunque fuera del familiar.
+#:
+#: Es la misma lección del incidente de M4: el guard de una migración vieja
+#: tiene que seguir siendo correcto frente al esquema **y los datos** de hoy.
+#: Con `user_version >= 1` ya no corren. `user_version` es del header de
+#: SQLite: no es una tabla ni una migración nueva (el M16 lo reserva el
+#: ADR-0006). Si hace falta otra reparación única, sube a 2.
+_NIVEL_REPARACIONES = 1
+
 
 def _migrate(conn: sqlite3.Connection) -> None:
     """Migraciones idempotentes. Se corren después de crear el schema base.
 
-    Migraciones actuales:
-      M1 (Fase 2): user_id en tablas de datos + usuario local.
-      M2 (Fase 2b): columna `subcategoria` en `categorias` para jerarquía
-                    macro/sub (ej: Inversion → Ahorro vs Activos financieros).
-      M3–M8.5 (Fase 3/D2): reclasificaciones + scope por user_id y luego por
-                    workspace_id (grupo familiar) — ver bloques abajo.
-      M9 (Fase 3a): tablas de cartera nativa (aditivas, scope por user_id).
-      M10 (Fase 3a): foto de tenencia del broker (los movimientos no alcanzan
-                    para reconstruir la cartera: ver comentario del bloque).
+    Migraciones actuales (el detalle y el porqué, en el comentario de cada
+    bloque):
+      M1  (Fase 2)  user_id en tablas de datos + usuario local.
+      M2  (Fase 2b) columna `subcategoria` en `categorias`.
+      M3            reclasificación de Compra/Venta divisa — **única**.
+      M4  (Fase 3)  PKs con user_id (guard post-D2 desde el incidente 17/7).
+      M5            sin DEFAULT en user_id (premortem #3) — guard post-D2.
+      M6            workspaces + backfill (D2 shadow).
+      M7            subcategorías de los motivos default — **única**.
+      M8 / M8.5     PKs por workspace (D2) + reparación del 17/7 — M8.5 **única**.
+      M9–M10 (3a)   cartera nativa + foto de tenencia del broker.
+      M11 (3a)      tasa devengada para pagarés.
+      M12 (3b)      caché de sectores.
+      M13–M15 (4)   ajustes de tenencia, vencimientos a mano, cronogramas.
+
+    "Única" = reparación de datos que corre una sola vez por base, marcada con
+    `PRAGMA user_version` (ver `_NIVEL_REPARACIONES`).
     """
     cur = conn.cursor()
     # BEGIN **IMMEDIATE**, no diferido. Con `BEGIN` a secas SQLite abre la
@@ -119,6 +146,10 @@ def _migrate(conn: sqlite3.Connection) -> None:
     # (Incidente del 4/8/2026: se cargaba un ajuste y la app moría entera.)
     cur.execute("BEGIN IMMEDIATE")
     try:
+        reparaciones_pendientes = (
+            cur.execute("PRAGMA user_version").fetchone()[0] < _NIVEL_REPARACIONES
+        )
+
         # M1: user_id.
         for tabla in _USER_SCOPED_TABLES:
             cols = [
@@ -141,18 +172,21 @@ def _migrate(conn: sqlite3.Connection) -> None:
         if "subcategoria" not in cat_cols:
             cur.execute("ALTER TABLE categorias ADD COLUMN subcategoria TEXT")
 
-        # M3: reclasificación de Fase 2b.
+        # M3: reclasificación de Fase 2b. **Única** (ver _NIVEL_REPARACIONES):
+        # corrida en cada arranque, pisaba la reclasificación que hiciera el
+        # usuario después.
         #   * Compra Divisa: "Gasto Variable" → "Inversion / Ahorro y Resguardo".
         #   * Venta divisa: "Ingreso" sin subcat → "Ingreso / Desahorro".
-        cur.execute(
-            "UPDATE categorias SET grupo = 'Inversion', subcategoria = 'Ahorro y Resguardo' "
-            "WHERE motivo = 'Compra Divisa' AND grupo = 'Gasto Variable'"
-        )
-        cur.execute(
-            "UPDATE categorias SET subcategoria = 'Desahorro' "
-            "WHERE motivo = 'Venta divisa' AND grupo = 'Ingreso' AND "
-            "      (subcategoria IS NULL OR subcategoria = '')"
-        )
+        if reparaciones_pendientes:
+            cur.execute(
+                "UPDATE categorias SET grupo = 'Inversion', subcategoria = 'Ahorro y Resguardo' "
+                "WHERE motivo = 'Compra Divisa' AND grupo = 'Gasto Variable'"
+            )
+            cur.execute(
+                "UPDATE categorias SET subcategoria = 'Desahorro' "
+                "WHERE motivo = 'Venta divisa' AND grupo = 'Ingreso' AND "
+                "      (subcategoria IS NULL OR subcategoria = '')"
+            )
 
         # M4 (Fase 3): PKs compuestas con user_id en categorias, presupuesto y
         # configuracion. SQLite no permite alterar PK, así que recreamos cada
@@ -238,6 +272,10 @@ def _migrate(conn: sqlite3.Connection) -> None:
         # chatbot) deposita datos SILENCIOSAMENTE en la cuenta id=1 (Franco).
         # Sin default, ese INSERT lanza IntegrityError: falla ruidoso > fuga
         # silenciosa. SQLite no permite alterar el default → rebuild.
+        # ⚠️ Guard post-D2 (22/9/2026): mismo patrón de falla que M4. El
+        # rebuild de M5 no conoce `workspace_id` ni `creado_por_member_label`;
+        # si algún día se re-disparara sobre una tabla post-M8, las
+        # descartaría y desvincularía los datos como el 17/7.
         def _user_id_con_default(table: str) -> bool:
             info = cur.execute(f"PRAGMA table_info({table})").fetchall()
             return any(
@@ -245,7 +283,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
                 for r in info
             )
 
-        if _user_id_con_default("transacciones"):
+        if _user_id_con_default("transacciones") and not _es_post_d2("transacciones"):
             cur.execute("""
                 CREATE TABLE transacciones_m5 (
                     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -276,7 +314,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
                 "CREATE INDEX IF NOT EXISTS idx_transacciones_user ON transacciones(user_id)"
             )
 
-        if _user_id_con_default("categorias"):
+        if _user_id_con_default("categorias") and not _es_post_d2("categorias"):
             cur.execute("""
                 CREATE TABLE categorias_m5 (
                     motivo        TEXT NOT NULL,
@@ -299,7 +337,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
                 "CREATE INDEX IF NOT EXISTS idx_categorias_user ON categorias(user_id)"
             )
 
-        if _user_id_con_default("presupuesto"):
+        if _user_id_con_default("presupuesto") and not _es_post_d2("presupuesto"):
             cur.execute("""
                 CREATE TABLE presupuesto_m5 (
                     motivo         TEXT NOT NULL,
@@ -320,7 +358,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
                 "CREATE INDEX IF NOT EXISTS idx_presupuesto_user ON presupuesto(user_id)"
             )
 
-        if _user_id_con_default("configuracion"):
+        if _user_id_con_default("configuracion") and not _es_post_d2("configuracion"):
             cur.execute("""
                 CREATE TABLE configuracion_m5 (
                     clave   TEXT NOT NULL,
@@ -463,10 +501,12 @@ def _migrate(conn: sqlite3.Connection) -> None:
         # ============================================================
         # M7: subcategorías canonical para los motivos default.
         # ============================================================
-        # Backfill idempotente: solo actualiza filas con subcategoria NULL
-        # o vacía. NO pisa subcategorías puestas manualmente por el usuario.
-        # Cubre los motivos que vienen en `DEFAULT_CATEGORIAS_NEW_USER` y
-        # `DEFAULT_CATEGORIAS` de `core/categorizer.py`.
+        # Backfill: solo actualiza filas con subcategoria NULL o vacía. NO
+        # pisa subcategorías puestas manualmente por el usuario — pero sí
+        # rellenaba las que el usuario **vació** a propósito, en cada
+        # arranque. Por eso es **única** (ver _NIVEL_REPARACIONES): los
+        # defaults de hoy (`DEFAULT_CATEGORIAS*` de `categorizer.py`) ya traen
+        # la subcategoría puesta.
         _default_subcats = {
             "Haberes Fundación":  "Sueldo",
             "Haberes SBT":        "Sueldo",
@@ -488,7 +528,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
             "Inversiones":        "Activos financieros",
             "Compra Divisa":      "Ahorro y Resguardo",
         }
-        for motivo, subcat in _default_subcats.items():
+        for motivo, subcat in (_default_subcats.items()
+                               if reparaciones_pendientes else ()):
             cur.execute(
                 "UPDATE categorias SET subcategoria = ? "
                 "WHERE motivo = ? "
@@ -514,6 +555,10 @@ def _migrate(conn: sqlite3.Connection) -> None:
         # app escribió una fila duplicada scoped (defaults de onboarding),
         # gana la fila ORIGINAL (la NULL: trae los datos históricos reales).
         # Idempotente: sin filas NULL no hace nada.
+        # **Única** (ver _NIVEL_REPARACIONES): la regla "gana la NULL" era
+        # cierta para el incidente del 17/7, no como regla permanente. Una fila
+        # NULL que aparezca hoy es un bug nuevo, no un dato histórico: borrar
+        # por ella la fila buena del espacio sería repetir el incidente.
         personales = {
             r["user_id"]: r["ws"]
             for r in cur.execute("""
@@ -522,7 +567,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
                 JOIN workspaces w ON w.id = wm.workspace_id
                 WHERE w.kind = 'personal'
             """)
-        }
+        } if reparaciones_pendientes else {}
         for uid_rep, ws_rep in personales.items():
             # configuracion: borrar el duplicado scoped, conservar el original.
             cur.execute("""
@@ -899,6 +944,11 @@ def _migrate(conn: sqlite3.Connection) -> None:
             )
         """)
 
+        if reparaciones_pendientes:
+            # Dentro de la transacción: si algo de arriba falla, el ROLLBACK
+            # también deshace esta marca y las reparaciones se reintentan.
+            cur.execute(f"PRAGMA user_version = {_NIVEL_REPARACIONES}")
+
         cur.execute("COMMIT")
     except Exception:
         cur.execute("ROLLBACK")
@@ -908,6 +958,19 @@ def _migrate(conn: sqlite3.Connection) -> None:
 # ============================================================
 #  Conexión y init
 # ============================================================
+
+def es_tabla_faltante(exc: BaseException) -> bool:
+    """True si `exc` es SQLite diciendo que una tabla no existe.
+
+    Para los módulos que toleran una base sin cierta migración (tests con
+    esquema recortado). **Solo eso**: hasta el 22/9/2026 esos módulos hacían
+    ``except Exception``, que también tragaba un bug o una base bloqueada y
+    los hacía pasar por "no hay ajustes" — y sin ajustes el capital aportado
+    y la TIR cambian sin que nada avise (trampa 36).
+    """
+    return (isinstance(exc, sqlite3.OperationalError)
+            and "no such table" in str(exc).lower())
+
 
 def get_db_path() -> Path:
     """Ruta a la DB activa: respeta `DB_PATH` (env) o usa el default."""

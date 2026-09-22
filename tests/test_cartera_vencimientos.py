@@ -365,11 +365,22 @@ def test_cronograma_vacio_no_opina():
     assert v.vencimiento_de_cronograma(object(), "AE38", leer) is None
 
 
-def test_el_cronograma_no_puede_romper_nada():
-    """Si leer el cronograma explota, la fuente calla — no tumba la pantalla."""
-    def revienta(conn, ticker, nominales=None):
-        raise RuntimeError("base sin M15")
-    assert v.vencimiento_de_cronograma(object(), "AE38", revienta) is None
+def test_una_base_sin_m15_no_rompe_nada():
+    """Sin la tabla de cronogramas, la fuente calla — no tumba la pantalla."""
+    import sqlite3
+
+    def sin_tabla(conn, ticker, nominales=None):
+        raise sqlite3.OperationalError("no such table: cartera_cronogramas_meta")
+    assert v.vencimiento_de_cronograma(object(), "AE38", sin_tabla) is None
+
+
+def test_un_bug_al_leer_el_cronograma_si_se_ve():
+    """Trampa 36 (22/9/2026): antes cualquier excepción —un bug incluido— se
+    tragaba y el bono quedaba "sin fecha" sin que nada avisara."""
+    def bug(conn, ticker, nominales=None):
+        raise AttributeError("bug")
+    with pytest.raises(AttributeError):
+        v.vencimiento_de_cronograma(object(), "AE38", bug)
 
 
 def test_el_ae38_deja_de_quedar_sin_fecha(conn):

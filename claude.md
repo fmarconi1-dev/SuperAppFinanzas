@@ -3,7 +3,9 @@
 Contexto operativo para cualquier Claude (u otro agente) que trabaje acá. Resumen duro; el detalle está en `GUIA-DE-TRABAJO.md`.
 
 ## Qué es este proyecto
-Superapp web personal de Franco que unifica **Finanzas Personales** (ex Mis-Finanzas-App) e **Inversiones/Mercado** (cartera + scoring + mercado en vivo) en un monorepo Streamlit/Python. Uso personal primero; escalable después. Estado: esqueleto (Fase 0).
+Superapp web personal de Franco que unifica **Finanzas Personales** (ex Mis-Finanzas-App) e **Inversiones** (cartera nativa + mercado en vivo, este último pendiente) en un monorepo Streamlit/Python. Uso personal primero; escalable después. **En producción** (Fly.io); la fase vigente está en `ESTADO.md`.
+
+**La suite se corre con el Python del venv:** `.venv\Scripts\python.exe -m pytest -q`. `python` a secas agarra la 3.14 del sistema, que no tiene dependencias, y la suite ni siquiera colecta.
 
 ## Antes de trabajar (siempre)
 1. Leé `ESTADO.md`. Es la foto actual y el handoff (corto a propósito; la historia está en `docs/archivo/`).
@@ -23,14 +25,15 @@ Superapp web personal de Franco que unifica **Finanzas Personales** (ex Mis-Fina
 - 🔒 **Nunca** commitear `data/`, `*.xlsx`, `*.db`, `.env`. Repo privado.
 - 📏 Una fase a la vez, cerrada y desplegable. Nada de alcance infinito.
 - 🧮 Portar lógica del Excel exige test de reconciliación fila-a-fila contra el Excel.
-- 🧠 El scoring se calcula en **batch (GitHub Actions)**, no en el servidor web.
+- 🧠 Nada de cómputo pesado en el servidor web (la regla nació con el scoring, que se calculaba en batch; el scoring se retiró el 5/8/2026, ADR-0002).
 - 🚫 No prometer "tiempo real" de mercado ARG sin fuente confiable resuelta.
-- 🚫 Multiusuario/SaaS: recién en Fase 7, opcional.
+- 🚫 Multiusuario/SaaS: recién en Fase 8, opcional.
+- 🕳️ `except Exception: return <vacío>` está prohibido: una fuente caída es `FuenteNoDisponible` (`core/market_data/_errores.py`), una base sin migración es `es_tabla_faltante()` (`core/db.py`), y todo lo demás se deja ver. "No contestó" ≠ "no existe" (trampas 16 y 36).
 - ✍️ Documentación y commits en español.
 
 ## Skills / agentes a usar
 - **`ui-ux-web-moderno`** — obligatoria al trabajar estética/UI (tema `core/theme`, dashboards, formularios, dark mode).
-- **`agente-tesis-inversion`** — ayudante para profundizar ideas de inversión sobre tickers destacados por el scoring (a futuro; ver `MEJORAS.md`).
+- **`agente-tesis-inversion`** — ayudante para profundizar ideas de inversión (a futuro; pensado para los tickers del scoring, hoy retirado; ver `MEJORAS.md`).
 - **`actualizar-valuaciones-solidum`** — mantiene actualizados los Excel de renta fija que lee la cartera.
 - **`gauss314/skills`** — colección de datos de mercado (estándar SKILL.md). Resuelve la fuente de datos ARG: `bcra-macro`, `data912`, `byma`, `mae` (Argentina) + `option-pricing`, `backtesting` (herramientas) + `yahoo-finance`, `sec-data` (global). Ver `docs/DATOS-MERCADO-ARG.md`. Usar como implementación de referencia de `core/market_data/`.
 

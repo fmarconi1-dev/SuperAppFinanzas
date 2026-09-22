@@ -166,30 +166,41 @@ def test_el_backup_no_va_dentro_de_una_conexion_abierta():
     """Copiar la base entera teniéndola ya tomada alarga la ventana de
     colisión. `backup_db()` va **antes** del `with connect()`, no adentro.
 
-    Se revisa la vista de cartera, que es donde estaba el patrón.
+    Se revisa la vista de cartera, que es donde estaba el patrón, **y sus
+    paneles**: desde el split del 27/8/2026 los `backup_db()` viven en
+    `cartera/paneles/`, y hasta el 22/9/2026 este test miraba solo `view.py`
+    — pasaba siempre sin revisar nada (trampa 32).
     """
-    vista = RAIZ / "places" / "inversiones" / "cartera" / "view.py"
-    arbol = ast.parse(vista.read_text(encoding="utf-8"))
+    cartera = RAIZ / "places" / "inversiones" / "cartera"
+    fuentes = [cartera / "view.py", *sorted((cartera / "paneles").glob("*.py"))]
 
     culpables = []
-    for nodo in ast.walk(arbol):
-        if not isinstance(nodo, ast.With):
-            continue
-        abre_conexion = any(
-            isinstance(item.context_expr, ast.Call)
-            and getattr(item.context_expr.func, "id", "") == "connect"
-            for item in nodo.items
-        )
-        if not abre_conexion:
-            continue
-        for hijo in ast.walk(nodo):
-            if (isinstance(hijo, ast.Call)
-                    and getattr(hijo.func, "id", "") == "backup_db"):
-                culpables.append(hijo.lineno)
+    llamadas_vistas = 0
+    for fuente in fuentes:
+        arbol = ast.parse(fuente.read_text(encoding="utf-8"))
+        llamadas_vistas += sum(
+            1 for n in ast.walk(arbol)
+            if isinstance(n, ast.Call) and getattr(n.func, "id", "") == "backup_db")
+        for nodo in ast.walk(arbol):
+            if not isinstance(nodo, ast.With):
+                continue
+            abre_conexion = any(
+                isinstance(item.context_expr, ast.Call)
+                and getattr(item.context_expr.func, "id", "") == "connect"
+                for item in nodo.items
+            )
+            if not abre_conexion:
+                continue
+            for hijo in ast.walk(nodo):
+                if (isinstance(hijo, ast.Call)
+                        and getattr(hijo.func, "id", "") == "backup_db"):
+                    culpables.append(f"{fuente.name}:{hijo.lineno}")
 
+    # Si esto da 0, el test se quedó mirando archivos donde ya no está el
+    # código: que falle en vez de pasar en blanco.
+    assert llamadas_vistas > 0, "no encontré ningún backup_db(): ¿se mudó?"
     assert not culpables, (
-        f"backup_db() se llama dentro de un `with connect()` en las líneas "
-        f"{culpables} de view.py. Sacalo afuera: copiar la base con la "
-        f"conexión de escritura abierta fue el `database is locked` del "
-        f"4/8/2026."
+        f"backup_db() se llama dentro de un `with connect()` en {culpables}. "
+        f"Sacalo afuera: copiar la base con la conexión de escritura abierta "
+        f"fue el `database is locked` del 4/8/2026."
     )

@@ -224,3 +224,51 @@ def test_las_industrias_se_leen_aparte(db):
     refrescar_sectores(db, ["NVDA"], fetch=_fetch({"NVDA": _respuesta(NVDA)}))
     db.commit()
     assert sectores_para(db, "industria") == {"NVDA": "Semiconductors"}
+
+
+# ---------------------------------------------------------------------------
+# Trampa 16: "Yahoo no contestó" no es "Yahoo no lo conoce" (22/9/2026)
+# ---------------------------------------------------------------------------
+
+def test_si_yahoo_no_contesta_no_se_cachea_sin_dato(db):
+    """Hasta el 22/9/2026 un rate-limit de Yahoo dejaba el ticker "Sin dato"
+    para siempre, y esto corre en cada carga de la pantalla."""
+    import urllib.error
+
+    def limitado(url):
+        raise urllib.error.HTTPError(url, 429, "Too Many Requests", {}, None)
+
+    n, faltan = refrescar_sectores(db, ["NVDA"], fetch=limitado)
+    db.commit()
+    assert (n, faltan) == (0, ["NVDA"])
+    assert "NVDA" not in leer_sectores_cache(db)
+
+    # Cuando Yahoo vuelve, resuelve solo, sin forzar.
+    n, faltan = refrescar_sectores(db, ["NVDA"],
+                                   fetch=_fetch({"NVDA": _respuesta(NVDA)}))
+    assert (n, faltan) == (1, [])
+
+
+def test_una_respuesta_que_no_es_json_tampoco_es_sin_dato(db):
+    refrescar_sectores(db, ["NVDA"], fetch=lambda u: "<html>error</html>")
+    assert "NVDA" not in leer_sectores_cache(db)
+
+
+def test_al_primer_fallo_de_yahoo_se_corta(db):
+    pedidos = []
+
+    def caido(url):
+        pedidos.append(url)
+        raise OSError("sin red")
+
+    _, faltan = refrescar_sectores(db, ["AAPL", "NVDA", "MSFT"], fetch=caido)
+    assert len(pedidos) == 1
+    assert sorted(faltan) == ["AAPL", "MSFT", "NVDA"]
+
+
+def test_un_bug_no_se_disfraza_de_yahoo_caido(db):
+    def bug(url):
+        raise AttributeError("bug")
+
+    with pytest.raises(AttributeError):
+        refrescar_sectores(db, ["NVDA"], fetch=bug)

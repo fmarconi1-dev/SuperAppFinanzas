@@ -18,41 +18,6 @@ def _uid(user_id: Optional[int]) -> int:
     return user_id if user_id is not None else require_current_user_id()
 
 
-def previsiones_anuales(
-    conn: sqlite3.Connection, anio: int, user_id: Optional[int] = None
-) -> pd.DataFrame:
-    uid = _uid(user_id)
-    wid = resolve_workspace_id(conn, uid)
-    return pd.read_sql_query(
-        "SELECT motivo, mes, monto_previsto FROM presupuesto "
-        "WHERE anio = ? AND workspace_id = ? ORDER BY motivo, mes",
-        conn, params=[anio, uid],
-    )
-
-
-def realidad_mensual(
-    conn: sqlite3.Connection,
-    anio: int,
-    mes: int,
-    user_id: Optional[int] = None,
-) -> pd.DataFrame:
-    uid = _uid(user_id)
-    wid = resolve_workspace_id(conn, uid)
-    return pd.read_sql_query(
-        """
-        SELECT motivo,
-               COALESCE(SUM(ingresos), 0) AS ingresos_mes,
-               COALESCE(SUM(pasivos), 0)  AS pasivos_mes
-        FROM transacciones
-        WHERE strftime('%Y', fecha) = ?
-          AND strftime('%m', fecha) = ?
-          AND workspace_id = ?
-        GROUP BY motivo
-        """,
-        conn, params=[str(anio), f"{mes:02d}", wid],
-    )
-
-
 def realidad_mensual_efectiva(
     conn: sqlite3.Connection,
     anio: int,

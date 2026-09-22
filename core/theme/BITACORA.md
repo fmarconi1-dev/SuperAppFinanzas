@@ -1,6 +1,6 @@
 # core/theme/
 
-<!-- huella: 5e24a27a4248 -->
+<!-- huella: dd478f620354 -->
 
 Resumen: Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semántica + template Plotly unificado, ajustes responsive y logo.
 
@@ -17,7 +17,7 @@ Resumen: Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semán
 - `_styles.py` — el design system entero como CSS injection (portado del proyecto React paralelo).
 - `_theme.py` — paleta semántica + template Plotly.
 - `_responsive.py` — media queries mobile.
-- `_logo.py` — logo SVG inline.
+- `_logo.py` — `render_logo()` con `st.image` (el SVG inline no sobrevive al sanitizer de `st.html`). `inline_logo()` y `try_set_logo()`, sin uso, se borraron el 22/9/2026.
 
 ## Trampas
 

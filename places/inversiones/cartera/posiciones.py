@@ -251,21 +251,32 @@ def _filas_de_ajustes(conn, user_id: int) -> list[tuple]:
     El monto va negativo (convención del export: lo que se adquiere sale de
     la caja) para que el costo entre con el mismo signo que una compra.
     """
-    try:
-        from .ajustes import listar
-    except Exception:
-        return []
     out = []
-    try:
-        for a in listar(conn, user_id):
-            tc = None
-            if a.costo_usd not in (None, 0) and abs(a.costo_ars) > 1e-9:
-                tc = a.costo_ars / a.costo_usd
-            out.append((True, "AJUSTE", a.ticker, a.cantidad, -a.costo_ars,
-                        "ARS", tc, False))
-    except Exception:
-        return []
+    for a in _ajustes_o_vacio(conn, user_id):
+        tc = None
+        if a.costo_usd not in (None, 0) and abs(a.costo_ars) > 1e-9:
+            tc = a.costo_ars / a.costo_usd
+        out.append((True, "AJUSTE", a.ticker, a.cantidad, -a.costo_ars,
+                    "ARS", tc, False))
     return out
+
+
+def _ajustes_o_vacio(conn, user_id: int) -> list:
+    """Los ajustes de tenencia, o ``[]`` si la base no tiene la tabla (M13).
+
+    ⚠️ **Solo** la tabla faltante. Hasta el 22/9/2026 las tres lecturas de
+    ajustes de este módulo hacían ``except Exception`` cada una por su lado:
+    un error cualquiera sacaba los ajustes de las posiciones y del capital
+    aportado **sin avisar**, y la de los flujos podía dejarlos a medias.
+    """
+    from core.db import es_tabla_faltante
+    from .ajustes import listar
+    try:
+        return listar(conn, user_id)
+    except Exception as exc:
+        if es_tabla_faltante(exc):
+            return []
+        raise
 
 
 @dataclass(frozen=True)
@@ -361,11 +372,8 @@ def _aporte_de_ajustes(conn, user_id: int) -> tuple[float, float]:
     Tolerante a una base sin la migración M13: los ajustes suman precisión,
     no pueden ser la razón de que la cartera no cargue.
     """
-    try:
-        from .ajustes import aporte_sintetico, listar
-        return aporte_sintetico(listar(conn, user_id))
-    except Exception:
-        return 0.0, 0.0
+    from .ajustes import aporte_sintetico
+    return aporte_sintetico(_ajustes_o_vacio(conn, user_id))
 
 
 # ---------------------------------------------------------------------------
@@ -401,13 +409,9 @@ def flujos_de_capital(conn, user_id: int) -> list[tuple[date, float, float]]:
     # Los ajustes con costo son aportes reales, hechos en su fecha. Sin ellos
     # la TIR se calcula sobre menos capital del que hubo y sale inflada — el
     # mismo error que `capital_aportado`, pero además con la fecha corrida.
-    try:
-        from .ajustes import listar
-        for a in listar(conn, user_id):
-            if abs(a.costo_ars) > 1e-9 or (a.costo_usd or 0):
-                filas.append((a.fecha, -a.costo_ars, -(a.costo_usd or 0.0)))
-    except Exception:
-        pass
+    for a in _ajustes_o_vacio(conn, user_id):
+        if abs(a.costo_ars) > 1e-9 or (a.costo_usd or 0):
+            filas.append((a.fecha, -a.costo_ars, -(a.costo_usd or 0.0)))
 
     filas.sort(key=lambda x: x[0])
     return filas

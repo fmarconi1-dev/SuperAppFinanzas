@@ -7,6 +7,8 @@ Yahoo y a la serie MEP.
 
 from __future__ import annotations
 
+import sqlite3
+
 import pandas as pd
 import streamlit as st
 
@@ -56,9 +58,12 @@ def _resolver_sectores(valuadas) -> tuple[dict, dict]:
     ]
     with connect() as conn:
         try:
+            # No lanza por la red (una falla de Yahoo no se cachea: se
+            # reintenta en la próxima carga). Lo único que se tolera acá es
+            # la base ocupada; un bug tiene que verse.
             refrescar_sectores(conn, tickers)
             conn.commit()
-        except Exception:
+        except sqlite3.OperationalError:
             pass          # la composición se muestra igual con lo que haya
         sectores = sectores_para(conn)
         industrias = sectores_para(conn, "industria")

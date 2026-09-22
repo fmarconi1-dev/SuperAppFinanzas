@@ -1,6 +1,6 @@
 # BITÁCORA — changelog narrativo global
 
-<!-- huella: 55f78f895f03 -->
+<!-- huella: da3b4a9e996a -->
 
 Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías).
 
@@ -14,6 +14,29 @@ Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación e
 ## Crónica
 
 Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión relevante. Lo fino de cada módulo va en su `bitacora_de_trabajo.md`.
+
+---
+
+## 2026-09-22 — Auditoría + limpieza entre fases (sin features nuevas)
+**Autor:** Claude (Opus 5.5), con Franco.
+
+- **Contexto:** casi un mes sin sesiones. El estado real no coincidía del todo con el handoff: el trabajo del 27/8 estaba commiteado y pusheado (commits `aa`/`aaa` del 26/8 y 3/9) aunque `ESTADO.md` lo daba "pendiente de commit", y el deploy del 27/8 **sí salió** (confirmado por Franco). Baseline: **743 passed, 0 skipped**.
+- **Auditoría primero, arreglos con el OK de Franco.** Siete bugs reales, ninguno disparado hoy en producción (verificado contra el backup del 26/8, en modo lectura):
+  - **B1 🔴 — la pantalla de Cartera se caía con una tasa devengada.** `_resolver` leía `fecha_val` antes de que se asignara (variable de la función de afuera, que `test_nombres_definidos` no ve). Apretar "Aplicar" en *Instrumentos que devengan una tasa* la tiraba **para siempre**, porque no había cómo quitar la tasa. Latente desde M11 (29/7). Arreglado, más botón **Quitar**, y la precedencia pasó a **broker antes que devengado** (decisión de Franco).
+  - **B2 🟠 — la caché negativa confundía "no contestó" con "no existe"** en Docta (cuota de 15/día) y Yahoo (rate-limit, y corre en cada carga): un bono o ticker quedaba "sin dato" para siempre y la pantalla decía que era esperable. Nuevo `core/market_data/_errores.py` (`FuenteNoDisponible`).
+  - **B3 🟠 — el indexador del mapa ignoraba el `.gitignore` en Windows** (`\` vs `/`): el `MAPA.md` commiteado listaba `Borrar/` y leía los `.db-shm` de los backups de producción.
+  - **B4 🟡 — M3, M7 y M8.5 corrían en cada arranque** y pisaban decisiones del usuario (M8.5 hasta podía borrar la fila buena de un espacio). Ahora son únicas, marcadas con `PRAGMA user_version`; M5 recibió el guard post-D2 que le faltaba.
+  - **B5 🟡 — importes ilegibles entraban como $0 en silencio** (Finanzas y Cartera; en Cartera, además, `1,234.56` se leía como 1,23).
+  - **B6 🟢 — la app decía "Mercado en vivo: llega en Fase 5"** (hoy es la 6).
+  - **B7 🟠 (encontrado arreglando B5) — el CLI de reimportación de Finanzas estaba roto** por un `sys.path` heredado de Mis-Finanzas-App; la suite no lo veía.
+- **Olores:** unos 12 `except Exception` achicados (red → `ERRORES_DE_RED`; base sin migración → `es_tabla_faltante()`; lo demás se ve); 38 imports muertos en `view.py` y 9 funciones sin uso borradas (una, `previsiones_anuales`, con un bug propio); fachadas `core/auth/current_user.py` y `current_workspace.py` borradas; un test (`test_db_concurrencia`) que desde el split pasaba en blanco.
+- **Red nueva:** `test_smoke_pantallas.py` abre Finanzas, Cartera y el shell con `AppTest` (verificado: con B1 reintroducido, falla con el error exacto) · `test_closures_definidos.py` · `test_db_reparaciones_unicas.py` · `test_indexar.py` · `test_importes_ilegibles.py`. `coverage` instalado en el venv: **78%** total; lo más flojo, login/contraseñas (21–29%).
+- **Gate de números:** huella de Cartera y Finanzas sobre una **copia** del backup de producción, antes y después de todos los cambios: **idéntica**, peso por peso (capital aportado US$ 11.534, realizado $5.432.244, 344 transacciones, etc.).
+- **Limpieza:** `docs/PROMPT-INICIO-FASE-4.md` y `PROMPT-INICIO-FABLE.md` borrados; 4 ramas locales mergeadas borradas (las de `origin` las borra Franco); los dos `.tar.gz` del 18/8 a la Papelera. Documentos sincronizados (ESTADO, ROADMAP, MEJORAS, README, claude.md, índice de ADRs, prompt de Fase 5).
+- **Trampas nuevas (37–42)** en las fichas de sus carpetas y en `docs/PROMPT-INICIO-FASE-5.md`.
+- **Una corrección a mi propio informe:** reporté el `.gitignore` con caracteres rotos; no lo estaba — era PowerShell leyéndolo con la codificación equivocada.
+
+**Estado al cierre:** suite **865 passed, 0 skipped**. Commit local listo; push y deploy, de Franco.
 
 ---
 

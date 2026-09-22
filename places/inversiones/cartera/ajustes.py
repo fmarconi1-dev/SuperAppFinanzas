@@ -201,14 +201,19 @@ def tickers_conocidos(conn, user_id: int) -> set[str]:
     nada y el aviso siguió apareciendo — **un ajuste mal tipeado no falla, no
     hace nada**, que es peor porque no deja rastro.
     """
+    from core.db import es_tabla_faltante
     try:
         return {
             r[0] for r in conn.execute(
                 "SELECT DISTINCT ticker_base FROM cartera_movimientos "
                 "WHERE user_id = ? AND ticker_base IS NOT NULL", (user_id,))
         }
-    except Exception:
-        return set()
+    except Exception as exc:
+        # Solo una base sin M9 (trampa 36). Un conjunto vacío por un error
+        # cualquiera haría que **todo** ajuste pareciera un ticker mal tipeado.
+        if es_tabla_faltante(exc):
+            return set()
+        raise
 
 
 def parecidos(ticker: str, conocidos, n: int = 3) -> list[str]:

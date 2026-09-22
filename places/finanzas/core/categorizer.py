@@ -102,13 +102,6 @@ DEFAULT_CATEGORIAS_NEW_USER: Dict[str, Tuple[str, Optional[str]]] = {
 MOTIVOS_DUAL_DESAHORRO = {"Inversiones"}
 
 
-def grupo_de(motivo: str, custom_map: Optional[Dict[str, str]] = None) -> str:
-    """Devuelve sólo el grupo (compat con código previo)."""
-    if custom_map is None:
-        custom_map = DEFAULT_GRUPOS
-    return custom_map.get(motivo, "Sin categorizar")
-
-
 def categoria_de(
     motivo: str,
     custom_map: Optional[Dict[str, Tuple[str, Optional[str]]]] = None,

@@ -329,9 +329,27 @@ def test_la_vista_no_consulta_la_red_al_abrirse():
 
 
 def test_solo_el_boton_refresca():
+    """El botón llama a `_refrescar` (22/9/2026: el refresco se sacó a una
+    función para poder guardar el aviso y mostrarlo después del rerun), y
+    `_refrescar` es el único que consulta la red."""
     llamadas = _llamadas_de("_boton_refrescar_cronogramas")
-    assert "refrescar_cronogramas" in llamadas
+    assert "_refrescar" in llamadas
     assert "button" in llamadas
+    assert "refrescar_cronogramas" in _llamadas_de("_refrescar")
+
+
+def test_la_vista_distingue_sin_datos_de_no_consultado():
+    """Trampa 16: "la fuente no lo tiene" es esperable; "todavía no se pudo
+    preguntar" no. Antes de 22/9/2026 los dos caían en el mismo cartel de
+    "no hay nada que arreglar"."""
+    assert "ya_consultado" in _llamadas_de("_renta_fija")
+
+
+def test_el_aviso_del_refresco_sobrevive_al_rerun():
+    """Un `st.success` seguido de `st.rerun()` se borra antes de verse."""
+    fuente = _fuente_de("_refrescar")
+    assert "session_state" in fuente
+    assert fuente.index("session_state") < fuente.index("st.rerun")
 
 
 def test_la_tabla_de_pagos_lleva_la_moneda_de_cada_pago():

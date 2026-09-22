@@ -1,6 +1,9 @@
 # ---- Datos personales / financieros: NUNCA versionar ----
 data/
 *.db
+*.db-shm
+*.db-wal
+*.db-journal
 *.sqlite
 *.sqlite3
 *.xlsx
@@ -24,6 +27,9 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
 .ruff_cache/
 *.egg-info/
 

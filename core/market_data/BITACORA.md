@@ -1,6 +1,6 @@
 # core/market_data/
 
-<!-- huella: a596d2255df5 -->
+<!-- huella: f3d974998834 -->
 
 Resumen: Datos de mercado para valuar la cartera: MEP histórico (argentinadatos), precios ARG (data912) y globales (yahoo), sectores por ticker y cronogramas de renta fija (Docta).
 
@@ -10,7 +10,8 @@ Resumen: Datos de mercado para valuar la cartera: MEP histórico (argentinadatos
 - un precio falta o viene raro: bonos ×100, override, caché (`precios.py`)
 - sector/industria de un ticker para el análisis de composición (`sectores.py`)
 - cronogramas de pago, cupones, Docta (`cronogramas.py`, `DOCTA_CLIENT_ID/SECRET`)
-- una fuente externa caída y qué fallback aplica
+- una fuente externa caída y qué fallback aplica → `_errores.py` (`FuenteNoDisponible`, `ERRORES_DE_RED`)
+- un bono quedó "sin cronograma" o un ticker "Sin dato" de sector **para siempre** → caché negativa: solo se escribe si la fuente *contestó* que no existe
 - la serie histórica de un índice para comparar contra la cartera (`indices.py`)
 
 ## Qué hay acá
@@ -20,6 +21,7 @@ Resumen: Datos de mercado para valuar la cartera: MEP histórico (argentinadatos
 - `sectores.py` — sector e industria vía Yahoo (100% Yahoo desde el retiro del scoring).
 - `cronogramas.py` — flujos de renta fija desde la API de Docta, con caché en DB (M15).
 - `indices.py` — series históricas de SPY y Merval (Yahoo) para el benchmark money-weighted de la cartera.
+- `_errores.py` — qué es "la fuente no contestó": `FuenteNoDisponible` y la tupla `ERRORES_DE_RED` que usan todos los proveedores.
 
 ## Trampas
 
@@ -29,6 +31,9 @@ Resumen: Datos de mercado para valuar la cartera: MEP histórico (argentinadatos
 - URLs vivas: api.doctacapital.com.ar, api.argentinadatos.com, data912.com, query1/query2.finance.yahoo.com.
 - `indices.py` usa **`adjclose`, no `close`**: el cierre ajustado incluye dividendos reinvertidos. Comparar el rendimiento total de Franco contra un SPY sin dividendos le regalaría ~1,3% anual a la cartera.
 - `indices.py` **no necesitó migración**: cachea en `cartera_precios_cache`, porque el cierre de un índice tiene exactamente la forma que esa tabla guarda (ticker, fecha, precio, moneda, fuente).
+- ⚠️ **"No contestó" ≠ "no existe" (trampas 16 + 19, 22/9/2026).** Hasta esa fecha, Docta y Yahoo devolvían `None` tanto si el dato no existía como si la fuente estaba caída, con cuota agotada (Docta: 15/día) o con rate-limit; y la caché negativa guardaba ese `None` **para siempre**. Ahora las variantes estrictas (`cronogramas._traer`, `sectores._buscar_ficha`/`_resolver_ficha`) lanzan `FuenteNoDisponible`, y `refrescar_*` no marca nada, **corta al primer fallo** y deja el resto para la próxima. Solo una respuesta válida vacía (o un 404 de Docta) es "no existe". `refrescar_cronogramas` devuelve `(resueltos, sin_datos, no_consultados)`.
+- **Los `except` de este módulo se limitan a `ERRORES_DE_RED`** (+ `KeyError`/`TypeError` donde la respuesta puede venir con otra forma). Un bug nuestro se ve. Para simular una fuente caída en un test usá `OSError`/`HTTPError`, que es lo que tira `urllib`, no `RuntimeError` (un test del benchmark "andaba" con `RuntimeError` solo porque el módulo tragaba todo).
+- Pendiente: si Yahoo no sirve `adjclose`, `indices.py` cae a `close` sin avisar (trampa 27; en `MEJORAS.md`).
 - El símbolo del Merval es `^MERV` y el `^` hay que **url-encodearlo** (`%5EMERV`) o Yahoo devuelve vacío.
 
 ## Estado

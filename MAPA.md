@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-09-03 15:18 UTC · 122 archivos · 25,619 LOC -->
+<!-- 2026-09-22 22:56 UTC · 122 archivos · 26,113 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-08-27 5898002 Update PROMPT-INICIO-FASE-4.md · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-09-03 c314b78 aaa · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -25,15 +25,18 @@ Rama `main` — ultimo commit: 2026-08-27 5898002 Update PROMPT-INICIO-FASE-4.md
 | el badge Personal/Familiar o el switcher del sidebar se comportan raro | `core/` |
 | un import circular entre core y core/auth → **cortado** el 27/8/2026 con `context.py` | `core/` |
 | quién es el usuario o el workspace activo, desde lógica sin Streamlit → `context.py` | `core/` |
+| "reinicié la app y se deshizo lo que cambié" (una categoría reclasificada, una subcategoría vaciada) → reparaciones únicas de `db.py` (`_NIVEL_REPARACIONES`, `PRAGMA user_version`) | `core/` |
+| tolerar una base sin cierta migración → `es_tabla_faltante()` en `db.py` (y nada más ancho) | `core/` |
 | login, signup, contraseñas, código de registro (`SIGNUP_CODE`) | `core\auth/` |
 | "me pide loguearme en cada refresh" → tokens firmados en la URL (`session_tokens.py`, `SESSION_SECRET`) | `core\auth/` |
-| necesitás saber quién es el usuario o workspace actual desde lógica sin Streamlit → contextvars (`current_user.py`, `current_workspace.py`) | `core\auth/` |
+| necesitás saber quién es el usuario o workspace actual desde lógica sin Streamlit → **no es acá**: `core/context.py` (las fachadas `current_user.py`/`current_workspace.py` se borraron el 22/9/2026) | `core\auth/` |
 | el botón de logout | `core\auth/` |
 | dólar MEP histórico o de hoy, el TC congelado por operación (`mep.py`) | `core\market_data/` |
 | un precio falta o viene raro: bonos ×100, override, caché (`precios.py`) | `core\market_data/` |
 | sector/industria de un ticker para el análisis de composición (`sectores.py`) | `core\market_data/` |
 | cronogramas de pago, cupones, Docta (`cronogramas.py`, `DOCTA_CLIENT_ID/SECRET`) | `core\market_data/` |
-| una fuente externa caída y qué fallback aplica | `core\market_data/` |
+| una fuente externa caída y qué fallback aplica → `_errores.py` (`FuenteNoDisponible`, `ERRORES_DE_RED`) | `core\market_data/` |
+| un bono quedó "sin cronograma" o un ticker "Sin dato" de sector **para siempre** → caché negativa: solo se escribe si la fuente *contestó* que no existe | `core\market_data/` |
 | la serie histórica de un índice para comparar contra la cartera (`indices.py`) | `core\market_data/` |
 | estética, colores, tipografía, dark mode, "se ve poco profesional" | `core\theme/` |
 | "se ve mal en el celular" → `_responsive.py` | `core\theme/` |
@@ -46,7 +49,8 @@ Rama `main` — ultimo commit: 2026-08-27 5898002 Update PROMPT-INICIO-FASE-4.md
 | números del dashboard que no cierran → `metrics.py` | `places\finanzas\core/` |
 | Previsión vs Realidad por mes → `budget.py` | `places\finanzas\core/` |
 | categorías, "sin categorizar", mapping Motivo → Grupo/Subcategoría → `categorizer.py`, `categorias.py` | `places\finanzas\core/` |
-| importar `Diario.csv` / `Mensual.csv` (`ingest.py`, `parsers.py`; env `DIARIO_CSV`/`MENSUAL_CSV`) | `places\finanzas\core/` |
+| importar `Diario.csv` / `Mensual.csv` (`ingest.py`, `parsers.py`; env `DIARIO_CSV`/`MENSUAL_CSV`) — por consola: `.venv\Scripts\python.exe -m places.finanzas.core.ingest --force` | `places\finanzas\core/` |
+| un gasto que entró como $0, o una advertencia de "importe ilegible" al importar → `parsers.parse_currency_estricto` + `ingest._importe` | `places\finanzas\core/` |
 | alta/edición/borrado de gastos y el backup automático que disparan → `transactions.py` | `places\finanzas\core/` |
 | exportar todo a Excel → `export.py` | `places\finanzas\core/` |
 | "$ mal formateado", separador de miles, un NaN visible en pantalla → `_format.py` | `places\finanzas\helpers/` |
@@ -59,7 +63,7 @@ Rama `main` — ultimo commit: 2026-08-27 5898002 Update PROMPT-INICIO-FASE-4.md
 | pantalla de bienvenida → `onboarding.py` | `places\finanzas\views/` |
 | "¿dónde está el scoring?" → retirado por decisión de Franco (ADR-0002 marcado retirado; el código quedó en `Borrar/`). Los sectores ahora salen 100% de Yahoo. | `places\inversiones/` |
 | las pestañas del lugar → `home.py` | `places\inversiones/` |
-| Mercado en vivo → todavía no existe (Fase 5; fuentes candidatas en `docs/DATOS-MERCADO-ARG.md`) | `places\inversiones/` |
+| Mercado en vivo → todavía no existe (Fase 6; fuentes candidatas en `docs/DATOS-MERCADO-ARG.md`) | `places\inversiones/` |
 | números que no calzan con el broker o el Excel → `posiciones.py`, `tenencias.py` y el gate `tests/test_cartera_recon.py` | `places\inversiones\cartera/` |
 | importar movimientos o tenencias, dedupe, formatos viejo/nuevo del export → `parser.py`, `tenencias.py`, `ingest.py` | `places\inversiones\cartera/` |
 | rendimiento, TIR, resultado realizado → `ledger.py` (PPC móvil, ADR-0005), `kpis.py` | `places\inversiones\cartera/` |
@@ -68,6 +72,7 @@ Rama `main` — ultimo commit: 2026-08-27 5898002 Update PROMPT-INICIO-FASE-4.md
 | composición por tipo de renta y sector → `analisis.py` | `places\inversiones\cartera/` |
 | "¿me fue mejor o peor que el mercado?" → `benchmark.py` (money-weighted, con `core/market_data/indices.py`) | `places\inversiones\cartera/` |
 | un ticker que el broker no informa o cantidades a corregir a mano → `ajustes.py` | `places\inversiones\cartera/` |
+| la tasa devengada de un pagaré (cargarla o **quitarla**), o qué precio manda sobre cuál → `view.py` (`_resolver` y el expander de tasas) | `places\inversiones\cartera/` |
 | la pantalla de Cartera, quién puede verla (`CARTERA_USER_IDS`), el orden de los paneles → `view.py` | `places\inversiones\cartera/` |
 | un panel concreto (composición, benchmark, vencimientos, renta fija, caja, ajustes, upload) → `paneles/` | `places\inversiones\cartera/` |
 | exportar la cartera a Excel → `export.py` | `places\inversiones\cartera/` |
@@ -90,28 +95,30 @@ Rama `main` — ultimo commit: 2026-08-27 5898002 Update PROMPT-INICIO-FASE-4.md
 | los CSV oráculo de Finanzas → `_oraculos.py` (`DIARIO_CSV`/`MENSUAL_CSV`) | `tests/` |
 | convención de nombres: `test_cartera_*` → cartera · `test_market_data_*` → core/market_data · `test_backup_*`/`test_db_*`/`test_workspaces_*` → core · el resto → Finanzas | `tests/` |
 | los premortem-tests (`test_premortem3/5.py`): regresiones de los riesgos del premortem | `tests/` |
+| "¿la pantalla abre?" → `test_smoke_pantallas.py` (`AppTest`, base sintética, red cortada) | `tests/` |
+| una función anidada que lee algo que todavía no existe → `test_closures_definidos.py` | `tests/` |
+| migraciones que re-corren al reiniciar → `test_db_reparaciones_unicas.py` · el mapa leyendo carpetas ignoradas → `test_indexar.py` · importes ilegibles y el CLI del ingest → `test_importes_ilegibles.py` | `tests/` |
+| cobertura: `.venv\Scripts\python.exe -m pytest --cov=core --cov=places` (`coverage` instalado en el venv el 22/9/2026, fuera del lock; 78% total) | `tests/` |
 
 ## Carpetas
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (~360 tests) en carpeta plana: unidad + regresión + gates de reconciliación contra el Excel-oráculo. Es el gate del repo: nada se cierra sin verde. | 33 | 8,173 | **vencida** |
-| `places\inversiones\cartera/` | Cartera nativa (B.1): parser de exports del broker (2 formatos), ledger cronológico con PPC móvil, posiciones, KPIs por método del patrimonio, renta fija y la vista con upload. | 15 | 5,639 | **vencida** |
-| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 10 | 2,006 | **vencida** |
-| `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | **vencida** |
-| `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M15 + backups), workspaces del grupo familiar (D2) y su UI. Auth y theme viven en subcarpetas propias. | 5 | 1,553 | **vencida** |
-| `places\inversiones\cartera\paneles/` | Los paneles de la pantalla de Cartera, uno por archivo. Salieron de `view.py` en el split del 27/8/2026, que movió código sin cambiarlo. | 11 | 1,521 | **vencida** |
-| `core\market_data/` | Datos de mercado para valuar la cartera: MEP histórico (argentinadatos), precios ARG (data912) y globales (yahoo), sectores por ticker y cronogramas de renta fija (Docta). | 6 | 1,387 | **vencida** |
-| `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas, chequeo de cobertura de Docta y el indexador del mapa. | 6 | 1,260 | **vencida** |
-| `core\theme/` | Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semántica + template Plotly unificado, ajustes responsive y logo. | 5 | 680 | **vencida** |
-| `core\auth/` | Autenticación compartida: usuarios con bcrypt, pantalla de login/signup, tokens de sesión firmados y los contextvars de usuario/workspace activos. | 6 | 462 | **vencida** |
-| `Borrar\scoring-retirado-1786650535/` | _sin describir_ | 3 | 325 | — |
-| `places\finanzas\helpers/` | Utilidades de las vistas: formateo es-AR de montos, inyección de HTML y el tour guiado de bienvenida. | 4 | 288 | **vencida** |
-| `./` | Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías). | 4 | 221 | **vencida** |
+| `tests/` | La suite completa (865 tests al 22/9/2026) en carpeta plana: unidad + regresión + gates de reconciliación contra el Excel-oráculo. Es el gate del repo: nada se cierra sin verde. | 38 | 8,936 | ok |
+| `places\inversiones\cartera/` | Cartera nativa (B.1): parser de exports del broker (2 formatos), ledger cronológico con PPC móvil, posiciones, KPIs por método del patrimonio, renta fija y la vista con upload. | 15 | 5,649 | ok |
+| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 10 | 1,997 | ok |
+| `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | ok |
+| `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M15 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth y theme viven en subcarpetas propias. | 5 | 1,616 | ok |
+| `core\market_data/` | Datos de mercado para valuar la cartera: MEP histórico (argentinadatos), precios ARG (data912) y globales (yahoo), sectores por ticker y cronogramas de renta fija (Docta). | 7 | 1,531 | ok |
+| `places\inversiones\cartera\paneles/` | Los paneles de la pantalla de Cartera, uno por archivo. Salieron de `view.py` en el split del 27/8/2026, que movió código sin cambiarlo. | 11 | 1,507 | ok |
+| `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas, chequeo de cobertura de Docta y el indexador del mapa. | 6 | 1,267 | ok |
+| `core\theme/` | Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semántica + template Plotly unificado, ajustes responsive y logo. | 5 | 637 | ok |
+| `core\auth/` | Autenticación compartida: usuarios con bcrypt, pantalla de login/signup y tokens de sesión firmados. (Los contextvars de usuario/workspace viven en `core/context.py`.) | 4 | 422 | ok |
+| `places\finanzas\helpers/` | Utilidades de las vistas: formateo es-AR de montos, inyección de HTML y el tour guiado de bienvenida. | 4 | 278 | ok |
+| `./` | Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías). | 4 | 221 | ok |
 | `.github\workflows/` | CI: `tests.yml` corre la suite pytest en cada push (el gate de recon se saltea sin el Excel, así CI no depende de datos personales). | 1 | 82 | ok |
-| `places\finanzas/` | Lugar A — Finanzas Personales (ex Mis-Finanzas-App / Radar Financiero): home con onboarding y las 5 pestañas. La lógica vive en `core/` local, las pantallas en `views/`. | 2 | 71 | **vencida** |
-| `Borrar/` | _sin describir_ | 1 | 52 | — |
-| `places\inversiones/` | Lugar B — Inversiones: pestaña Cartera (en `cartera/`) y Mercado en vivo (placeholder de Fase 5). El scoring se retiró el 5/8/2026. | 2 | 37 | **vencida** |
+| `places\finanzas/` | Lugar A — Finanzas Personales (ex Mis-Finanzas-App / Radar Financiero): home con onboarding y las 5 pestañas. La lógica vive en `core/` local, las pantallas en `views/`. | 2 | 71 | ok |
+| `places\inversiones/` | Lugar B — Inversiones: pestaña Cartera (en `cartera/`) y Mercado en vivo (placeholder de Fase 6). El scoring se retiró el 5/8/2026. | 2 | 37 | ok |
 | `places/` | _sin describir_ | 1 | 2 | — |
 
 ## Puntos de entrada
@@ -130,63 +137,60 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 | Archivo | LOC | Lo usan | Simbolos |
 |---|---:|---:|---|
-| `core\db.py` | 1081 | 42 | `_migrate`, `get_db_path`, `connect`, `init_db` |
-| `core\workspaces.py` | 261 | 13 | `_hash_code`, `_uid`, `get_personal_workspace_id`, `ensure_personal_workspace` |
+| `core\db.py` | 1144 | 47 | `_migrate`, `es_tabla_faltante`, `get_db_path`, `connect` |
+| `core\__init__.py` | 5 | 15 | — |
+| `core\workspaces.py` | 261 | 14 | `_hash_code`, `_uid`, `get_personal_workspace_id`, `ensure_personal_workspace` |
 | `core\context.py` | 105 | 12 | `set_current_user_id`, `get_current_user_id`, `require_current_user_id`, `set_current_workspace_id` |
-| `core\__init__.py` | 5 | 12 | — |
-| `places\inversiones\cartera\posiciones.py` | 471 | 11 | `Posicion`, `_acumular`, `posiciones`, `posiciones_desde_db` |
-| `places\finanzas\core\metrics.py` | 363 | 11 | `_uid`, `anios_con_datos`, `filtrar_anio`, `load_transactions` |
-| `places\inversiones\cartera\parser.py` | 638 | 10 | `Instrumento`, `Movimiento`, `_sin_tildes`, `_norm` |
-| `places\inversiones\cartera\__init__.py` | 2 | 10 | — |
+| `places\inversiones\cartera\posiciones.py` | 475 | 11 | `Posicion`, `_acumular`, `posiciones`, `posiciones_desde_db` |
+| `places\finanzas\core\metrics.py` | 359 | 11 | `_uid`, `anios_con_datos`, `filtrar_anio`, `load_transactions` |
+| `places\inversiones\cartera\parser.py` | 650 | 10 | `Instrumento`, `Movimiento`, `_sin_tildes`, `_norm` |
 | `places\inversiones\cartera\paneles\_comun.py` | 45 | 9 | `_fmt`, `_kpi_card` |
+| `places\inversiones\cartera\__init__.py` | 2 | 9 | — |
 | `core\market_data\__init__.py` | 47 | 8 | — |
 | `places\inversiones\cartera\ingest.py` | 418 | 6 | `_filas_config`, `instrumentos_desde_config`, `cargar_instrumentos_en_db`, `_fecha` |
 | `places\finanzas\helpers\_tour.py` | 198 | 6 | `_user_id`, `is_tour_active`, `start_tour`, `finish_tour` |
 
 ## Flujo interno
 
-- `tests/` → `places\inversiones\cartera/` (31)
-- `tests/` → `core/` (28)
+- `tests/` → `core/` (36)
+- `tests/` → `places\inversiones\cartera/` (32)
 - `places\finanzas\core/` → `core/` (17)
+- `tests/` → `places\finanzas\core/` (14)
 - `places\finanzas\views/` → `places\finanzas\helpers/` (13)
 - `places\finanzas\views/` → `places\finanzas\core/` (12)
 - `places\inversiones\cartera\paneles/` → `places\inversiones\cartera/` (12)
 - `places\inversiones\cartera/` → `places\inversiones\cartera\paneles/` (10)
-- `tests/` → `places\finanzas\core/` (10)
 - `places\finanzas\views/` → `core/` (8)
 - `places\inversiones\cartera\paneles/` → `core\market_data/` (8)
 - `places\inversiones\cartera\paneles/` → `core/` (7)
-- `places\inversiones\cartera/` → `core\market_data/` (6)
+- `places\inversiones\cartera/` → `core/` (6)
 
 ## Se tocan juntos
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `EN-HUMANO.md` + `ESTADO.md` (32 commits)
+- `EN-HUMANO.md` + `ESTADO.md` (33 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)
-- `BITACORA.md` + `ESTADO.md` (24 commits)
-- `BITACORA.md` + `EN-HUMANO.md` (23 commits)
+- `BITACORA.md` + `ESTADO.md` (25 commits)
+- `BITACORA.md` + `EN-HUMANO.md` (24 commits)
 - `ESTADO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (23 commits)
 - `places/inversiones/cartera/bitacora_de_trabajo.md` + `places/inversiones/cartera/view.py` (21 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/view.py` (17 commits)
 - `BITACORA.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (15 commits)
 - `ESTADO.md` + `places/inversiones/cartera/view.py` (14 commits)
-- `BITACORA.md` + `ROADMAP.md` (8 commits)
+- `BITACORA.md` + `ROADMAP.md` (9 commits)
 
 ## Fuentes externas
 
 - `api.doctacapital.com.ar` — `core\market_data\cronogramas.py`, `docs\CRONOGRAMAS-RENTA-FIJA.md`, `tests\test_market_data_cronogramas.py`
-- `api.anthropic.com` — `backups-remotos\superapp-20260804-105642.db-shm`, `backups-remotos\superapp-20260804-110250.db-shm`
-- `fmarconi1-dev.github.io` — `Borrar\scoring-retirado-1786650535\snapshot.py`, `Borrar\scoring-retirado-1786650535\view.py`
 - `query1.finance.yahoo.com` — `core\market_data\indices.py`, `core\market_data\precios.py`
 - `app.docta.com.ar` — `docs\CRONOGRAMAS-RENTA-FIJA.md`, `scripts\verificar_docta.py`
-- `microsoft.com` — `backups-remotos\superapp-20260804-105642.db-shm`
-- `diagnostics.microsoft.com` — `backups-remotos\superapp-20260804-105642.db-shm`
-- `go.microsoft.com` — `backups-remotos\superapp-20260804-105642.db-shm`
-- `finance.yahoo.com` — `Borrar\scoring-retirado-1786650535\view.py`
 - `api.argentinadatos.com` — `core\market_data\mep.py`
 - `data912.com` — `core\market_data\precios.py`
 - `query2.finance.yahoo.com` — `core\market_data\sectores.py`
+- `docs.docta.com.ar` — `docs\CRONOGRAMAS-RENTA-FIJA.md`
+- `mcp.docta.com.ar` — `docs\CRONOGRAMAS-RENTA-FIJA.md`
+- `superapp-finanzas.fly.dev` — `docs\RUNBOOK.md`
 
 ## Configuracion requerida
 
@@ -198,12 +202,5 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 - `DOCTA_CLIENT_ID` — `core\market_data\cronogramas.py`, `scripts\verificar_docta.py`
 - `DOCTA_CLIENT_SECRET` — `core\market_data\cronogramas.py`, `scripts\verificar_docta.py`
 - `MENSUAL_CSV` — `places\finanzas\core\ingest.py`, `tests\_oraculos.py`
-- `SCORING_CACHE_PATH` — `Borrar\scoring-retirado-1786650535\snapshot.py`
-- `SCORING_SNAPSHOT_URL` — `Borrar\scoring-retirado-1786650535\snapshot.py`
 - `SESSION_SECRET` — `core\auth\session_tokens.py`
 - `SIGNUP_CODE` — `core\auth\login.py`
-
-## Frescura
-
-- Bitacoras vencidas: `./`, `core/`, `core\auth/`, `core\market_data/`, `core\theme/`, `places\finanzas/`, `places\finanzas\core/`, `places\finanzas\helpers/`, `places\finanzas\views/`, `places\inversiones/`, `places\inversiones\cartera/`, `places\inversiones\cartera\paneles/`, `scripts/`, `tests/`
-- Carpetas sin bitacora: `Borrar\scoring-retirado-1786650535/`

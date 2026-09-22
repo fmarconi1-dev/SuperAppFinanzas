@@ -4,18 +4,23 @@
 > Formato de cada entrada: `fecha · autor (Claude+modelo / Franco) · qué se hizo · por qué · estado`.
 > Regla: no cerrar una sesión sin dejar la entrada acá y actualizar `/ESTADO.md` en la raíz.
 
-<!-- ultima_actualizacion: — -->
+<!-- ultima_actualizacion: 2026-09-22 -->
 
 ## Estado del módulo
-**Fase de implementación:** Fase 0/1
-**Situación:** ⬜ No iniciado
+**Fase de implementación:** en producción desde Fase 1
+**Situación:** ✅ en producción
 
 ## Registro
-
-_(sin entradas todavía — este módulo aún no se implementó; ver `/ROADMAP.md`)_
 
 ## 2026-07-10 — Núcleo compartido poblado (Fase 1)
 - **Autor:** Claude (Fable 5), con Franco.
 - **Qué:** `core/auth/` (auth, session_tokens, current_user, login UI — ex Mis-Finanzas), `core/db.py` (módulo plano, no paquete: los tests monkeypatchean sus atributos, p. ej. BACKUP_DIR), `core/theme/` (_styles, _theme, _responsive, _logo — "Cosmic Slate").
 - **Por qué:** el `core/` compartido es la clave anti-refactor: auth/db/theme viven una sola vez y cada lugar los importa.
 - **Estado:** ✅ en producción. Nota: `core/db` DEBE seguir siendo módulo plano.
+
+## 2026-09-22 — Reparaciones únicas, tolerancia acotada y fin de las fachadas
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** `db.py`: M3, M7 y M8.5 pasan a correr **una sola vez** (`_NIVEL_REPARACIONES` en `PRAGMA user_version`, dentro de la transacción de `_migrate`); M5 recibe el guard post-D2; nuevo `es_tabla_faltante()`; docstrings al día; imports muertos fuera. `market_data/`: `_errores.py` (`FuenteNoDisponible`, `ERRORES_DE_RED`), caché negativa solo con respuesta válida en Docta y Yahoo, `except` acotados en precios/mep/indices. `auth/`: fachadas `current_user.py`/`current_workspace.py` borradas. `theme/`: `inline_logo`/`try_set_logo` borradas.
+- **Por qué:** auditoría del 22/9 — las reparaciones pisaban decisiones del usuario en cada reinicio de Fly; la caché negativa convertía "Docta/Yahoo no contestó" en "no existe" para siempre; los `except Exception` escondían bugs (trampas 16, 19, 36).
+- **Estado:** ✅ suite 865 passed, 0 skipped; huella de números de producción idéntica antes/después.
+

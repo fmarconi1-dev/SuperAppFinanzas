@@ -4,6 +4,8 @@ Copiá y pegá el bloque de abajo en un chat nuevo. Antes, dale acceso a la carp
 
 Estado al escribirlo (27/8/2026, cierre de jornada): **Fase 4 cerrada en lo que hizo; arranca la Fase 5 (ADR-0006).** Suite: **743 passed, 0 skipped** en local. Desplegado el 27/8.
 
+**Actualizado el 22/9/2026** (auditoría + limpieza entre fases, sin features): suite **865 passed, 0 skipped**; ningún número de producción cambió. Qué se tocó y las trampas nuevas (36–42): `/BITACORA.md`, entrada del 22/9.
+
 ---
 
 > Soy Franco. Trabajamos en mi **Superapp de Finanzas**: un monorepo Streamlit que unifica mis finanzas personales y mis inversiones en una app web. Está en producción en Fly.io (`superapp-finanzas`), es un repo git privado en `main` y lo subo yo con GitHub Desktop. Dale acceso a la carpeta `SuperAppFinanzas/` antes de empezar.
@@ -36,7 +38,7 @@ Estado al escribirlo (27/8/2026, cierre de jornada): **Fase 4 cerrada en lo que 
 >
 > **Usá el ejecutable del venv directo, no actives.** Tengo Python 3.11 (la del `Dockerfile`, en `.venv`), 3.12 y 3.14 en el sistema. Si corrés `python -m pytest` a secas agarra la 3.14, que no tiene las dependencias, y la suite **ni siquiera colecta**. Y en PowerShell `activate.bat` no hace nada: es de cmd.
 >
-> Tiene que dar **743 passed, 0 skipped**. Los 3 que en otros entornos aparecen como `skipped` son los tests-oráculo (necesitan mi Excel y mis CSV, que no se versionan). **Regla del RUNBOOK: antes de un deploy, en mi máquina tiene que dar 0 skipped.** Si ves un número de skipped que no esperabas, miralo aunque todo esté verde: un `skip` ya tapó un `SyntaxError` que dejó una pantalla caída.
+> Tiene que dar **865 passed, 0 skipped** (al 22/9/2026; si cambió, fijate en `ESTADO.md`). Los 3 que en otros entornos aparecen como `skipped` son los tests-oráculo (necesitan mi Excel y mis CSV, que no se versionan). **Regla del RUNBOOK: antes de un deploy, en mi máquina tiene que dar 0 skipped.** Si ves un número de skipped que no esperabas, miralo aunque todo esté verde: un `skip` ya tapó un `SyntaxError` que dejó una pantalla caída.
 >
 > ## Explicame "en humano"
 >
@@ -92,11 +94,18 @@ Estado al escribirlo (27/8/2026, cierre de jornada): **Fase 4 cerrada en lo que 
 > 28. **Un lock congela lo verificado, no lo último.** Antes de regenerar `requirements.lock`, leé su cabecera.
 > 29. **El dato que falta puede estar ya en la base.** Antes de construir una fuente nueva, fijate si dos módulos que ya existen no se están hablando.
 > 30. **Dos fuentes exactas que se contradicen no se resuelven en silencio.**
-> 31. **`core/context.py` no puede importar nada del proyecto.** Y `core/auth/current_user.py` es una fachada: re-exporta los mismos objetos, no copias.
+> 31. **`core/context.py` no puede importar nada del proyecto**, o vuelve el ciclo core↔core/auth. Es la **única** fuente de los contextvars de usuario y workspace (las fachadas de `core/auth/` se borraron el 22/9/2026; un test impide que aparezca otro `ContextVar`).
 > 32. **Hay tests que escanean el código fuente por AST.** Si movés una función de archivo se rompen, y está bien.
 > 33. **NO elimines el motivo "Pago tarjeta".** Hoy es el **único rastro** de mi consumo con crédito en todos los meses ya cerrados. Borrarlo o reclasificarlo hacia atrás derrumba mi gasto histórico y rompe Previsión vs Realidad. Cambia de semántica hacia adelante, nunca hacia atrás.
 > 34. **Un traspaso solo puede marcarse como tal cuando existe la fuente que cubre el otro lado.** Un pago de tarjeta cubre consumos de ~un mes antes: con una fecha de corte fija y sin backfill, el primer mes desaparece entero. Por eso **un pago es traspaso si y solo si el resumen que lo cubre fue importado** — la reconciliación es el interruptor. Los errores de esta familia **fallan hacia abajo**, que es la dirección que no se nota: mirá siempre si una clasificación puede *esconder* gasto, no solo duplicarlo.
 > 35. **El LLM nunca decide plata.** Extrae formato y propone etiquetas; el hash de identidad, el matching por monto y fecha, y todos los totales son **determinísticos y con tests**. El LLM ordena candidatos que un filtro determinístico ya produjo; no los inventa.
+> 36. **`except Exception: return <vacío>` esconde fallas.** El llamador no distingue "vacío" de "falló". Una fuente caída es `FuenteNoDisponible` (`core/market_data/_errores.py`); una base sin migración, `es_tabla_faltante()` (`core/db.py`); todo lo demás se deja ver.
+> 37. **Una función anidada que lee una variable de la función de afuera falla recién cuando se ejecuta.** Si se la pasa o se la llama antes de asignar esa variable, es un `NameError` latente (el `fecha_val` de Cartera, dos meses dormido). `tests/test_closures_definidos.py` lo caza por AST.
+> 38. **La caché negativa se escribe solo cuando la fuente *contestó* que no existe.** Un 429, un timeout o una respuesta que no es JSON no son "no existe": se reintentan. (Docta y Yahoo lo hacían mal hasta el 22/9.)
+> 39. **Una reparación de datos dentro de una migración corre una vez.** M3, M7 y M8.5 corrían en cada arranque y pisaban decisiones del usuario; ahora las marca `PRAGMA user_version`. Una migración nueva que haga `UPDATE`/`DELETE` de filas va detrás de esa marca.
+> 40. **En Windows las rutas vienen con `\`.** Toda comparación contra patrones (`.gitignore`, `startswith("x/")`) normaliza primero. El indexador leía las carpetas ignoradas por esto.
+> 41. **Un test que escanea un archivo tiene que exigir encontrar algo.** Después de un split, un test que mira el archivo viejo pasa en blanco para siempre (le pasó a `test_db_concurrencia`).
+> 42. **Que un test importe un módulo no prueba que su comando arranque.** El CLI de `ingest` estaba roto por un `sys.path` heredado y la suite no lo veía; ahora hay un test que lo corre como subproceso.
 >
 > ## Cómo verificar de verdad
 >

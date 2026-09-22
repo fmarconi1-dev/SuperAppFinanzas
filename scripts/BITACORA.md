@@ -1,6 +1,6 @@
 # scripts/
 
-<!-- huella: 7ddaa70daf94 -->
+<!-- huella: 8aae5206463b -->
 
 Resumen: Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas, chequeo de cobertura de Docta y el indexador del mapa.
 
@@ -15,6 +15,8 @@ Resumen: Operación y mantenimiento: backups remotos (PowerShell + verificación
 
 - Los `.ps1` corren en la máquina de Franco (Windows), no en Fly.
 - `restaurar_backup` deja `pre-restore-*.db` (gitignored) como red de seguridad.
+- ⚠️ **`indexar.py` en Windows (22/9/2026):** las rutas llegan con `\` y los patrones del `.gitignore` usan `/`. Sin normalizar, `ignorado()` no reconocía ninguna carpeta ignorada: el `MAPA.md` commiteado listaba `Borrar/` y el indexador **leía los `.db-shm` de los backups de producción** buscando URLs. Normalizado, y `*.db-shm`/`*.db-wal`/`*.db-journal` ignorados por nombre. Test: `tests/test_indexar.py`.
+- `git()` de `indexar.py` devuelve `""` si git no responde: cada llamador tiene que tolerarlo **con el tipo correcto** (el `{}` en vez de `Counter()` del 27/8 rompía el hook pre-commit).
 
 ## Estado
 

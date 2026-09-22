@@ -236,5 +236,15 @@ def test_los_nulls_de_yahoo_se_descartan():
 
 def test_una_fuente_caida_no_puede_tumbar_la_pantalla():
     def revienta(url):
-        raise RuntimeError("Yahoo caído")
+        # Lo que tira urllib de verdad cuando Yahoo no contesta. (Hasta el
+        # 22/9/2026 acá había un RuntimeError, que solo "andaba" porque el
+        # módulo tragaba cualquier excepción — un bug incluido.)
+        raise OSError("Yahoo caído")
     assert indices.serie_historica("SPY", fetch=revienta) == {}
+
+
+def test_un_bug_no_se_disfraza_de_yahoo_caido():
+    def bug(url):
+        raise AttributeError("bug")
+    with pytest.raises(AttributeError):
+        indices.serie_historica("SPY", fetch=bug)

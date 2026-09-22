@@ -1,6 +1,6 @@
 # places/finanzas/helpers/
 
-<!-- huella: 7bf3e12a0214 -->
+<!-- huella: 8bd938f46a52 -->
 
 Resumen: Utilidades de las vistas: formateo es-AR de montos, inyección de HTML y el tour guiado de bienvenida.
 
@@ -13,6 +13,7 @@ Resumen: Utilidades de las vistas: formateo es-AR de montos, inyección de HTML 
 ## Trampas
 
 - `fmt_ars`/`fmt_usd` toleran NaN a propósito (`_is_nan`): no reemplazar por f-strings directos.
+- `fmt_pct`/`fmt_pct_signed` se borraron el 22/9/2026 (no las usaba nadie). Para un porcentaje nuevo, agregalo acá con la misma tolerancia a NaN.
 
 ## Estado
 

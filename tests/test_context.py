@@ -13,6 +13,7 @@ import sys
 import textwrap
 
 import pytest
+from pathlib import Path
 
 from core import context
 
@@ -87,47 +88,32 @@ def test_la_logica_de_finanzas_no_arrastra_bcrypt():
 
 
 # ---------------------------------------------------------------------------
-# Las fachadas: el mismo objeto, no una copia
+# Una sola fuente del contextvar
 # ---------------------------------------------------------------------------
 #
-# Si cada módulo definiera su propio ContextVar, `set()` por una puerta y
-# `get()` por la otra devolverían cosas distintas — y el bug sería invisible
-# hasta que alguien mezclara los imports en el mismo flujo.
+# Hasta el 22/9/2026 existían `core/auth/current_user.py` y
+# `current_workspace.py` como fachadas que re-exportaban estos objetos. Ya
+# nadie las importaba en producción y se borraron. Lo que importa es el
+# invariante que protegían: si otro módulo definiera su propio ContextVar,
+# `set()` por una puerta y `get()` por la otra devolverían cosas distintas —
+# y el bug sería invisible hasta que alguien mezclara los imports.
 
-def test_la_fachada_de_usuario_es_el_mismo_contextvar():
-    from core.auth import current_user as fachada_user
-
-    context.set_current_user_id(42)
-    assert fachada_user.get_current_user_id() == 42
-    assert fachada_user.require_current_user_id() == 42
-    context.set_current_user_id(None)
-
-
-def test_y_al_reves_tambien():
-    from core.auth import current_user as fachada_user
-
-    fachada_user.set_current_user_id(7)
-    assert context.get_current_user_id() == 7
-    context.set_current_user_id(None)
+def test_nadie_mas_define_un_contextvar_de_usuario_o_workspace():
+    raiz = Path(__file__).resolve().parents[1]
+    culpables = [
+        str(p.relative_to(raiz))
+        for carpeta in ("core", "places")
+        for p in (raiz / carpeta).rglob("*.py")
+        if p.name != "context.py" and "ContextVar(" in p.read_text(encoding="utf-8")
+    ]
+    assert culpables == [], f"ContextVar fuera de core/context.py: {culpables}"
 
 
-def test_la_fachada_de_workspace_es_el_mismo_contextvar():
-    from core.auth import current_workspace as fachada_ws
-
-    context.set_current_workspace_id(3)
-    assert fachada_ws.get_current_workspace_id() == 3
-    fachada_ws.set_current_workspace_id(9)
-    assert context.get_current_workspace_id() == 9
-    context.set_current_workspace_id(None)
-
-
-def test_las_funciones_son_literalmente_las_mismas():
-    from core.auth import current_user as fachada_user
-    from core.auth import current_workspace as fachada_ws
-
-    assert fachada_user.set_current_user_id is context.set_current_user_id
-    assert fachada_user.get_current_user_id is context.get_current_user_id
-    assert fachada_ws.get_current_workspace_id is context.get_current_workspace_id
+def test_las_fachadas_viejas_no_vuelven():
+    with pytest.raises(ModuleNotFoundError):
+        __import__("core.auth.current_user")
+    with pytest.raises(ModuleNotFoundError):
+        __import__("core.auth.current_workspace")
 
 
 # ---------------------------------------------------------------------------
