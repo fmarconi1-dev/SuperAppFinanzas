@@ -39,7 +39,7 @@
 
 1. **Franco, el 28/9 o después:** `powershell -ExecutionPolicy Bypass -File scripts\estado_backup.ps1` → tiene que dar todo en verde (la tarea todavía no corrió nunca al 27/9). Si aparece "BACKUP SUPERAPP - FALLO.txt" en el Escritorio, dice qué pasó.
 2. **Franco:** vaciar la Papelera cuando quieras (los dos `.tar.gz` del 18/8).
-3. **Decisión abierta para Franco:** ¿login sin distinguir mayúsculas? (el celular pone "Franco" y no entra). Detalle en `MEJORAS.md`.
+3. ~~Login sin distinguir mayúsculas~~ — descartado por Franco el 27/9 (ver `MEJORAS.md`).
 4. **Después, cuando Franco lo pida:** Fase 5, Paso 0 — Cuentas y perímetro (M16). **Gate innegociable: ningún número histórico se mueve un peso.** Arrancar por `docs/PROMPT-INICIO-FASE-5.md`.
 
 **Pendientes menores** (sin apuro; detalle en `MEJORAS.md`): tests del panel de importar y de la edición de categorías (cobertura 18% y 35%) · retirar `radar-financiero` de Fly (Franco) · preguntar al broker por la fila del TTM26 del 4/2/2026 (no tocar sin confirmación) · dominio propio (estético) · amortizaciones parciales de bonos vivos (primer evento: AE38 el **12/7/2027**) · migrar a pandas 3 (tarea deliberada, con su propio día).

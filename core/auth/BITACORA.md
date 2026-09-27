@@ -21,7 +21,7 @@ Resumen: Autenticación compartida: usuarios con bcrypt, pantalla de login/signu
 
 - `login.py` importa `core.db`. Por eso `core.db` no puede importar nada de `core/auth` (el ciclo que cortó `core/context.py` el 27/8).
 - **Tests desde el 27/9/2026:** `tests/test_auth.py` (hash, alta, cambio de clave, rate-limit y la pantalla de login/alta con `AppTest`). Incluye que el usuario `local` que crea M1 **sin contraseña** no pueda entrar con ninguna.
-- **El usuario distingue mayúsculas:** "Franco" no entra si la cuenta es "franco", y el celular pone la primera en mayúscula solo. El rate-limit, en cambio, no distingue (no se esquiva cambiando mayúsculas). Hacer el login insensible a mayúsculas es una propuesta abierta (en `MEJORAS.md`), no un cambio hecho: toca autenticación.
+- **El usuario distingue mayúsculas:** "Franco" no entra si la cuenta es "franco", y el celular pone la primera en mayúscula solo. El rate-limit, en cambio, no distingue (no se esquiva cambiando mayúsculas). Queda así **a propósito**: Franco descartó cambiarlo el 27/9/2026 (`MEJORAS.md`).
 - Sin `SESSION_SECRET` configurado no hay persistencia de sesión entre refreshes (opcional por diseño; ver `.env.example`).
 
 ## Estado

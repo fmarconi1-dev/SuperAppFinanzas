@@ -100,7 +100,7 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
   - ✅ Tests de login y contraseñas — hecho el 27/9 (`tests/test_auth.py`).
   - ✅ Benchmark sin dividendos silencioso (trampa 27) — hecho el 27/9.
   - Tests del **panel de importar** (18%) y de la **edición de categorías** (35%).
-  - 🟡 💡 **Login sin distinguir mayúsculas** (hallazgo del 27/9): "Franco" no entra si la cuenta es "franco", y el teclado del celular pone la primera letra en mayúscula solo. Propuesta: comparar el usuario sin mayúsculas (`COLLATE NOCASE`) y que el alta rechace un usuario que ya existe con otras mayúsculas. Hoy no hay colisiones (usuarios: `franco`, `gugui_franco`). **Toca autenticación: con el OK de Franco.**
+  - ⛔ **Login sin distinguir mayúsculas — DESCARTADO por Franco el 27/9/2026** ("no me parece relevante"). El login distingue mayúsculas ("Franco" ≠ "franco"); queda así a propósito. No volver a proponerlo.
   - `ajustes.listar` descarta en silencio un ajuste con fecha corrupta (hoy imposible desde la app, que guarda ISO).
   - ✅ Ramas viejas borradas en `origin` (Franco, 23/9).
 - 🟢 ✅ **`requirements.lock`** (27/8/2026): builds reproducibles, verificado corriendo la suite en Python 3.11 con los pines exactos. Ojo al regenerarlo con el tope de pandas — ver la cabecera del archivo.
