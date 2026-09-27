@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-09-22 22:56 UTC · 122 archivos · 26,113 LOC -->
+<!-- 2026-09-27 17:09 UTC · 123 archivos · 26,585 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-09-03 c314b78 aaa · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-09-22 52e7aab AuditorÃ­a y limpieza entre fases: 7 bugs, excepts acotados, smoke tests · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -18,6 +18,7 @@ Rama `main` — ultimo commit: 2026-09-03 c314b78 aaa · **hay cambios sin commi
 | deploy, Docker, Fly.io → `Dockerfile`, `fly.toml`, `docker-entrypoint.sh`, `docs/DEPLOY.md` y `docs/RUNBOOK.md` | `./` |
 | cómo se trabaja en este repo → `GUIA-DE-TRABAJO.md`, `claude.md`, `/MAPA.md` | `./` |
 | qué se hizo y qué sigue → `ESTADO.md` (foto), este archivo (crónica), `EN-HUMANO.md` (en llano) | `./` |
+| un aviso de Streamlit en `fly logs` que parece error, o la config del servidor → `.streamlit/config.toml` | `./` |
 | CI rojo en GitHub → `tests.yml` | `.github\workflows/` |
 | por qué el batch del scoring ya no está acá → scoring retirado (5/8/2026) | `.github\workflows/` |
 | la base de datos: schema, una migración nueva (SIEMPRE aditiva), "database is locked", backups y retención (`BACKUP_RETENTION`, `DB_PATH`) | `core/` |
@@ -90,6 +91,8 @@ Rama `main` — ultimo commit: 2026-09-03 c314b78 aaa · **hay cambios sin commi
 | resetear la contraseña de un usuario → `setup_password.py` | `scripts/` |
 | ¿Docta cubre los bonos de la cartera? → `verificar_docta.py` | `scripts/` |
 | reindexar el mapa del repo → `indexar.py` (ver `/MAPA.md`) | `scripts/` |
+| "el backup no corre solo", "la sesión de fly venció", token de Fly → `guardar_token_fly.ps1`, `_fly_comun.ps1` (`Use-TokenFly`) | `scripts/` |
+| un archivo "BACKUP SUPERAPP - FALLO.txt" apareció en el Escritorio → lo deja `backup_remoto.ps1` al fallar; `estado_backup.ps1` dice por qué | `scripts/` |
 | el gate de reconciliación contra el Excel → `test_cartera_recon.py` (necesita `CARTERA_XLSX`; sin él se saltea con mensaje claro, por eso "3 skipped" es normal) | `tests/` |
 | tests que escanean el código fuente: `test_nombres_definidos.py` (AST de names), `test_transacciones_formulario.py` (ramas del form), `test_env_example_sin_secretos.py` | `tests/` |
 | los CSV oráculo de Finanzas → `_oraculos.py` (`DIARIO_CSV`/`MENSUAL_CSV`) | `tests/` |
@@ -98,19 +101,21 @@ Rama `main` — ultimo commit: 2026-09-03 c314b78 aaa · **hay cambios sin commi
 | "¿la pantalla abre?" → `test_smoke_pantallas.py` (`AppTest`, base sintética, red cortada) | `tests/` |
 | una función anidada que lee algo que todavía no existe → `test_closures_definidos.py` | `tests/` |
 | migraciones que re-corren al reiniciar → `test_db_reparaciones_unicas.py` · el mapa leyendo carpetas ignoradas → `test_indexar.py` · importes ilegibles y el CLI del ingest → `test_importes_ilegibles.py` | `tests/` |
+| login, contraseñas, rate-limit, alta de cuentas → `test_auth.py` | `tests/` |
+| los scripts de backup (estructura: token, `< NUL`, aviso en el Escritorio) → `test_scripts_backup.py` | `tests/` |
 | cobertura: `.venv\Scripts\python.exe -m pytest --cov=core --cov=places` (`coverage` instalado en el venv el 22/9/2026, fuera del lock; 78% total) | `tests/` |
 
 ## Carpetas
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (865 tests al 22/9/2026) en carpeta plana: unidad + regresión + gates de reconciliación contra el Excel-oráculo. Es el gate del repo: nada se cierra sin verde. | 38 | 8,936 | ok |
+| `tests/` | La suite completa (909 tests al 27/9/2026) en carpeta plana: unidad + regresión + gates de reconciliación contra el Excel-oráculo. Es el gate del repo: nada se cierra sin verde. | 39 | 9,375 | ok |
 | `places\inversiones\cartera/` | Cartera nativa (B.1): parser de exports del broker (2 formatos), ledger cronológico con PPC móvil, posiciones, KPIs por método del patrimonio, renta fija y la vista con upload. | 15 | 5,649 | ok |
 | `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 10 | 1,997 | ok |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | ok |
 | `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M15 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth y theme viven en subcarpetas propias. | 5 | 1,616 | ok |
-| `core\market_data/` | Datos de mercado para valuar la cartera: MEP histórico (argentinadatos), precios ARG (data912) y globales (yahoo), sectores por ticker y cronogramas de renta fija (Docta). | 7 | 1,531 | ok |
-| `places\inversiones\cartera\paneles/` | Los paneles de la pantalla de Cartera, uno por archivo. Salieron de `view.py` en el split del 27/8/2026, que movió código sin cambiarlo. | 11 | 1,507 | ok |
+| `core\market_data/` | Datos de mercado para valuar la cartera: MEP histórico (argentinadatos), precios ARG (data912) y globales (yahoo), sectores por ticker y cronogramas de renta fija (Docta). | 7 | 1,555 | ok |
+| `places\inversiones\cartera\paneles/` | Los paneles de la pantalla de Cartera, uno por archivo. Salieron de `view.py` en el split del 27/8/2026, que movió código sin cambiarlo. | 11 | 1,516 | ok |
 | `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas, chequeo de cobertura de Docta y el indexador del mapa. | 6 | 1,267 | ok |
 | `core\theme/` | Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semántica + template Plotly unificado, ajustes responsive y logo. | 5 | 637 | ok |
 | `core\auth/` | Autenticación compartida: usuarios con bcrypt, pantalla de login/signup y tokens de sesión firmados. (Los contextvars de usuario/workspace viven en `core/context.py`.) | 4 | 422 | ok |
@@ -137,8 +142,8 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 | Archivo | LOC | Lo usan | Simbolos |
 |---|---:|---:|---|
-| `core\db.py` | 1144 | 47 | `_migrate`, `es_tabla_faltante`, `get_db_path`, `connect` |
-| `core\__init__.py` | 5 | 15 | — |
+| `core\db.py` | 1144 | 49 | `_migrate`, `es_tabla_faltante`, `get_db_path`, `connect` |
+| `core\__init__.py` | 5 | 17 | — |
 | `core\workspaces.py` | 261 | 14 | `_hash_code`, `_uid`, `get_personal_workspace_id`, `ensure_personal_workspace` |
 | `core\context.py` | 105 | 12 | `set_current_user_id`, `get_current_user_id`, `require_current_user_id`, `set_current_workspace_id` |
 | `places\inversiones\cartera\posiciones.py` | 475 | 11 | `Posicion`, `_acumular`, `posiciones`, `posiciones_desde_db` |
@@ -152,7 +157,7 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 ## Flujo interno
 
-- `tests/` → `core/` (36)
+- `tests/` → `core/` (40)
 - `tests/` → `places\inversiones\cartera/` (32)
 - `places\finanzas\core/` → `core/` (17)
 - `tests/` → `places\finanzas\core/` (14)

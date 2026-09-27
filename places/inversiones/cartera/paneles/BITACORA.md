@@ -1,6 +1,6 @@
 # places/inversiones/cartera/paneles/
 
-<!-- huella: 130727952e9e -->
+<!-- huella: 8b324f0342be -->
 
 Resumen: Los paneles de la pantalla de Cartera, uno por archivo. Salieron de `view.py` en el split del 27/8/2026, que movió código sin cambiarlo.
 
@@ -31,6 +31,7 @@ Resumen: Los paneles de la pantalla de Cartera, uno por archivo. Salieron de `vi
 - Un panel no debe importar `view.py`. La dirección es siempre `view.py → paneles/`.
 - **`st.success(...)` seguido de `st.rerun()` no se ve**: el rerun lo borra antes. `renta_fija._refrescar` guarda el aviso en `session_state` y lo muestra en la vuelta siguiente — así se ve también "Docta no contestó".
 - `renta_fija` distingue "la fuente no lo tiene" (`ya_consultado`, cartel informativo) de "todavía no se pudo bajar" (warning con la acción). Antes del 22/9/2026 los dos decían "es esperable, no hay nada que arreglar".
+- `mercado.py` avisa con un `st.warning` si la serie del índice llegó **sin dividendos** (`origen == "sin_ajustar"`): esa comparación favorece a la cartera.
 - `_datos._resolver_sectores` solo tolera `sqlite3.OperationalError` (base ocupada); una falla de Yahoo ya no llega hasta acá y un bug se ve.
 - `_procesar_carga` (el import de un solo archivo, anterior a *Importar todo*) se borró el 22/9/2026: `view.py` lo importaba pero nadie lo llamaba.
 

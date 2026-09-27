@@ -9,6 +9,32 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 27 de septiembre de 2026 — Tu backup llevaba un mes apagado
+
+**Lo importante primero.** La última copia de tus datos en tu PC era del **26 de agosto**. La tarea que tenía que hacerla todas las mañanas **no existía** en tu computadora, y aunque hubiera existido habría fallado: dependía de que tu sesión de Fly estuviera abierta, y esa sesión vence sola. Es como un portero que necesita que le abras la puerta para salir a trabajar: a las 9 de la mañana no hay nadie para abrirle. Y nada te avisaba.
+
+**Qué hice.** Saqué una copia en el momento: tus 406 transacciones están a salvo y verificadas. Esa misma copia me confirmó que la publicación del 23/9 quedó bien. Y arreglé el backup para que no vuelva a pasar:
+- ahora puede usar una **llave propia**, que solo sirve para esta app y dura un año, en vez de tu sesión;
+- si algo falla, **te deja un archivo en el Escritorio** que dice qué pasó y qué hacer, y se borra solo cuando vuelve a andar;
+- el comando que revisa el estado ahora también te dice si la tarea existe y si la llave está por vencer.
+
+Lo probé haciéndolo fallar a propósito: se da cuenta en 2 segundos y te deja el aviso.
+
+**Lo que te toca a vos** (la llave es una credencial y la tarea queda instalada en tu PC, así que no las hago yo). Son dos comandos, una sola vez, desde la carpeta de la app:
+1. `powershell -ExecutionPolicy Bypass -File scripts\guardar_token_fly.ps1` — crea y guarda la llave (yo nunca la veo).
+2. `powershell -ExecutionPolicy Bypass -File scripts\programar_backup.ps1` — deja el backup programado todos los días a las 9.
+
+**Tres mejoras chicas más:**
+- El "error" que viste en los registros al abrir Transacciones no era un error: era un aviso de la herramienta por una combinación que hacemos a propósito, la que hace que después de cargar un gasto el motivo quede elegido. Lo silencié sin tocar ese comportamiento.
+- El login ahora tiene 30 pruebas automáticas, incluida una que asegura que nadie pueda entrar por la cuenta interna sin contraseña. **Encontré algo para decidir:** si escribís "Franco" con mayúscula, que es lo que hace el celular solo, no te deja entrar. Se puede arreglar, pero toca la seguridad del login, así que prefiero que lo decidas vos.
+- La comparación "contra el mercado" ya no puede usar sin avisarte un índice sin dividendos (lo que haría que tu cartera pareciera mejor de lo que es). Hoy no pasaba: lo dejé cubierto por si pasa.
+
+**Ningún número tuyo cambió.** Lo comparé antes y después sobre la copia de hoy.
+
+**Qué sigue.** Los dos comandos de arriba. Después, cuando quieras: decidir lo de las mayúsculas del login, o arrancar la etapa grande (que los gastos salgan de los resúmenes del banco).
+
+---
+
 ## 22 de septiembre de 2026 — Una revisión a fondo antes de arrancar lo nuevo
 
 Hoy no agregamos nada: revisamos la app entera buscando problemas escondidos, arreglamos los que aparecieron y ordenamos la casa. **Ninguno de tus números cambió**: comparé tu cartera y tus gastos (sobre una copia de la base de producción) antes y después de todos los arreglos, y dieron idénticos, peso por peso.

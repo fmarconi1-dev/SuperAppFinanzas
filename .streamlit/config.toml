@@ -23,3 +23,14 @@ font = "sans serif"
 
 [browser]
 gatherUsageStats = false            # privacidad: no enviar telemetría a Streamlit
+
+[global]
+# El form de Transacciones precarga "Motivo" (chips de motivos frecuentes,
+# edición) escribiendo `st.session_state["form_motivo"]`, y a la vez le pasa
+# `index=` al selectbox para que, tras "Agregar gasto", el motivo quede el mismo
+# (el form tiene clear_on_submit y vuelve a ese default). Las dos cosas juntas
+# son intencionales; Streamlit avisa igual, una vez por proceso, con un stack
+# entero en `fly logs` que parecía un error (visto el 22/9/2026). Sacar el
+# `index=` callaría el aviso pero rompería el motivo "pegajoso". Ver
+# places/finanzas/views/transacciones.py y tests/test_transacciones_formulario.py.
+disableWidgetStateDuplicationWarning = true

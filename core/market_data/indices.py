@@ -48,7 +48,7 @@ from core.market_data._errores import ERRORES_DE_RED
 
 __all__ = [
     "INDICES", "URL_YAHOO", "DIAS_ATRAS",
-    "serie_historica", "guardar_serie", "cargar_serie",
+    "serie_historica", "serie_historica_detallada", "guardar_serie", "cargar_serie",
     "serie_con_fallback", "valor_en",
 ]
 
@@ -103,11 +103,25 @@ def _a_date(f) -> date | None:
 # ---------------------------------------------------------------------------
 
 def serie_historica(clave: str, fetch=None, rango: str = "10y") -> dict[str, float]:
-    """``{fecha_iso: cierre_ajustado}`` del índice. ``{}`` si la fuente falla.
+    """``{fecha_iso: cierre}`` del índice. ``{}`` si la fuente falla.
 
     **Nunca lanza**: un proveedor caído no puede tumbar la pantalla de Cartera
     (misma regla que `precios.py` y `cronogramas.py`). El caller decide si
-    sirve la caché.
+    sirve la caché. Para saber si el cierre viene **ajustado por dividendos**,
+    usar `serie_historica_detallada`.
+    """
+    return serie_historica_detallada(clave, fetch, rango)[0]
+
+
+def serie_historica_detallada(clave: str, fetch=None,
+                              rango: str = "10y") -> tuple[dict[str, float], bool]:
+    """``(serie, ajustada)``: la serie y si es `adjclose` (con dividendos).
+
+    ⚠️ Trampa 27. `adjclose` incluye los dividendos reinvertidos; `close` no.
+    Si Yahoo no sirve la ajustada se cae a `close`, pero **eso se informa**
+    (`ajustada=False`): comparar el rendimiento total de Franco contra un SPY
+    sin dividendos le regala ~1,3% anual a la cartera. Hasta el 27/9/2026 la
+    caída a `close` era silenciosa y además se cacheaba encima de la buena.
     """
     simbolo = INDICES.get(str(clave).upper(), (clave, None))[0]
     url = URL_YAHOO.format(symbol=urllib.parse.quote(simbolo, safe=""),
@@ -117,17 +131,16 @@ def serie_historica(clave: str, fetch=None, rango: str = "10y") -> dict[str, flo
         r = datos["chart"]["result"][0]
         stamps = r["timestamp"]
         ind = r["indicators"]
-        # `adjclose` incluye dividendos reinvertidos; `close` es el fallback
-        # cuando Yahoo no lo sirve (algunos índices no pagan dividendos y no
-        # traen la serie ajustada).
         try:
             cierres = ind["adjclose"][0]["adjclose"]
+            ajustada = True
         except (KeyError, IndexError, TypeError):
             cierres = ind["quote"][0]["close"]
+            ajustada = False
     except ERRORES_DE_RED + (KeyError, IndexError, TypeError):
         # Fuente caída o respuesta con otra forma. Un bug nuestro, en cambio,
         # tiene que verse (trampa 36; antes era `except Exception`).
-        return {}
+        return {}, False
 
     out: dict[str, float] = {}
     for ts, precio in zip(stamps or [], cierres or []):
@@ -137,7 +150,7 @@ def serie_historica(clave: str, fetch=None, rango: str = "10y") -> dict[str, flo
             out[datetime.utcfromtimestamp(ts).date().isoformat()] = float(precio)
         except (OSError, OverflowError, ValueError):
             continue
-    return out
+    return out, ajustada
 
 
 # ---------------------------------------------------------------------------
@@ -178,19 +191,30 @@ def cargar_serie(conn, clave: str) -> dict[str, float]:
 
 def serie_con_fallback(conn, clave: str, fetch=None,
                        rango: str = "10y") -> tuple[dict[str, float], str]:
-    """``(serie, origen)`` con ``origen`` ``"proveedor"`` | ``"cache"``.
+    """``(serie, origen)`` con ``origen`` ``"proveedor"`` | ``"cache"`` |
+    ``"sin_ajustar"``.
 
     Intenta el proveedor y refresca la caché; si vuelve vacío, sirve lo
     guardado. Misma política que `mep.serie_mep_con_fallback`.
+
+    Si el proveedor contesta **sin** `adjclose` (trampa 27): se prefiere la
+    caché, que es ajustada; si no hay caché, se usa el cierre simple con
+    ``origen="sin_ajustar"`` para que la vista lo diga, y **no se cachea**
+    (pisaría una serie buena con una peor).
     """
-    serie = serie_historica(clave, fetch, rango)
-    if serie:
+    serie, ajustada = serie_historica_detallada(clave, fetch, rango)
+    if serie and ajustada:
         try:
             guardar_serie(conn, clave, serie)
         except sqlite3.OperationalError:
             pass                    # base ocupada: cachear es una mejora, no un requisito
         return serie, "proveedor"
-    return cargar_serie(conn, clave), "cache"
+    cacheada = cargar_serie(conn, clave)
+    if cacheada:
+        return cacheada, "cache"
+    if serie:
+        return serie, "sin_ajustar"
+    return {}, "cache"
 
 
 # ---------------------------------------------------------------------------

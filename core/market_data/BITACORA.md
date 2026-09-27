@@ -1,6 +1,6 @@
 # core/market_data/
 
-<!-- huella: f3d974998834 -->
+<!-- huella: 162190b6652a -->
 
 Resumen: Datos de mercado para valuar la cartera: MEP histórico (argentinadatos), precios ARG (data912) y globales (yahoo), sectores por ticker y cronogramas de renta fija (Docta).
 
@@ -33,7 +33,7 @@ Resumen: Datos de mercado para valuar la cartera: MEP histórico (argentinadatos
 - `indices.py` **no necesitó migración**: cachea en `cartera_precios_cache`, porque el cierre de un índice tiene exactamente la forma que esa tabla guarda (ticker, fecha, precio, moneda, fuente).
 - ⚠️ **"No contestó" ≠ "no existe" (trampas 16 + 19, 22/9/2026).** Hasta esa fecha, Docta y Yahoo devolvían `None` tanto si el dato no existía como si la fuente estaba caída, con cuota agotada (Docta: 15/día) o con rate-limit; y la caché negativa guardaba ese `None` **para siempre**. Ahora las variantes estrictas (`cronogramas._traer`, `sectores._buscar_ficha`/`_resolver_ficha`) lanzan `FuenteNoDisponible`, y `refrescar_*` no marca nada, **corta al primer fallo** y deja el resto para la próxima. Solo una respuesta válida vacía (o un 404 de Docta) es "no existe". `refrescar_cronogramas` devuelve `(resueltos, sin_datos, no_consultados)`.
 - **Los `except` de este módulo se limitan a `ERRORES_DE_RED`** (+ `KeyError`/`TypeError` donde la respuesta puede venir con otra forma). Un bug nuestro se ve. Para simular una fuente caída en un test usá `OSError`/`HTTPError`, que es lo que tira `urllib`, no `RuntimeError` (un test del benchmark "andaba" con `RuntimeError` solo porque el módulo tragaba todo).
-- Pendiente: si Yahoo no sirve `adjclose`, `indices.py` cae a `close` sin avisar (trampa 27; en `MEJORAS.md`).
+- **Trampa 27, cerrada el 27/9/2026:** si Yahoo no sirve `adjclose`, `indices.serie_con_fallback` prefiere la caché (ajustada); si no hay, usa `close` con `origen="sin_ajustar"` —la vista lo avisa— y **no lo cachea** (antes lo guardaba encima de la serie buena). Hoy Yahoo sirve `adjclose` para SPY y ^MERV (verificado): el caso normal no cambió.
 - El símbolo del Merval es `^MERV` y el `^` hay que **url-encodearlo** (`%5EMERV`) o Yahoo devuelve vacío.
 
 ## Estado

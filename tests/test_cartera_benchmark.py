@@ -10,6 +10,7 @@ opuestos, para que nadie "simplifique" el módulo hacia la respuesta fácil.
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -248,3 +249,68 @@ def test_un_bug_no_se_disfraza_de_yahoo_caido():
         raise AttributeError("bug")
     with pytest.raises(AttributeError):
         indices.serie_historica("SPY", fetch=bug)
+
+
+# ---------------------------------------------------------------------------
+# Trampa 27: la serie sin dividendos no se cuela en silencio (27/9/2026)
+# ---------------------------------------------------------------------------
+
+_AJUSTADA = {"chart": {"result": [{
+    "timestamp": [1767312000, 1767398400],
+    "indicators": {"quote": [{"close": [10.0, 11.0]}],
+                   "adjclose": [{"adjclose": [9.5, 10.5]}]},
+}]}}
+_SIN_AJUSTAR = {"chart": {"result": [{
+    "timestamp": [1767312000, 1767398400],
+    "indicators": {"quote": [{"close": [10.0, 11.0]}]},
+}]}}
+
+
+@pytest.fixture()
+def db(tmp_path, monkeypatch):
+    from core import db as core_db
+    from core.db import connect, init_db
+    ruta = tmp_path / "finanzas.db"
+    monkeypatch.setenv("DB_PATH", str(ruta))
+    monkeypatch.setattr(core_db, "BACKUP_DIR", tmp_path / "backups")
+    init_db(ruta)
+    conn = connect(ruta)
+    yield conn
+    conn.close()
+
+
+def test_la_detallada_dice_si_la_serie_es_ajustada():
+    assert indices.serie_historica_detallada("SPY", fetch=lambda u: _AJUSTADA)[1] is True
+    assert indices.serie_historica_detallada("SPY", fetch=lambda u: _SIN_AJUSTAR)[1] is False
+
+
+def test_sin_ajustar_y_sin_cache_se_usa_pero_se_avisa_y_no_se_guarda(db):
+    serie, origen = indices.serie_con_fallback(db, "SPY", fetch=lambda u: _SIN_AJUSTAR)
+    assert origen == "sin_ajustar"
+    assert list(serie.values()) == [10.0, 11.0]
+    assert indices.cargar_serie(db, "SPY") == {}      # no pisa la caché
+
+
+def test_sin_ajustar_con_cache_ajustada_gana_la_cache(db):
+    """Hasta el 27/9/2026 la serie sin dividendos se cacheaba ENCIMA de la
+    buena: una sola respuesta rara de Yahoo degradaba el benchmark para siempre."""
+    indices.serie_con_fallback(db, "SPY", fetch=lambda u: _AJUSTADA)
+    serie, origen = indices.serie_con_fallback(db, "SPY", fetch=lambda u: _SIN_AJUSTAR)
+    assert origen == "cache"
+    assert list(serie.values()) == [9.5, 10.5]
+
+
+def test_el_caso_normal_no_cambio(db):
+    serie, origen = indices.serie_con_fallback(db, "SPY", fetch=lambda u: _AJUSTADA)
+    assert origen == "proveedor"
+    assert list(serie.values()) == [9.5, 10.5]
+    assert indices.cargar_serie(db, "SPY") == serie
+
+
+def test_el_panel_avisa_cuando_la_serie_no_es_ajustada():
+    import ast
+    ruta = (Path(__file__).resolve().parents[1] / "places" / "inversiones"
+            / "cartera" / "paneles" / "mercado.py")
+    fuente = ruta.read_text(encoding="utf-8")
+    assert '"sin_ajustar"' in fuente and "st.warning" in fuente
+    ast.parse(fuente)

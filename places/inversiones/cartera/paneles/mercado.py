@@ -108,3 +108,12 @@ def _benchmark(flujos, k, uid: int) -> None:
     if origen == "cache":
         st.caption("Serie del índice servida desde la caché (la fuente no "
                    "respondió); puede no incluir los últimos días.")
+    elif origen == "sin_ajustar":
+        # Trampa 27: sin dividendos, el índice rinde de menos y la cartera
+        # parece ganarle por más de lo real (~1,3% anual en el SPY).
+        st.warning(
+            f"Yahoo no mandó la serie de {cual} **ajustada por dividendos** y "
+            "no hay una guardada: la comparación usa el precio sin dividendos, "
+            "así que **favorece a tu cartera**. Se corrige solo cuando la "
+            "fuente vuelva a mandarla.",
+            icon=":material/warning:")

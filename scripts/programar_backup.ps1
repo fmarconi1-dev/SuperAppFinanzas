@@ -5,7 +5,10 @@
 # clicks se posterga. Ademas, hecho a mano es facil dejar mal una opcion (la
 # tipica: la tarea no corre si la notebook esta a bateria, y nunca te enteras).
 #
-# Uso (hay que abrir PowerShell COMO ADMINISTRADOR):
+# ANTES: guardar el token de Fly (scripts\guardar_token_fly.ps1). Sin token la
+# tarea usa tu sesion de fly, que vence, y deja de andar sola (paso: 27/9/2026).
+#
+# Uso (si da "Acceso denegado", abri PowerShell como administrador):
 #   powershell -ExecutionPolicy Bypass -File scripts\programar_backup.ps1
 #   powershell -ExecutionPolicy Bypass -File scripts\programar_backup.ps1 -Hora 09:30
 #   powershell -ExecutionPolicy Bypass -File scripts\programar_backup.ps1 -Quitar
@@ -30,10 +33,19 @@ if ($Quitar) {
     exit 0
 }
 
+. "$PSScriptRoot\_fly_comun.ps1"
+if (-not (Test-Path $script:ArchivoTokenFly)) {
+    Write-Warning ("No hay token de Fly guardado. La tarea se registra igual, pero " +
+        "va a fallar el dia que venza tu sesion de fly. Corre primero: " +
+        "scripts\guardar_token_fly.ps1")
+}
+
 $script = (Resolve-Path "$PSScriptRoot\backup_remoto.ps1").Path
 
+# -WindowStyle Hidden: que no aparezca una consola cada manana. Ya no hace
+# falta verla: si falla, deja el aviso en el Escritorio.
 $accion = New-ScheduledTaskAction -Execute "powershell.exe" `
-    -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$script`""
+    -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$script`""
 
 $disparador = New-ScheduledTaskTrigger -Daily -At $Hora
 

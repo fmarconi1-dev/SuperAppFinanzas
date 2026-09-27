@@ -5,23 +5,25 @@
 > Este archivo es una **foto, no una crónica**: la narrativa de cada sesión va a la `bitacora_de_trabajo.md` del módulo y a `/BITACORA.md`; lo que ya cerró se muda a `docs/archivo/ESTADO-historial.md`. Para ubicar código sin releer el repo: **`/MAPA.md`**.
 > **Verificá antes de confiar:** `git log --oneline -15` + `git status`. Si lo que ves no coincide con esto, gana lo que ves — y corregí este archivo.
 
-<!-- ultima_actualizacion: 2026-09-22 · autor: Claude (Opus 5.5) · handoff: auditoría + limpieza entre fases (7 bugs corregidos, excepts acotados, código muerto fuera, smoke tests de pantallas, docs sincronizados). Ningún número de producción cambió. Suite 865 passed, 0 skipped. Commit local listo; push y deploy de Franco. -->
+<!-- ultima_actualizacion: 2026-09-27 · autor: Claude (Opus 5.5), autónomo · handoff: el backup externo llevaba un mes sin correr (la tarea no existía y dependía de la sesión de fly, que vence). Copia sacada y scripts arreglados (token de la app, sin cuelgues, aviso en el Escritorio); falta que Franco guarde el token y registre la tarea. Además: aviso de form_motivo silenciado, tests de login, trampa 27 cerrada. Suite 909 passed, 0 skipped. Commit local listo; push y deploy de Franco. -->
 
 ## 🧭 Dónde estamos
 
 - **Fase actual: Fase 5 — Captura *source-first* del Lugar A (ADR-0006). Aprobada, SIN ARRANCAR.** 7 pasos, ~2,5 semanas; el prompt de arranque es `docs/PROMPT-INICIO-FASE-5.md`.
 - **Fase 4 — cerrada** (27/8/2026) en lo que hizo: respaldo + CI. Su punto 3 (voz + hitos) lo **descartó Franco el 4/8**; sus puntos 4 y 5 (M4 importador con LLM, M5 API sidecar) **no son de la Fase 4**: quedaron absorbidos por la Fase 5 (M4 es su último paso, M5 su vía de captura del efectivo). No hay ítems vivos de la Fase 4.
 - **Cartera (Lugar B.1):** Fases 3a y 3b completas y en producción, más renta fija con cronogramas de Docta (M15), vencimientos desde el cronograma y benchmark money-weighted vs SPY/Merval (27/8).
-- **Mantenimiento del 22/9/2026:** auditoría + limpieza sin features. Detalle en `/BITACORA.md`.
-- **Suite:** **865 passed, 0 skipped** en local (22/9/2026). En CI salen 3 `skipped` (los tests-oráculo necesitan el Excel y los CSV de Franco). **Regla del RUNBOOK: antes de un deploy, local tiene que dar 0 skipped.** Cobertura: 78% (`--cov`, `coverage` instalado en el venv fuera del lock).
-- **Hosting:** Fly.io, app `superapp-finanzas`. **Último deploy: 27/8/2026** (confirmado por Franco el 22/9). Lo del 22/9 **no está desplegado** todavía.
-- **Repo git:** `main`. Último commit pusheado: `c314b78` (3/9, ADR-0006). El commit del 22/9 queda **local**, pendiente de push.
+- **Mantenimiento del 22/9 y del 27/9/2026:** auditoría + limpieza (22/9) y backup + tres mejoras chicas (27/9), sin features. Detalle en `/BITACORA.md`.
+- **Suite:** **909 passed, 0 skipped** en local (27/9/2026). En CI salen 3 `skipped` (los tests-oráculo necesitan el Excel y los CSV de Franco). **Regla del RUNBOOK: antes de un deploy, local tiene que dar 0 skipped.** Cobertura: 78% (`--cov`, `coverage` instalado en el venv fuera del lock).
+- **Hosting:** Fly.io, app `superapp-finanzas`. **Último deploy: 23/9/2026** (lo del 22/9), verificado el 27/9 sobre la copia de producción: `user_version = 1`, sin filas huérfanas. Lo del 27/9 **no está desplegado**: solo cambia `.streamlit/config.toml`, un aviso del panel de benchmark y un docstring; el resto son scripts de tu PC y tests.
+- **Backup externo:** 🔴→🟡 la última copia buena es del **27/9** (antes: 26/8, un mes sin backup). **Todavía no corre solo**: falta que Franco guarde el token de Fly y registre la tarea (ver abajo). `scripts\estado_backup.ps1` lo muestra en rojo hasta entonces.
+- **Repo git:** `main`. Último commit pusheado: `52e7aab` (22/9). El commit del 27/9 queda **local**, pendiente de push.
 
 ## 🔵 Tarea en curso
 
 | Tarea | Estado | Autor | Desde |
 |---|---|---|---|
-| Auditoría + limpieza entre fases (bugs B1–B7, excepts, código muerto, docs, smoke tests) | ✅ HECHA — commit local, **pendiente de push y deploy (Franco)** | Claude (Opus 5.5) | 2026-09-22 |
+| Auditoría + limpieza entre fases (bugs B1–B7, excepts, código muerto, docs, smoke tests) | ✅ HECHA, pusheada y desplegada (23/9) | Claude (Opus 5.5) | 2026-09-22 |
+| Backup que corra solo (token de la app, sin cuelgues, aviso en el Escritorio) + aviso `form_motivo` + tests de login + trampa 27 | ✅ HECHA — commit local; **falta: token + tarea (Franco), push** | Claude (Opus 5.5) | 2026-09-27 |
 | **Fase 5 · Paso 0 — Cuentas y perímetro (M16)** | ⬜ siguiente — **no arrancar sin que Franco lo pida** | — | — |
 
 ## ✅ Hecho hasta ahora (resumen; detalle en ROADMAP.md y en el archivo)
@@ -30,18 +32,20 @@
 - **Fase 3a/3b** cartera nativa y rendimientos finos — cerradas 07/2026, desplegadas.
 - **Fase 4** respaldo remoto + restore ensayado + CI — 07–08/2026.
 - **Renta fija, benchmark, lock, `core/context.py`, split de `view.py`** — 08/2026.
+- **27/9/2026:** backup sacado (406 transacciones) y scripts arreglados para que corra solo sin tu sesión y avise si falla; el aviso de `form_motivo` en `fly logs` silenciado (no era error); 30 tests de login y contraseñas; el benchmark ya no usa en silencio un índice sin dividendos.
 - **22/9/2026:** la pantalla de Cartera ya no se cae con una tasa devengada (y se puede quitar); precio del broker antes que el devengado; Docta/Yahoo ya no confunden "no contestó" con "no existe"; el mapa no lee carpetas ignoradas; las reparaciones de datos de las migraciones corren una vez; los importes ilegibles se avisan; el CLI del import de Finanzas anda; smoke tests que abren las pantallas.
 
 ## ⏭️ Próximo paso concreto
 
-1. **Franco:**
-   - Revisar y **pushear** el commit del 22/9 (GitHub Desktop).
-   - **Deploy** (`fly deploy`), con el chequeo de siempre (`fly status` + `/_stcore/health`; trampa 11). En el primer arranque, la base de producción corre una única vez M3/M7/M8.5 (ya son no-op: verificado sobre el backup del 26/8) y queda marcada con `user_version = 1`.
-   - Borrar en `origin` las 4 ramas mergeadas: `git push origin --delete fase-3a/cartera-nativa fase-3b/analisis-sector fase-3b/rendimientos-caja fase-3b/rendimientos-finos` (las locales ya se borraron).
-   - Vaciar la Papelera cuando quieras: ahí están los dos `.tar.gz` del 18/8.
-2. **Después, cuando Franco lo pida:** Fase 5, Paso 0 — Cuentas y perímetro (M16). **Gate innegociable: ningún número histórico se mueve un peso.** Arrancar por `docs/PROMPT-INICIO-FASE-5.md`.
+1. **Franco — que el backup corra solo (una vez, desde la carpeta `SuperAppFinanzas`):**
+   - `powershell -ExecutionPolicy Bypass -File scripts\guardar_token_fly.ps1` (con la sesión de fly activa; si venció, antes `fly auth login`).
+   - `powershell -ExecutionPolicy Bypass -File scripts\programar_backup.ps1`
+   - Al día siguiente: `powershell -ExecutionPolicy Bypass -File scripts\estado_backup.ps1` tiene que dar todo en verde.
+2. **Franco:** revisar y **pushear** el commit del 27/9; deploy cuando quieras (cambios menores, ver arriba). Vaciar la Papelera (los dos `.tar.gz` del 18/8).
+3. **Decisión abierta para Franco:** ¿login sin distinguir mayúsculas? (el celular pone "Franco" y no entra). Detalle en `MEJORAS.md`.
+4. **Después, cuando Franco lo pida:** Fase 5, Paso 0 — Cuentas y perímetro (M16). **Gate innegociable: ningún número histórico se mueve un peso.** Arrancar por `docs/PROMPT-INICIO-FASE-5.md`.
 
-**Pendientes menores** (sin apuro; detalle en `MEJORAS.md`): tests de login/contraseñas y del panel de importar (cobertura 21–29% y 18%) · `adjclose` → `close` silencioso en `indices.py` · retirar `radar-financiero` de Fly (Franco) · preguntar al broker por la fila del TTM26 del 4/2/2026 (no tocar sin confirmación) · dominio propio (estético) · amortizaciones parciales de bonos vivos (primer evento: AE38 el **12/7/2027**) · migrar a pandas 3 (tarea deliberada, con su propio día).
+**Pendientes menores** (sin apuro; detalle en `MEJORAS.md`): tests del panel de importar y de la edición de categorías (cobertura 18% y 35%) · retirar `radar-financiero` de Fly (Franco) · preguntar al broker por la fila del TTM26 del 4/2/2026 (no tocar sin confirmación) · dominio propio (estético) · amortizaciones parciales de bonos vivos (primer evento: AE38 el **12/7/2027**) · migrar a pandas 3 (tarea deliberada, con su propio día).
 
 ## 🚩 Bloqueos / decisiones abiertas
 

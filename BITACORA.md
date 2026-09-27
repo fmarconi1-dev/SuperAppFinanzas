@@ -10,10 +10,24 @@ Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación e
 - deploy, Docker, Fly.io → `Dockerfile`, `fly.toml`, `docker-entrypoint.sh`, `docs/DEPLOY.md` y `docs/RUNBOOK.md`
 - cómo se trabaja en este repo → `GUIA-DE-TRABAJO.md`, `claude.md`, `/MAPA.md`
 - qué se hizo y qué sigue → `ESTADO.md` (foto), este archivo (crónica), `EN-HUMANO.md` (en llano)
+- un aviso de Streamlit en `fly logs` que parece error, o la config del servidor → `.streamlit/config.toml`
 
 ## Crónica
 
 Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión relevante. Lo fino de cada módulo va en su `bitacora_de_trabajo.md`.
+
+---
+
+## 2026-09-27 — El backup llevaba un mes sin correr; y tres mejoras chicas
+**Autor:** Claude (Opus 5.5), autónomo con el OK de Franco.
+
+- 🔴 **Hallazgo:** la última copia externa de producción era del **26/8**. La tarea programada "Backup Superapp Finanzas" **no existía en la PC** (ESTADO.md la daba por confirmada desde el 27/8) y, aunque existiera, dependía de la sesión de `fly auth login`, que vence: el 23/9 pidió login a mitad de la corrida. **Nada avisaba.**
+- **Arreglado:** copia sacada en el momento (406 transacciones, 693 movimientos, integridad ok). La misma copia confirmó que el deploy del 23/9 quedó bien: `user_version = 1`, sin filas huérfanas, "Compra Divisa" en Inversión. Los scripts pasan a usar un **deploy token** limitado a la app (`scripts/guardar_token_fly.ps1`; fuera del repo y de OneDrive, vence al año), consultan a fly **sin poder quedarse esperando un login** (`< NUL`), cortan con el motivo si no pueden hablar con Fly, y **dejan un aviso en el Escritorio** cuando fallan. `estado_backup.ps1` revisa además que la tarea exista y que haya token. Probado de verdad: con un token inválido falla en 2 s, deja el motivo en la bitácora y el aviso; una corrida buena lo borra.
+- **Queda en manos de Franco** (credencial y configuración permanente de su PC): correr `guardar_token_fly.ps1` y `programar_backup.ps1`.
+- **A — el aviso de `form_motivo` en `fly logs`:** no era un error. Streamlit avisa una vez por proceso cuando un widget tiene default y además se precarga por `session_state`, y acá las dos cosas son intencionales (chips de motivos frecuentes + motivo "pegajoso" después de agregar un gasto). Sacar el `index=` lo callaba pero rompía lo pegajoso: se apagó ese aviso en `.streamlit/config.toml`, con el porqué y un test.
+- **B — tests de login y contraseñas** (`tests/test_auth.py`, 30 tests): hash, alta, cambio de clave, rate-limit y la pantalla con `AppTest`. Incluye que el usuario `local` de M1, sin contraseña, no pueda entrar. **Hallazgo abierto:** el login distingue mayúsculas y el celular capitaliza la primera letra; queda como propuesta, porque toca autenticación.
+- **C — trampa 27:** el benchmark ya no mezcla en silencio una serie sin dividendos: prefiere la caché ajustada, y si no hay, avisa en pantalla y no la cachea. Con Yahoo real, SPY y Merval siguen saliendo ajustados: el caso normal no cambió.
+- **Gate:** huella de números sobre una copia del backup de hoy, antes y después: idéntica. Suite **909 passed, 0 skipped**.
 
 ---
 

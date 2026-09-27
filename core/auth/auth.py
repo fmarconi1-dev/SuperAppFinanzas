@@ -13,8 +13,8 @@ Sesión en Streamlit (st.session_state):
   - current_username: str
   - current_user_fullname: str | None
 
-`current_user.py` expone un contextvar con el user_id activo para que las
-queries internas filtren por ahí en Round 2.
+El usuario activo para las queries vive en `core/context.py` (contextvar), no
+acá. Tests: `tests/test_auth.py`.
 """
 
 from __future__ import annotations

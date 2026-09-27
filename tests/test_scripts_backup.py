@@ -244,3 +244,73 @@ def test_el_volumen_y_la_memoria_siguen_donde_los_esperamos():
     t = _texto(SCRIPTS.parent / "fly.toml")
     assert 'memory = "1gb"' in t
     assert 'source = "finanzas_data"' in t
+
+
+# ---------------------------------------------------------------------------
+# Que corra SOLO (27/9/2026)
+# ---------------------------------------------------------------------------
+#
+# El backup estuvo un mes sin correr: la tarea programada no existía en la PC
+# (aunque ESTADO.md la daba por confirmada) y, aunque existiera, la sesión de
+# `fly auth login` vence y el 23/9 pidió login a mitad de la corrida. En una
+# tarea de madrugada nadie contesta: se cuelga o falla, y nada avisaba.
+
+TOKEN = SCRIPTS / "guardar_token_fly.ps1"
+ESTADO = SCRIPTS / "estado_backup.ps1"
+PROGRAMAR = SCRIPTS / "programar_backup.ps1"
+
+
+def test_el_backup_usa_el_token_de_la_app_si_existe():
+    assert "FLY_API_TOKEN" in _codigo(COMUN)
+    assert _pos(_codigo(BACKUP), "Use-TokenFly") < _pos(_codigo(BACKUP), "Start-AppFly")
+
+
+def test_el_token_vive_fuera_del_repo_y_de_onedrive():
+    """En `%LOCALAPPDATA%`: no se puede commitear ni se sube a la nube."""
+    assert "LOCALAPPDATA" in _codigo(COMUN)
+
+
+def test_la_consulta_a_fly_no_puede_quedarse_esperando_un_login():
+    """Sin consola, un pedido de login colgaba la tarea hasta su timeout."""
+    assert "< NUL" in _codigo(COMUN)
+
+
+def test_si_no_puede_hablar_con_fly_corta_en_vez_de_seguir():
+    """Antes decía "sigo igual" y moría en el sftp con un error que no
+    explicaba nada (el del 23/9: "el archivo no se descargo")."""
+    codigo = _codigo(COMUN)
+    bloque = codigo.split("function Start-AppFly")[1].split("foreach")[0]
+    assert "sigo igual" not in bloque
+    assert "exit 1" in bloque
+    assert "guardar_token_fly.ps1" in codigo
+
+
+def test_un_fallo_deja_aviso_en_el_escritorio_y_una_corrida_buena_lo_borra():
+    codigo = _codigo(BACKUP)
+    assert "Desktop" in codigo and "Avisar-Fallo" in codigo
+    trap = codigo.split("trap {")[1].split("}")[0]
+    assert "Avisar-Fallo" in trap
+    assert _pos(codigo, 'Escribir-Log "OK"') < _pos(codigo, "Remove-Item $aviso")
+
+
+def test_el_token_nunca_se_muestra_en_pantalla():
+    """Va directo de fly al archivo; ni `Write-Host $token` ni `Write-Output`."""
+    codigo = _codigo(TOKEN)
+    for linea in codigo.splitlines():
+        if "Write-Host" in linea or "Write-Output" in linea:
+            assert "$token" not in linea, linea
+    assert "tokens create deploy" in codigo
+    assert "-x $Vigencia" in codigo            # nunca el default de 20 años
+    assert "icacls" in codigo                  # permisos solo para el usuario
+
+
+def test_el_estado_mira_la_tarea_y_el_token_no_solo_las_copias():
+    codigo = _codigo(ESTADO)
+    assert "Get-ScheduledTask" in codigo
+    assert "ArchivoTokenFly" in codigo and "AddDays(30)" in codigo
+
+
+def test_programar_avisa_si_no_hay_token():
+    codigo = _codigo(PROGRAMAR)
+    assert "ArchivoTokenFly" in codigo and "Write-Warning" in codigo
+    assert "-WindowStyle Hidden" in codigo

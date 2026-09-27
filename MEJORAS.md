@@ -97,10 +97,12 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 ## Plataforma / infra
 
 - 🟡 💡 **Pendientes de la auditoría del 22/9/2026** (no se hicieron por alcance; ver `/BITACORA.md`):
-  - **Tests de login y contraseñas** (`core/auth/auth.py` 29%, `login.py` 21% de cobertura) y del **panel de importar** (18%) y la **edición de categorías** (35%). Cobertura total: 78% (`--cov`, con `coverage` en el venv).
-  - `indices.serie_historica` cae a `close` si Yahoo no sirve `adjclose` **sin avisar** (trampa 27): el benchmark podría mezclar series con y sin dividendos. Marcar el origen de la serie.
+  - ✅ Tests de login y contraseñas — hecho el 27/9 (`tests/test_auth.py`).
+  - ✅ Benchmark sin dividendos silencioso (trampa 27) — hecho el 27/9.
+  - Tests del **panel de importar** (18%) y de la **edición de categorías** (35%).
+  - 🟡 💡 **Login sin distinguir mayúsculas** (hallazgo del 27/9): "Franco" no entra si la cuenta es "franco", y el teclado del celular pone la primera letra en mayúscula solo. Propuesta: comparar el usuario sin mayúsculas (`COLLATE NOCASE`) y que el alta rechace un usuario que ya existe con otras mayúsculas. Hoy no hay colisiones (usuarios: `franco`, `gugui_franco`). **Toca autenticación: con el OK de Franco.**
   - `ajustes.listar` descarta en silencio un ajuste con fecha corrupta (hoy imposible desde la app, que guarda ISO).
-  - **Borrar en `origin` las 4 ramas mergeadas** de las Fases 3a/3b (las locales ya se borraron) — lo hace Franco: `git push origin --delete fase-3a/cartera-nativa fase-3b/analisis-sector fase-3b/rendimientos-caja fase-3b/rendimientos-finos`.
+  - ✅ Ramas viejas borradas en `origin` (Franco, 23/9).
 - 🟢 ✅ **`requirements.lock`** (27/8/2026): builds reproducibles, verificado corriendo la suite en Python 3.11 con los pines exactos. Ojo al regenerarlo con el tope de pandas — ver la cabecera del archivo.
 - 🟢 ✅ **Ciclo core↔core/auth cortado** con `core/context.py` (27/8/2026, propuesta 4 del estudio del repo).
 - 🟢 ✅ **Split de `view.py` de cartera en paneles** (27/8/2026, propuesta 3): de 1.990 líneas a un orquestador de 760 + diez paneles en `paneles/`. Verificado por AST contra la versión anterior: 23 funciones idénticas, 0 perdidas.

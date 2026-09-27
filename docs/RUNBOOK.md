@@ -64,9 +64,19 @@ python scripts\verificar_backup.py backups-remotos\superapp-20260804-105642.db
 
 Imprime `integridad|transacciones|movimientos|usuarios` y devuelve código 0 solo si la copia sirve. **Sirve** = pasa `integrity_check`, tiene usuarios y **tiene al menos una transacción**: eso es lo irreemplazable. Una cartera vacía no invalida la copia (puede ser anterior al primer import).
 
-### Programarlo (un comando, hacelo una vez)
+### Programarlo (dos comandos, una sola vez)
 
-Abrí PowerShell **como administrador** y corré:
+⚠️ **Lo que pasó (27/9/2026):** el backup estuvo **un mes sin correr** y nada lo avisó. La tarea programada no existía en la PC —aunque `ESTADO.md` la daba por confirmada— y, aunque hubiera existido, habría fallado: usaba tu sesión de `fly auth login`, que **vence** (el 23/9 pidió login a mitad de la corrida). Una tarea de madrugada no tiene quién se loguee.
+
+**1. Guardar un token de la app** (con tu sesión de fly activa; si venció, antes `fly auth login`):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\guardar_token_fly.ps1
+```
+
+Crea un *deploy token* **limitado a `superapp-finanzas`**, que vence en un año (no en 20, el default de fly), y lo guarda en `%LOCALAPPDATA%\SuperAppFinanzas\fly_token.txt`: **fuera del repo y fuera de OneDrive**, con permisos solo para tu usuario. Nunca se muestra en pantalla. Lo prueba en el momento. Para revocarlo: `fly tokens list -a superapp-finanzas` y `fly tokens revoke <id>`.
+
+**2. Registrar la tarea** (si da "Acceso denegado", PowerShell como administrador):
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\programar_backup.ps1
@@ -94,7 +104,9 @@ Como la carpeta está en OneDrive, la copia además se sincroniza a la nube sola
 powershell -ExecutionPolicy Bypass -File scripts\estado_backup.ps1
 ```
 
-Muestra las últimas copias con su antigüedad, las últimas corridas de la bitácora (`backups-remotos\backup.log`) y **da un veredicto**: verde si la copia más nueva tiene menos de 3 días, rojo si no.
+Muestra **si la tarea programada existe y cómo le fue**, **si hay token y cuándo vence** (avisa 30 días antes), las últimas copias con su antigüedad y las últimas corridas de la bitácora (`backups-remotos\backup.log`), y **da un veredicto**: verde si la copia más nueva tiene 2 días o menos **y** no falta ninguna pieza.
+
+**Y si falla, te enterás sin correr nada:** el backup deja `BACKUP SUPERAPP - FALLO.txt` en el Escritorio con el motivo y qué hacer; la próxima copia buena lo borra. Si no puede hablar con Fly corta en segundos con el motivo (antes seguía y moría en el `sftp` con un error que no explicaba nada), y nunca se queda esperando un login.
 
 ⚠️ **Por qué hace falta.** La tarea corre de madrugada y nadie mira la consola. **Un backup que dejó de funcionar y no avisa es peor que no tener backup**, porque da una sensación de protección que no existe. El log distingue *"no corrió"* de *"corrió y falló"*, que no es lo mismo. Corré esto cada tanto.
 

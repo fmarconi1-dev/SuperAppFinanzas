@@ -212,3 +212,34 @@ def test_el_form_decide_el_tipo_con_distinto_de_cero():
 def test_el_importe_por_defecto_se_toma_en_valor_absoluto():
     codigo = MODULO.read_text(encoding="utf-8")
     assert "importe_default = abs(" in codigo
+
+
+# ---------------------------------------------------------------------------
+# El motivo "pegajoso" y el aviso de Streamlit (27/9/2026)
+# ---------------------------------------------------------------------------
+
+def test_el_motivo_sigue_con_default_y_el_aviso_esta_apagado():
+    """El selectbox de Motivo lleva `index=` a propósito (con clear_on_submit,
+    ese default es lo que deja el mismo motivo después de "Agregar gasto") y
+    los chips lo precargan por `session_state`. Streamlit avisa por la
+    combinación con un stack que en `fly logs` parecía un error (22/9/2026).
+
+    El arreglo es apagar ESE aviso en la config, no sacar el `index=`: sacarlo
+    lo callaría y rompería el motivo pegajoso. Si alguien saca la opción de la
+    config, vuelve el ruido; si saca el `index=`, se rompe el comportamiento.
+    """
+    import tomllib
+
+    raiz = Path(__file__).resolve().parents[1]
+    config = tomllib.loads((raiz / ".streamlit" / "config.toml").read_text(encoding="utf-8"))
+    assert config["global"]["disableWidgetStateDuplicationWarning"] is True
+
+    llamadas = [
+        n for n in ast.walk(_funcion("_form_alta_edicion"))
+        if isinstance(n, ast.Call)
+        and any(k.arg == "key" and isinstance(k.value, ast.Constant)
+                and k.value.value == "form_motivo" for k in n.keywords)
+    ]
+    assert len(llamadas) == 2                       # modo rápido y detallado
+    for c in llamadas:
+        assert any(k.arg == "index" for k in c.keywords)

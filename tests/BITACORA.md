@@ -1,8 +1,8 @@
 # tests/
 
-<!-- huella: 377b0d9fc08d -->
+<!-- huella: 4b24113e68be -->
 
-Resumen: La suite completa (865 tests al 22/9/2026) en carpeta plana: unidad + regresión + gates de reconciliación contra el Excel-oráculo. Es el gate del repo: nada se cierra sin verde.
+Resumen: La suite completa (909 tests al 27/9/2026) en carpeta plana: unidad + regresión + gates de reconciliación contra el Excel-oráculo. Es el gate del repo: nada se cierra sin verde.
 
 ## Buscar acá si
 
@@ -14,6 +14,8 @@ Resumen: La suite completa (865 tests al 22/9/2026) en carpeta plana: unidad + r
 - "¿la pantalla abre?" → `test_smoke_pantallas.py` (`AppTest`, base sintética, red cortada)
 - una función anidada que lee algo que todavía no existe → `test_closures_definidos.py`
 - migraciones que re-corren al reiniciar → `test_db_reparaciones_unicas.py` · el mapa leyendo carpetas ignoradas → `test_indexar.py` · importes ilegibles y el CLI del ingest → `test_importes_ilegibles.py`
+- login, contraseñas, rate-limit, alta de cuentas → `test_auth.py`
+- los scripts de backup (estructura: token, `< NUL`, aviso en el Escritorio) → `test_scripts_backup.py`
 - cobertura: `.venv\Scripts\python.exe -m pytest --cov=core --cov=places` (`coverage` instalado en el venv el 22/9/2026, fuera del lock; 78% total)
 
 ## Trampas
@@ -27,7 +29,7 @@ Resumen: La suite completa (865 tests al 22/9/2026) en carpeta plana: unidad + r
 
 ## Estado
 
-- **Funciona:** 865 passed, 0 skipped en local (22/9/2026); en CI, 862 + 3 skipped (los oráculos).
+- **Funciona:** 909 passed, 0 skipped en local (27/9/2026); en CI, 906 + 3 skipped (los oráculos).
 
 ## Proximo paso
 
