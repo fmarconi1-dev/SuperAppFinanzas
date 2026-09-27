@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-09-27 17:09 UTC · 123 archivos · 26,585 LOC -->
+<!-- 2026-09-27 17:18 UTC · 123 archivos · 26,585 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-09-22 52e7aab AuditorÃ­a y limpieza entre fases: 7 bugs, excepts acotados, smoke tests · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-09-27 2b544ab Backup que corre solo y avisa; tests de login; trampa 27 cerrada · **hay cambios sin commitear**
 
 ## Donde buscar que
 

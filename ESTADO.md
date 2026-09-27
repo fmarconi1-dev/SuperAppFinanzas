@@ -5,7 +5,7 @@
 > Este archivo es una **foto, no una crónica**: la narrativa de cada sesión va a la `bitacora_de_trabajo.md` del módulo y a `/BITACORA.md`; lo que ya cerró se muda a `docs/archivo/ESTADO-historial.md`. Para ubicar código sin releer el repo: **`/MAPA.md`**.
 > **Verificá antes de confiar:** `git log --oneline -15` + `git status`. Si lo que ves no coincide con esto, gana lo que ves — y corregí este archivo.
 
-<!-- ultima_actualizacion: 2026-09-27 · autor: Claude (Opus 5.5), autónomo · handoff: el backup externo llevaba un mes sin correr (la tarea no existía y dependía de la sesión de fly, que vence). Copia sacada y scripts arreglados (token de la app, sin cuelgues, aviso en el Escritorio); falta que Franco guarde el token y registre la tarea. Además: aviso de form_motivo silenciado, tests de login, trampa 27 cerrada. Suite 909 passed, 0 skipped. Commit local listo; push y deploy de Franco. -->
+<!-- ultima_actualizacion: 2026-09-27 · autor: Claude (Opus 5.5), autónomo · handoff: el backup externo llevaba un mes sin correr (la tarea no existía y dependía de la sesión de fly, que vence). Copia sacada y scripts arreglados (token de la app, sin cuelgues, aviso en el Escritorio); falta que Franco guarde el token y registre la tarea. Además: aviso de form_motivo silenciado, tests de login, trampa 27 cerrada. Suite 909 passed, 0 skipped. Franco guardó el token, registró la tarea, pusheó y desplegó (v27) el mismo 27/9; verificado. -->
 
 ## 🧭 Dónde estamos
 
@@ -14,16 +14,16 @@
 - **Cartera (Lugar B.1):** Fases 3a y 3b completas y en producción, más renta fija con cronogramas de Docta (M15), vencimientos desde el cronograma y benchmark money-weighted vs SPY/Merval (27/8).
 - **Mantenimiento del 22/9 y del 27/9/2026:** auditoría + limpieza (22/9) y backup + tres mejoras chicas (27/9), sin features. Detalle en `/BITACORA.md`.
 - **Suite:** **909 passed, 0 skipped** en local (27/9/2026). En CI salen 3 `skipped` (los tests-oráculo necesitan el Excel y los CSV de Franco). **Regla del RUNBOOK: antes de un deploy, local tiene que dar 0 skipped.** Cobertura: 78% (`--cov`, `coverage` instalado en el venv fuera del lock).
-- **Hosting:** Fly.io, app `superapp-finanzas`. **Último deploy: 23/9/2026** (lo del 22/9), verificado el 27/9 sobre la copia de producción: `user_version = 1`, sin filas huérfanas. Lo del 27/9 **no está desplegado**: solo cambia `.streamlit/config.toml`, un aviso del panel de benchmark y un docstring; el resto son scripts de tu PC y tests.
-- **Backup externo:** 🔴→🟡 la última copia buena es del **27/9** (antes: 26/8, un mes sin backup). **Todavía no corre solo**: falta que Franco guarde el token de Fly y registre la tarea (ver abajo). `scripts\estado_backup.ps1` lo muestra en rojo hasta entonces.
-- **Repo git:** `main`. Último commit pusheado: `52e7aab` (22/9). El commit del 27/9 queda **local**, pendiente de push.
+- **Hosting:** Fly.io, app `superapp-finanzas`. **Último deploy: 27/9/2026, release v27** (commit `2b544ab`): health `ok`, sin tracebacks ni el aviso de `form_motivo` en los logs (verificado).
+- **Backup externo:** 🟢 token de la app guardado (**vence el 27/9/2027**; `estado_backup.ps1` avisa 30 días antes) y tarea "Backup Superapp Finanzas" registrada, diaria 09:00. Última copia: 27/9 con `auth=token`. **Pendiente:** confirmar el 28/9 que la tarea corrió sola (`scripts\estado_backup.ps1` en verde).
+- **Repo git:** `main`. Último commit pusheado: `2b544ab` (27/9).
 
 ## 🔵 Tarea en curso
 
 | Tarea | Estado | Autor | Desde |
 |---|---|---|---|
 | Auditoría + limpieza entre fases (bugs B1–B7, excepts, código muerto, docs, smoke tests) | ✅ HECHA, pusheada y desplegada (23/9) | Claude (Opus 5.5) | 2026-09-22 |
-| Backup que corra solo (token de la app, sin cuelgues, aviso en el Escritorio) + aviso `form_motivo` + tests de login + trampa 27 | ✅ HECHA — commit local; **falta: token + tarea (Franco), push** | Claude (Opus 5.5) | 2026-09-27 |
+| Backup que corra solo (token de la app, sin cuelgues, aviso en el Escritorio) + aviso `form_motivo` + tests de login + trampa 27 | ✅ HECHA, pusheada y desplegada (v27); token y tarea hechos por Franco | Claude (Opus 5.5) | 2026-09-27 |
 | **Fase 5 · Paso 0 — Cuentas y perímetro (M16)** | ⬜ siguiente — **no arrancar sin que Franco lo pida** | — | — |
 
 ## ✅ Hecho hasta ahora (resumen; detalle en ROADMAP.md y en el archivo)
@@ -37,11 +37,8 @@
 
 ## ⏭️ Próximo paso concreto
 
-1. **Franco — que el backup corra solo (una vez, desde la carpeta `SuperAppFinanzas`):**
-   - `powershell -ExecutionPolicy Bypass -File scripts\guardar_token_fly.ps1` (con la sesión de fly activa; si venció, antes `fly auth login`).
-   - `powershell -ExecutionPolicy Bypass -File scripts\programar_backup.ps1`
-   - Al día siguiente: `powershell -ExecutionPolicy Bypass -File scripts\estado_backup.ps1` tiene que dar todo en verde.
-2. **Franco:** revisar y **pushear** el commit del 27/9; deploy cuando quieras (cambios menores, ver arriba). Vaciar la Papelera (los dos `.tar.gz` del 18/8).
+1. **Franco, el 28/9 o después:** `powershell -ExecutionPolicy Bypass -File scripts\estado_backup.ps1` → tiene que dar todo en verde (la tarea todavía no corrió nunca al 27/9). Si aparece "BACKUP SUPERAPP - FALLO.txt" en el Escritorio, dice qué pasó.
+2. **Franco:** vaciar la Papelera cuando quieras (los dos `.tar.gz` del 18/8).
 3. **Decisión abierta para Franco:** ¿login sin distinguir mayúsculas? (el celular pone "Franco" y no entra). Detalle en `MEJORAS.md`.
 4. **Después, cuando Franco lo pida:** Fase 5, Paso 0 — Cuentas y perímetro (M16). **Gate innegociable: ningún número histórico se mueve un peso.** Arrancar por `docs/PROMPT-INICIO-FASE-5.md`.
 
