@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-09-27 17:20 UTC · 123 archivos · 26,585 LOC -->
+<!-- 2026-09-30 01:50 UTC · 123 archivos · 26,585 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-09-27 46b52a7 docs: ESTADO al dÃ­a tras el deploy v27 (token y tarea de backup hechos) · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-09-27 63dd830 docs: login con mayÃºsculas descartado por Franco · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -195,6 +195,7 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 - `query2.finance.yahoo.com` — `core\market_data\sectores.py`
 - `docs.docta.com.ar` — `docs\CRONOGRAMAS-RENTA-FIJA.md`
 - `mcp.docta.com.ar` — `docs\CRONOGRAMAS-RENTA-FIJA.md`
+- `x.com` — `docs\PUBLICAR-EN-TIENDAS.md`
 - `superapp-finanzas.fly.dev` — `docs\RUNBOOK.md`
 
 ## Configuracion requerida

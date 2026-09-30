@@ -67,7 +67,7 @@ Ejecutar el backlog de `MEJORAS.md` sobre Finanzas Personales. El backlog hereda
 - ⬜ **Paso 1 — Importador de movimientos de caja de ahorro (Excel).** La fuente más grande: débito, transferencias y extracciones. Reusa el parseo de la Cartera + `hash_dedupe`/`UNIQUE`. ~2 días.
 - ⬜ **Paso 2 — Clasificador de traspasos + mapa de comercios aprendido.** ~1,5 días.
 - ⬜ **Paso 3 — Resúmenes de tarjeta (×2) + reconciliación pago↔resumen.** La reconciliación **es** lo que convierte un pago en traspaso. ~2 días.
-- ⬜ **Paso 4 — Cuenta efectivo + captura por WhatsApp** (acá entra el viejo M5). ~1 semana.
+- ⬜ **Paso 4 — Cuenta efectivo + captura por WhatsApp** (acá entra el viejo M5). ~1 semana. Incluir **varios gastos en un mensaje** (texto o audio: "4.200 súper, 1.800 café" → propone tres, Franco confirma), idea anotada en `MEJORAS.md`.
 - ⬜ **Paso 5 — Dedupe entre fuentes + panel de reconciliación.** ~1,5 días.
 - ⬜ **Paso 6 — Generalización con LLM** (el M4 original, ahora último). ~3 días.
 

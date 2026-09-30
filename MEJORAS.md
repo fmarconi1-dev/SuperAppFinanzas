@@ -54,6 +54,8 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 - 🟡 ↪️ **M5 · API sidecar — ABSORBIDO POR LA FASE 5** (27/8/2026, ADR-0006): deja de ser un fin en sí mismo y pasa a ser la **vía de captura del efectivo** (Paso 4), que es el 10-15% del gasto que ninguna fuente automática ve.
 - 🟡 💡 **(detalle original de M5)** FastAPI en la misma máquina de Fly, misma SQLite, token bearer rotable + rate-limit por IP + validación Pydantic + log de auditoría. Endpoints `GET /summary` y `POST /transaction`. **Esfuerzo:** 1 semana. **Riesgo:** medio, hay que cuidar la superficie de ataque del endpoint público.
 - 🟢 💡 **Chatbot de WhatsApp.** Tier gratis de WhatsApp Business Cloud API. **Pre-requisito: M5.**
+- 🟡 💡 **Dictar varios gastos en un solo mensaje** (idea tomada de Kesef, 29/9/2026). "Gasté 4.200 en el súper, 1.800 de café y 12.000 de nafta" → la app **propone** tres gastos y Franco confirma. Entra en el **Paso 4 de la Fase 5** (efectivo por WhatsApp), por texto o audio. Respeta la regla de la fase: el LLM extrae y propone, **nunca escribe ni decide montos**; la confirmación y el guardado son determinísticos.
+- 🟡 💡 **Gastos recurrentes automáticos** (idea tomada de Kesef, 29/9/2026): expensas, servicios, suscripciones que se repiten cada mes se cargan solos (o se proponen para confirmar). **Ojo con la Fase 5:** cuando la caja de ahorro y las tarjetas entren por archivo, un recurrente cargado a mano **duplicaría** el mismo pago; o se hace antes de la Fase 5 y se integra al dedupe (Paso 5), o se hace como "esperado" que el import confirma en vez de como gasto.
 - 🟢 💡 Portar lo que quede del backlog de UX del repo original (`docs/MEJORAS-UX.md` allá).
 
 ### Descartado
@@ -107,7 +109,9 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 - 🟢 ✅ **Ciclo core↔core/auth cortado** con `core/context.py` (27/8/2026, propuesta 4 del estudio del repo).
 - 🟢 ✅ **Split de `view.py` de cartera en paneles** (27/8/2026, propuesta 3): de 1.990 líneas a un orquestador de 760 + diez paneles en `paneles/`. Verificado por AST contra la versión anterior: 23 funciones idénticas, 0 perdidas.
 - 🟡 💡 Migrar de Fly.io a DonWeb VPS si se prioriza pago en ARS e infra local (evaluar costo operativo — ver premortem).
-- 🟢 💡 Multiusuario / SaaS (Fase 7): tenancy, planes, aislamiento de datos, billing.
+- 🟢 💡 Multiusuario / SaaS (**Fase 8**): tenancy, planes, aislamiento de datos, billing.
+  - **Publicar en App Store / Play Store:** requisitos, costos y trampas anotados en `docs/PUBLICAR-EN-TIENDAS.md` (29/9/2026). Exige app nativa (p. ej. Expo) sobre una API, que es el M5.
+  - **Importar pagos de Mercado Pago automáticamente** (idea tomada de Kesef, 29/9/2026: los pagos entran solos en 10–30 min; AR, BR, CL, CO, MX, PE, UY). **Franco no usa billeteras** —por eso quedó fuera de la Fase 5 (ADR-0006)—, pero para otros usuarios sería una fuente más del mismo modelo *source-first*: propone movimientos, el usuario confirma, el dedupe cruza contra la tarjeta/caja de ahorro que la fondeó.
 - 🟢 💡 App móvil / PWA.
 - 🟢 💡 Notificaciones (email/push) para alertas de cartera y vencimientos.
 

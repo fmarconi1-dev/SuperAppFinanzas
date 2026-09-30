@@ -6,6 +6,7 @@
 | `DEPLOY.md` | Guía de despliegue a Fly.io y checklist de build. |
 | `RUNBOOK.md` | Operación: backups, restore, monitoreo, reglas antes de un deploy (0 skipped). |
 | `DATOS-MERCADO-ARG.md` | Investigación de fuentes de precios del mercado argentino (base de la Fase 6, mercado en vivo). |
+| `PUBLICAR-EN-TIENDAS.md` | Requisitos, costos y trampas para publicar en App Store / Play Store (referencia para la Fase 8; no es plan). |
 | `CRONOGRAMAS-RENTA-FIJA.md` | Fuente de cronogramas de bonos (Docta) y su verificación. |
 | `PROMPT-INICIO-FASE-5.md` | Prompt de arranque de la Fase 5 (ADR-0006). Los de fases anteriores se borraron el 22/9/2026: están en el historial de git. |
 | `archivo/` | Historia de `ESTADO.md` (lo que ya cerró). |
