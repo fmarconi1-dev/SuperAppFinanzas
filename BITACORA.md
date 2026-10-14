@@ -1,6 +1,6 @@
 # BITÁCORA — changelog narrativo global
 
-<!-- huella: da3b4a9e996a -->
+<!-- huella: 57d57ebebd50 -->
 
 Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías).
 
@@ -15,6 +15,17 @@ Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación e
 ## Crónica
 
 Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión relevante. Lo fino de cada módulo va en su `bitacora_de_trabajo.md`.
+
+---
+
+## 2026-10-14 — Se retira el lugar Inversiones (ADR-0007)
+**Autor:** Claude (Opus 5.5), a pedido de Franco: *"es algo que no se utiliza… creo que es momento de dejarlo ir"*.
+
+- **Fuera:** `places/inversiones/` (cartera, paneles, placeholder de mercado en vivo), `core/market_data/` (solo lo usaba la cartera), `scripts/verificar_docta.py`, la página "Inversiones" de `app.py` y ~550 tests (`test_cartera_*`, `test_market_data*` y los tramos de cartera de smoke, backup/restore e importes ilegibles).
+- **Adentro, a propósito:** las tablas `cartera_*` y sus migraciones en `core/db.py`. Producción tiene los movimientos reales; sacar el esquema abre una puerta a perder datos sin vuelta. Siguen viajando en los backups. Borrarlas es una decisión aparte.
+- `test_db_concurrencia` ya no mira la vista de cartera: revisa todo `places/` (y exige encontrar al menos un `backup_db()`, trampa 41).
+- ROADMAP: Fases 6 (Mercado en vivo) y 7 (portar la matemática del Excel de inversiones) descartadas. Fase 5 Paso 1 anotada: el parser de la Cartera que iba a reusar está en el historial de git.
+- **Suite 359 passed, 0 skipped** (incluye el smoke que abre `app.py` completo). Sin commitear ni desplegar.
 
 ---
 

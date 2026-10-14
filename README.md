@@ -3,9 +3,9 @@
 App web personal que unifica, en un solo lugar y bajo un login único:
 
 - **🏠 Finanzas Personales** — ingresos, gastos, presupuesto, grupo familiar (ex `Mis-Finanzas-App`).
-- **📈 Inversiones** — (1) **cartera** nativa: posiciones, rendimiento por el método del patrimonio, TIR, renta fija con cronogramas, benchmark contra el mercado; (2) **mercado en vivo** (placeholder, Fase 6). El scoring se retiró el 5/8/2026 (ADR-0002).
+- ~~**📈 Inversiones**~~ — **retirada el 14/10/2026** (ADR-0007): la cartera y el mercado en vivo salieron de la app porque no se usaban. Las tablas `cartera_*` siguen en la base, quietas. El scoring ya se había retirado el 5/8/2026 (ADR-0002).
 
-> **Estado global (22/9/2026):** en producción en Fly.io (`superapp-finanzas`). Fases 0–4 cerradas; la **Fase 5** (captura *source-first* del Lugar A, ADR-0006) está aprobada y sin arrancar. La foto al día está siempre en `ESTADO.md`; el plan original, en `PLAN DE TRABAJO - Superapp Finanzas.md` (histórico: la numeración de fases vigente es la de `ROADMAP.md`).
+> **Estado global (14/10/2026):** Inversiones retirada (ADR-0007); la app es solo Finanzas Personales. En producción en Fly.io (`superapp-finanzas`). Fases 0–4 cerradas; la **Fase 5** (captura *source-first* del Lugar A, ADR-0006) está aprobada y sin arrancar. La foto al día está siempre en `ESTADO.md`; el plan original, en `PLAN DE TRABAJO - Superapp Finanzas.md` (histórico: la numeración de fases vigente es la de `ROADMAP.md`).
 
 ---
 
@@ -36,9 +36,8 @@ Este proyecto está pensado para ser continuado por **varias conversaciones/Clau
 | `MAPA.md` + `.mapa/` | Índice vivo del código (generado; cada carpeta tiene su `BITACORA.md` router). |
 | `MEJORAS.md` | Backlog + ideas a futuro (incluye uso de skills/agentes). |
 | `claude.md` | Reglas para agentes IA. |
-| `core/` | Núcleo compartido: auth, db, config, market_data, theme. |
+| `core/` | Núcleo compartido: auth, db, config, theme. |
 | `places/finanzas/` | Lugar A — Finanzas Personales. |
-| `places/inversiones/` | Lugar B — cartera + mercado_vivo (placeholder). |
 | `data/` | Datos locales **(nunca se commitea)**. |
 | `jobs/` | Procesos batch. Vacío desde que se retiró el scoring (5/8/2026). |
 | `tests/` | El gate: pytest en CI. |

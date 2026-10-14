@@ -681,7 +681,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
         #     del Excel): base ↔ variante USD, categoría de activo, panel de
         #     precios, moneda de cotización, divisor.
         #   * cartera_movimientos   — un movimiento parseado por fila (salida
-        #     del parser de `places/inversiones/cartera/parser.py`). `tc_mep`
+        #     del parser de la cartera, retirada el 14/10/2026 — ADR-0007; la
+        #     tabla queda con los datos, quieta). `tc_mep`
         #     queda NULL hasta que market_data (paso 3) congele el MEP histórico
         #     de cada fecha. `hash_dedupe` + UNIQUE hace idempotente la carga
         #     recurrente (re-importar el mismo export no duplica).

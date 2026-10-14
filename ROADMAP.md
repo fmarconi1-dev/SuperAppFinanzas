@@ -27,7 +27,9 @@ Navegación con login único entre lugares. Embeber el scoring leyendo el snapsh
 - ✅ 101 tests en verde. Pendiente: deploy verificado por Franco.
 **Salida:** un login que lleva a Finanzas y a Scoring. ✔
 
-## ✅ Fase 3 — Cartera (Lugar B.1) — **giro a NATIVA** (ADR-0003) (cerrada 2026-07-30)
+## ✅ Fase 3 — Cartera (Lugar B.1) — **giro a NATIVA** (ADR-0003) (cerrada 2026-07-30) — ⛔ **RETIRADA el 14/10/2026 (ADR-0007)**
+> Franco decidió sacar toda la sección de Inversiones: no la usaba. El código salió de la app (queda en el historial de git); las tablas `cartera_*` siguen en la base, quietas. Lo de abajo es el registro de lo que se hizo.
+
 El plan original (Excel-in-the-loop) se reemplazó por **cartera nativa**: DB propia de movimientos, el Excel pasa a oráculo de reconciliación. **Fase 3a** = import + carga recurrente con dedupe + alta manual + posiciones + KPIs (5 pasos). **3b** = realized PnL, cauciones/dividendos como rendimientos, análisis sector/tipo de renta.
 - ✅ **3a paso 1:** parser del broker (ambos formatos) + 43 tests.
 - ✅ **3a paso 2:** modelo de datos M9 (`cartera_movimientos` con TC congelado por fila, dedupe) + ingest + gate `tests/test_cartera_recon.py` (reconcilia exacto contra el Excel).
@@ -64,7 +66,7 @@ Ejecutar el backlog de `MEJORAS.md` sobre Finanzas Personales. El backlog hereda
 **El cambio de fondo:** el gasto deja de ser "la suma de lo que Franco tipeó" y pasa a ser "lo que sale del perímetro de sus cuentas". Las fuentes proponen; Franco confirma; el agente dedupea. Alcance confirmado: 4 cuentas (caja de ahorro, 2 tarjetas, efectivo), exportación en Excel, **sin backfill**, sin billeteras.
 
 - ⬜ **Paso 0 — Cuentas y perímetro (M16).** `cuentas` + `cuenta_id`/`cuenta_contraparte_id`; el traspaso reusa `Flujo Capital`, que ya existe y que `metrics.py` no cuenta como gasto. **Gate: ningún número histórico se mueve un peso.** ~1 día.
-- ⬜ **Paso 1 — Importador de movimientos de caja de ahorro (Excel).** La fuente más grande: débito, transferencias y extracciones. Reusa el parseo de la Cartera + `hash_dedupe`/`UNIQUE`. ~2 días.
+- ⬜ **Paso 1 — Importador de movimientos de caja de ahorro (Excel).** La fuente más grande: débito, transferencias y extracciones. Reusa el parseo de la Cartera + `hash_dedupe`/`UNIQUE` — ⚠️ desde el 14/10/2026 ese parser está solo en el historial de git (ADR-0007): recuperarlo y mudarlo a `places/finanzas/`. ~2 días.
 - ⬜ **Paso 2 — Clasificador de traspasos + mapa de comercios aprendido.** ~1,5 días.
 - ⬜ **Paso 3 — Resúmenes de tarjeta (×2) + reconciliación pago↔resumen.** La reconciliación **es** lo que convierte un pago en traspaso. ~2 días.
 - ⬜ **Paso 4 — Cuenta efectivo + captura por WhatsApp** (acá entra el viejo M5). ~1 semana. Incluir **varios gastos en un mensaje** (texto o audio: "4.200 súper, 1.800 café" → propone tres, Franco confirma), idea anotada en `MEJORAS.md`.
@@ -75,13 +77,11 @@ Ejecutar el backlog de `MEJORAS.md` sobre Finanzas Personales. El backlog hereda
 
 **Salida:** una app que no se degrada cuando Franco se atrasa. **Total ~2,5 semanas.**
 
-## ⬜ Fase 6 — Mercado en Vivo (Lugar B.3) + fuente de datos ARG
-Resolver la fuente de precios local (`docs/DATOS-MERCADO-ARG.md`), cotizaciones en vivo, cartera conectada a precios automáticos.
-**Salida:** la sección más nueva; la más incierta.
+## ⛔ Fase 6 — Mercado en Vivo (Lugar B.3) — DESCARTADA (14/10/2026, ADR-0007)
+Se retiró el lugar Inversiones entero. Nunca tuvo código, solo un cartel.
 
-## ⬜ Fase 7 (futuro) — Portar la matemática del Excel a Python
-Módulo por módulo (FF de renta fija, TIRs, B&S), cada uno con reconciliación fila-a-fila antes de retirar el Excel.
-**Salida:** independencia del Excel.
+## ⛔ Fase 7 — Portar la matemática del Excel de inversiones a Python — DESCARTADA (14/10/2026, ADR-0007)
+Era FF de renta fija, TIRs y B&S: sin lugar Inversiones, no tiene dónde vivir.
 
 ## ⬜ Fase 8 (futuro, opcional) — Multiusuario / escalar
 Solo si se abre a otros: aislamiento de datos, planes, costos.

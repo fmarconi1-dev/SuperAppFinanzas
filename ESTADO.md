@@ -5,15 +5,16 @@
 > Este archivo es una **foto, no una crónica**: la narrativa de cada sesión va a la `bitacora_de_trabajo.md` del módulo y a `/BITACORA.md`; lo que ya cerró se muda a `docs/archivo/ESTADO-historial.md`. Para ubicar código sin releer el repo: **`/MAPA.md`**.
 > **Verificá antes de confiar:** `git log --oneline -15` + `git status`. Si lo que ves no coincide con esto, gana lo que ves — y corregí este archivo.
 
-<!-- ultima_actualizacion: 2026-09-27 · autor: Claude (Opus 5.5), autónomo · handoff: el backup externo llevaba un mes sin correr (la tarea no existía y dependía de la sesión de fly, que vence). Copia sacada y scripts arreglados (token de la app, sin cuelgues, aviso en el Escritorio); falta que Franco guarde el token y registre la tarea. Además: aviso de form_motivo silenciado, tests de login, trampa 27 cerrada. Suite 909 passed, 0 skipped. Franco guardó el token, registró la tarea, pusheó y desplegó (v27) el mismo 27/9; verificado. -->
+<!-- ultima_actualizacion: 2026-10-14 · autor: Claude (Opus 5.5) · handoff: Franco pidió retirar Inversiones entera (ADR-0007). Código, tests y página fuera; tablas cartera_* intactas en la base. Suite 359 passed, 0 skipped. SIN commitear ni desplegar. -->
+<!-- anterior: 2026-09-27 · autor: Claude (Opus 5.5), autónomo · handoff: el backup externo llevaba un mes sin correr (la tarea no existía y dependía de la sesión de fly, que vence). Copia sacada y scripts arreglados (token de la app, sin cuelgues, aviso en el Escritorio); falta que Franco guarde el token y registre la tarea. Además: aviso de form_motivo silenciado, tests de login, trampa 27 cerrada. Suite 909 passed, 0 skipped. Franco guardó el token, registró la tarea, pusheó y desplegó (v27) el mismo 27/9; verificado. -->
 
 ## 🧭 Dónde estamos
 
 - **Fase actual: Fase 5 — Captura *source-first* del Lugar A (ADR-0006). Aprobada, SIN ARRANCAR.** 7 pasos, ~2,5 semanas; el prompt de arranque es `docs/PROMPT-INICIO-FASE-5.md`.
 - **Fase 4 — cerrada** (27/8/2026) en lo que hizo: respaldo + CI. Su punto 3 (voz + hitos) lo **descartó Franco el 4/8**; sus puntos 4 y 5 (M4 importador con LLM, M5 API sidecar) **no son de la Fase 4**: quedaron absorbidos por la Fase 5 (M4 es su último paso, M5 su vía de captura del efectivo). No hay ítems vivos de la Fase 4.
-- **Cartera (Lugar B.1):** Fases 3a y 3b completas y en producción, más renta fija con cronogramas de Docta (M15), vencimientos desde el cronograma y benchmark money-weighted vs SPY/Merval (27/8).
+- **Inversiones (Lugar B): RETIRADA el 14/10/2026 (ADR-0007)** a pedido de Franco: no la usaba. Salieron `places/inversiones/`, `core/market_data/`, `scripts/verificar_docta.py`, la página de la navegación y sus tests. **Las tablas `cartera_*` siguen en la base de producción, quietas** (borrarlas es una decisión aparte de Franco). Fases 6 y 7 del ROADMAP descartadas.
 - **Mantenimiento del 22/9 y del 27/9/2026:** auditoría + limpieza (22/9) y backup + tres mejoras chicas (27/9), sin features. Detalle en `/BITACORA.md`.
-- **Suite:** **909 passed, 0 skipped** en local (27/9/2026). En CI salen 3 `skipped` (los tests-oráculo necesitan el Excel y los CSV de Franco). **Regla del RUNBOOK: antes de un deploy, local tiene que dar 0 skipped.** Cobertura: 78% (`--cov`, `coverage` instalado en el venv fuera del lock).
+- **Suite:** **359 passed, 0 skipped** en local (14/10/2026; eran 909 antes de retirar Inversiones). En CI salen `skipped` los tests-oráculo (necesitan los CSV de Franco). **Regla del RUNBOOK: antes de un deploy, local tiene que dar 0 skipped.** Cobertura: 78% (`--cov`, `coverage` instalado en el venv fuera del lock).
 - **Hosting:** Fly.io, app `superapp-finanzas`. **Último deploy: 27/9/2026, release v27** (commit `2b544ab`): health `ok`, sin tracebacks ni el aviso de `form_motivo` en los logs (verificado).
 - **Backup externo:** 🟢 token de la app guardado (**vence el 27/9/2027**; `estado_backup.ps1` avisa 30 días antes) y tarea "Backup Superapp Finanzas" registrada, diaria 09:00. Última copia: 27/9 con `auth=token`. **Pendiente:** confirmar el 28/9 que la tarea corrió sola (`scripts\estado_backup.ps1` en verde).
 - **Repo git:** `main`. Último commit pusheado: `2b544ab` (27/9).
@@ -24,6 +25,7 @@
 |---|---|---|---|
 | Auditoría + limpieza entre fases (bugs B1–B7, excepts, código muerto, docs, smoke tests) | ✅ HECHA, pusheada y desplegada (23/9) | Claude (Opus 5.5) | 2026-09-22 |
 | Backup que corra solo (token de la app, sin cuelgues, aviso en el Escritorio) + aviso `form_motivo` + tests de login + trampa 27 | ✅ HECHA, pusheada y desplegada (v27); token y tarea hechos por Franco | Claude (Opus 5.5) | 2026-09-27 |
+| Retirar el lugar Inversiones entero (ADR-0007) | ✅ HECHA en el árbol, **sin commitear ni desplegar** | Claude (Opus 5.5) | 2026-10-14 |
 | **Fase 5 · Paso 0 — Cuentas y perímetro (M16)** | ⬜ siguiente — **no arrancar sin que Franco lo pida** | — | — |
 
 ## ✅ Hecho hasta ahora (resumen; detalle en ROADMAP.md y en el archivo)
@@ -37,16 +39,18 @@
 
 ## ⏭️ Próximo paso concreto
 
+0. **Franco:** revisar el retiro de Inversiones, commitear y desplegar cuando quiera (al desplegar, `/inversiones` deja de existir en producción). Decidir aparte si las tablas `cartera_*` se borran de la base (irreversible; hoy quedan quietas).
 1. **Franco, el 28/9 o después:** `powershell -ExecutionPolicy Bypass -File scripts\estado_backup.ps1` → tiene que dar todo en verde (la tarea todavía no corrió nunca al 27/9). Si aparece "BACKUP SUPERAPP - FALLO.txt" en el Escritorio, dice qué pasó.
 2. **Franco:** vaciar la Papelera cuando quieras (los dos `.tar.gz` del 18/8).
 3. ~~Login sin distinguir mayúsculas~~ — descartado por Franco el 27/9 (ver `MEJORAS.md`).
 4. **Después, cuando Franco lo pida:** Fase 5, Paso 0 — Cuentas y perímetro (M16). **Gate innegociable: ningún número histórico se mueve un peso.** Arrancar por `docs/PROMPT-INICIO-FASE-5.md`.
 
-**Pendientes menores** (sin apuro; detalle en `MEJORAS.md`): tests del panel de importar y de la edición de categorías (cobertura 18% y 35%) · retirar `radar-financiero` de Fly (Franco) · preguntar al broker por la fila del TTM26 del 4/2/2026 (no tocar sin confirmación) · dominio propio (estético) · amortizaciones parciales de bonos vivos (primer evento: AE38 el **12/7/2027**) · migrar a pandas 3 (tarea deliberada, con su propio día).
+**Pendientes menores** (sin apuro; detalle en `MEJORAS.md`): tests de la edición de categorías (cobertura 35%) · retirar `radar-financiero` de Fly (Franco) · dominio propio (estético) · bajar la memoria de Fly ahora que no hay cartera (decisión aparte; `test_scripts_backup` la fija en 1 GB) · migrar a pandas 3 (tarea deliberada, con su propio día).
 
 ## 🚩 Bloqueos / decisiones abiertas
 
-- Ninguna decisión abierta. La fuente de datos de mercado ARG para **Mercado en vivo** se valida y elige en la **Fase 6** (candidatas en `docs/DATOS-MERCADO-ARG.md`).
+- **¿Borrar las tablas `cartera_*` de la base?** Abierta, de Franco. Irreversible; si sí, va como migración nueva detrás de `_NIVEL_REPARACIONES` y con backup antes.
+- **Fase 5, Paso 1** contaba con reusar el parser de la Cartera: ahora está solo en el historial de git (ver ADR-0007).
 - Nombre de la app Fly: `superapp-finanzas`. **Fly no permite renombrar apps**; si se quiere otro nombre, resolverlo con dominio propio (FreeDomain).
 
 ## ⚠️ Nota post-incidente: migraciones (17/7/2026, ampliada el 22/9/2026)

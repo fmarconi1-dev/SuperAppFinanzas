@@ -11,3 +11,4 @@ Formato: Contexto · Decisión · Alternativas · Consecuencias · Estado.
 - `ADR-0004-fuente-mep-historico.md` — MEP histórico desde `argentinadatos` (el BCRA no publica MEP). ✅ Aceptada.
 - `ADR-0005-realizado-ppc-movil.md` — El resultado realizado se mide con el PPC vigente al vender. ✅ Aceptada.
 - `ADR-0006-captura-source-first.md` — Finanzas Personales pasa de transaction-first a source-first: cuentas y perímetro, tres fuentes que proponen, y el agente que dedupea. ✅ Aceptada.
+- `ADR-0007-retiro-de-inversiones.md` — Se retira el lugar Inversiones entero (Cartera + Mercado en vivo); el código sale, las tablas `cartera_*` quedan quietas en la base. ✅ Aceptada (14/10/2026). **Deja como históricas las ADR-0003, 0004 y 0005.**

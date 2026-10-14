@@ -8,7 +8,7 @@ Subcarpetas:
 - `auth/` — autenticación (bcrypt, rate-limit, sesión HMAC). Origen: Mis-Finanzas-App.
 - `db/` — conexión SQLite, migraciones, backups. Origen: Mis-Finanzas-App.
 - `config/` — configuración central: universos de tickers, umbrales, mapeos ARS↔USD.
-- `market_data/` — proveedores de precios con capa de abstracción + caché + fallback manual. Implementación de referencia: skills de `gauss314/skills` (`bcra-macro`, `data912`, `byma`, `mae`, `yahoo-finance`). Ver `docs/DATOS-MERCADO-ARG.md`.
+- ~~`market_data/`~~ — retirado el 14/10/2026 junto con Inversiones (ADR-0007); está en el historial de git.
 - `theme/` — tema visual unificado ('Cosmic Slate') y helpers de UI. **Aplicar la skill `ui-ux-web-moderno` acá.**
 
 ---

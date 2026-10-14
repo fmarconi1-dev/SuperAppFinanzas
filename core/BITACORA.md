@@ -1,6 +1,6 @@
 # core/
 
-<!-- huella: 6b757f194d66 -->
+<!-- huella: 6a6f545ede96 -->
 
 Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M15 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth y theme viven en subcarpetas propias.
 
@@ -36,6 +36,7 @@ Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M15 + reparacione
 ## Estado
 
 - **Funciona:** todo en producción (Fly.io).
+- **14/10/2026:** `core/market_data/` se retiró junto con Inversiones (ADR-0007); solo lo usaba la cartera. Las tablas `cartera_*` y sus migraciones (M9–M15) **siguen en `db.py` a propósito**: producción tiene los datos. No borrarlas sin el OK de Franco.
 
 ## Proximo paso
 

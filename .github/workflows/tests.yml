@@ -39,9 +39,9 @@ jobs:
           pip install -r requirements.txt
 
       - name: Correr la suite
-        # El gate de reconciliación (tests/test_cartera_recon.py) se saltea
-        # solo: necesita el Excel de Franco, que NUNCA se versiona. Que
-        # aparezca como "skipped" acá es lo correcto — ese gate corre local.
+        # Los tests-oráculo (test_kpis.py, test_reconciliacion.py) se saltean
+        # solos: necesitan los CSV de Franco, que NUNCA se versionan. Que
+        # aparezcan como "skipped" acá es lo correcto — esos corren local.
         run: pytest -q --durations=10
 
   sin-datos:

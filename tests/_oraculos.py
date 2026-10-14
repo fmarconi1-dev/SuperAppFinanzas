@@ -9,7 +9,6 @@ pero necesitan archivos que **por regla dura del proyecto nunca se versionan**:
 
 * ``Diario.csv`` y ``Mensual.csv`` → `test_kpis.py`, `test_reconciliacion.py`.
   Contienen todos los gastos e ingresos personales.
-* ``Inversiones.xlsx`` → `test_cartera_recon.py` (usa ``CARTERA_XLSX``).
 
 En CI esos archivos no existen y no deben existir. La convención del repo,
 establecida por el gate de reconciliación de la Fase 3a, es **saltearlos con

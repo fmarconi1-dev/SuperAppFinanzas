@@ -68,19 +68,3 @@ def test_el_cli_del_ingest_arranca():
     r = subprocess.run([sys.executable, "-m", "places.finanzas.core.ingest", "--help"],
                        cwd=RAIZ, capture_output=True, text=True, timeout=60)
     assert r.returncode == 0, r.stderr
-
-
-# --- Cartera ---------------------------------------------------------------
-
-def test_cartera_formato_de_eeuu_no_se_lee_mil_veces_menor():
-    from places.inversiones.cartera.parser import _parse_numero
-    assert _parse_numero("1,234.56") == pytest.approx(1234.56)
-    assert _parse_numero("1.234,56") == pytest.approx(1234.56)     # argentino
-    assert _parse_numero("-1.234.567,5") == pytest.approx(-1234567.5)
-
-
-def test_cartera_un_ilegible_se_avisa():
-    from places.inversiones.cartera.parser import _parse_numero
-    avisos: list[str] = []
-    assert _parse_numero("12O,5", avisos, "Monto") == 0.0
-    assert avisos and "12O,5" in avisos[0]

@@ -9,6 +9,18 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 14 de octubre de 2026 — Chau, Inversiones
+
+**Qué se hizo.** Saqué de la app toda la sección de Inversiones: la cartera (tus posiciones, rendimientos, bonos, vencimientos, la comparación contra el mercado) y el lugar reservado para "Mercado en vivo". Ahora la app es solo Finanzas Personales: entrás y estás directo en tus gastos e ingresos, sin la barra para cambiar de sección.
+
+**Lo que NO borré.** Tus movimientos de la cartera siguen guardados en la base de datos, quietos, como cajas en un depósito: nadie las abre, pero están. Y el programa que los mostraba queda en el historial del proyecto, así que si algún día cambiás de idea, se puede volver a armar. Borrar esos datos de verdad es otra decisión, y es tuya: no tiene vuelta atrás.
+
+**Para qué te sirve.** Menos cosas que mantener: la app ya no depende de tres servicios de afuera (cotizaciones, dólar MEP, cronogramas de bonos) que a veces se caían, y las pruebas automáticas pasaron de 909 a 359, todas las que quedan son de lo que sí usás. Todas en verde.
+
+**Qué sigue.** Revisarlo, guardarlo y publicarlo cuando quieras (hasta que lo publiques, la app online sigue mostrando Inversiones). Después, la etapa grande: que los gastos salgan solos de los resúmenes del banco.
+
+---
+
 ## 27 de septiembre de 2026 — Tu backup llevaba un mes apagado
 
 **Lo importante primero.** La última copia de tus datos en tu PC era del **26 de agosto**. La tarea que tenía que hacerla todas las mañanas **no existía** en tu computadora, y aunque hubiera existido habría fallado: dependía de que tu sesión de Fly estuviera abierta, y esa sesión vence sola. Es como un portero que necesita que le abras la puerta para salir a trabajar: a las 9 de la mañana no hay nadie para abrirle. Y nada te avisaba.

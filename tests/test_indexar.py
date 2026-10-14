@@ -36,7 +36,7 @@ def test_lo_ignorado_por_git_no_se_indexa(rel):
 
 
 @pytest.mark.parametrize("rel", [
-    r"places\inversiones\cartera\view.py",
+    r"places\finanzas\views\dashboard.py",
     r"core\db.py",
     "ESTADO.md",
 ])

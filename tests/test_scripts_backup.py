@@ -239,8 +239,9 @@ def test_el_deploy_usa_la_estrategia_immediate():
 
 
 def test_el_volumen_y_la_memoria_siguen_donde_los_esperamos():
-    """Si alguien baja la memoria para 'que entre en el host', la cartera deja
-    de poder valuarse: pandas necesita ese GB."""
+    """La memoria y el volumen son parte del contrato del deploy: si cambian,
+    que sea a propósito (el GB se dimensionó para la Cartera, retirada el
+    14/10/2026; bajarlo es una decisión aparte)."""
     t = _texto(SCRIPTS.parent / "fly.toml")
     assert 'memory = "1gb"' in t
     assert 'source = "finanzas_data"' in t

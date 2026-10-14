@@ -6,6 +6,8 @@ Estado al escribirlo (27/8/2026, cierre de jornada): **Fase 4 cerrada en lo que 
 
 **Actualizado el 22/9/2026** (auditoría + limpieza entre fases, sin features): suite **865 passed, 0 skipped**; ningún número de producción cambió. Qué se tocó y las trampas nuevas (36–42): `/BITACORA.md`, entrada del 22/9.
 
+**⚠️ Actualizado el 14/10/2026 — Inversiones RETIRADA (ADR-0007).** La app es solo Finanzas Personales: `places/inversiones/` y `core/market_data/` ya no existen en el árbol (último commit con ellos: `886b67c`). Suite: **359 passed, 0 skipped**. Todo lo que el bloque de abajo dice de la Cartera es historia: el parser que el Paso 1 iba a reusar (`parse_archivo_excel`) hay que recuperarlo de `886b67c` y mudarlo a `places/finanzas/`. Las tablas `cartera_*` siguen en la base, quietas: no tocarlas.
+
 ---
 
 > Soy Franco. Trabajamos en mi **Superapp de Finanzas**: un monorepo Streamlit que unifica mis finanzas personales y mis inversiones en una app web. Está en producción en Fly.io (`superapp-finanzas`), es un repo git privado en `main` y lo subo yo con GitHub Desktop. Dale acceso a la carpeta `SuperAppFinanzas/` antes de empezar.
@@ -129,7 +131,7 @@ Estado al escribirlo (27/8/2026, cierre de jornada): **Fase 4 cerrada en lo que 
 >
 > ## Lo que sigue después (no lo empieces hoy)
 >
-> Paso 1: importador de movimientos de caja de ahorro en Excel (reusa `parse_archivo_excel` de la Cartera). **Para eso te voy a pasar un export real mío.** Después: clasificador de traspasos y mapa de comercios aprendido · resúmenes de tarjeta ×2 con la reconciliación pago↔resumen · cuenta efectivo + WhatsApp (el viejo M5) · dedupe entre fuentes · y por último la generalización con LLM (el viejo M4). Detalle en `ROADMAP.md`.
+> Paso 1: importador de movimientos de caja de ahorro en Excel (reusa `parse_archivo_excel` de la Cartera — **retirada el 14/10/2026: recuperarlo de `886b67c`**). **Para eso te voy a pasar un export real mío.** Después: clasificador de traspasos y mapa de comercios aprendido · resúmenes de tarjeta ×2 con la reconciliación pago↔resumen · cuenta efectivo + WhatsApp (el viejo M5) · dedupe entre fuentes · y por último la generalización con LLM (el viejo M4). Detalle en `ROADMAP.md`.
 >
 > ## Pendientes sueltos (no son la tarea de hoy)
 >

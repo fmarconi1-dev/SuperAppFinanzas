@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-09-30 01:50 UTC · 123 archivos · 26,585 LOC -->
+<!-- 2026-10-14 22:40 UTC · 70 archivos · 11,952 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-09-27 63dd830 docs: login con mayÃºsculas descartado por Franco · **hay cambios sin commitear**
+Rama `retiro-inversiones` — ultimo commit: 2026-09-29 886b67c docs: requisitos para publicar en tiendas + ideas de Kesef (dictado mÃºltiple, recurrentes, Mercado Pago) · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -32,13 +32,6 @@ Rama `main` — ultimo commit: 2026-09-27 63dd830 docs: login con mayÃºsculas 
 | "me pide loguearme en cada refresh" → tokens firmados en la URL (`session_tokens.py`, `SESSION_SECRET`) | `core\auth/` |
 | necesitás saber quién es el usuario o workspace actual desde lógica sin Streamlit → **no es acá**: `core/context.py` (las fachadas `current_user.py`/`current_workspace.py` se borraron el 22/9/2026) | `core\auth/` |
 | el botón de logout | `core\auth/` |
-| dólar MEP histórico o de hoy, el TC congelado por operación (`mep.py`) | `core\market_data/` |
-| un precio falta o viene raro: bonos ×100, override, caché (`precios.py`) | `core\market_data/` |
-| sector/industria de un ticker para el análisis de composición (`sectores.py`) | `core\market_data/` |
-| cronogramas de pago, cupones, Docta (`cronogramas.py`, `DOCTA_CLIENT_ID/SECRET`) | `core\market_data/` |
-| una fuente externa caída y qué fallback aplica → `_errores.py` (`FuenteNoDisponible`, `ERRORES_DE_RED`) | `core\market_data/` |
-| un bono quedó "sin cronograma" o un ticker "Sin dato" de sector **para siempre** → caché negativa: solo se escribe si la fuente *contestó* que no existe | `core\market_data/` |
-| la serie histórica de un índice para comparar contra la cartera (`indices.py`) | `core\market_data/` |
 | estética, colores, tipografía, dark mode, "se ve poco profesional" | `core\theme/` |
 | "se ve mal en el celular" → `_responsive.py` | `core\theme/` |
 | un gráfico Plotly con colores fuera de paleta → `_theme.py` | `core\theme/` |
@@ -62,43 +55,17 @@ Rama `main` — ultimo commit: 2026-09-27 63dd830 docs: login con mayÃºsculas 
 | Libro Diario → `diario.py` · Previsión vs Realidad → `mensual.py` | `places\finanzas\views/` |
 | editor de categorías y sección "Espacio compartido" → `configuracion.py` | `places\finanzas\views/` |
 | pantalla de bienvenida → `onboarding.py` | `places\finanzas\views/` |
-| "¿dónde está el scoring?" → retirado por decisión de Franco (ADR-0002 marcado retirado; el código quedó en `Borrar/`). Los sectores ahora salen 100% de Yahoo. | `places\inversiones/` |
-| las pestañas del lugar → `home.py` | `places\inversiones/` |
-| Mercado en vivo → todavía no existe (Fase 6; fuentes candidatas en `docs/DATOS-MERCADO-ARG.md`) | `places\inversiones/` |
-| números que no calzan con el broker o el Excel → `posiciones.py`, `tenencias.py` y el gate `tests/test_cartera_recon.py` | `places\inversiones\cartera/` |
-| importar movimientos o tenencias, dedupe, formatos viejo/nuevo del export → `parser.py`, `tenencias.py`, `ingest.py` | `places\inversiones\cartera/` |
-| rendimiento, TIR, resultado realizado → `ledger.py` (PPC móvil, ADR-0005), `kpis.py` | `places\inversiones\cartera/` |
-| cauciones, cuenta remunerada, dividendos → `rendimientos.py` | `places\inversiones\cartera/` |
-| vencimientos, cupones, TIR esperada y duration → `vencimientos.py`, `renta_fija.py` | `places\inversiones\cartera/` |
-| composición por tipo de renta y sector → `analisis.py` | `places\inversiones\cartera/` |
-| "¿me fue mejor o peor que el mercado?" → `benchmark.py` (money-weighted, con `core/market_data/indices.py`) | `places\inversiones\cartera/` |
-| un ticker que el broker no informa o cantidades a corregir a mano → `ajustes.py` | `places\inversiones\cartera/` |
-| la tasa devengada de un pagaré (cargarla o **quitarla**), o qué precio manda sobre cuál → `view.py` (`_resolver` y el expander de tasas) | `places\inversiones\cartera/` |
-| la pantalla de Cartera, quién puede verla (`CARTERA_USER_IDS`), el orden de los paneles → `view.py` | `places\inversiones\cartera/` |
-| un panel concreto (composición, benchmark, vencimientos, renta fija, caja, ajustes, upload) → `paneles/` | `places\inversiones\cartera/` |
-| exportar la cartera a Excel → `export.py` | `places\inversiones\cartera/` |
-| "Cómo está repartida" (tipo de renta, sector, industria, emisor, país) → `composicion.py` | `places\inversiones\cartera\paneles/` |
-| "Contra el mercado" (benchmark money-weighted vs SPY/Merval) → `mercado.py` | `places\inversiones\cartera\paneles/` |
-| "Qué se te vence" y el alta manual de una fecha → `vencimientos.py` | `places\inversiones\cartera\paneles/` |
-| "Cuándo cobrás" (cronogramas, TIR esperada, duration) → `renta_fija.py` | `places\inversiones\cartera\paneles/` |
-| "Operaciones cerradas" (resultado realizado) → `operaciones.py` | `places\inversiones\cartera\paneles/` |
-| "La plata quieta" (cauciones, dividendos, cuenta remunerada) → `caja.py` | `places\inversiones\cartera\paneles/` |
-| ajustes de tenencia: splits, ratios de CEDEAR, papeles pre-registro → `ajustes.py` | `places\inversiones\cartera\paneles/` |
-| la subida del export del broker, el orden del import, el estado vacío → `importar.py` | `places\inversiones\cartera\paneles/` |
-| un precio o el MEP que llega raro a un panel, la foto de posiciones → `_datos.py` | `places\inversiones\cartera\paneles/` |
-| "$ mal formateado" o una KPI card → `_comun.py` | `places\inversiones\cartera\paneles/` |
 | backup remoto diario, restaurar, "¿este backup sirve de verdad?" → `backup_remoto.ps1`, `restaurar_backup.ps1`, `verificar_backup.py`, `estado_backup.ps1`, `programar_backup.ps1` | `scripts/` |
 | resetear la contraseña de un usuario → `setup_password.py` | `scripts/` |
 | ¿Docta cubre los bonos de la cartera? → `verificar_docta.py` | `scripts/` |
 | reindexar el mapa del repo → `indexar.py` (ver `/MAPA.md`) | `scripts/` |
 | "el backup no corre solo", "la sesión de fly venció", token de Fly → `guardar_token_fly.ps1`, `_fly_comun.ps1` (`Use-TokenFly`) | `scripts/` |
 | un archivo "BACKUP SUPERAPP - FALLO.txt" apareció en el Escritorio → lo deja `backup_remoto.ps1` al fallar; `estado_backup.ps1` dice por qué | `scripts/` |
-| el gate de reconciliación contra el Excel → `test_cartera_recon.py` (necesita `CARTERA_XLSX`; sin él se saltea con mensaje claro, por eso "3 skipped" es normal) | `tests/` |
 | tests que escanean el código fuente: `test_nombres_definidos.py` (AST de names), `test_transacciones_formulario.py` (ramas del form), `test_env_example_sin_secretos.py` | `tests/` |
 | los CSV oráculo de Finanzas → `_oraculos.py` (`DIARIO_CSV`/`MENSUAL_CSV`) | `tests/` |
-| convención de nombres: `test_cartera_*` → cartera · `test_market_data_*` → core/market_data · `test_backup_*`/`test_db_*`/`test_workspaces_*` → core · el resto → Finanzas | `tests/` |
+| convención de nombres: `test_backup_*`/`test_db_*`/`test_workspaces_*` → core · el resto → Finanzas | `tests/` |
 | los premortem-tests (`test_premortem3/5.py`): regresiones de los riesgos del premortem | `tests/` |
-| "¿la pantalla abre?" → `test_smoke_pantallas.py` (`AppTest`, base sintética, red cortada) | `tests/` |
+| "¿la pantalla abre?" → `test_smoke_pantallas.py` (`AppTest`, base sintética) | `tests/` |
 | una función anidada que lee algo que todavía no existe → `test_closures_definidos.py` | `tests/` |
 | migraciones que re-corren al reiniciar → `test_db_reparaciones_unicas.py` · el mapa leyendo carpetas ignoradas → `test_indexar.py` · importes ilegibles y el CLI del ingest → `test_importes_ilegibles.py` | `tests/` |
 | login, contraseñas, rate-limit, alta de cuentas → `test_auth.py` | `tests/` |
@@ -109,21 +76,17 @@ Rama `main` — ultimo commit: 2026-09-27 63dd830 docs: login con mayÃºsculas 
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (909 tests al 27/9/2026) en carpeta plana: unidad + regresión + gates de reconciliación contra el Excel-oráculo. Es el gate del repo: nada se cierra sin verde. | 39 | 9,375 | ok |
-| `places\inversiones\cartera/` | Cartera nativa (B.1): parser de exports del broker (2 formatos), ledger cronológico con PPC móvil, posiciones, KPIs por método del patrimonio, renta fija y la vista con upload. | 15 | 5,649 | ok |
+| `tests/` | La suite completa (359 tests al 14/10/2026, tras retirar Inversiones — ADR-0007) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 22 | 3,664 | ok |
 | `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 10 | 1,997 | ok |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | ok |
-| `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M15 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth y theme viven en subcarpetas propias. | 5 | 1,616 | ok |
-| `core\market_data/` | Datos de mercado para valuar la cartera: MEP histórico (argentinadatos), precios ARG (data912) y globales (yahoo), sectores por ticker y cronogramas de renta fija (Docta). | 7 | 1,555 | ok |
-| `places\inversiones\cartera\paneles/` | Los paneles de la pantalla de Cartera, uno por archivo. Salieron de `view.py` en el split del 27/8/2026, que movió código sin cambiarlo. | 11 | 1,516 | ok |
-| `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas, chequeo de cobertura de Docta y el indexador del mapa. | 6 | 1,267 | ok |
+| `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M15 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth y theme viven en subcarpetas propias. | 5 | 1,617 | ok |
+| `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas, chequeo de cobertura de Docta y el indexador del mapa. | 5 | 1,107 | **vencida** |
 | `core\theme/` | Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semántica + template Plotly unificado, ajustes responsive y logo. | 5 | 637 | ok |
 | `core\auth/` | Autenticación compartida: usuarios con bcrypt, pantalla de login/signup y tokens de sesión firmados. (Los contextvars de usuario/workspace viven en `core/context.py`.) | 4 | 422 | ok |
 | `places\finanzas\helpers/` | Utilidades de las vistas: formateo es-AR de montos, inyección de HTML y el tour guiado de bienvenida. | 4 | 278 | ok |
-| `./` | Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías). | 4 | 221 | ok |
+| `./` | Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías). | 4 | 215 | ok |
 | `.github\workflows/` | CI: `tests.yml` corre la suite pytest en cada push (el gate de recon se saltea sin el Excel, así CI no depende de datos personales). | 1 | 82 | ok |
 | `places\finanzas/` | Lugar A — Finanzas Personales (ex Mis-Finanzas-App / Radar Financiero): home con onboarding y las 5 pestañas. La lógica vive en `core/` local, las pantallas en `views/`. | 2 | 71 | ok |
-| `places\inversiones/` | Lugar B — Inversiones: pestaña Cartera (en `cartera/`) y Mercado en vivo (placeholder de Fase 6). El scoring se retiró el 5/8/2026. | 2 | 37 | ok |
 | `places/` | _sin describir_ | 1 | 2 | — |
 
 ## Puntos de entrada
@@ -134,7 +97,6 @@ Rama `main` — ultimo commit: 2026-09-27 63dd830 docs: login con mayÃºsculas 
 - `scripts\indexar.py`
 - `scripts\setup_password.py`
 - `scripts\verificar_backup.py`
-- `scripts\verificar_docta.py`
 
 ## Archivos centrales
 
@@ -142,33 +104,33 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 | Archivo | LOC | Lo usan | Simbolos |
 |---|---:|---:|---|
-| `core\db.py` | 1144 | 49 | `_migrate`, `es_tabla_faltante`, `get_db_path`, `connect` |
-| `core\__init__.py` | 5 | 17 | — |
+| `core\db.py` | 1145 | 27 | `_migrate`, `es_tabla_faltante`, `get_db_path`, `connect` |
 | `core\workspaces.py` | 261 | 14 | `_hash_code`, `_uid`, `get_personal_workspace_id`, `ensure_personal_workspace` |
 | `core\context.py` | 105 | 12 | `set_current_user_id`, `get_current_user_id`, `require_current_user_id`, `set_current_workspace_id` |
-| `places\inversiones\cartera\posiciones.py` | 475 | 11 | `Posicion`, `_acumular`, `posiciones`, `posiciones_desde_db` |
 | `places\finanzas\core\metrics.py` | 359 | 11 | `_uid`, `anios_con_datos`, `filtrar_anio`, `load_transactions` |
-| `places\inversiones\cartera\parser.py` | 650 | 10 | `Instrumento`, `Movimiento`, `_sin_tildes`, `_norm` |
-| `places\inversiones\cartera\paneles\_comun.py` | 45 | 9 | `_fmt`, `_kpi_card` |
-| `places\inversiones\cartera\__init__.py` | 2 | 9 | — |
-| `core\market_data\__init__.py` | 47 | 8 | — |
-| `places\inversiones\cartera\ingest.py` | 418 | 6 | `_filas_config`, `instrumentos_desde_config`, `cargar_instrumentos_en_db`, `_fecha` |
+| `core\__init__.py` | 5 | 11 | — |
 | `places\finanzas\helpers\_tour.py` | 198 | 6 | `_user_id`, `is_tour_active`, `start_tour`, `finish_tour` |
+| `places\finanzas\core\parsers.py` | 247 | 5 | `parse_currency`, `parse_currency_estricto`, `parse_date`, `normalize_motivo` |
+| `places\finanzas\core\categorizer.py` | 136 | 5 | `categoria_de`, `efective_grupo`, `motivos_sin_categorizar` |
+| `places\finanzas\helpers\_format.py` | 57 | 5 | `_is_nan`, `fmt_ars`, `fmt_ars_corto`, `fmt_usd` |
+| `places\finanzas\helpers\_html.py` | 22 | 5 | `render_html` |
+| `places\finanzas\core\ingest.py` | 381 | 4 | `ImportResult`, `_importe`, `_read_csv_rows`, `import_diario` |
+| `places\finanzas\core\transactions.py` | 243 | 4 | `_uid`, `_es_familiar`, `_asegurar_motivo`, `insert_transaction` |
 
 ## Flujo interno
 
-- `tests/` → `core/` (40)
-- `tests/` → `places\inversiones\cartera/` (32)
+- `tests/` → `core/` (25)
 - `places\finanzas\core/` → `core/` (17)
 - `tests/` → `places\finanzas\core/` (14)
 - `places\finanzas\views/` → `places\finanzas\helpers/` (13)
 - `places\finanzas\views/` → `places\finanzas\core/` (12)
-- `places\inversiones\cartera\paneles/` → `places\inversiones\cartera/` (12)
-- `places\inversiones\cartera/` → `places\inversiones\cartera\paneles/` (10)
 - `places\finanzas\views/` → `core/` (8)
-- `places\inversiones\cartera\paneles/` → `core\market_data/` (8)
-- `places\inversiones\cartera\paneles/` → `core/` (7)
-- `places\inversiones\cartera/` → `core/` (6)
+- `./` → `core/` (3)
+- `places\finanzas/` → `core/` (3)
+- `places\finanzas\views/` → `core\theme/` (3)
+- `tests/` → `core\auth/` (3)
+- `./` → `core\theme/` (2)
+- `./` → `core\auth/` (2)
 
 ## Se tocan juntos
 
@@ -183,17 +145,13 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 - `EN-HUMANO.md` + `places/inversiones/cartera/view.py` (17 commits)
 - `BITACORA.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (15 commits)
 - `ESTADO.md` + `places/inversiones/cartera/view.py` (14 commits)
-- `BITACORA.md` + `ROADMAP.md` (9 commits)
+- `.mapa/mapa.json` + `MAPA.md` (9 commits)
 
 ## Fuentes externas
 
-- `api.doctacapital.com.ar` — `core\market_data\cronogramas.py`, `docs\CRONOGRAMAS-RENTA-FIJA.md`, `tests\test_market_data_cronogramas.py`
-- `query1.finance.yahoo.com` — `core\market_data\indices.py`, `core\market_data\precios.py`
-- `app.docta.com.ar` — `docs\CRONOGRAMAS-RENTA-FIJA.md`, `scripts\verificar_docta.py`
-- `api.argentinadatos.com` — `core\market_data\mep.py`
-- `data912.com` — `core\market_data\precios.py`
-- `query2.finance.yahoo.com` — `core\market_data\sectores.py`
+- `api.doctacapital.com.ar` — `docs\CRONOGRAMAS-RENTA-FIJA.md`
 - `docs.docta.com.ar` — `docs\CRONOGRAMAS-RENTA-FIJA.md`
+- `app.docta.com.ar` — `docs\CRONOGRAMAS-RENTA-FIJA.md`
 - `mcp.docta.com.ar` — `docs\CRONOGRAMAS-RENTA-FIJA.md`
 - `x.com` — `docs\PUBLICAR-EN-TIENDAS.md`
 - `superapp-finanzas.fly.dev` — `docs\RUNBOOK.md`
@@ -201,12 +159,12 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 ## Configuracion requerida
 
 - `BACKUP_RETENTION` — `core\db.py`
-- `CARTERA_USER_IDS` — `places\inversiones\cartera\view.py`
-- `CARTERA_XLSX` — `tests\test_cartera_recon.py`
 - `DB_PATH` — `core\db.py`
 - `DIARIO_CSV` — `places\finanzas\core\ingest.py`, `tests\_oraculos.py`
-- `DOCTA_CLIENT_ID` — `core\market_data\cronogramas.py`, `scripts\verificar_docta.py`
-- `DOCTA_CLIENT_SECRET` — `core\market_data\cronogramas.py`, `scripts\verificar_docta.py`
 - `MENSUAL_CSV` — `places\finanzas\core\ingest.py`, `tests\_oraculos.py`
 - `SESSION_SECRET` — `core\auth\session_tokens.py`
 - `SIGNUP_CODE` — `core\auth\login.py`
+
+## Frescura
+
+- Bitacoras vencidas: `scripts/`

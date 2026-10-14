@@ -16,19 +16,19 @@ Inteligencia de diseño UX/UI web moderno (tokens de color, tipografía, spacing
 - **Cuándo:** siempre que se trabaje el tema (`core/theme`), dashboards, formularios, o se toque "cómo se ve/siente" la app.
 - **Fases:** transversal, con foco en Fase 1 (unificar estética "Cosmic Slate"), Fase 3 (dashboard de cartera) y Fase 6 (mercado en vivo).
 
-### `agente-tesis-inversion` — 🟡 ayudante de ideas de inversión (a futuro)
+### `agente-tesis-inversion` — ⛔ sin lugar en la app (scoring e Inversiones retirados)
 Genera tesis de inversión institucional sobre un ticker (múltiplos + DCF, deuda, comparables, 5 escenarios, técnicos).
 - **Idea:** conectar la salida del **scoring** con este agente. Cuando el scoring marque un ticker como "atractivo" o "consagrado", ofrecer un botón/flujo que dispare una tesis profunda sobre ese papel como ayuda a la decisión.
 - **Fases:** después de Fase 2 (scoring embebido). No es parte del MVP.
 - **Nota:** es apoyo al análisis, no recomendación automática de inversión.
 
-### `actualizar-valuaciones-solidum` — 🟡 mantenimiento de datos de renta fija
+### `actualizar-valuaciones-solidum` — ⛔ ya no aplica (Cartera retirada, ADR-0007)
 Actualiza las valuaciones de los Excel de renta fija (soberanos, CER, LECAPs, duales, provinciales, ONs) a una fecha dada (tasas BCRA, cierres IAMC, MEP, flujos de fondos).
 - **Cuándo:** para mantener frescos los Excel que la cartera lee en modo Excel-in-the-loop (Fase 3).
 
 ---
 
-### `gauss314/skills` — 🔴 datos de mercado (resuelve el bloqueante de datos ARG)
+### `gauss314/skills` — ⛔ ya no aplica (`core/market_data/` retirado, ADR-0007)
 Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de mercado. **Su sección Argentina resuelve el riesgo #4 del premortem** (fuente de datos local). Instalación: `npx skills add gauss314/skills --skill <nombre>`.
 - **Argentina (gratis):** `bcra-macro` (MEP/CCL/CER/UVA/tasas, oficial), `data912` (mercado en vivo ~20s: acciones/CEDEARs/bonos/opciones/MEP/CCL), `byma` (panel + bonos + cronograma de amortización), `mae` (renta fija + flujos de fondos para TIR), `cafci` (FCI), `indec` (inflación/macro, oficial).
 - **Globales:** `yahoo-finance` (ya en uso), `sec-data`, `morningstar` (CEDEARs), `tradingview`, `google-finance`, `fred-macro`.
@@ -66,7 +66,9 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 
 ---
 
-## Mejoras de producto — Lugar B (Inversiones / Mercado)
+## Mejoras de producto — Lugar B (Inversiones / Mercado) — ⛔ RETIRADO el 14/10/2026 (ADR-0007)
+
+> **Franco sacó la sección de Inversiones entera: no la usaba.** Todo lo de esta sección (Binance, amortizaciones del AE38, la fila del TTM26, mercado en vivo, alertas de cartera) queda como registro. **No volver a proponerlo** salvo que Franco decida traer Inversiones de vuelta.
 
 ### Cartera (B.1)
 - 🟡 💡 **Traer la tenencia de cripto directo de Binance** (pedido de Franco, 23/7/2026). Hoy la cantidad de BTC se carga a mano en "Activos fuera del broker" y el precio se busca solo (yahoo). Con la API de Binance (read-only, sin permisos de trading — regla del repo: el agente no opera) la cantidad se actualizaría sola. Alternativa evaluada: `ccxt` (ya en `docs/HERRAMIENTAS-EVALUADAS.md`, 🟡 opcional) que unifica exchanges. Ojo: requiere API key del usuario → guardar en `.env`, nunca en el repo.
@@ -101,7 +103,7 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 - 🟡 💡 **Pendientes de la auditoría del 22/9/2026** (no se hicieron por alcance; ver `/BITACORA.md`):
   - ✅ Tests de login y contraseñas — hecho el 27/9 (`tests/test_auth.py`).
   - ✅ Benchmark sin dividendos silencioso (trampa 27) — hecho el 27/9.
-  - Tests del **panel de importar** (18%) y de la **edición de categorías** (35%).
+  - Tests de la **edición de categorías** (35%). (El panel de importar era de la cartera: retirado, ADR-0007.)
   - ⛔ **Login sin distinguir mayúsculas — DESCARTADO por Franco el 27/9/2026** ("no me parece relevante"). El login distingue mayúsculas ("Franco" ≠ "franco"); queda así a propósito. No volver a proponerlo.
   - `ajustes.listar` descarta en silencio un ajuste con fecha corrupta (hoy imposible desde la app, que guarda ISO).
   - ✅ Ramas viejas borradas en `origin` (Franco, 23/9).

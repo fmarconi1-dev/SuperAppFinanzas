@@ -4,7 +4,8 @@ Flow:
   1. init_db + migraciones (idempotente).
   2. Sin sesión → login (único para toda la superapp).
   3. Con sesión → contextvar de usuario + navegación entre "lugares":
-     🏠 Finanzas Personales (places/finanzas) · 📈 Inversiones (places/inversiones).
+     🏠 Finanzas Personales (places/finanzas). Inversiones se retiró el 14/10/2026
+     (ADR-0007).
 """
 
 from __future__ import annotations
@@ -22,7 +23,6 @@ from core.db import connect, init_db
 from core.theme._responsive import apply_responsive_css
 from core.theme._styles import apply_design_system_css
 from places.finanzas import home as finanzas_home
-from places.inversiones import home as inversiones_home
 
 st.set_page_config(
     page_title="Superapp de Finanzas",
@@ -108,12 +108,6 @@ def main() -> None:
             icon=":material/home:",
             url_path="finanzas",
             default=True,
-        ),
-        st.Page(
-            inversiones_home.render,
-            title="Inversiones",
-            icon=":material/monitoring:",
-            url_path="inversiones",
         ),
     ]
     st.navigation(paginas, position="top").run()

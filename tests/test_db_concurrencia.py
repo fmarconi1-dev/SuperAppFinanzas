@@ -166,13 +166,13 @@ def test_el_backup_no_va_dentro_de_una_conexion_abierta():
     """Copiar la base entera teniéndola ya tomada alarga la ventana de
     colisión. `backup_db()` va **antes** del `with connect()`, no adentro.
 
-    Se revisa la vista de cartera, que es donde estaba el patrón, **y sus
-    paneles**: desde el split del 27/8/2026 los `backup_db()` viven en
-    `cartera/paneles/`, y hasta el 22/9/2026 este test miraba solo `view.py`
-    — pasaba siempre sin revisar nada (trampa 32).
+    El patrón nació en la vista de Cartera (retirada el 14/10/2026,
+    ADR-0007). Ahora se revisa **todo `places/`**: mirar una lista fija de
+    archivos fue la trampa 32 — hasta el 22/9/2026 el test miraba solo
+    `view.py` y pasaba sin revisar nada.
     """
-    cartera = RAIZ / "places" / "inversiones" / "cartera"
-    fuentes = [cartera / "view.py", *sorted((cartera / "paneles").glob("*.py"))]
+    fuentes = sorted(p for p in (RAIZ / "places").rglob("*.py")
+                     if "__pycache__" not in p.parts)
 
     culpables = []
     llamadas_vistas = 0
