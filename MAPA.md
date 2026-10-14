@@ -8,7 +8,7 @@
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `retiro-inversiones` — ultimo commit: 2026-09-29 886b67c docs: requisitos para publicar en tiendas + ideas de Kesef (dictado mÃºltiple, recurrentes, Mercado Pago) · **hay cambios sin commitear**
+Rama `retiro-inversiones` — ultimo commit: 2026-10-14 e1adc13 Retiro del lugar Inversiones (ADR-0007) · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -57,7 +57,6 @@ Rama `retiro-inversiones` — ultimo commit: 2026-09-29 886b67c docs: requisitos
 | pantalla de bienvenida → `onboarding.py` | `places\finanzas\views/` |
 | backup remoto diario, restaurar, "¿este backup sirve de verdad?" → `backup_remoto.ps1`, `restaurar_backup.ps1`, `verificar_backup.py`, `estado_backup.ps1`, `programar_backup.ps1` | `scripts/` |
 | resetear la contraseña de un usuario → `setup_password.py` | `scripts/` |
-| ¿Docta cubre los bonos de la cartera? → `verificar_docta.py` | `scripts/` |
 | reindexar el mapa del repo → `indexar.py` (ver `/MAPA.md`) | `scripts/` |
 | "el backup no corre solo", "la sesión de fly venció", token de Fly → `guardar_token_fly.ps1`, `_fly_comun.ps1` (`Use-TokenFly`) | `scripts/` |
 | un archivo "BACKUP SUPERAPP - FALLO.txt" apareció en el Escritorio → lo deja `backup_remoto.ps1` al fallar; `estado_backup.ps1` dice por qué | `scripts/` |
@@ -80,7 +79,7 @@ Rama `retiro-inversiones` — ultimo commit: 2026-09-29 886b67c docs: requisitos
 | `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 10 | 1,997 | ok |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | ok |
 | `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M15 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth y theme viven en subcarpetas propias. | 5 | 1,617 | ok |
-| `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas, chequeo de cobertura de Docta y el indexador del mapa. | 5 | 1,107 | **vencida** |
+| `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa. | 5 | 1,107 | ok |
 | `core\theme/` | Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semántica + template Plotly unificado, ajustes responsive y logo. | 5 | 637 | ok |
 | `core\auth/` | Autenticación compartida: usuarios con bcrypt, pantalla de login/signup y tokens de sesión firmados. (Los contextvars de usuario/workspace viven en `core/context.py`.) | 4 | 422 | ok |
 | `places\finanzas\helpers/` | Utilidades de las vistas: formateo es-AR de montos, inyección de HTML y el tour guiado de bienvenida. | 4 | 278 | ok |
@@ -129,8 +128,8 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 - `places\finanzas/` → `core/` (3)
 - `places\finanzas\views/` → `core\theme/` (3)
 - `tests/` → `core\auth/` (3)
-- `./` → `core\theme/` (2)
 - `./` → `core\auth/` (2)
+- `./` → `core\theme/` (2)
 
 ## Se tocan juntos
 
@@ -164,7 +163,3 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 - `MENSUAL_CSV` — `places\finanzas\core\ingest.py`, `tests\_oraculos.py`
 - `SESSION_SECRET` — `core\auth\session_tokens.py`
 - `SIGNUP_CODE` — `core\auth\login.py`
-
-## Frescura
-
-- Bitacoras vencidas: `scripts/`

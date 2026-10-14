@@ -1,14 +1,13 @@
 # scripts/
 
-<!-- huella: 8aae5206463b -->
+<!-- huella: ab49c797be74 -->
 
-Resumen: Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas, chequeo de cobertura de Docta y el indexador del mapa.
+Resumen: Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa.
 
 ## Buscar acá si
 
 - backup remoto diario, restaurar, "¿este backup sirve de verdad?" → `backup_remoto.ps1`, `restaurar_backup.ps1`, `verificar_backup.py`, `estado_backup.ps1`, `programar_backup.ps1`
 - resetear la contraseña de un usuario → `setup_password.py`
-- ¿Docta cubre los bonos de la cartera? → `verificar_docta.py`
 - reindexar el mapa del repo → `indexar.py` (ver `/MAPA.md`)
 - "el backup no corre solo", "la sesión de fly venció", token de Fly → `guardar_token_fly.ps1`, `_fly_comun.ps1` (`Use-TokenFly`)
 - un archivo "BACKUP SUPERAPP - FALLO.txt" apareció en el Escritorio → lo deja `backup_remoto.ps1` al fallar; `estado_backup.ps1` dice por qué
@@ -27,6 +26,7 @@ Resumen: Operación y mantenimiento: backups remotos (PowerShell + verificación
 ## Estado
 
 - **Funciona:** backup remoto programado y verificado.
+- **14/10/2026:** `verificar_docta.py` se retiró junto con Inversiones (ADR-0007). `verificar_backup.py` sigue contando `cartera_movimientos`: la tabla quedó en la base.
 
 ## Proximo paso
 
