@@ -1,8 +1,8 @@
-# Prompt de inicio — Fase B (briefing, agenda y cierre de mercado)
+# Prompt de inicio — Fase B (briefing, cierre de mercado y agenda)
 
 Copiá el bloque de abajo en una sesión nueva, con acceso a la carpeta `SuperAppFinanzas/`.
 
-Estado al escribirlo (15/10/2026): **Fase A cerrada en producción** (el Secretario carga gastos, responde `resumen` y `deshacer` por WhatsApp, sin costo). Plan de la Fase B escrito y con sus 4 decisiones confirmadas. Suite: 471 passed, 0 skipped.
+Estado al escribirlo (15/10/2026): **Fase A cerrada en producción** (el Secretario carga gastos, responde `resumen` y `deshacer` por WhatsApp, sin costo). Plan de la Fase B escrito: los dos briefings los genera Gemini por mail y la SuperApp solo los reenvía. Suite: 471 passed, 0 skipped.
 
 ---
 
@@ -20,23 +20,21 @@ Estado al escribirlo (15/10/2026): **Fase A cerrada en producción** (el Secreta
 >
 > ## Qué hay que hacer (Fase B)
 >
-> - **Briefing matutino:** lo genera **Gemini, en su propio Apps Script de mi cuenta de Google, y se queda ahí**: no lo toques. Llega como mail con asunto `[Briefing-WhatsApp]`. Nuestro Apps Script lo levanta, acorta los links y lo manda a `POST /api/briefing`, que le suma mis finanzas del mes y me lo manda por WhatsApp.
-> - **Cierre de mercado a las 18:30, lunes a viernes:** EE.UU. (S&P 500, Nasdaq, Dow; Treasuries 13 semanas, 5, 10 y 30 años) y Argentina (Merval; hard dollar AL30, GD30, GD35, GD38, GD41, AE38 en especie D; riesgo país; curva en pesos LECAP/BONCAP con TEM; CER solo variación). Datos de cierre, variación del día y **un párrafo corto por bloque, armado por reglas fijas (sin IA)**. Fuentes gratis ya probadas: Yahoo, data912 y argentinadatos.
+> - **Lo que ya funciona no se toca.** La Fase A queda como está.
+> - **Los dos briefings los genera Gemini, en su propio Apps Script de mi cuenta de Google, y los manda por mail.** No toques ese script ni generes contenido de mercado desde la SuperApp:
+>   - **Mañana:** mail `[Briefing-WhatsApp]` (como hoy).
+>   - **Cierre de mercado, 18:30 de lunes a viernes:** mail `[Cierre-WhatsApp]`. El pedido para Gemini ya está escrito en `docs/PEDIDO-GEMINI-CIERRE.md`; lo pego yo en su script.
+> - **Nuestra parte:** nuestro Apps Script levanta los dos mails, acorta los links y los manda a `POST /api/briefing` con `tipo` (`briefing` o `cierre`). Al briefing la SuperApp le suma mis finanzas del mes; al cierre, nada. Los dos salen por WhatsApp.
 > - **Comandos** `evento:`, `tarea:` y `agenda`, vía el Apps Script.
 > - Todo lo que el bot manda por su cuenta pasa por una **cola de salida**: sale si la ventana de 24 h de Meta está abierta y, si no, espera a mi próximo mensaje. **Nunca plantillas.**
 >
-> ## Decisiones ya tomadas (no las reabras)
->
-> Párrafos por reglas · TEM con una **tabla chica en el repo** (ticker, vencimiento, pago final) · CER solo variación de precio · cierre a las **18:30** (desde el 1/11 Wall Street cierra a las 18:00 hora argentina).
->
 > ## Antes de codear, preguntame
 >
-> 1. El asunto exacto del mail de Gemini, y si llega a la misma cuenta de Google donde vamos a instalar nuestro Apps Script.
-> 2. Qué letras van en la curva en pesos (6–8 de referencia) y sus pagos finales, o de dónde los saco.
+> 1. El asunto exacto del mail del briefing que ya manda Gemini, y si los mails llegan a la misma cuenta de Google donde vamos a instalar nuestro Apps Script.
 >
 > ## Orden de trabajo
 >
-> Seguí el "Orden de trabajo" del plan: **(1) M18 + cola de salida** → (2) cierre de mercado → (3) briefing → (4) instalar el Apps Script y los comandos → (5) deploy y pruebas reales. Un paso a la vez, con la suite en verde antes de pasar al siguiente.
+> Seguí el "Orden de trabajo" del plan: **(1) M18 + cola de salida** → (2) `/api/briefing` con `tipo` → (3) Apps Script (reenvío de los dos asuntos, instalación y comandos) → (4) yo pego el pedido en el script de Gemini y creo su disparador de las 18:30 → (5) deploy y pruebas reales. Un paso a la vez, con la suite en verde antes de pasar al siguiente.
 >
 > ## Reglas que no se rompen
 >

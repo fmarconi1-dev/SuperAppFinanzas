@@ -67,7 +67,7 @@ La app pasa a ser el secretario personal de Franco: gastos por WhatsApp, agenda 
   - ✅ Prueba de costo cero contra Meta (15/10): texto libre **entregado** sin tarjeta. Lección: el número va en el panel con el 9.
   - ✅ Código + tests (15/10): `core/api/`, `comandos.py`, M17, nginx, entrypoint.
   - ✅ Deploy + secretos + webhook + prueba real desde el celular (15/10): `resumen`, carga y `deshacer` respondidos.
-- ⬜ **Fase B — Briefing + agenda + cierre de mercado.** Briefing con el resumen de gastos; **cierre de mercado a las 18:30** (EE.UU. acciones y Treasuries, Argentina Merval, hard dollar, riesgo país y curva en pesos; datos de cierre + un párrafo corto por bloque, armado por reglas); `evento:` / `tarea:` / `agenda` vía Apps Script (`integraciones/google-apps-script/`, ya escrito). Todo lo que el bot inicia pasa por una cola: sale si la ventana de 24 h está abierta, si no espera a tu próximo mensaje. Plan: `docs/PLAN-FASE-B.md`.
+- ⬜ **Fase B — Briefing + cierre de mercado + agenda.** Los dos briefings los genera **Gemini por mail**: el de la mañana (como hoy) y el **cierre de mercado de las 18:30** (EE.UU. acciones y Treasuries; Argentina Merval, hard dollar, riesgo país y curva en pesos; pedido en `docs/PEDIDO-GEMINI-CIERRE.md`). La SuperApp los recibe vía Apps Script, le suma las finanzas del mes al de la mañana y los manda por una cola que respeta la ventana de 24 h. Más `evento:` / `tarea:` / `agenda`. Plan: `docs/PLAN-FASE-B.md`.
 - ⬜ **Fase C — Dashboard "secretario" + rebranding.** Finanzas + eventos de la semana + tareas pendientes (`resumen_semana` del Apps Script), con la skill `ui-ux-web-moderno`.
 - ⬜ **Fase D — Conciliación por lotes.** `GET /api/transacciones` + `POST /api/conciliar`: todo o nada, `dry_run`, backup antes.
 
