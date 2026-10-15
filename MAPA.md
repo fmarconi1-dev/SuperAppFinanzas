@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-15 21:00 UTC · 79 archivos · 14,096 LOC -->
+<!-- 2026-10-15 21:05 UTC · 79 archivos · 14,096 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-15 b1960ba WhatsApp: mandar sin el 9 a celulares argentinos (131030 en producciÃ³n) · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-15 6ca7257 docs: Fase A cerrada en producciÃ³n (ADR-0008) · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -154,7 +154,7 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `EN-HUMANO.md` + `ESTADO.md` (33 commits)
+- `EN-HUMANO.md` + `ESTADO.md` (34 commits)
 - `BITACORA.md` + `ESTADO.md` (26 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)
 - `BITACORA.md` + `EN-HUMANO.md` (24 commits)
@@ -163,7 +163,7 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 - `EN-HUMANO.md` + `places/inversiones/cartera/view.py` (17 commits)
 - `BITACORA.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (15 commits)
 - `ESTADO.md` + `places/inversiones/cartera/view.py` (14 commits)
-- `.mapa/mapa.json` + `MAPA.md` (12 commits)
+- `.mapa/mapa.json` + `MAPA.md` (13 commits)
 
 ## Fuentes externas
 
