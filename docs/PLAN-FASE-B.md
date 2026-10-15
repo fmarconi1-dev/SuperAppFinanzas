@@ -75,7 +75,9 @@ La curva de tasa fija subió en el tramo corto.
 
 Todo esto es **lectura de unos pocos precios por día**: no viola la regla de "nada de cómputo pesado en el servidor web".
 
-## Decisiones (con recomendación)
+## Decisiones — ✅ confirmadas por Franco el 15/10/2026
+
+> **Elegido:** párrafos por **reglas fijas** (1), TEM con **tabla chica en el repo** (2a), CER **solo variación de precio** (3) y cierre a las **18:30** de lunes a viernes (4). Lo de abajo queda como registro de las alternativas.
 
 1. **Párrafos: reglas fijas (recomendado) o IA.** Reglas: gratis, sin inventos. IA: más natural, pero con costo y con riesgo de cifras mal dichas.
 2. **TEM de la curva en pesos.** Para calcular la tasa de una LECAP/BONCAP hace falta cuánto paga al vencer.
