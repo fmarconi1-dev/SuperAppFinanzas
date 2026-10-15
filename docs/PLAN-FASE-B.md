@@ -31,6 +31,19 @@ El briefing y el cierre los manda el bot por su cuenta, y Meta solo deja mandar 
 
 Con el uso normal (cargar gastos durante el día), la ventana casi siempre está abierta a las 18:30.
 
+## Mudanza desde CallMeBot
+
+**Hoy los dos briefings ya llegan a WhatsApp, por CallMeBot** (Franco, 15/10/2026). Los dos mails llegan a `fmarconi1@gmail.com`, la misma cuenta donde se instala nuestro Apps Script. La Fase B **los muda al Secretario**, y CallMeBot se apaga en el mismo paso: si quedan los dos, cada briefing llega dos veces.
+
+Dos formas de hacerlo; se elige mirando el script actual:
+
+- **(a) Recomendado: cambiar la llamada a CallMeBot por la de la SuperApp**, en el mismo lugar del script donde hoy se manda. Donde dice "mandar por CallMeBot", pasa a decir `POST /api/briefing` con el texto y el `tipo`. Es un solo cambio, el mensaje sale en el momento (sin esperar la búsqueda de mails cada 10 min) y no depende de etiquetas de Gmail. El mail se sigue mandando igual, como respaldo.
+- **(b) Dejar el script como está, salvo CallMeBot**: se borra o comenta la llamada a CallMeBot, y nuestro Apps Script levanta los mails de Gmail y los reenvía (el diseño de este plan). Llega unos 10 minutos más tarde.
+
+**Antes de elegir, revisar el script que hoy usa CallMeBot:** dónde llama a CallMeBot, si ya **acorta links** (para no hacerlo dos veces), si **parte el texto** en pedazos de 650 caracteres (CallMeBot lo necesita; el Secretario parte en 4.096 solo, así que hay que mandarle el texto entero), si **cambia `$` por `ARS`** (con CallMeBot hacía falta; con el Secretario no), y si **etiqueta los mails** (si usa `WA-Enviado`, nuestro reenvío los saltearía en la opción b).
+
+**Corte:** se prueba primero el Secretario con un mensaje real de cada tipo y recién ahí se apaga CallMeBot. No se borran sus credenciales hasta que pasen unos días sin problemas.
+
 ## Decisiones (15/10/2026)
 
 - ✅ **Lo genera Gemini, por mail, igual que el briefing.** Reemplaza el diseño anterior, en el que la SuperApp traía los datos (Yahoo, data912, argentinadatos) y armaba los párrafos por reglas. Ese diseño ya no se hace. Los criterios que Franco había confirmado pasan como **instrucciones del pedido a Gemini**: poco análisis, un párrafo corto por bloque que solo describe los números mostrados, CER solo variación de precio, y **ninguna cifra sin fuente**.
@@ -78,10 +91,10 @@ Las fechas y horas se validan con el mismo rigor que en la Fase A: una fecha imp
 1. **M18 + cola de salida + entrega de pendientes** (sin esto, nada de lo que el bot inicia es gratis seguro).
 2. **`/api/briefing` con `tipo`** (briefing con finanzas; cierre tal cual).
 3. **Apps Script:** reenvío de los dos asuntos, instalación (`integraciones/google-apps-script/README.md`) y comandos `evento:` / `tarea:` / `agenda`.
-4. **Franco, en el Apps Script de Gemini:** nada obligatorio, porque ya manda los dos mails. Confirmar que el cierre sale a las **18:30** (desde el 1/11 Wall Street cierra a las 18:00 hora argentina) y, si quiere, ajustarlo con la guía de `docs/PEDIDO-GEMINI-CIERRE.md`.
+4. **Mudanza desde CallMeBot** (ver arriba): revisar el script actual, elegir (a) o (b), hacer el cambio y **apagar CallMeBot en el mismo paso**. Confirmar que el cierre sale a las **18:30** (desde el 1/11 Wall Street cierra a las 18:00 hora argentina).
 5. Deploy y pruebas reales: un cierre a las 18:30, un briefing a la mañana, un evento y una tarea desde el celular.
 
-**Asuntos confirmados (15/10/2026):** `[Briefing-WhatsApp] Briefing Matutino y Agenda - DD/MM/AAAA` y `[Briefing-WhatsApp] Cierre de Mercado - DD/MM/AAAA`. **Antes de codear, confirmar con Franco:** que esos mails llegan a la misma cuenta de Google donde se instala nuestro Apps Script, y a qué hora sale hoy el de cierre.
+**Asuntos confirmados (15/10/2026):** `[Briefing-WhatsApp] Briefing Matutino y Agenda - DD/MM/AAAA` y `[Briefing-WhatsApp] Cierre de Mercado - DD/MM/AAAA`, los dos a `fmarconi1@gmail.com` (la misma cuenta del Apps Script). **Antes de codear, pedirle a Franco el script que hoy manda por CallMeBot** (al menos la función que arma y envía el mensaje) y a qué hora sale el cierre.
 
 ## Tests (gate: suite completa en verde, 0 skipped)
 
