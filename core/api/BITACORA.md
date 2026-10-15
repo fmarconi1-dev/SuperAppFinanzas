@@ -28,4 +28,4 @@ Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webh
 
 ## Proximo paso
 
-Desplegar el arreglo del formato de envío y hacer la prueba real (`ayuda` → `100, compras` → `deshacer`). Con eso cierra la Fase A.
+Fase A cerrada (15/10/2026). Formato real del `from` entrante: **`549…`** (con el 9), visto en los logs del primer mensaje. Lo próximo de esta carpeta llega con la Fase B: `POST /api/briefing` y el puente con el Apps Script.

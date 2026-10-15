@@ -5,7 +5,8 @@
 > Este archivo es una **foto, no una crónica**: la narrativa de cada sesión va a la `bitacora_de_trabajo.md` del módulo y a `/BITACORA.md`; lo que ya cerró se muda a `docs/archivo/ESTADO-historial.md`. Para ubicar código sin releer el repo: **`/MAPA.md`**.
 > **Verificá antes de confiar:** `git log --oneline -15` + `git status`. Si lo que ves no coincide con esto, gana lo que ves — y corregí este archivo.
 
-<!-- ultima_actualizacion: 2026-10-14 · autor: Claude (Opus 5.5) · handoff: Franco pidió retirar Inversiones entera (ADR-0007). Código, tests y página fuera; tablas cartera_* intactas en la base. Suite 359 passed, 0 skipped. SIN commitear ni desplegar. -->
+<!-- ultima_actualizacion: 2026-10-15 · autor: Claude (Opus 5.5) · handoff: Fase A (gastos por WhatsApp, ADR-0008) CERRADA en producción: carga, resumen y deshacer probados desde el celular de Franco. Costo cero. Siguiente: Fase B (briefing + Calendar/Tasks). -->
+<!-- anterior: 2026-10-14 · autor: Claude (Opus 5.5) · handoff: Franco pidió retirar Inversiones entera (ADR-0007). Código, tests y página fuera; tablas cartera_* intactas en la base. Suite 359 passed, 0 skipped. -->
 <!-- anterior: 2026-09-27 · autor: Claude (Opus 5.5), autónomo · handoff: el backup externo llevaba un mes sin correr (la tarea no existía y dependía de la sesión de fly, que vence). Copia sacada y scripts arreglados (token de la app, sin cuelgues, aviso en el Escritorio); falta que Franco guarde el token y registre la tarea. Además: aviso de form_motivo silenciado, tests de login, trampa 27 cerrada. Suite 909 passed, 0 skipped. Franco guardó el token, registró la tarea, pusheó y desplegó (v27) el mismo 27/9; verificado. -->
 
 ## 🧭 Dónde estamos
@@ -27,7 +28,8 @@
 | Backup que corra solo (token de la app, sin cuelgues, aviso en el Escritorio) + aviso `form_motivo` + tests de login + trampa 27 | ✅ HECHA, pusheada y desplegada (v27); token y tarea hechos por Franco | Claude (Opus 5.5) | 2026-09-27 |
 | Retirar el lugar Inversiones entero (ADR-0007) | ✅ HECHA, en `main` (`e1adc13`, `7a0c139`); **sin desplegar** | Claude (Opus 5.5) | 2026-10-14 |
 | **Enfoque "secretario" (ADR-0008)**: canal decidido (Meta Cloud API, costo cero: `docs/WHATSAPP-CANAL.md`), Apps Script reescrito (`integraciones/google-apps-script/`, **sin instalar ni probar**), plan de la Fase A (`docs/PLAN-FASE-A.md`) | ✅ preparación hecha, **sin commitear** | Claude (Opus 5.5) | 2026-10-14 |
-| **Fase A — gastos por WhatsApp** (`docs/PLAN-FASE-A.md`). Prueba previa ✅ 15/10: texto libre **entregado** sin tarjeta (con el número cargado con el 9) | 🟡 código hecho y en verde, **sin commitear ni desplegar**; falta deploy + Partes 2–3 + prueba real | Claude (Opus 5.5) | 2026-10-15 |
+| **Fase A — gastos por WhatsApp** (`docs/PLAN-FASE-A.md`) | ✅ **CERRADA en producción (15/10/2026)**: `resumen`, carga y `deshacer` probados desde el celular de Franco; costo cero | Claude (Opus 5.5) | 2026-10-15 |
+| **Fase B — briefing + Calendar/Tasks** (ADR-0008) | ⬜ siguiente, cuando Franco lo pida | — | — |
 | **Fase 5 · Paso 0 — Cuentas y perímetro (M16)** | ⏸️ en pausa por ADR-0008 | — | — |
 
 ## ✅ Hecho hasta ahora (resumen; detalle en ROADMAP.md y en el archivo)
@@ -43,12 +45,12 @@
 
 -2. ✅ **Backup externo: vuelve a andar (15/10/2026, 13:55, 456 transacciones, `auth=token`).** Estuvo caído del 13/10 al 15/10 porque `fly.exe` quedó en 0 bytes tras una actualización a medias; Franco reinstaló flyctl. El token estaba bien: el aviso del Escritorio culpaba al token por error (`_fly_comun.ps1` no distingue "flyctl no ejecuta"; arreglo propuesto como tarea aparte).
 
--1. **Fase A (ADR-0008) — cerrar en producción.** El código está hecho (suite en verde). Falta, en orden:
+-1. ✅ **Fase A (ADR-0008) — CERRADA el 15/10/2026.** El Secretario carga gastos, responde `resumen` y `deshace`, desde WhatsApp y sin costo. Cómo quedó armado (y las trampas: el 9 de los números argentinos, la suscripción de la app a la cuenta de WhatsApp Business): `core/api/BITACORA.md` y `docs/WHATSAPP-CANAL.md`.
    1. ✅ **Costo cero confirmado (15/10):** el texto libre llegó al teléfono sin tarjeta. El primer intento no llegaba porque el número estaba en el panel sin el 9; cargado con el 9, llegó.
    2. ✅ **Desplegado el 15/10/2026** desde `main`, con backup previo. Verificado desde afuera: `/_stcore/health` ok, `/api/health` ok, `/api/privacidad` publicada, `/api/whatsapp` → 503 `sin_configurar` (esperado hasta cargar los secretos). Inversiones ya no está en producción.
    3. ✅ **15/10:** token permanente, secretos en Fly, webhook verificado, `messages` suscripto y **app suscripta a la cuenta de WhatsApp Business** (faltaba: solo estaba la app de prueba de Meta). El primer mensaje real **llegó** a la app (20:50, `from` = `549…`); la respuesta rebotó con 131030 porque se mandaba con el 9 → **corregido en código, falta desplegar**.
-   4. **Prueba real:** `2500, prueba` → ✅ → `deshacer` → borrado. Anotar en `core/api/BITACORA.md` el formato del `from` que muestra el log. Con eso la fase se cierra.
-   Después vienen B (briefing + Calendar/Tasks), C (dashboard + rebranding) y D (conciliación).
+   4. ✅ **Prueba real (15/10, 20:58–20:59):** `resumen` (los números de octubre de la base de producción), carga y `deshacer`, todos respondidos.
+   **Siguiente: Fase B** (briefing matutino con el resumen de gastos + `evento:` / `tarea:` vía Apps Script, ya escrito en `integraciones/google-apps-script/`). Después C (dashboard + rebranding) y D (conciliación).
 0. **Franco:** el retiro de Inversiones ya está commiteado en `retiro-inversiones`; falta mergearlo y desplegarlo (sale junto con la Fase A, ver -1) (al desplegar, `/inversiones` deja de existir en producción). Decidir aparte si las tablas `cartera_*` se borran de la base (irreversible; hoy quedan quietas).
 1. **Franco, el 28/9 o después:** `powershell -ExecutionPolicy Bypass -File scripts\estado_backup.ps1` → tiene que dar todo en verde (la tarea todavía no corrió nunca al 27/9). Si aparece "BACKUP SUPERAPP - FALLO.txt" en el Escritorio, dice qué pasó.
 2. **Franco:** vaciar la Papelera cuando quieras (los dos `.tar.gz` del 18/8).

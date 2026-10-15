@@ -63,10 +63,10 @@ Ejecutar el backlog de `MEJORAS.md` sobre Finanzas Personales. El backlog hereda
 
 La app pasa a ser el secretario personal de Franco: gastos por WhatsApp, agenda y tareas de Google, briefing matutino y un dashboard que junta todo. **Canal: Meta WhatsApp Cloud API con costo cero** (sin medio de pago, sin plantillas; ver `docs/WHATSAPP-CANAL.md`). Plan B: Telegram.
 
-- 🔵 **Fase A — Gastos por WhatsApp.** API stdlib + nginx en el mismo contenedor, webhook firmado, dedupe, `resumen`/`deshacer`/`ayuda`, categorías con "¿quisiste decir?". Plan completo: `docs/PLAN-FASE-A.md`.
+- ✅ **Fase A — Gastos por WhatsApp (cerrada en producción el 15/10/2026).** API stdlib + nginx en el mismo contenedor, webhook firmado, dedupe, `resumen`/`deshacer`/`ayuda`, categorías con "¿quisiste decir?". Plan completo: `docs/PLAN-FASE-A.md`.
   - ✅ Prueba de costo cero contra Meta (15/10): texto libre **entregado** sin tarjeta. Lección: el número va en el panel con el 9.
   - ✅ Código + tests (15/10): `core/api/`, `comandos.py`, M17, nginx, entrypoint.
-  - ⬜ Deploy + secretos + webhook + prueba real con `2500, prueba` → `deshacer`.
+  - ✅ Deploy + secretos + webhook + prueba real desde el celular (15/10): `resumen`, carga y `deshacer` respondidos.
 - ⬜ **Fase B — Briefing + agenda.** Briefing con el resumen de gastos (sale si la ventana de 24 h está abierta; si no, se entrega con el próximo mensaje de Franco) + `evento:` / `tarea:` vía Apps Script (`integraciones/google-apps-script/`, ya escrito).
 - ⬜ **Fase C — Dashboard "secretario" + rebranding.** Finanzas + eventos de la semana + tareas pendientes (`resumen_semana` del Apps Script), con la skill `ui-ux-web-moderno`.
 - ⬜ **Fase D — Conciliación por lotes.** `GET /api/transacciones` + `POST /api/conciliar`: todo o nada, `dry_run`, backup antes.

@@ -9,6 +9,18 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 15 de octubre de 2026 (noche) — El Secretario ya funciona en tu celular
+
+**Qué se hizo.** Publicamos la app nueva y conectamos WhatsApp. Le escribiste *resumen* y te contestó con los gastos e ingresos de octubre, sacados de tu base real. Le cargaste un gasto, te lo confirmó, y con *deshacer* lo borró. Todo sin pagar nada.
+
+**Lo que costó.** Tres trabas, ya resueltas y anotadas para que no vuelvan: el programa de Fly en tu PC se había roto (y de paso tenía frenado tu backup diario desde el 13); faltaba "enchufar" la app a tu cuenta de WhatsApp Business (Meta tenía enchufada una app de prueba suya); y los números argentinos usan el 9 de una forma rara: va en la lista de Meta, pero no al mandarte la respuesta.
+
+**Para qué te sirve.** Cargar un gasto en el momento, desde WhatsApp, y consultar cómo vas en el mes sin abrir la app.
+
+**Qué sigue.** La etapa B: que el resumen de la mañana te llegue por WhatsApp con tus gastos del mes, y poder agendar eventos y tareas escribiendo *evento:* o *tarea:*.
+
+---
+
 ## 15 de octubre de 2026 — Ya existe el "Secretario" que carga gastos por WhatsApp
 
 **Qué se hizo.** Primero probamos con Meta de verdad el plan gratis, y **funciona**: sin cargar ninguna tarjeta, el mensaje de prueba te llegó al WhatsApp. Costó un poco: la primera vez Meta dijo "listo" pero el mensaje nunca llegó, porque tu número estaba anotado sin el 9. En Argentina, los celulares llevan el 9 en WhatsApp; con el 9, llegó. El programa ahora responde siempre a la dirección exacta que manda Meta, así que ese error no se puede repetir sin que avise.
