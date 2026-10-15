@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-15 16:42 UTC · 79 archivos · 14,058 LOC -->
+<!-- 2026-10-15 16:51 UTC · 79 archivos · 14,058 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `retiro-inversiones` — ultimo commit: 2026-10-14 7a0c139 docs: bitÃ¡cora de scripts sin verificar_docta (ADR-0007) · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-15 bb53c39 Fase A: gastos por WhatsApp + preparaciÃ³n del secretario (ADR-0008) · **hay cambios sin commitear**
 
 ## Donde buscar que
 
