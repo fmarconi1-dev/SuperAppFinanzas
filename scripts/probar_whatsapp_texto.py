@@ -45,10 +45,9 @@ DIAGNOSTICOS = {
              "Pasaron más de 24 h desde tu último mensaje al bot (o nunca le escribiste). "
              "Mandale 'hola' desde tu WhatsApp y corré el script de nuevo."),
     131030: ("NÚMERO NO AUTORIZADO",
-             "Tu número no está en la lista de destinatarios con ese formato. Un celular "
-             "argentino tiene que estar CON el 9 (+54 9 11 …): en el panel, campo 'Para', "
-             "borralo y volvé a agregarlo con el 9. NO pruebes mandar sin el 9: Meta lo "
-             "acepta y no lo entrega (pasó el 15/10)."),
+             "Tu número no está en la lista de destinatarios. Un celular argentino va en "
+             "la lista del panel CON el 9 (+54 9 11 …), pero acá se manda SIN el 9 "
+             "(54 11 …): así lo acepta y lo entrega Meta (comprobado el 15/10)."),
     190: ("TOKEN VENCIDO O INVÁLIDO",
           "El token temporal dura poco. Generá uno nuevo en el panel y reintentá."),
     100: ("PARÁMETRO INVÁLIDO",
@@ -146,11 +145,13 @@ def main() -> int:
     phone_number_id = digitos(pedir("WHATSAPP_PHONE_NUMBER_ID", "Phone number ID: "))
     destino = digitos(pedir("WHATSAPP_NUMERO_AUTORIZADO", "Tu número (549 + área + número): "))
 
-    if destino.startswith("54") and not destino.startswith("549"):
-        print("\nOJO: un celular argentino en WhatsApp lleva el 9 (549…). Sin el 9, Meta "
-              "puede aceptar el mensaje y no entregarlo nunca (pasó el 15/10).")
+    # En la lista del panel el celular va CON el 9; para mandar, Meta lo
+    # quiere SIN el 9 (a 549… responde 131030). Comprobado el 15/10/2026.
+    numero = "54" + destino[3:] if destino.startswith("549") and len(destino) == 13 else destino
+    if numero != destino:
+        print(f"\nMando a {numero} (sin el 9): así lo acepta Meta. En la lista del panel "
+              "tu número tiene que estar CON el 9.")
     texto = "✅ Prueba de la SuperApp: si leés esto, Meta deja mandar texto sin tarjeta."
-    numero = destino
     try:
         estado, respuesta = enviar(phone_number_id, token, numero, texto)
     except urllib.error.URLError as e:

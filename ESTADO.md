@@ -41,10 +41,12 @@
 
 ## ⏭️ Próximo paso concreto
 
+-2. ✅ **Backup externo: vuelve a andar (15/10/2026, 13:55, 456 transacciones, `auth=token`).** Estuvo caído del 13/10 al 15/10 porque `fly.exe` quedó en 0 bytes tras una actualización a medias; Franco reinstaló flyctl. El token estaba bien: el aviso del Escritorio culpaba al token por error (`_fly_comun.ps1` no distingue "flyctl no ejecuta"; arreglo propuesto como tarea aparte).
+
 -1. **Fase A (ADR-0008) — cerrar en producción.** El código está hecho (suite en verde). Falta, en orden:
    1. ✅ **Costo cero confirmado (15/10):** el texto libre llegó al teléfono sin tarjeta. El primer intento no llegaba porque el número estaba en el panel sin el 9; cargado con el 9, llegó.
-   2. **Franco:** push de `main` y `fly deploy` desde `main`. **Ese deploy publica también el retiro de Inversiones**: `/inversiones` deja de existir en producción. **El contenedor nuevo (nginx + API + Streamlit) nunca se construyó localmente**: después del deploy, los chequeos de `docs/DEPLOY.md` (Fase A); si la app no carga, volver a la release anterior.
-   3. **Franco:** Parte 2 (token permanente) y Parte 3 (secretos + webhook) de `docs/WHATSAPP-CANAL.md`.
+   2. ✅ **Desplegado el 15/10/2026** desde `main`, con backup previo. Verificado desde afuera: `/_stcore/health` ok, `/api/health` ok, `/api/privacidad` publicada, `/api/whatsapp` → 503 `sin_configurar` (esperado hasta cargar los secretos). Inversiones ya no está en producción.
+   3. ✅ **15/10:** token permanente, secretos en Fly, webhook verificado, `messages` suscripto y **app suscripta a la cuenta de WhatsApp Business** (faltaba: solo estaba la app de prueba de Meta). El primer mensaje real **llegó** a la app (20:50, `from` = `549…`); la respuesta rebotó con 131030 porque se mandaba con el 9 → **corregido en código, falta desplegar**.
    4. **Prueba real:** `2500, prueba` → ✅ → `deshacer` → borrado. Anotar en `core/api/BITACORA.md` el formato del `from` que muestra el log. Con eso la fase se cierra.
    Después vienen B (briefing + Calendar/Tasks), C (dashboard + rebranding) y D (conciliación).
 0. **Franco:** el retiro de Inversiones ya está commiteado en `retiro-inversiones`; falta mergearlo y desplegarlo (sale junto con la Fase A, ver -1) (al desplegar, `/inversiones` deja de existir en producción). Decidir aparte si las tablas `cartera_*` se borran de la base (irreversible; hoy quedan quietas).

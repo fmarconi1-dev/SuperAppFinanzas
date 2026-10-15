@@ -119,8 +119,8 @@ class ServidorAPI(ThreadingHTTPServer):
 
     def _procesar_uno(self, t: _Trabajo) -> None:
         m, cfg = t.mensaje, t.cfg
-        # Se responde al `from` exacto: es el id de WhatsApp que da Meta. Un
-        # formato deducido puede ser aceptado y nunca entregado (15/10/2026).
+        # Se le pasa al canal el `from` tal como vino; el formato con que Meta
+        # acepta el envío (en AR, sin el 9) lo resuelve `wa.enviar_texto`.
         destino = wa.digitos(m.remitente)
         if m.tipo != "text" or not m.texto:
             self._marcar(m.wamid, "ignorado")

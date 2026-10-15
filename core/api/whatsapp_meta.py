@@ -9,19 +9,19 @@ cobra, y `tests/test_api_whatsapp.py` falla si aparece la palabra en este
 archivo. Un texto fuera de la ventana de 24 h no se cobra: Meta lo rechaza
 (131047) y acá se levanta `CanalNoDisponible`.
 
-**Números argentinos (lección del 15/10/2026):** los celulares de AR son
-``549…`` en WhatsApp. El 15/10 el número de Franco estaba en la lista del panel
-**sin el 9**: Meta *aceptó* un envío a ``54…`` y no lo entregó nunca (no hay
-cuenta ahí). Aceptar no es entregar. Por eso:
+**Números argentinos (comprobado en producción el 15/10/2026):** hay dos
+formatos y cada uno va en un lugar distinto:
 
-* se responde **al ``from`` exacto del mensaje entrante**, que es el id de
-  WhatsApp que da la propia Meta, nunca a un formato deducido;
-* el remitente se compara con el autorizado en forma canónica (con o sin el
-  9 da igual), solo para decidir si se le hace caso;
-* **no se reintenta con otra variante.** Un 131030 ("no está en la lista")
-  con ``549…`` significa que en el panel el número quedó sin el 9; mandar a
-  ``54…`` lo haría *aceptar* y perderse, que es justo el fallo silencioso del
-  15/10. Se levanta `CanalNoDisponible` con un mensaje que dice qué arreglar.
+* **En la lista del panel de Meta**, el celular va **con el 9** (``549…``).
+  Con el número cargado sin el 9, Meta *aceptaba* los envíos y no los
+  entregaba nunca: aceptar no es entregar.
+* **Los mensajes entrantes** traen el ``from`` **con el 9** (``549…``).
+* **Para mandar**, Meta lo quiere **sin el 9** (``54…``): mandar a ``549…``
+  devuelve 131030 ("no está en la lista") aunque la lista esté bien.
+
+Por eso se manda primero en forma canónica (sin el 9) y, solo si Meta
+responde 131030, se reintenta con el 9; queda en el log. El remitente se
+compara con el autorizado también en forma canónica.
 """
 
 from __future__ import annotations
@@ -116,9 +116,10 @@ def digitos(numero: str) -> str:
 
 
 def canonico(numero: str) -> str:
-    """Forma canónica **solo para comparar** remitentes: celulares de AR sin el 9.
+    """Forma canónica: celulares de AR sin el 9.
 
-    No se usa para mandar: se manda al `from` que trae el mensaje.
+    Sirve para comparar remitentes y es el **primer formato al mandar**: Meta
+    rechaza (131030) los envíos a ``549…`` y acepta y entrega ``54…``.
     """
     d = digitos(numero)
     if d.startswith("549") and len(d) == 13:
@@ -230,21 +231,35 @@ def _post_mensaje(cfg: ConfigWhatsApp, numero: str, cuerpo: str) -> dict:
         raise CanalNoDisponible(f"No se pudo conectar con Meta: {e.reason}") from None
 
 
+def formatos_envio(numero: str) -> list[str]:
+    """Formatos a probar al mandar: el canónico (sin el 9) primero, después
+    el original. Si son iguales, uno solo."""
+    d = digitos(numero)
+    c = canonico(d)
+    return [c] if c == d else [c, d]
+
+
 def enviar_texto(cfg: ConfigWhatsApp, numero: str, texto: str) -> list[str]:
     """Manda un texto (partido si hace falta). Devuelve los ids de Meta."""
-    destino = digitos(numero)
+    formatos = formatos_envio(numero)
     ids: list[str] = []
     for parte in partir_texto(texto):
-        try:
-            r = _post_mensaje(cfg, destino, parte)
-        except CanalNoDisponible as e:
-            if e.codigo == NO_AUTORIZADO:
+        for i, destino in enumerate(formatos):
+            try:
+                r = _post_mensaje(cfg, destino, parte)
+            except CanalNoDisponible as e:
+                if e.codigo != NO_AUTORIZADO:
+                    raise
+                if i + 1 < len(formatos):
+                    log.warning("Meta no reconoció %s (131030); pruebo %s",
+                                destino, formatos[i + 1])
+                    continue
                 raise CanalNoDisponible(
-                    f"{e} — {destino} no está en la lista de destinatarios del panel de Meta "
-                    "con ese formato. Si es un celular argentino, tiene que estar CON el 9 "
-                    "(549…): borralo de la lista y volvé a agregarlo.",
+                    f"{e} — probé {', '.join(formatos)}. Revisá que el número esté en la "
+                    "lista de destinatarios del panel de Meta (un celular argentino va CON "
+                    "el 9: +54 9 …).",
                     e.codigo,
                 ) from None
-            raise
-        ids.extend(m.get("id", "") for m in r.get("messages") or [])
+            ids.extend(m.get("id", "") for m in r.get("messages") or [])
+            break
     return ids

@@ -1,6 +1,6 @@
 # scripts/
 
-<!-- huella: e6d24678c8e9 -->
+<!-- huella: c29209c5bb9b -->
 
 Resumen: Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa.
 
@@ -27,7 +27,7 @@ Resumen: Operación y mantenimiento: backups remotos (PowerShell + verificación
 ## Estado
 
 - **Funciona:** backup remoto programado y verificado.
-- **14–15/10/2026:** `probar_whatsapp_texto.py` nuevo (stdlib). Solo arma `"type": "text"`, lee el token del portapapeles (pegar en `getpass` no anda en la consola de Windows: Ctrl+V llega como basura y Meta contesta 190) y muestra el `wa_id` al que Meta resolvió el número. **No reintenta con otro formato**: el 15/10 mandar sin el 9 fue aceptado y nunca entregado. Resultado real: con el número cargado con el 9, **el texto llegó sin tarjeta**.
+- **14–15/10/2026:** `probar_whatsapp_texto.py` nuevo (stdlib). Solo arma `"type": "text"`, lee el token del portapapeles (pegar en `getpass` no anda en la consola de Windows: Ctrl+V llega como basura y Meta contesta 190) y muestra el `wa_id` al que Meta resolvió el número. Manda **sin el 9** a los celulares argentinos. **Dos formatos, cada uno en su lugar (comprobado en producción el 15/10/2026):** en la **lista del panel** el celular argentino va **con el 9** (`549…`; sin el 9, Meta acepta los envíos y no los entrega); los mensajes entrantes traen el `from` **con el 9**; y para **mandar**, Meta lo quiere **sin el 9** (`54…`): a `549…` responde 131030 aunque la lista esté bien. Resultado real: **el texto llegó sin tarjeta**.
 - **14/10/2026:** `verificar_docta.py` se retiró junto con Inversiones (ADR-0007). `verificar_backup.py` sigue contando `cartera_movimientos`: la tabla quedó en la base.
 
 ## Proximo paso

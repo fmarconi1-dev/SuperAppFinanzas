@@ -96,9 +96,31 @@ def test_config_sin_variables_no_inventa_defaults(monkeypatch):
     assert "WHATSAPP_TOKEN" in e.value.faltantes and "SUPERAPP_DEFAULT_USER" in e.value.faltantes
 
 
-def test_enviar_no_adivina_otro_formato_si_meta_no_reconoce_el_numero(monkeypatch):
-    """El 15/10, mandar sin el 9 fue *aceptado* y nunca entregado: ante un
-    131030 no se prueba otra variante, se dice qué arreglar en el panel."""
+def test_enviar_a_un_celular_argentino_va_sin_el_9(monkeypatch):
+    """Producción, 15/10/2026: el `from` llega como 549…, pero mandar a 549…
+    da 131030; Meta acepta y entrega 54… (con la lista del panel CON el 9)."""
+    llamados = []
+    monkeypatch.setattr(wa, "_post_mensaje",
+                        lambda cfg, numero, cuerpo: llamados.append(numero) or {"messages": [{"id": "w"}]})
+    assert wa.enviar_texto(CFG, "+54 9 11 0000-1111", "hola") == ["w"]
+    assert llamados == ["541100001111"]
+
+
+def test_enviar_reintenta_con_el_9_ante_un_131030(monkeypatch):
+    llamados = []
+
+    def falso(cfg, numero, cuerpo):
+        llamados.append(numero)
+        if numero == "541100001111":
+            raise wa.CanalNoDisponible("no en la lista", wa.NO_AUTORIZADO)
+        return {"messages": [{"id": "w"}]}
+
+    monkeypatch.setattr(wa, "_post_mensaje", falso)
+    assert wa.enviar_texto(CFG, NUMERO, "hola") == ["w"]
+    assert llamados == ["541100001111", "5491100001111"]
+
+
+def test_si_ningun_formato_sirve_dice_que_revisar(monkeypatch):
     llamados = []
 
     def falso(cfg, numero, cuerpo):
@@ -108,15 +130,15 @@ def test_enviar_no_adivina_otro_formato_si_meta_no_reconoce_el_numero(monkeypatc
     monkeypatch.setattr(wa, "_post_mensaje", falso)
     with pytest.raises(wa.CanalNoDisponible, match="CON el 9"):
         wa.enviar_texto(CFG, NUMERO, "hola")
-    assert llamados == ["5491100001111"]
+    assert llamados == ["541100001111", "5491100001111"]
 
 
-def test_enviar_manda_al_numero_tal_cual(monkeypatch):
+def test_un_numero_no_argentino_se_manda_tal_cual(monkeypatch):
     llamados = []
     monkeypatch.setattr(wa, "_post_mensaje",
                         lambda cfg, numero, cuerpo: llamados.append(numero) or {"messages": [{"id": "w"}]})
-    assert wa.enviar_texto(CFG, "+54 9 11 0000-1111", "hola") == ["w"]
-    assert llamados == ["5491100001111"]
+    wa.enviar_texto(CFG, "59899123456", "hola")
+    assert llamados == ["59899123456"]
 
 
 def test_enviar_no_traga_otros_errores(monkeypatch):
@@ -240,8 +262,8 @@ def test_gasto_de_punta_a_punta(entorno):
     entorno["srv"].cola.join()
     txns = _filas(entorno["db"], "SELECT id, motivo, pasivos FROM transacciones")
     assert len(txns) == 1 and txns[0]["motivo"] == "Nafta" and txns[0]["pasivos"] == 2500.0
-    # Responde al `from` exacto (el id de WhatsApp que da Meta), no a un
-    # formato deducido: el 15/10 un envío deducido se aceptó y nunca llegó.
+    # El servidor le pasa al canal el `from` tal como vino; el formato de
+    # envío (en AR, sin el 9) lo resuelve `enviar_texto` (tests de arriba).
     numero, texto = entorno["enviados"][0]
     assert numero == NUMERO and "✅ Cargado" in texto
     msg = _filas(entorno["db"], "SELECT resultado, transaccion_id FROM whatsapp_mensajes")

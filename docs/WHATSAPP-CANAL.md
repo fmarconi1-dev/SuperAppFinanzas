@@ -55,6 +55,7 @@ Dentro de la ventana el bot contesta todo lo que quieras. Fuera de la ventana no
     fly secrets set WHATSAPP_TOKEN=... WHATSAPP_PHONE_NUMBER_ID=... WHATSAPP_APP_SECRET=... WHATSAPP_VERIFY_TOKEN=... WHATSAPP_NUMERO_AUTORIZADO=549... -a superapp-finanzas
     ```
 11. Panel de la app → **WhatsApp → Configuración → Webhook**: URL `https://superapp-finanzas.fly.dev/api/whatsapp`, token de verificación el del paso 10 → *Verificar y guardar*. Después, en *Campos del webhook*, suscribí **`messages`**.
+11b. ⚠️ **Suscribí la app a la cuenta de WhatsApp Business** (sin esto Meta no manda nada aunque el webhook esté verificado; pasó el 15/10/2026). En el Explorador de la API Graph, con tu app elegida: `GET <id de la cuenta de WhatsApp Business>/subscribed_apps`. Si tu app no aparece en `data` (puede aparecer solo "WA DevX Webhook Events 1P App", que es de Meta), mandá el mismo pedido como **POST** → `{"success": true}`.
 12. Mandale `ayuda` al Secretario. Si contesta, listo.
 13. **Si no llega nada:** Meta advierte que en modo *desarrollo* algunos webhooks no se envían. Pasá la app a modo **Live** (gratis). Te va a pedir una URL de política de privacidad: usá `https://superapp-finanzas.fly.dev/api/privacidad`, que la Fase A deja publicada.
 
@@ -65,7 +66,7 @@ Dentro de la ventana el bot contesta todo lo que quieras. Fuera de la ventana no
 | ¿Meta deja mandar texto libre **sin medio de pago cargado**? | ✅ **Sí, confirmado el 15/10/2026**: con el número de prueba y sin tarjeta, el texto libre **llegó** al teléfono de Franco. (Un primer intento se aceptó y no llegó: era el formato del número, ver abajo.) | — |
 | ¿Hace falta verificar la "empresa"? | Meta documenta topes para portfolios nuevas (2 números, 250 mensajes por día fuera de ventana), y varios proveedores dicen que se opera sin verificar. | Mismo plan B. |
 | ¿El número de prueba es para siempre? | Meta no documenta que venza. | Plan B gratis: Telegram. Un chip propio también serviría, pero cuesta lo que salga el chip. |
-| Formato de números argentinos | ✅ **Resuelto el 15/10/2026.** Los celulares argentinos son `549…` en WhatsApp. El 15/10 el número de Franco estaba en la lista del panel **sin el 9**: Meta *aceptó* el envío a `54…` y no lo entregó nunca. Cargado **con el 9**, llegó. | En el panel, tu número va **con el 9** (+54 9 11 …). La API responde al `from` exacto de cada mensaje (el id que da Meta) y no prueba otros formatos: ante un 131030 avisa qué corregir. |
+| Formato de números argentinos | ✅ **Resuelto en producción el 15/10/2026.** **Dos formatos, cada uno en su lugar (comprobado en producción el 15/10/2026):** en la **lista del panel** el celular argentino va **con el 9** (`549…`; sin el 9, Meta acepta los envíos y no los entrega); los mensajes entrantes traen el `from` **con el 9**; y para **mandar**, Meta lo quiere **sin el 9** (`54…`): a `549…` responde 131030 aunque la lista esté bien. | La API manda sin el 9 y, solo ante un 131030, reintenta con el 9. El remitente se compara en forma canónica. |
 
 ## Política de IA de Meta
 
