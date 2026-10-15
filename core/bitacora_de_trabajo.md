@@ -24,3 +24,8 @@
 - **Por qué:** auditoría del 22/9 — las reparaciones pisaban decisiones del usuario en cada reinicio de Fly; la caché negativa convertía "Docta/Yahoo no contestó" en "no existe" para siempre; los `except Exception` escondían bugs (trampas 16, 19, 36).
 - **Estado:** ✅ suite 865 passed, 0 skipped; huella de números de producción idéntica antes/después.
 
+## 2026-10-15 — API HTTP y M17 (Fase A, ADR-0008)
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** `core/api/` nuevo: `servidor.py` (ThreadingHTTPServer en 127.0.0.1:8000, firma HMAC de Meta, dedupe por wamid, cola con un solo hilo trabajador, 503 sin configuración) y `whatsapp_meta.py` (único módulo que habla con Meta: verificación, eventos, envío de texto partido en 4096, números canónicos sin el 9). `db.py`: M17 (`whatsapp_mensajes`, `whatsapp_estado`), aditiva.
+- **Por qué:** cargar gastos desde el celular con costo cero (sin plantillas, sin tarjeta).
+- **Estado:** ✅ tests en verde y smoke test del proceso real; sin desplegar.

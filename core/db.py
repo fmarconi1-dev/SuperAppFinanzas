@@ -130,6 +130,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
       M11 (3a)      tasa devengada para pagarés.
       M12 (3b)      caché de sectores.
       M13–M15 (4)   ajustes de tenencia, vencimientos a mano, cronogramas.
+      M17 (A)       mensajes y estado del canal de WhatsApp (M16: reservada, ADR-0006).
 
     "Única" = reparación de datos que corre una sola vez por base, marcada con
     `PRAGMA user_version` (ver `_NIVEL_REPARACIONES`).
@@ -942,6 +943,37 @@ def _migrate(conn: sqlite3.Connection) -> None:
                 fuente          TEXT,
                 n_flujos        INTEGER NOT NULL DEFAULT 0,
                 actualizado_en  TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        """)
+
+        # ============================================================
+        # M17 (Fase A, ADR-0008): mensajes de WhatsApp.
+        # ============================================================
+        # (M16 sigue reservada para las cuentas de la Fase 5, ADR-0006.)
+        #
+        # `whatsapp_mensajes` es el **dedupe**: Meta reintenta un webhook
+        # hasta 7 días si no recibe 200 a tiempo (un arranque en frío de Fly
+        # alcanza), y sin esto un gasto se cargaría dos veces. La PK es el id
+        # que Meta le da al mensaje (wamid). También es lo que usa `deshacer`
+        # para saber qué transacciones entraron por WhatsApp.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS whatsapp_mensajes (
+                wamid           TEXT PRIMARY KEY,
+                recibido_en     TEXT NOT NULL,
+                remitente       TEXT NOT NULL,
+                texto           TEXT,
+                transaccion_id  INTEGER REFERENCES transacciones(id) ON DELETE SET NULL,
+                resultado       TEXT NOT NULL DEFAULT 'recibido'
+            )
+        """)
+        # Estado chico del canal, clave → valor: `ultimo_entrante` (la Fase B
+        # lo usa para saber si la ventana de 24 h de Meta está abierta) y
+        # `pendiente` (un gasto esperando un "sí" o un "no").
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS whatsapp_estado (
+                clave           TEXT PRIMARY KEY,
+                valor           TEXT NOT NULL,
+                actualizado_en  TEXT NOT NULL
             )
         """)
 

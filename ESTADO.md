@@ -17,7 +17,7 @@
 - **Suite:** **359 passed, 0 skipped** en local (14/10/2026; eran 909 antes de retirar Inversiones). En CI salen `skipped` los tests-oráculo (necesitan los CSV de Franco). **Regla del RUNBOOK: antes de un deploy, local tiene que dar 0 skipped.** Cobertura: 78% (`--cov`, `coverage` instalado en el venv fuera del lock).
 - **Hosting:** Fly.io, app `superapp-finanzas`. **Último deploy: 27/9/2026, release v27** (commit `2b544ab`): health `ok`, sin tracebacks ni el aviso de `form_motivo` en los logs (verificado).
 - **Backup externo:** 🟢 token de la app guardado (**vence el 27/9/2027**; `estado_backup.ps1` avisa 30 días antes) y tarea "Backup Superapp Finanzas" registrada, diaria 09:00. Última copia: 27/9 con `auth=token`. **Pendiente:** confirmar el 28/9 que la tarea corrió sola (`scripts\estado_backup.ps1` en verde).
-- **Repo git:** `main`. Último commit pusheado: `2b544ab` (27/9).
+- **Repo git (15/10/2026):** rama **`retiro-inversiones`**, con el retiro de Inversiones **commiteado** (`e1adc13`, `7a0c139`) pero sin mergear a `main` ni desplegar. Todo lo de la serie "secretario" (ADR-0008, Fase A) está **sin commitear** encima de esa rama: desplegar este árbol publica las dos cosas juntas. Último commit en `main` pusheado: `2b544ab` (27/9).
 
 ## 🔵 Tarea en curso
 
@@ -25,8 +25,10 @@
 |---|---|---|---|
 | Auditoría + limpieza entre fases (bugs B1–B7, excepts, código muerto, docs, smoke tests) | ✅ HECHA, pusheada y desplegada (23/9) | Claude (Opus 5.5) | 2026-09-22 |
 | Backup que corra solo (token de la app, sin cuelgues, aviso en el Escritorio) + aviso `form_motivo` + tests de login + trampa 27 | ✅ HECHA, pusheada y desplegada (v27); token y tarea hechos por Franco | Claude (Opus 5.5) | 2026-09-27 |
-| Retirar el lugar Inversiones entero (ADR-0007) | ✅ HECHA en el árbol, **sin commitear ni desplegar** | Claude (Opus 5.5) | 2026-10-14 |
-| **Fase 5 · Paso 0 — Cuentas y perímetro (M16)** | ⬜ siguiente — **no arrancar sin que Franco lo pida** | — | — |
+| Retirar el lugar Inversiones entero (ADR-0007) | ✅ HECHA y commiteada en la rama `retiro-inversiones` (`e1adc13`, `7a0c139`); **sin mergear a `main` ni desplegar** | Claude (Opus 5.5) | 2026-10-14 |
+| **Enfoque "secretario" (ADR-0008)**: canal decidido (Meta Cloud API, costo cero: `docs/WHATSAPP-CANAL.md`), Apps Script reescrito (`integraciones/google-apps-script/`, **sin instalar ni probar**), plan de la Fase A (`docs/PLAN-FASE-A.md`) | ✅ preparación hecha, **sin commitear** | Claude (Opus 5.5) | 2026-10-14 |
+| **Fase A — gastos por WhatsApp** (`docs/PLAN-FASE-A.md`). Prueba previa ✅ 15/10: texto libre **entregado** sin tarjeta (con el número cargado con el 9) | 🟡 código hecho y en verde, **sin commitear ni desplegar**; falta deploy + Partes 2–3 + prueba real | Claude (Opus 5.5) | 2026-10-15 |
+| **Fase 5 · Paso 0 — Cuentas y perímetro (M16)** | ⏸️ en pausa por ADR-0008 | — | — |
 
 ## ✅ Hecho hasta ahora (resumen; detalle en ROADMAP.md y en el archivo)
 
@@ -39,7 +41,13 @@
 
 ## ⏭️ Próximo paso concreto
 
-0. **Franco:** revisar el retiro de Inversiones, commitear y desplegar cuando quiera (al desplegar, `/inversiones` deja de existir en producción). Decidir aparte si las tablas `cartera_*` se borran de la base (irreversible; hoy quedan quietas).
+-1. **Fase A (ADR-0008) — cerrar en producción.** El código está hecho (suite en verde). Falta, en orden:
+   1. ✅ **Costo cero confirmado (15/10):** el texto libre llegó al teléfono sin tarjeta. El primer intento no llegaba porque el número estaba en el panel sin el 9; cargado con el 9, llegó.
+   2. **Franco:** revisar y commitear la Fase A en la rama `retiro-inversiones` y `fly deploy`. **Ese deploy publica también el retiro de Inversiones** (commiteado en la misma rama, nunca desplegado): `/inversiones` deja de existir en producción. **El contenedor nuevo (nginx + API + Streamlit) nunca se construyó localmente**: después del deploy, los cuatro chequeos de `docs/DEPLOY.md` (Fase A); si la app no carga, volver a la release anterior.
+   3. **Franco:** Parte 2 (token permanente) y Parte 3 (secretos + webhook) de `docs/WHATSAPP-CANAL.md`.
+   4. **Prueba real:** `2500, prueba` → ✅ → `deshacer` → borrado. Anotar en `core/api/BITACORA.md` el formato del `from` que muestra el log. Con eso la fase se cierra.
+   Después vienen B (briefing + Calendar/Tasks), C (dashboard + rebranding) y D (conciliación).
+0. **Franco:** el retiro de Inversiones ya está commiteado en `retiro-inversiones`; falta mergearlo y desplegarlo (sale junto con la Fase A, ver -1) (al desplegar, `/inversiones` deja de existir en producción). Decidir aparte si las tablas `cartera_*` se borran de la base (irreversible; hoy quedan quietas).
 1. **Franco, el 28/9 o después:** `powershell -ExecutionPolicy Bypass -File scripts\estado_backup.ps1` → tiene que dar todo en verde (la tarea todavía no corrió nunca al 27/9). Si aparece "BACKUP SUPERAPP - FALLO.txt" en el Escritorio, dice qué pasó.
 2. **Franco:** vaciar la Papelera cuando quieras (los dos `.tar.gz` del 18/8).
 3. ~~Login sin distinguir mayúsculas~~ — descartado por Franco el 27/9 (ver `MEJORAS.md`).

@@ -45,3 +45,8 @@
 - **Por qué:** auditoría del 22/9 — un `1.5OO` entraba como gasto de $0 sin rastro, y el comentario del parser prometía un aviso que nadie daba.
 - **Estado:** ✅ tus CSV reales no tienen ningún importe ilegible (importados a una base temporal: 0 advertencias); el test de reconciliación contra el Excel sigue verde.
 
+## 2026-10-15 — Comandos de WhatsApp (Fase A, ADR-0008)
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** `core/comandos.py`: carga `[fecha], monto, categoría[, comentario]` con montos y fechas estrictos, "¿quisiste decir?" para categorías parecidas o nuevas (confirmación sí/no, vence a los 10 min), `resumen` con la fórmula del dashboard, `deshacer` y `ayuda`.
+- **Por qué:** que cargar un gasto sea mandar un WhatsApp, sin cargar nada a ciegas.
+- **Estado:** ✅ 60 tests; sin desplegar.

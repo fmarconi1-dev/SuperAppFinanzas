@@ -5,8 +5,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# nginx (Fase A, ADR-0008): reparte el puerto 8501 entre Streamlit y la API.
+# El sitio `default` de Debian escucha en el 80 y no sirve: se borra.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
+    && apt-get install -y --no-install-recommends curl nginx \
+    && rm -f /etc/nginx/sites-enabled/default \
     && rm -rf /var/lib/apt/lists/*
 
 # Deps en su propia capa. Si existe requirements.lock, builds reproducibles.
@@ -18,7 +21,8 @@ RUN if [ -f requirements.lock ]; then \
     fi
 
 # Código (tests/ y docs/ quedan fuera vía .dockerignore).
-COPY app.py ./
+COPY app.py api.py ./
+COPY deploy/nginx.conf /etc/nginx/conf.d/superapp.conf
 COPY core/ ./core/
 COPY places/ ./places/
 COPY scripts/ ./scripts/
@@ -31,8 +35,11 @@ RUN sed -i 's/\r$//' /app/docker-entrypoint.sh && chmod +x /app/docker-entrypoin
 # El volumen /app/data se monta para persistir la DB y los backups.
 RUN mkdir -p /app/data/backups
 
-ENV STREAMLIT_SERVER_PORT=8501 \
-    STREAMLIT_SERVER_ADDRESS=0.0.0.0 \
+# Streamlit ya no da la cara: escucha en 127.0.0.1:8502 y nginx lo publica en
+# el 8501 (el puerto de `fly.toml`, que no cambia). El HEALTHCHECK de abajo
+# sigue pegándole al 8501, así que prueba nginx y Streamlit juntos.
+ENV STREAMLIT_SERVER_PORT=8502 \
+    STREAMLIT_SERVER_ADDRESS=127.0.0.1 \
     STREAMLIT_SERVER_HEADLESS=true \
     STREAMLIT_SERVER_RUN_ON_SAVE=false \
     STREAMLIT_BROWSER_GATHER_USAGE_STATS=false \

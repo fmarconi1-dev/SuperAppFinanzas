@@ -9,6 +9,32 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 15 de octubre de 2026 — Ya existe el "Secretario" que carga gastos por WhatsApp
+
+**Qué se hizo.** Primero probamos con Meta de verdad el plan gratis, y **funciona**: sin cargar ninguna tarjeta, el mensaje de prueba te llegó al WhatsApp. Costó un poco: la primera vez Meta dijo "listo" pero el mensaje nunca llegó, porque tu número estaba anotado sin el 9. En Argentina, los celulares llevan el 9 en WhatsApp; con el 9, llegó. El programa ahora responde siempre a la dirección exacta que manda Meta, así que ese error no se puede repetir sin que avise.
+
+Después armé el Secretario completo. Le mandás por WhatsApp algo como `2500, super` y lo anota en tus gastos, igual que si lo cargaras desde la app. Entiende fechas (`ayer`, `13/10`), ingresos (con un `+` adelante) y montos escritos de muchas formas (`25.000`, `25k`, `$2500,50`). Si escribís mal una categoría, te pregunta *"¿quisiste decir Supermercado?"* y espera tu sí. Si es una categoría nueva, te pregunta si la crea. `resumen` te da los gastos e ingresos del mes, con las mismas cuentas que el tablero. `deshacer` borra lo último que cargaste por WhatsApp.
+
+**Cuidados que tiene.** Solo te hace caso a vos: los mensajes de cualquier otro número se ignoran. Si Meta le manda el mismo mensaje dos veces (pasa cuando la app tarda en despertarse), no lo carga dos veces. Y si un monto se puede leer de dos maneras (`2500.50`: ¿dos mil quinientos con cincuenta, o doscientos cincuenta mil?), te pregunta en vez de adivinar.
+
+**Para qué te sirve.** Anotar un gasto en el momento, desde el celular, sin abrir la app.
+
+**Qué sigue.** Todavía no está publicado. Faltan tres cosas, en este orden: que lo publiques (la app online cambia por dentro y conviene revisar que siga abriendo bien), que crees la llave permanente de Meta y cargues las claves en Fly, y la prueba real: mandarle `2500, prueba` y después `deshacer`.
+
+---
+
+## 14 de octubre de 2026 — La app empieza a convertirse en tu secretario
+
+**Qué se hizo.** Cambiamos el rumbo: además de tus finanzas, la app va a anotar tus eventos y tus tareas, y vas a poder cargar gastos mandando un WhatsApp. Hoy hice dos cosas preparatorias, sin tocar la app que está online:
+- **Averigüé si podés usar el WhatsApp oficial de Meta sin ser empresa.** Sí se puede. Tu WhatsApp personal no se toca: el "secretario" tiene su propio número (al principio, uno de prueba que Meta regala) y vos le escribís como a cualquier contacto. Y va a ser **gratis del todo**: Meta solo cobra cuando el bot te escribe "por su cuenta" con un tipo de mensaje especial, y armamos todo para que eso no pueda pasar nunca. No le vamos a cargar ninguna tarjeta a Meta, y el programa directamente no sabe mandar ese tipo de mensaje. El precio de eso es que el bot solo puede escribirte si vos le escribiste en las últimas 24 horas. Para cargar gastos da igual, porque siempre empezás vos. Para el resumen de la mañana: si ayer le escribiste, te llega solo; si no, te llega apenas le mandes cualquier cosa. El paso a paso quedó en `docs/WHATSAPP-CANAL.md`.
+- **Reescribí el programita de Google** (el que vive en tu cuenta de Google y hace de puente con el Calendario y las Tareas). Ahora las claves no van escritas en el código, cada pedido tiene que traer una contraseña, si algo falla no te confirma "✅" en falso, los links del briefing se siguen acortando, y además **sabe leer**: te puede pasar los eventos de la semana y las tareas pendientes para mostrarlos en el nuevo tablero.
+
+**Para qué te sirve.** Dejar la base firme antes de construir: sabés qué canal de WhatsApp usar y cuánto cuesta, y el puente con Google ya está listo para cuando lo instalemos.
+
+**Qué sigue.** Ir por etapas: primero cargar gastos por WhatsApp (el plan detallado ya está escrito), después el briefing y la agenda, después el tablero nuevo con el cambio de imagen, y al final el control contra los resúmenes del banco. El programa de Google todavía no está instalado ni probado: eso va en la segunda etapa. Lo que podés hacer vos ya mismo: crear la cuenta de desarrollador de Meta y el número de prueba (unos 20 minutos, sin tarjeta).
+
+---
+
 ## 14 de octubre de 2026 — Chau, Inversiones
 
 **Qué se hizo.** Saqué de la app toda la sección de Inversiones: la cartera (tus posiciones, rendimientos, bonos, vencimientos, la comparación contra el mercado) y el lugar reservado para "Mercado en vivo". Ahora la app es solo Finanzas Personales: entrás y estás directo en tus gastos e ingresos, sin la barra para cambiar de sección.

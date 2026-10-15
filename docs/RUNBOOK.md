@@ -235,6 +235,23 @@ fly secrets set SIGNUP_CODE=... SESSION_SECRET=... -a superapp-finanzas
 
 Ambos son opcionales (ver `.env.example`). Setearlos **reinicia la app**.
 
+Los de WhatsApp (`WHATSAPP_*`, `SUPERAPP_DEFAULT_USER`) también: sin ellos el webhook responde 503 y la app anda igual. Detalle en `docs/DEPLOY.md` (Fase A).
+
+---
+
+## 📱 Si el bot de WhatsApp no contesta
+
+1. `curl.exe https://superapp-finanzas.fly.dev/api/health` → tiene que dar `{"ok": true}`. Si no, la API no está corriendo: `fly logs` y buscar `[entrypoint] La API terminó`.
+2. `fly logs -a superapp-finanzas` mientras le mandás `ayuda`. Qué buscar:
+   - `Webhook deshabilitado: Faltan variables de entorno: …` → falta un secreto.
+   - `firma inválida` → `WHATSAPP_APP_SECRET` no es la clave secreta de **esta** app de Meta.
+   - `número no autorizado` → `WHATSAPP_NUMERO_AUTORIZADO` no coincide con el que escribe.
+   - `No se pudo responder por WhatsApp (código 131047)` → pasaron más de 24 h desde tu último mensaje (no debería pasar: siempre le escribís vos primero).
+   - `código 190` → el token venció o es el temporal: generá el permanente del usuario del sistema.
+   - `código 131042` → Meta pide medio de pago. **No se carga tarjeta** (ADR-0008): plan B, Telegram.
+   - nada de nada → Meta no está mandando el webhook: revisá la suscripción a `messages` en el panel, o pasá la app a modo Live (`docs/WHATSAPP-CANAL.md`, paso 13).
+3. Qué pasó con cada mensaje queda en la tabla `whatsapp_mensajes` (`resultado`: cargado, pendiente, rechazado, deshecho, ignorado, error).
+
 ---
 
 ## 🧪 Los tests-oráculo (por qué CI muestra `skipped`)

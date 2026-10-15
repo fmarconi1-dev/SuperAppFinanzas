@@ -1,12 +1,13 @@
 # core/
 
-<!-- huella: 6a6f545ede96 -->
+<!-- huella: 55d7db246676 -->
 
-Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M15 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth y theme viven en subcarpetas propias.
+Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M17 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias.
 
 ## Buscar acá si
 
 - la base de datos: schema, una migración nueva (SIEMPRE aditiva), "database is locked", backups y retención (`BACKUP_RETENTION`, `DB_PATH`)
+- el webhook de WhatsApp, la API HTTP o nginx → **`core/api/`** (y `api.py`, `deploy/nginx.conf` en la raíz)
 - grupo familiar / espacios compartidos: crear, unirse, código de invitación, resolver el workspace activo
 - el badge Personal/Familiar o el switcher del sidebar se comportan raro
 - un import circular entre core y core/auth → **cortado** el 27/8/2026 con `context.py`
@@ -16,10 +17,11 @@ Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M15 + reparacione
 
 ## Qué hay acá
 
-- `db.py` — conexión, schema completo, las 15 migraciones, las reparaciones únicas (M3, M7, M8.5), `es_tabla_faltante()` y el backup automático con retención. El hub del repo.
+- `db.py` — conexión, schema completo, las migraciones (M1–M15 y M17; la M16 está reservada para la Fase 5), las reparaciones únicas (M3, M7, M8.5), `es_tabla_faltante()` y el backup automático con retención. El hub del repo.
 - `workspaces.py` — lógica del grupo familiar D2 (crear/unirse/salir, código hasheado SHA-256, multi-owner, resolver el activo).
 - `workspaces_ui.py` — badge de modo, switcher del sidebar, activación desde la sesión.
 - `context.py` — los contextvars de usuario y workspace activos. **No importa nada del proyecto**, y esa es su razón de ser.
+- `api/` — servidor HTTP stdlib y canal de Meta (Fase A, ADR-0008). Bitácora propia.
 
 ## Trampas
 
@@ -36,6 +38,7 @@ Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M15 + reparacione
 ## Estado
 
 - **Funciona:** todo en producción (Fly.io).
+- **15/10/2026 (Fase A, sin desplegar):** **M17**, aditiva: `whatsapp_mensajes` (dedupe por wamid + rastro para `deshacer`) y `whatsapp_estado` (`ultimo_entrante`, `pendiente`). No toca filas existentes, así que no sube `_NIVEL_REPARACIONES`. La **M16 queda reservada** para las cuentas de la Fase 5 (ADR-0006).
 - **14/10/2026:** `core/market_data/` se retiró junto con Inversiones (ADR-0007); solo lo usaba la cartera. Las tablas `cartera_*` y sus migraciones (M9–M15) **siguen en `db.py` a propósito**: producción tiene los datos. No borrarlas sin el OK de Franco.
 
 ## Proximo paso

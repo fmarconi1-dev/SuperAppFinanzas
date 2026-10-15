@@ -1,6 +1,6 @@
 # scripts/
 
-<!-- huella: ab49c797be74 -->
+<!-- huella: e6d24678c8e9 -->
 
 Resumen: Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa.
 
@@ -9,6 +9,7 @@ Resumen: Operación y mantenimiento: backups remotos (PowerShell + verificación
 - backup remoto diario, restaurar, "¿este backup sirve de verdad?" → `backup_remoto.ps1`, `restaurar_backup.ps1`, `verificar_backup.py`, `estado_backup.ps1`, `programar_backup.ps1`
 - resetear la contraseña de un usuario → `setup_password.py`
 - reindexar el mapa del repo → `indexar.py` (ver `/MAPA.md`)
+- "¿Meta deja mandar texto sin tarjeta?" → `probar_whatsapp_texto.py` (prueba única de costo cero, ADR-0008; manda un texto libre y traduce el código de error de Meta)
 - "el backup no corre solo", "la sesión de fly venció", token de Fly → `guardar_token_fly.ps1`, `_fly_comun.ps1` (`Use-TokenFly`)
 - un archivo "BACKUP SUPERAPP - FALLO.txt" apareció en el Escritorio → lo deja `backup_remoto.ps1` al fallar; `estado_backup.ps1` dice por qué
 
@@ -26,6 +27,7 @@ Resumen: Operación y mantenimiento: backups remotos (PowerShell + verificación
 ## Estado
 
 - **Funciona:** backup remoto programado y verificado.
+- **14–15/10/2026:** `probar_whatsapp_texto.py` nuevo (stdlib). Solo arma `"type": "text"`, lee el token del portapapeles (pegar en `getpass` no anda en la consola de Windows: Ctrl+V llega como basura y Meta contesta 190) y muestra el `wa_id` al que Meta resolvió el número. **No reintenta con otro formato**: el 15/10 mandar sin el 9 fue aceptado y nunca entregado. Resultado real: con el número cargado con el 9, **el texto llegó sin tarjeta**.
 - **14/10/2026:** `verificar_docta.py` se retiró junto con Inversiones (ADR-0007). `verificar_backup.py` sigue contando `cartera_movimientos`: la tabla quedó en la base.
 
 ## Proximo paso

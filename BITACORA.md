@@ -1,6 +1,6 @@
 # BITÁCORA — changelog narrativo global
 
-<!-- huella: 57d57ebebd50 -->
+<!-- huella: 9a9870b506ab -->
 
 Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías).
 
@@ -8,6 +8,7 @@ Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación e
 
 - el arranque de la app, la navegación entre lugares o la restauración de sesión → `app.py`
 - deploy, Docker, Fly.io → `Dockerfile`, `fly.toml`, `docker-entrypoint.sh`, `docs/DEPLOY.md` y `docs/RUNBOOK.md`
+- el arranque de la API de WhatsApp o nginx en el contenedor → `api.py`, `deploy/nginx.conf`, `docker-entrypoint.sh` (código en `core/api/`)
 - cómo se trabaja en este repo → `GUIA-DE-TRABAJO.md`, `claude.md`, `/MAPA.md`
 - qué se hizo y qué sigue → `ESTADO.md` (foto), este archivo (crónica), `EN-HUMANO.md` (en llano)
 - un aviso de Streamlit en `fly logs` que parece error, o la config del servidor → `.streamlit/config.toml`
@@ -17,6 +18,14 @@ Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación e
 Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión relevante. Lo fino de cada módulo va en su `bitacora_de_trabajo.md`.
 
 ---
+
+## 2026-10-15 — Fase A: gastos por WhatsApp (ADR-0008)
+**Autor:** Claude (Opus 5.5), con Franco.
+
+- **Prueba previa, contra Meta de verdad:** con el número de prueba y **sin medio de pago**, el texto libre **llegó** al teléfono de Franco. Antes hubo un falso éxito: con el número cargado en el panel sin el 9, Meta *aceptó* el envío a `54…` (HTTP 200 + id) y no lo entregó nunca. **Aceptar no es entregar.**
+- **Código nuevo:** `core/api/` (servidor stdlib + canal de Meta), `places/finanzas/core/comandos.py` (parser y comandos), `api.py`, `deploy/nginx.conf`, M17 en `core/db.py`. Contenedor: nginx reparte el 8501 (API en 8000, Streamlit en 8502); `fly.toml` intacto; el entrypoint conserva el seed y relanza la API si se cae.
+- **Desvíos del plan, con motivo:** parser de montos propio (`parse_currency_estricto` borra todos los puntos: `1.5` → 15); se responde al `from` exacto, sin deducir formatos ni reintentar con otra variante (la lección del 9); los estados `failed` de Meta se loguean en vez de ignorarse; `core/` no importa `places/` (la lógica llega inyectada desde `api.py`).
+- **Verificado:** suite completa en verde; `api.py` levantado como proceso real (health, verificación de Meta, POST firmado → mensaje registrado; el envío con token falso lo rechazó Meta con 190 y quedó en el log). **No verificado:** el contenedor (no hay Docker local): se prueba en el deploy.
 
 ## 2026-10-14 — Se retira el lugar Inversiones (ADR-0007)
 **Autor:** Claude (Opus 5.5), a pedido de Franco: *"es algo que no se utiliza… creo que es momento de dejarlo ir"*.

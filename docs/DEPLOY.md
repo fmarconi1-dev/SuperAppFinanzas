@@ -46,6 +46,35 @@ Verificar: login con tu usuario de siempre y comparar el dashboard contra `radar
 ### 4. Retiro de radar-financiero (recién cuando la superapp esté validada)
 No borrar la app vieja hasta usar la nueva unos días. Después: `fly apps destroy radar-financiero`.
 
+## Fase A — API de WhatsApp en el mismo contenedor (ADR-0008)
+
+Desde la Fase A el contenedor corre **tres procesos**, y `fly.toml` no cambia:
+
+| Proceso | Escucha en | Lo lanza |
+|---|---|---|
+| nginx | `0.0.0.0:8501` (el puerto de Fly) | `docker-entrypoint.sh` |
+| API (`api.py`) | `127.0.0.1:8000` — nginx le pasa `/api/` | `docker-entrypoint.sh`, en un bucle que la relanza si se cae |
+| Streamlit | `127.0.0.1:8502` — nginx le pasa `/` | `exec` al final del entrypoint |
+
+El health check de Fly (`/_stcore/health`) pasa por nginx hacia Streamlit, así que prueba los dos juntos. La API tiene el suyo: `/api/health`.
+
+**El contenedor nunca se construyó localmente** (no hay Docker en la PC de Franco): los tests lo revisan como texto (`tests/test_deploy_api.py`). El primer deploy es la prueba real. Después de `fly deploy`:
+
+```powershell
+curl.exe https://superapp-finanzas.fly.dev/_stcore/health     # ok  (Streamlit vía nginx)
+curl.exe https://superapp-finanzas.fly.dev/api/health         # {"ok": true}
+curl.exe https://superapp-finanzas.fly.dev/api/privacidad     # la página de privacidad
+fly logs -a superapp-finanzas                                 # buscar "[api] INFO superapp.api: Escuchando"
+```
+
+Y abrir la app en el navegador: si carga y se puede navegar, el websocket pasa bien por nginx. **Si algo falla, volver a la release anterior** (`docs/RUNBOOK.md` → "Si la app no responde").
+
+Secretos de WhatsApp (ver `.env.example` y `docs/WHATSAPP-CANAL.md`, Parte 3). Sin ellos, `/api/whatsapp` responde 503 y el resto anda igual:
+
+```powershell
+fly secrets set WHATSAPP_TOKEN=... WHATSAPP_PHONE_NUMBER_ID=... WHATSAPP_APP_SECRET=... WHATSAPP_VERIFY_TOKEN=... WHATSAPP_NUMERO_AUTORIZADO=549... SUPERAPP_DEFAULT_USER=<tu usuario> -a superapp-finanzas
+```
+
 ## Pendiente
 - [ ] Dominio FreeDomain apuntando al deploy.
 - [x] `requirements.lock` (pip freeze de build conocida-buena) para builds reproducibles. **Hecho el 27/8/2026.** El `Dockerfile` ya lo usaba si existía, así que no hubo que tocar el deploy. Ojo con una cosa al regenerarlo: ese día `pip` resolvía `pandas>=2.0.0` como **pandas 3.0.5**, un salto de major contra el que la suite nunca corrió, así que el lock se generó con los topes `pandas<3` / `numpy<2.3` y quedó en **pandas 2.3.3**. Verificado corriendo la suite completa en un venv de Python 3.11 con esos pines exactos: **679 passed**. Instrucciones de regeneración en la cabecera del propio archivo.
