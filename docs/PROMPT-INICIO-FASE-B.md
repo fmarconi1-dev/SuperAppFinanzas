@@ -22,19 +22,19 @@ Estado al escribirlo (15/10/2026): **Fase A cerrada en producción** (el Secreta
 >
 > - **Lo que ya funciona no se toca.** La Fase A queda como está.
 > - **Los dos briefings los genera Gemini, en su propio Apps Script de mi cuenta de Google, y los manda por mail.** No toques ese script ni generes contenido de mercado desde la SuperApp:
->   - **Mañana:** mail `[Briefing-WhatsApp]` (como hoy).
->   - **Cierre de mercado, 18:30 de lunes a viernes:** mail `[Cierre-WhatsApp]`. El pedido para Gemini ya está escrito en `docs/PEDIDO-GEMINI-CIERRE.md`; lo pego yo en su script.
-> - **Nuestra parte:** nuestro Apps Script levanta los dos mails, acorta los links y los manda a `POST /api/briefing` con `tipo` (`briefing` o `cierre`). Al briefing la SuperApp le suma mis finanzas del mes; al cierre, nada. Los dos salen por WhatsApp.
+>   - **Mañana:** mail `[Briefing-WhatsApp] Briefing Matutino y Agenda - DD/MM/AAAA` (como hoy).
+>   - **Cierre de mercado, 18:30 de lunes a viernes:** mail `[Briefing-WhatsApp] Cierre de Mercado - DD/MM/AAAA`. Gemini ya lo genera; `docs/PEDIDO-GEMINI-CIERRE.md` es una guía opcional por si lo ajusto.
+> - **Nuestra parte:** nuestro Apps Script levanta los dos mails (busca `[Briefing-WhatsApp]`; es cierre si el asunto dice "Cierre de Mercado"), acorta los links y los manda a `POST /api/briefing` con `tipo` (`briefing` o `cierre`). Al briefing la SuperApp le suma mis finanzas del mes; al cierre, nada. Los dos salen por WhatsApp.
 > - **Comandos** `evento:`, `tarea:` y `agenda`, vía el Apps Script.
 > - Todo lo que el bot manda por su cuenta pasa por una **cola de salida**: sale si la ventana de 24 h de Meta está abierta y, si no, espera a mi próximo mensaje. **Nunca plantillas.**
 >
 > ## Antes de codear, preguntame
 >
-> 1. El asunto exacto del mail del briefing que ya manda Gemini, y si los mails llegan a la misma cuenta de Google donde vamos a instalar nuestro Apps Script.
+> 1. Si los dos mails llegan a la misma cuenta de Google donde vamos a instalar nuestro Apps Script, y a qué hora sale hoy el de cierre (tiene que ser 18:30: desde el 1/11 Wall Street cierra a las 18:00 hora argentina).
 >
 > ## Orden de trabajo
 >
-> Seguí el "Orden de trabajo" del plan: **(1) M18 + cola de salida** → (2) `/api/briefing` con `tipo` → (3) Apps Script (reenvío de los dos asuntos, instalación y comandos) → (4) yo pego el pedido en el script de Gemini y creo su disparador de las 18:30 → (5) deploy y pruebas reales. Un paso a la vez, con la suite en verde antes de pasar al siguiente.
+> Seguí el "Orden de trabajo" del plan: **(1) M18 + cola de salida** → (2) `/api/briefing` con `tipo` → (3) Apps Script (reenvío de los dos mails, instalación y comandos) → (4) yo confirmo el horario del cierre en el script de Gemini → (5) deploy y pruebas reales. Un paso a la vez, con la suite en verde antes de pasar al siguiente.
 >
 > ## Reglas que no se rompen
 >

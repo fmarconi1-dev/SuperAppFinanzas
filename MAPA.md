@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-15 21:27 UTC · 79 archivos · 14,096 LOC -->
+<!-- 2026-10-15 22:34 UTC · 79 archivos · 14,096 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-15 4218757 docs: prompt de inicio de la Fase B; el briefing queda en Gemini · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-15 54f0fb9 docs: Fase B â€” el cierre de mercado lo genera Gemini por mail · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -147,8 +147,8 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 - `places\finanzas/` → `core/` (3)
 - `places\finanzas\views/` → `core\theme/` (3)
 - `tests/` → `core\auth/` (3)
-- `./` → `core\auth/` (2)
 - `./` → `core\theme/` (2)
+- `./` → `core\auth/` (2)
 
 ## Se tocan juntos
 
@@ -160,8 +160,8 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 - `BITACORA.md` + `EN-HUMANO.md` (24 commits)
 - `ESTADO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (23 commits)
 - `places/inversiones/cartera/bitacora_de_trabajo.md` + `places/inversiones/cartera/view.py` (21 commits)
+- `.mapa/mapa.json` + `MAPA.md` (17 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/view.py` (17 commits)
-- `.mapa/mapa.json` + `MAPA.md` (16 commits)
 - `BITACORA.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (15 commits)
 - `ESTADO.md` + `places/inversiones/cartera/view.py` (14 commits)
 

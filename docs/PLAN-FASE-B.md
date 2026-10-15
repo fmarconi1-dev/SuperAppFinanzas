@@ -12,12 +12,12 @@ Mismo canal, mismo costo: **cero** (ADR-0008, `docs/WHATSAPP-CANAL.md`).
 
 | Cuándo | Qué | Lo genera | Lo trae a WhatsApp |
 |---|---|---|---|
-| A la mañana | Briefing (mail `[Briefing-WhatsApp]`) + al final **📊 Mis finanzas del mes** | Gemini (como hoy) | Nuestro Apps Script → `/api/briefing` |
-| **18:30**, lunes a viernes | **Cierre de mercado** (mail `[Cierre-WhatsApp]`): EE.UU. acciones y Treasuries; Argentina acciones, hard dollar, riesgo país y curva en pesos | **Gemini**, con un disparador a las 18:30 en su Apps Script | Nuestro Apps Script → `/api/briefing` |
+| A la mañana | Briefing (mail `[Briefing-WhatsApp] Briefing Matutino y Agenda - DD/MM/AAAA`) + al final **📊 Mis finanzas del mes** | Gemini (como hoy) | Nuestro Apps Script → `/api/briefing` |
+| **18:30**, lunes a viernes | **Cierre de mercado** (mail `[Briefing-WhatsApp] Cierre de Mercado - DD/MM/AAAA`): EE.UU. acciones y Treasuries; Argentina acciones, hard dollar, riesgo país y curva en pesos | **Gemini** (ya lo genera) | Nuestro Apps Script → `/api/briefing` |
 | Cuando escribís `evento: …` / `tarea: …` | ✅ Evento agendado / ✅ Tarea creada (o el error real) | — | Vos → Apps Script |
 | Cuando escribís `agenda` | Eventos de la semana y tareas pendientes | — | Vos → Apps Script |
 
-**El pedido para Gemini** (qué datos, formato y reglas del cierre) está listo en **`docs/PEDIDO-GEMINI-CIERRE.md`**: se pega en el Apps Script de Gemini, igual que el del briefing matutino.
+**Los asuntos reales (confirmados por Franco el 15/10/2026)** comparten la etiqueta `[Briefing-WhatsApp]` y se distinguen por lo que sigue: "Briefing Matutino y Agenda" o "Cierre de Mercado". **Gemini ya genera los dos.** `docs/PEDIDO-GEMINI-CIERRE.md` queda como guía opcional, por si Franco quiere ajustar el formato o las reglas del cierre.
 
 **¿Por qué 18:30 y no 18:00?** Hasta el 31/10 Wall Street cierra a las 17:00 hora argentina, pero **desde el 1/11/2026** (fin del horario de verano en EE.UU.) cierra a las **18:00**. A las 18:00 en punto los números todavía no son de cierre. 18:30 sirve todo el año, y el BYMA ya cerró (17:00). Nuestro Apps Script busca mails cada 10 minutos, así que el cierre llega a WhatsApp alrededor de las 18:40.
 
@@ -48,7 +48,7 @@ Con el uso normal (cargar gastos durante el día), la ventana casi siempre está
 | `core/api/servidor.py` | `POST /api/briefing` (con `tipo`), cola de salida, entrega de pendientes al recibir un mensaje |
 | `core/api/google.py` | Cliente del Apps Script: `crear_evento`, `crear_tarea`, `resumen_semana`; sigue el 302 y **lee `ok`** |
 | `core/db.py` | **M18**, aditiva: `whatsapp_salientes` (id, tipo, texto, creado_en, enviado_en, error) |
-| `integraciones/google-apps-script/Codigo.gs` | El reenvío busca **los dos asuntos** (`[Briefing-WhatsApp]` y `[Cierre-WhatsApp]`) y manda `tipo` según cuál sea |
+| `integraciones/google-apps-script/Codigo.gs` | El reenvío ya busca `[Briefing-WhatsApp]`, así que agarra los dos mails. Cambios: (1) manda `tipo: "cierre"` si el asunto contiene "Cierre de Mercado" y `briefing` si no; (2) procesa **todos** los hilos sin etiquetar, no solo el último (hoy toma uno por corrida); (3) los manda en orden de llegada |
 
 ### Endpoint (autenticado con `Authorization: Bearer <SUPERAPP_API_TOKEN>`)
 
@@ -78,10 +78,10 @@ Las fechas y horas se validan con el mismo rigor que en la Fase A: una fecha imp
 1. **M18 + cola de salida + entrega de pendientes** (sin esto, nada de lo que el bot inicia es gratis seguro).
 2. **`/api/briefing` con `tipo`** (briefing con finanzas; cierre tal cual).
 3. **Apps Script:** reenvío de los dos asuntos, instalación (`integraciones/google-apps-script/README.md`) y comandos `evento:` / `tarea:` / `agenda`.
-4. **Franco, en el Apps Script de Gemini:** pegar el pedido de `docs/PEDIDO-GEMINI-CIERRE.md` y crear el disparador de las 18:30, lunes a viernes, con asunto `[Cierre-WhatsApp]`.
+4. **Franco, en el Apps Script de Gemini:** nada obligatorio, porque ya manda los dos mails. Confirmar que el cierre sale a las **18:30** (desde el 1/11 Wall Street cierra a las 18:00 hora argentina) y, si quiere, ajustarlo con la guía de `docs/PEDIDO-GEMINI-CIERRE.md`.
 5. Deploy y pruebas reales: un cierre a las 18:30, un briefing a la mañana, un evento y una tarea desde el celular.
 
-**Antes de codear, confirmar con Franco:** el asunto exacto del mail del briefing que ya manda Gemini, y que los mails llegan a la misma cuenta de Google donde se instala nuestro Apps Script.
+**Asuntos confirmados (15/10/2026):** `[Briefing-WhatsApp] Briefing Matutino y Agenda - DD/MM/AAAA` y `[Briefing-WhatsApp] Cierre de Mercado - DD/MM/AAAA`. **Antes de codear, confirmar con Franco:** que esos mails llegan a la misma cuenta de Google donde se instala nuestro Apps Script, y a qué hora sale hoy el de cierre.
 
 ## Tests (gate: suite completa en verde, 0 skipped)
 

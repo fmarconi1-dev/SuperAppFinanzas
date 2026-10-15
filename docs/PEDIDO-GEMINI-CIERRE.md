@@ -1,8 +1,10 @@
 # Pedido para Gemini — cierre de mercado de las 18:30
 
+> **Guía opcional.** Gemini ya genera el cierre (mail `[Briefing-WhatsApp] Cierre de Mercado - DD/MM/AAAA`). Esto sirve solo si querés ajustar el formato o las reglas del que ya tenés.
+
 Va en el **Apps Script de Gemini**, el mismo que hoy arma el briefing de la mañana. Se usa igual: un disparador a las **18:30, de lunes a viernes**, que le pasa este pedido a Gemini y manda el resultado por mail.
 
-- **Asunto del mail:** `[Cierre-WhatsApp] DD/MM`. El `[Cierre-WhatsApp]` es lo que busca nuestro Apps Script para reenviarlo a WhatsApp; lo que sigue es libre.
+- **Asunto del mail:** `[Briefing-WhatsApp] Cierre de Mercado - DD/MM/AAAA`, como ya lo manda. Nuestro Apps Script busca `[Briefing-WhatsApp]` y reconoce el cierre por "Cierre de Mercado": **no cambies esas dos partes del asunto**.
 - **Cuerpo:** **texto plano**, sin HTML. Los asteriscos `*así*` son negritas de WhatsApp.
 - **Largo:** menos de 3.000 caracteres. WhatsApp corta en 4.096 y la SuperApp lo partiría en dos mensajes.
 
