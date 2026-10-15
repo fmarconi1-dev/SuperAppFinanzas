@@ -10,6 +10,7 @@
 | `WHATSAPP-CANAL.md` | Canal de WhatsApp del secretario: cómo usar la Meta Cloud API con costo cero, alta paso a paso, dudas abiertas y plan B (Telegram). |
 | `PLAN-FASE-A.md` | Plan de la Fase A (gastos por WhatsApp): comandos, diseño de la API, base, contenedor, tests y cierre. ✅ Cerrada el 15/10/2026. |
 | `PLAN-FASE-B.md` | Plan de la Fase B: briefing, agenda y cierre de mercado de las 18:30 (fuentes probadas, formato, cola de salida por la ventana de 24 h, decisiones). |
+| `PROMPT-INICIO-FASE-B.md` | Prompt para arrancar la Fase B en una sesión nueva. |
 | `CRONOGRAMAS-RENTA-FIJA.md` | Fuente de cronogramas de bonos (Docta) y su verificación. |
 | `PROMPT-INICIO-FASE-5.md` | Prompt de arranque de la Fase 5 (ADR-0006). Los de fases anteriores se borraron el 22/9/2026: están en el historial de git. |
 | `archivo/` | Historia de `ESTADO.md` (lo que ya cerró). |

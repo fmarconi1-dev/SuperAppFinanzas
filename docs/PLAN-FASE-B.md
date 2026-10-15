@@ -4,13 +4,13 @@
 
 Mismo canal, mismo costo: **cero** (ADR-0008, `docs/WHATSAPP-CANAL.md`).
 
-**Fuera de alcance:** dashboard y rebranding (Fase C) · conciliación (Fase D) · análisis de mercado, recomendaciones o alertas de precio. **El agente informa, no recomienda ni opera.**
+**Fuera de alcance:** dashboard y rebranding (Fase C) · conciliación (Fase D) · análisis de mercado, recomendaciones o alertas de precio. **El agente informa, no recomienda ni opera.** · **Generar el briefing**: lo arma Gemini en su propio Apps Script, en la cuenta de Google de Franco, y **se queda ahí** (decisión de Franco del 15/10/2026). Esta fase no lo toca: solo lo recibe y le suma las finanzas.
 
 ## Lo que vas a recibir
 
 | Cuándo | Qué | Quién lo dispara |
 |---|---|---|
-| A la mañana (cuando llega tu mail `[Briefing-WhatsApp]`) | El briefing de siempre, con los links acortados y al final **📊 Mis finanzas del mes** | Apps Script (cada 10 min busca el mail) |
+| A la mañana (cuando llega tu mail `[Briefing-WhatsApp]`, que genera Gemini) | El briefing de Gemini, con los links acortados y al final **📊 Mis finanzas del mes** | Nuestro Apps Script (cada 10 min busca el mail) |
 | **18:30 hs**, lunes a viernes | **Cierre de mercado**: EE.UU. (acciones y Treasuries) y Argentina (acciones, bonos hard dollar y curva en pesos) | Apps Script (disparador diario) |
 | Cuando escribís `evento: …` / `tarea: …` | ✅ Evento agendado / ✅ Tarea creada (o el error real) | Vos |
 | Cuando escribís `agenda` | Eventos de la semana y tareas pendientes | Vos |
@@ -130,7 +130,7 @@ Las fechas y horas se validan con el mismo rigor que en la Fase A: una fecha imp
 
 1. **M18 + cola de salida + entrega de pendientes** (sin esto, nada de lo que el bot inicia es gratis seguro).
 2. **Cierre de mercado** (fuentes + texto + endpoint), con tests de las reglas de los párrafos y de los días sin mercado.
-3. **Briefing** (`/api/briefing`).
+3. **Briefing** (`/api/briefing`). Entrada: el mail `[Briefing-WhatsApp]` que ya manda el Apps Script de Gemini, **sin tocar ese script**. Confirmar con Franco el asunto exacto del mail y que llega a la misma cuenta de Google donde se instala nuestro Apps Script.
 4. **Apps Script**: instalarlo (`integraciones/google-apps-script/README.md`), los disparadores de briefing y cierre, y los comandos `evento:` / `tarea:` / `agenda`.
 5. Deploy y pruebas reales: un cierre a las 18:30, un briefing a la mañana, un evento y una tarea desde el celular.
 
