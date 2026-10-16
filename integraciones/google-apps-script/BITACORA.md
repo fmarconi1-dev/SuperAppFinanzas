@@ -24,6 +24,8 @@ Resumen: Puente Google ↔ SuperApp en Apps Script: reenvía el briefing de Gmai
 - **14/10/2026:** reescrito desde el borrador de Franco. Cambios: secretos en Propiedades del script (nada en el código), token en header, secreto en `doPost`, validación de fechas y horas, idempotencia con lock (`id_solicitud` + `CacheService` + `LockService`), confirmación solo con `ok: true`, y acciones de lectura (`listar_calendarios`, `listar_eventos`, `listar_tareas`, `resumen_semana`) + `completar_tarea` para el dashboard. **Sin probar en Google todavía** (no hay runtime JS local; tampoco se verificó la sintaxis con node).
 - **Fuera del MAPA:** `indexar.py` no reconoce `.gs`, así que esta carpeta no se indexa y `--sellar` responde "Carpeta no indexada". Si molesta, agregar `".gs": "javascript"` a `LENGUAJES` en `scripts/indexar.py`.
 
+- **16/10/2026:** `reenviarBriefingAWhatsApp` pasa a ser el **reemplazo del reenvío por CallMeBot** (mismo nombre de función, misma etiqueta `WA-Enviado`, mismo filtro): procesa todos los mails pendientes en orden, manda `tipo` (cierre si el asunto dice "Cierre de Mercado"), sin `$`→`ARS` ni bloques de 650, con lock. Se instala **después** de desplegar `/api/briefing`. Sin probar en Google.
+
 ## Proximo paso
 
 Instalarlo siguiendo el `README.md` cuando arranque la Fase B (briefing + Calendar/Tasks), y correr `probarLecturas` / `probarAcortador` desde el editor.

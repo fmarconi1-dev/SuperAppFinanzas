@@ -33,16 +33,13 @@ Con el uso normal (cargar gastos durante el día), la ventana casi siempre está
 
 ## Mudanza desde CallMeBot
 
-**Hoy los dos briefings ya llegan a WhatsApp, por CallMeBot** (Franco, 15/10/2026). Los dos mails llegan a `fmarconi1@gmail.com`, la misma cuenta donde se instala nuestro Apps Script. La Fase B **los muda al Secretario**, y CallMeBot se apaga en el mismo paso: si quedan los dos, cada briefing llega dos veces.
+**Hoy los dos briefings llegan a WhatsApp por CallMeBot** (Franco, 15/10/2026). Los mails llegan a `fmarconi1@gmail.com`, y los reenvía un Apps Script aparte del de Gemini, que busca `[Briefing-WhatsApp]` en Gmail, los etiqueta `WA-Enviado` y los manda por CallMeBot.
 
-Dos formas de hacerlo; se elige mirando el script actual:
+**Resuelto el 16/10/2026, al ver ese script:** como el de CallMeBot ya es un reenviador de Gmail con la misma función, la misma etiqueta y el mismo filtro que nuestro puente, se **reemplaza entero** por `integraciones/google-apps-script/Codigo.gs`, que ya trae la corrección. El script de Gemini no se toca. Así CallMeBot se apaga en el mismo cambio y queda un solo script para todo: reenvío y agenda.
 
-- **(a) Recomendado: cambiar la llamada a CallMeBot por la de la SuperApp**, en el mismo lugar del script donde hoy se manda. Donde dice "mandar por CallMeBot", pasa a decir `POST /api/briefing` con el texto y el `tipo`. Es un solo cambio, el mensaje sale en el momento (sin esperar la búsqueda de mails cada 10 min) y no depende de etiquetas de Gmail. El mail se sigue mandando igual, como respaldo.
-- **(b) Dejar el script como está, salvo CallMeBot**: se borra o comenta la llamada a CallMeBot, y nuestro Apps Script levanta los mails de Gmail y los reenvía (el diseño de este plan). Llega unos 10 minutos más tarde.
+Qué se corrigió respecto del de CallMeBot: manda a `POST /api/briefing` con `tipo` (cierre si el asunto dice "Cierre de Mercado"); procesa todos los pendientes en orden, no uno por corrida; sin `$`→`ARS` ni bloques de 650; lock contra corridas solapadas; nada de número ni claves en el código. Pasos de la mudanza: `integraciones/google-apps-script/README.md`, sección "Mudanza desde CallMeBot".
 
-**Antes de elegir, revisar el script que hoy usa CallMeBot:** dónde llama a CallMeBot, si ya **acorta links** (para no hacerlo dos veces), si **parte el texto** en pedazos de 650 caracteres (CallMeBot lo necesita; el Secretario parte en 4.096 solo, así que hay que mandarle el texto entero), si **cambia `$` por `ARS`** (con CallMeBot hacía falta; con el Secretario no), y si **etiqueta los mails** (si usa `WA-Enviado`, nuestro reenvío los saltearía en la opción b).
-
-**Corte:** se prueba primero el Secretario con un mensaje real de cada tipo y recién ahí se apaga CallMeBot. No se borran sus credenciales hasta que pasen unos días sin problemas.
+**Orden obligatorio:** primero se despliega `/api/briefing`, después se cambia el script. Si se hace al revés, no llega ningún briefing hasta el deploy. La clave de CallMeBot quedó expuesta en un chat el 16/10: se da por quemada.
 
 ## Decisiones (15/10/2026)
 
@@ -91,10 +88,10 @@ Las fechas y horas se validan con el mismo rigor que en la Fase A: una fecha imp
 1. **M18 + cola de salida + entrega de pendientes** (sin esto, nada de lo que el bot inicia es gratis seguro).
 2. **`/api/briefing` con `tipo`** (briefing con finanzas; cierre tal cual).
 3. **Apps Script:** reenvío de los dos asuntos, instalación (`integraciones/google-apps-script/README.md`) y comandos `evento:` / `tarea:` / `agenda`.
-4. **Mudanza desde CallMeBot** (ver arriba): revisar el script actual, elegir (a) o (b), hacer el cambio y **apagar CallMeBot en el mismo paso**. Confirmar que el cierre sale a las **18:30** (desde el 1/11 Wall Street cierra a las 18:00 hora argentina).
+4. **Mudanza desde CallMeBot** (ver arriba): con `/api/briefing` ya desplegado, reemplazar el script de CallMeBot por `Codigo.gs`, que lo apaga en el mismo paso. Confirmar que el cierre sale a las **18:30** (desde el 1/11 Wall Street cierra a las 18:00 hora argentina).
 5. Deploy y pruebas reales: un cierre a las 18:30, un briefing a la mañana, un evento y una tarea desde el celular.
 
-**Asuntos confirmados (15/10/2026):** `[Briefing-WhatsApp] Briefing Matutino y Agenda - DD/MM/AAAA` y `[Briefing-WhatsApp] Cierre de Mercado - DD/MM/AAAA`, los dos a `fmarconi1@gmail.com` (la misma cuenta del Apps Script). **Antes de codear, pedirle a Franco el script que hoy manda por CallMeBot** (al menos la función que arma y envía el mensaje) y a qué hora sale el cierre.
+**Asuntos confirmados (15/10/2026):** `[Briefing-WhatsApp] Briefing Matutino y Agenda - DD/MM/AAAA` y `[Briefing-WhatsApp] Cierre de Mercado - DD/MM/AAAA`, los dos a `fmarconi1@gmail.com` (la misma cuenta del Apps Script). El script de CallMeBot ya se vio (16/10) y su reemplazo está en `Codigo.gs`. Queda por confirmar a qué hora sale el cierre.
 
 ## Tests (gate: suite completa en verde, 0 skipped)
 

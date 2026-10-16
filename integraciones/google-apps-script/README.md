@@ -25,7 +25,7 @@ Código que corre en **Google Apps Script**, no en Fly. Vive en el repo para ver
 5. **Implementar → Nueva implementación → Aplicación web**: ejecutar como *yo*, acceso *cualquier persona*. Copiá la URL `/exec` → va a Fly como `GOOGLE_WORKSPACE_WEBHOOK_URL`.
    - "Cualquier persona" es necesario para que Fly pueda llamarla sin login de Google. La protección es `SECRETO_WEBHOOK`.
    - Cada cambio de código requiere **Implementar → Gestionar implementaciones → editar → versión nueva**; si no, la URL sigue sirviendo la versión vieja.
-6. Corré a mano `instalarDisparadores` (briefing cada 10 minutos).
+6. Corré a mano `instalarDisparadores` (reenvío de briefings cada 10 minutos).
 
 ## Contrato del webhook (`doPost`)
 
@@ -69,8 +69,21 @@ Sin `hora_inicio` el evento es de todo el día. Sin `hora_fin`, dura una hora. `
 - `listar_eventos`: los de todo el día traen `inicio`/`fin` como fecha, con **`fin` inclusive** (último día del evento). Vienen ordenados por inicio, los de todo el día primero en su fecha. `color` es el del calendario: sirve para pintar cada calendario en el dashboard.
 - `listar_tareas`: por defecto solo pendientes, ordenadas por vencimiento (las sin fecha al final). `padre` ≠ null es una subtarea.
 
-## Briefing (`reenviarBriefingAWhatsApp`)
+## Briefings (`reenviarBriefingAWhatsApp`)
 
-Busca el último mail con asunto `[Briefing-WhatsApp]` de las últimas 24 h sin la etiqueta `WA-Enviado`, **acorta los links largos con TinyURL** (en paralelo; si TinyURL falla, el link queda original) y lo manda a `POST /api/briefing` con `Authorization: Bearer <SUPERAPP_TOKEN>`. Solo lo etiqueta si la SuperApp responde 200 **y** `{"ok": true}`, o sea, si el WhatsApp salió; si no, el próximo disparo reintenta.
+Busca **todos** los mails con asunto `[Briefing-WhatsApp]` de las últimas 24 h sin la etiqueta `WA-Enviado` (los dos de Gemini: "Briefing Matutino y Agenda" y "Cierre de Mercado") y los procesa del más viejo al más nuevo. A cada uno le **acorta los links largos con TinyURL** (en paralelo; si TinyURL falla, el link queda original) y lo manda a `POST /api/briefing` con `Authorization: Bearer <SUPERAPP_TOKEN>` y `tipo`: `cierre` si el asunto dice "Cierre de Mercado", `briefing` si no. Lo etiqueta solo si la SuperApp responde 200 **y** `{"ok": true}` (salió, o quedó en la cola hasta que le escribas al bot). Si uno falla, corta ahí y el próximo disparo reintenta sin saltearse el orden. Un lock evita que dos corridas solapadas manden lo mismo dos veces.
+
+## Mudanza desde CallMeBot (16/10/2026)
+
+Hasta ahora estos mails los reenviaba por CallMeBot un script con **la misma función** `reenviarBriefingAWhatsApp`, la misma etiqueta `WA-Enviado` y el mismo filtro. Este archivo es su reemplazo directo. **Orden, para no quedarte sin briefings ni recibirlos dos veces:**
+
+1. **Primero** tiene que estar desplegado en la SuperApp `POST /api/briefing` (Fase B, pasos 1–2) y cargado `SUPERAPP_API_TOKEN` en `fly secrets`. **Hasta entonces, el script de CallMeBot sigue como está.**
+2. En el proyecto de Apps Script donde hoy está el de CallMeBot: **reemplazá todo el código** por `Codigo.gs` y el manifiesto por `appsscript.json` (pasos 1–2 de la instalación).
+3. Cargá las Propiedades del script `SUPERAPP_URL` y `SUPERAPP_TOKEN` (paso 3). Para el reenvío no hace falta más; `SECRETO_WEBHOOK` y la implementación como aplicación web son para los comandos de agenda.
+4. El disparador cada 10 minutos que ya tenías **sigue sirviendo**, porque llama a la misma función. Si querés dejarlo prolijo, corré `instalarDisparadores`.
+5. Probalo con el próximo mail. Si llegó por el Secretario, CallMeBot ya quedó apagado: su código no está más en el proyecto.
+6. **La clave de CallMeBot (`API_KEY`) se pegó en un chat el 16/10: tomala como quemada.** Ya no se usa, así que no hay que cargarla en ningún lado.
+
+Diferencias con el script de CallMeBot: no cambia `$` por `ARS` (era para el PHP de CallMeBot), no parte en bloques de 650 caracteres con esperas de 6 s (el Secretario parte en 4.096 solo), procesa todos los pendientes y no solo el último, y no tiene ni el número ni claves escritas en el código.
 
 El acortado vive acá y no en la API a propósito: Apps Script ya tiene el texto, `fetchAll` acorta todos los links a la vez, y la API de Fly queda más simple.

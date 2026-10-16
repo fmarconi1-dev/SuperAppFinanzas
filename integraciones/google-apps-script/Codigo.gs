@@ -2,9 +2,12 @@
  * Puente Google <-> SuperAppFinanzas.
  *
  * Dos sentidos:
- *   1. reenviarBriefingAWhatsApp(): toma el briefing matutino de Gmail, acorta
- *      sus links y lo manda a la API de la SuperApp (Fly.io), que le agrega el
- *      resumen de finanzas y lo envía por WhatsApp.
+ *   1. reenviarBriefingAWhatsApp(): toma de Gmail los mails de Gemini
+ *      ("[Briefing-WhatsApp] Briefing Matutino y Agenda - …" y
+ *      "[Briefing-WhatsApp] Cierre de Mercado - …"), acorta sus links y los
+ *      manda a la API de la SuperApp (Fly.io), que al de la mañana le suma el
+ *      resumen de finanzas y los envía por WhatsApp. Reemplaza al reenvío por
+ *      CallMeBot.
  *   2. doPost(e): la SuperApp le pide crear/listar eventos y tareas de Google
  *      Calendar / Google Tasks. El contrato está en README.md (misma carpeta).
  *
@@ -37,47 +40,78 @@ const RE_HORA = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 
 // ---------------------------------------------------------------------------
-// 1. Briefing matutino: Gmail -> SuperApp -> WhatsApp
+// 1. Briefings de Gemini (mañana y cierre): Gmail -> SuperApp -> WhatsApp
 // ---------------------------------------------------------------------------
 
+/**
+ * Reenvía al Secretario los mails de Gemini que todavía no salieron.
+ *
+ * Reemplaza al reenvío por CallMeBot (16/10/2026). Cambios contra aquel:
+ *   - va a la SuperApp (`POST /api/briefing`), no a CallMeBot. La SuperApp ya
+ *     sabe tu número, parte en 4.096 caracteres y respeta la ventana de 24 h;
+ *   - ya no cambia `$` por `ARS` (era un parche para el PHP de CallMeBot) ni
+ *     parte en bloques de 650 con esperas de 6 s;
+ *   - procesa TODOS los mails pendientes, del más viejo al más nuevo (antes
+ *     agarraba uno por corrida), y distingue el cierre por el asunto;
+ *   - un lock impide que dos corridas solapadas manden lo mismo dos veces;
+ *   - nada de claves en el código: salen de las Propiedades del script.
+ */
 function reenviarBriefingAWhatsApp() {
-  const props = PropertiesService.getScriptProperties();
-  const url = requerirPropiedad_(props, "SUPERAPP_URL");
-  const token = requerirPropiedad_(props, "SUPERAPP_TOKEN");
-
-  const etiqueta = GmailApp.getUserLabelByName(NOMBRE_ETIQUETA) || GmailApp.createLabel(NOMBRE_ETIQUETA);
-
-  const hilos = GmailApp.search(FILTRO_BUSQUEDA, 0, 1);
-  if (hilos.length === 0) return;
-
-  const hilo = hilos[0];
-  const mensajes = hilo.getMessages();
-  const crudo = mensajes[mensajes.length - 1].getPlainBody().replace(/\r\n/g, "\n").trim();
-  const texto = acortarUrls(crudo);
-
-  // El token va en el header, no en la URL: las query strings quedan en los
-  // logs de nginx y de `fly logs`.
-  const resp = UrlFetchApp.fetch(url.replace(/\/+$/, "") + "/api/briefing", {
-    method: "post",
-    contentType: "application/json",
-    headers: { Authorization: "Bearer " + token },
-    payload: JSON.stringify({ texto: texto }),
-    muteHttpExceptions: true
-  });
-
-  const codigo = resp.getResponseCode();
-  const cuerpo = resp.getContentText();
-  console.log("Respuesta SuperApp: " + codigo + " - " + cuerpo);
-
-  // Se etiqueta solo si la SuperApp confirma que el WhatsApp salió. Un 200
-  // con {"ok": false} es un fallo: el próximo disparo lo reintenta.
-  let ok = false;
-  try {
-    ok = codigo === 200 && JSON.parse(cuerpo).ok === true;
-  } catch (err) {
-    console.error("La SuperApp no devolvió JSON: " + err);
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(1000)) {
+    console.log("Ya hay una corrida en curso; esta se saltea.");
+    return;
   }
-  if (ok) hilo.addLabel(etiqueta);
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const url = requerirPropiedad_(props, "SUPERAPP_URL").replace(/\/+$/, "") + "/api/briefing";
+    const token = requerirPropiedad_(props, "SUPERAPP_TOKEN");
+    const etiqueta = GmailApp.getUserLabelByName(NOMBRE_ETIQUETA) || GmailApp.createLabel(NOMBRE_ETIQUETA);
+
+    // `search` devuelve los más nuevos primero: se dan vuelta para mandar en orden.
+    const hilos = GmailApp.search(FILTRO_BUSQUEDA, 0, 10).reverse();
+    if (hilos.length === 0) {
+      console.log("No hay briefings pendientes.");
+      return;
+    }
+
+    for (let i = 0; i < hilos.length; i++) {
+      const hilo = hilos[i];
+      const mensajes = hilo.getMessages();
+      const ultimo = mensajes[mensajes.length - 1];
+      const asunto = ultimo.getSubject();
+      const tipo = /cierre de mercado/i.test(asunto) ? "cierre" : "briefing";
+      const texto = acortarUrls(ultimo.getPlainBody().replace(/\r\n/g, "\n").trim());
+
+      // El token va en el header, no en la URL: las query strings quedan en
+      // los logs de nginx y de `fly logs`.
+      const resp = UrlFetchApp.fetch(url, {
+        method: "post",
+        contentType: "application/json",
+        headers: { Authorization: "Bearer " + token },
+        payload: JSON.stringify({ texto: texto, tipo: tipo }),
+        muteHttpExceptions: true
+      });
+      const codigo = resp.getResponseCode();
+      const cuerpo = resp.getContentText();
+      console.log("[" + tipo + "] " + asunto + " → HTTP " + codigo + " " + cuerpo);
+
+      // Se etiqueta solo si la SuperApp lo tomó: {"ok": true} con estado
+      // "enviado" (ya salió) o "en_cola" (sale apenas le escribas al bot).
+      // Cualquier otra cosa corta acá y el próximo disparo reintenta, sin
+      // saltearse el orden.
+      let ok = false;
+      try {
+        ok = codigo === 200 && JSON.parse(cuerpo).ok === true;
+      } catch (err) {
+        console.error("La SuperApp no devolvió JSON: " + err);
+      }
+      if (!ok) break;
+      hilo.addLabel(etiqueta);
+    }
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 /**

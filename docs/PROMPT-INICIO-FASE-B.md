@@ -31,7 +31,7 @@ Estado al escribirlo (15/10/2026): **Fase A cerrada en producción** (el Secreta
 >
 > ## Antes de codear, preguntame
 >
-> 1. El script que hoy manda por CallMeBot (al menos la función que arma y envía el mensaje): dónde llama a CallMeBot, si acorta links, si parte el texto, si cambia `$` por `ARS` y si etiqueta los mails. Con eso elegimos entre cambiar esa llamada por la de la SuperApp (recomendado) o reenviar desde Gmail.
+> 1. (Resuelto el 16/10: el script de CallMeBot ya se vio y su reemplazo está en `integraciones/google-apps-script/Codigo.gs`; ver "Mudanza desde CallMeBot" en el plan.)
 > 2. A qué hora sale hoy el de cierre (tiene que ser 18:30: desde el 1/11 Wall Street cierra a las 18:00 hora argentina).
 >
 > ## Orden de trabajo

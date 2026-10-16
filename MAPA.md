@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-15 22:37 UTC · 79 archivos · 14,096 LOC -->
+<!-- 2026-10-16 12:18 UTC · 79 archivos · 14,096 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-15 ff4992b docs: Fase B â€” asuntos reales de los mails de Gemini · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-15 d0533db docs: Fase B â€” mudanza de los briefings desde CallMeBot · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -160,7 +160,7 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 - `BITACORA.md` + `EN-HUMANO.md` (24 commits)
 - `ESTADO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (23 commits)
 - `places/inversiones/cartera/bitacora_de_trabajo.md` + `places/inversiones/cartera/view.py` (21 commits)
-- `.mapa/mapa.json` + `MAPA.md` (18 commits)
+- `.mapa/mapa.json` + `MAPA.md` (19 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/view.py` (17 commits)
 - `BITACORA.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (15 commits)
 - `ESTADO.md` + `places/inversiones/cartera/view.py` (14 commits)
