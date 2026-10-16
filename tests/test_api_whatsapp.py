@@ -155,6 +155,7 @@ def test_enviar_no_traga_otros_errores(monkeypatch):
     "core/api/whatsapp_meta.py",
     "core/api/servidor.py",
     "places/finanzas/core/comandos.py",
+    "places/finanzas/core/briefing.py",
     "api.py",
 ])
 def test_costo_cero_el_codigo_no_sabe_mandar_plantillas(archivo):

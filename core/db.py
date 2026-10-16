@@ -131,6 +131,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
       M12 (3b)      caché de sectores.
       M13–M15 (4)   ajustes de tenencia, vencimientos a mano, cronogramas.
       M17 (A)       mensajes y estado del canal de WhatsApp (M16: reservada, ADR-0006).
+      M18 (B)       cola de salida de WhatsApp (ventana de 24 h).
 
     "Única" = reparación de datos que corre una sola vez por base, marcada con
     `PRAGMA user_version` (ver `_NIVEL_REPARACIONES`).
@@ -974,6 +975,27 @@ def _migrate(conn: sqlite3.Connection) -> None:
                 clave           TEXT PRIMARY KEY,
                 valor           TEXT NOT NULL,
                 actualizado_en  TEXT NOT NULL
+            )
+        """)
+
+        # ============================================================
+        # M18 (Fase B, ADR-0008): cola de salida de WhatsApp.
+        # ============================================================
+        # Lo que el bot manda por su cuenta (los briefings de Gemini) solo es
+        # gratis dentro de la ventana de 24 h desde el último mensaje de
+        # Franco. Fuera de ella no hay camino gratis: el mensaje queda acá con
+        # `enviado_en` NULL y sale cuando Franco vuelve a escribir.
+        # `id_origen` (el id del mail en Gmail) es el dedupe: si el Apps
+        # Script reintenta porque no le llegó la respuesta, no se duplica.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS whatsapp_salientes (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                tipo        TEXT NOT NULL,
+                texto       TEXT NOT NULL,
+                id_origen   TEXT UNIQUE,
+                creado_en   TEXT NOT NULL,
+                enviado_en  TEXT,
+                error       TEXT
             )
         """)
 

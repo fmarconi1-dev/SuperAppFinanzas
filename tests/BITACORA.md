@@ -1,14 +1,15 @@
 # tests/
 
-<!-- huella: d58280b12468 -->
+<!-- huella: 157dc8b18e8d -->
 
-Resumen: La suite completa (468 tests al 15/10/2026, con la Fase A) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde.
+Resumen: La suite completa (495 tests al 16/10/2026, con la Fase B en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde.
 
 ## Buscar acá si
 
 - tests que escanean el código fuente: `test_nombres_definidos.py` (AST de names), `test_transacciones_formulario.py` (ramas del form), `test_env_example_sin_secretos.py`
 - los CSV oráculo de Finanzas → `_oraculos.py` (`DIARIO_CSV`/`MENSUAL_CSV`)
 - convención de nombres: `test_backup_*`/`test_db_*`/`test_workspaces_*` → core · el resto → Finanzas
+- briefings de Gemini y cola de salida (Fase B) → `test_api_briefing.py` (servidor real; ventana abierta/cerrada/vencida, entrega al escribir, dedupe por id, Meta que rechaza, auth)
 - WhatsApp (Fase A): `test_comandos_whatsapp.py` (parser y comandos, base sintética) · `test_api_whatsapp.py` (canal de Meta + **servidor HTTP real** en un puerto libre, webhooks firmados, envío falso) · `test_deploy_api.py` (nginx/Dockerfile/entrypoint como texto: no hay Docker local)
 - los premortem-tests (`test_premortem3/5.py`): regresiones de los riesgos del premortem
 - "¿la pantalla abre?" → `test_smoke_pantallas.py` (`AppTest`, base sintética)
@@ -30,6 +31,7 @@ Resumen: La suite completa (468 tests al 15/10/2026, con la Fase A) en carpeta p
 
 ## Estado
 
+- **16/10/2026:** 495 passed, 0 skipped (Fase B, pasos 1–2: cola de salida y `/api/briefing`).
 - **15/10/2026:** 468 passed, 0 skipped (Fase A: +109 tests de WhatsApp, API y contenedor).
 - **Antes:** 359 passed, 0 skipped en local (14/10/2026, tras retirar Inversiones — se fueron ~550 tests de cartera y market_data); en CI salen skipped los oráculos de los CSV.
 

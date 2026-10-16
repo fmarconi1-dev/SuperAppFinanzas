@@ -250,7 +250,11 @@ Los de WhatsApp (`WHATSAPP_*`, `SUPERAPP_DEFAULT_USER`) también: sin ellos el w
    - `código 190` → el token venció o es el temporal: generá el permanente del usuario del sistema.
    - `código 131042` → Meta pide medio de pago. **No se carga tarjeta** (ADR-0008): plan B, Telegram.
    - nada de nada → Meta no está mandando el webhook: revisá la suscripción a `messages` en el panel, o pasá la app a modo Live (`docs/WHATSAPP-CANAL.md`, paso 13).
-3. Qué pasó con cada mensaje queda en la tabla `whatsapp_mensajes` (`resultado`: cargado, pendiente, rechazado, deshecho, ignorado, error).
+3. **El briefing o el cierre no llegó:**
+   - En el editor del Apps Script → *Ejecuciones*: cada corrida de `reenviarBriefingAWhatsApp` loguea `[briefing|cierre] <asunto> → HTTP <código>`. **401** = `SUPERAPP_TOKEN` no coincide con `SUPERAPP_API_TOKEN`; **503** = falta el secreto en Fly; si no aparece el mail, Gemini no lo mandó o ya tiene la etiqueta `WA-Enviado`.
+   - En `fly logs`: `Ventana de 24 h cerrada: … queda en cola` es **normal** si no le escribiste al bot en las últimas 24 h. Sale apenas le mandes cualquier cosa, con el aviso "📬 Te guardé esto…".
+   - `Saliente #N no salió (código …)` = Meta lo rechazó; queda en cola con el error y se reintenta con tu próximo mensaje.
+4. Qué pasó con cada mensaje queda en la tabla `whatsapp_mensajes` (`resultado`: cargado, pendiente, rechazado, deshecho, ignorado, error).
 
 ---
 

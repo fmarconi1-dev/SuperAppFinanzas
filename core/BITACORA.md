@@ -1,8 +1,8 @@
 # core/
 
-<!-- huella: 55d7db246676 -->
+<!-- huella: 2a809004e387 -->
 
-Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M17 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias.
+Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M18 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias.
 
 ## Buscar acá si
 
@@ -17,7 +17,7 @@ Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M17 + reparacione
 
 ## Qué hay acá
 
-- `db.py` — conexión, schema completo, las migraciones (M1–M15 y M17; la M16 está reservada para la Fase 5), las reparaciones únicas (M3, M7, M8.5), `es_tabla_faltante()` y el backup automático con retención. El hub del repo.
+- `db.py` — conexión, schema completo, las migraciones (M1–M15, M17 y M18; la M16 está reservada para la Fase 5), las reparaciones únicas (M3, M7, M8.5), `es_tabla_faltante()` y el backup automático con retención. El hub del repo.
 - `workspaces.py` — lógica del grupo familiar D2 (crear/unirse/salir, código hasheado SHA-256, multi-owner, resolver el activo).
 - `workspaces_ui.py` — badge de modo, switcher del sidebar, activación desde la sesión.
 - `context.py` — los contextvars de usuario y workspace activos. **No importa nada del proyecto**, y esa es su razón de ser.
@@ -38,6 +38,7 @@ Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M17 + reparacione
 ## Estado
 
 - **Funciona:** todo en producción (Fly.io).
+- **16/10/2026 (Fase B):** **M18**, aditiva: `whatsapp_salientes` (cola de salida: tipo, texto, `id_origen` UNIQUE para el dedupe, `enviado_en`, `error`).
 - **15/10/2026 (Fase A, sin desplegar):** **M17**, aditiva: `whatsapp_mensajes` (dedupe por wamid + rastro para `deshacer`) y `whatsapp_estado` (`ultimo_entrante`, `pendiente`). No toca filas existentes, así que no sube `_NIVEL_REPARACIONES`. La **M16 queda reservada** para las cuentas de la Fase 5 (ADR-0006).
 - **14/10/2026:** `core/market_data/` se retiró junto con Inversiones (ADR-0007); solo lo usaba la cartera. Las tablas `cartera_*` y sus migraciones (M9–M15) **siguen en `db.py` a propósito**: producción tiene los datos. No borrarlas sin el OK de Franco.
 

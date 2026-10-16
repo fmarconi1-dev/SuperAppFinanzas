@@ -4,12 +4,13 @@ Código que corre en **Google Apps Script**, no en Fly. Vive en el repo para ver
 
 | Archivo | Qué es |
 |---|---|
-| `Codigo.gs` | El script: briefing (Gmail → SuperApp) y webhook (SuperApp → Calendar/Tasks). |
+| `Reenvio.gs` | Reenvío de los briefings de Gemini (Gmail → SuperApp → WhatsApp). **Reemplaza al script de CallMeBot.** Funciona solo. |
+| `Codigo.gs` | Agenda: webhook SuperApp → Calendar/Tasks. Se suma al **mismo proyecto** que `Reenvio.gs` cuando lleguen los comandos `evento:` / `tarea:` / `agenda`. |
 | `appsscript.json` | Manifiesto: zona horaria Buenos Aires, servicio avanzado **Tasks**, web app. |
 
 ## Instalación (una sola vez)
 
-1. En [script.google.com](https://script.google.com) creá un proyecto nuevo y pegá `Codigo.gs`.
+1. En el proyecto de Apps Script del reenvío (el que hoy usa CallMeBot), agregá un archivo `Codigo.gs` y pegá el de acá. `Reenvio.gs` ya tiene que estar (ver "Mudanza desde CallMeBot").
 2. **Configuración del proyecto** → tildá "Mostrar el archivo de manifiesto appsscript.json en el editor" y reemplazá su contenido por `appsscript.json` de acá. Eso fija la zona horaria y activa Tasks.
 3. **Configuración del proyecto → Propiedades del script**:
 
@@ -78,8 +79,8 @@ Busca **todos** los mails con asunto `[Briefing-WhatsApp]` de las últimas 24 h 
 Hasta ahora estos mails los reenviaba por CallMeBot un script con **la misma función** `reenviarBriefingAWhatsApp`, la misma etiqueta `WA-Enviado` y el mismo filtro. Este archivo es su reemplazo directo. **Orden, para no quedarte sin briefings ni recibirlos dos veces:**
 
 1. **Primero** tiene que estar desplegado en la SuperApp `POST /api/briefing` (Fase B, pasos 1–2) y cargado `SUPERAPP_API_TOKEN` en `fly secrets`. **Hasta entonces, el script de CallMeBot sigue como está.**
-2. En el proyecto de Apps Script donde hoy está el de CallMeBot: **reemplazá todo el código** por `Codigo.gs` y el manifiesto por `appsscript.json` (pasos 1–2 de la instalación).
-3. Cargá las Propiedades del script `SUPERAPP_URL` y `SUPERAPP_TOKEN` (paso 3). Para el reenvío no hace falta más; `SECRETO_WEBHOOK` y la implementación como aplicación web son para los comandos de agenda.
+2. En el proyecto de Apps Script donde hoy está el de CallMeBot: **borrá todo el código y pegá `Reenvio.gs`**. El manifiesto no hace falta tocarlo para el reenvío.
+3. **Configuración del proyecto → Propiedades del script**: `SUPERAPP_URL` = `https://superapp-finanzas.fly.dev` y `SUPERAPP_TOKEN` = el mismo valor que `SUPERAPP_API_TOKEN` en Fly. Para el reenvío no hace falta más: `Codigo.gs`, `SECRETO_WEBHOOK` y la implementación como aplicación web son para la agenda, más adelante.
 4. El disparador cada 10 minutos que ya tenías **sigue sirviendo**, porque llama a la misma función. Si querés dejarlo prolijo, corré `instalarDisparadores`.
 5. Probalo con el próximo mail. Si llegó por el Secretario, CallMeBot ya quedó apagado: su código no está más en el proyecto.
 6. **La clave de CallMeBot (`API_KEY`) se pegó en un chat el 16/10: tomala como quemada.** Ya no se usa, así que no hay que cargarla en ningún lado.

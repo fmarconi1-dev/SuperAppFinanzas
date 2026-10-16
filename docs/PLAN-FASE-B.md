@@ -85,6 +85,8 @@ Las fechas y horas se validan con el mismo rigor que en la Fase A: una fecha imp
 
 ## Orden de trabajo
 
+> **Progreso (16/10/2026):** ✅ 1 y 2 hechos en código (M18, cola de salida, `POST /api/briefing` con `tipo` e `id`), con tests; **sin desplegar**. ✅ El reenvío del Apps Script quedó en `integraciones/google-apps-script/Reenvio.gs` (reemplazo del script de CallMeBot). Falta: deploy + secreto, pegar `Reenvio.gs`, y los comandos de agenda (paso 3).
+
 1. **M18 + cola de salida + entrega de pendientes** (sin esto, nada de lo que el bot inicia es gratis seguro).
 2. **`/api/briefing` con `tipo`** (briefing con finanzas; cierre tal cual).
 3. **Apps Script:** reenvío de los dos asuntos, instalación (`integraciones/google-apps-script/README.md`) y comandos `evento:` / `tarea:` / `agenda`.

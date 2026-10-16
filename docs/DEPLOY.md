@@ -75,6 +75,20 @@ Secretos de WhatsApp (ver `.env.example` y `docs/WHATSAPP-CANAL.md`, Parte 3). S
 fly secrets set WHATSAPP_TOKEN=... WHATSAPP_PHONE_NUMBER_ID=... WHATSAPP_APP_SECRET=... WHATSAPP_VERIFY_TOKEN=... WHATSAPP_NUMERO_AUTORIZADO=549... SUPERAPP_DEFAULT_USER=<tu usuario> -a superapp-finanzas
 ```
 
+### Fase B — briefings por WhatsApp
+
+Un secreto más, para que el Apps Script pueda mandar los briefings a `POST /api/briefing`:
+
+```powershell
+fly secrets set SUPERAPP_API_TOKEN=<openssl rand -hex 32> -a superapp-finanzas
+```
+
+El mismo valor va en las Propiedades del script como `SUPERAPP_TOKEN`. Chequeo después del deploy (tiene que dar **401**, no 404 ni 503):
+
+```powershell
+curl.exe -s -X POST -H "Content-Type: application/json" -d "{}" https://superapp-finanzas.fly.dev/api/briefing
+```
+
 ## Pendiente
 - [ ] Dominio FreeDomain apuntando al deploy.
 - [x] `requirements.lock` (pip freeze de build conocida-buena) para builds reproducibles. **Hecho el 27/8/2026.** El `Dockerfile` ya lo usaba si existía, así que no hubo que tocar el deploy. Ojo con una cosa al regenerarlo: ese día `pip` resolvía `pandas>=2.0.0` como **pandas 3.0.5**, un salto de major contra el que la suite nunca corrió, así que el lock se generó con los topes `pandas<3` / `numpy<2.3` y quedó en **pandas 2.3.3**. Verificado corriendo la suite completa en un venv de Python 3.11 con esos pines exactos: **679 passed**. Instrucciones de regeneración en la cabecera del propio archivo.

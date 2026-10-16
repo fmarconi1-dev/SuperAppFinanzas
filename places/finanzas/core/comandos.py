@@ -444,36 +444,53 @@ def deshacer(conn: sqlite3.Connection, *, user_id: int, ahora: datetime) -> Resp
     )
 
 
-def resumen_mes(conn: sqlite3.Connection, *, user_id: int, hoy: date) -> str:
-    """Gastos e ingresos del mes con la **misma fórmula que el dashboard**.
+@dataclass
+class TotalesMes:
+    gastos: float
+    ingresos: float
+    movimientos: int
+    sin_categorizar: float
+
+
+def totales_mes(conn: sqlite3.Connection, *, user_id: int, hoy: date) -> Optional[TotalesMes]:
+    """Totales del mes con la **misma fórmula que el dashboard**. None si no hay movimientos.
 
     "Gastos" = Gasto Fijo + Gasto Variable (no cuenta la Compra Divisa, que es
     ahorro). Esa fórmula deja afuera "Sin categorizar", que es justo donde
     caen las categorías nuevas creadas desde WhatsApp: por eso va aparte, para
-    que ningún peso desaparezca del resumen.
+    que ningún peso desaparezca. Lo usan `resumen` y el briefing (Fase B).
     """
     df = load_transactions(conn, user_id=user_id)
-    cats = load_categorias_full(conn, user_id=user_id)
-    titulo = f"*📊 {hoy:%m/%Y}*"
     if df.empty:
-        return f"{titulo}\nTodavía no hay movimientos."
-
+        return None
+    cats = load_categorias_full(conn, user_id=user_id)
     del_mes = df[(df["fecha"].dt.year == hoy.year) & (df["fecha"].dt.month == hoy.month)]
     tabla = ingresos_vs_gastos_mensual(del_mes, cats)
-    gastos = float(tabla["gastos"].sum()) if not tabla.empty else 0.0
-    ingresos = float(tabla["ingresos"].sum()) if not tabla.empty else 0.0
-    sin_cat = float(del_mes[
-        del_mes["motivo"].map(lambda m: cats.get(m, ("Sin categorizar",))[0] == "Sin categorizar")
-    ]["pasivos"].sum())
+    return TotalesMes(
+        gastos=float(tabla["gastos"].sum()) if not tabla.empty else 0.0,
+        ingresos=float(tabla["ingresos"].sum()) if not tabla.empty else 0.0,
+        movimientos=len(del_mes),
+        sin_categorizar=float(del_mes[
+            del_mes["motivo"].map(lambda m: cats.get(m, ("Sin categorizar",))[0] == "Sin categorizar")
+        ]["pasivos"].sum()),
+    )
+
+
+def resumen_mes(conn: sqlite3.Connection, *, user_id: int, hoy: date) -> str:
+    """Respuesta al comando `resumen`: totales del mes + últimos 5 movimientos."""
+    titulo = f"*📊 {hoy:%m/%Y}*"
+    t = totales_mes(conn, user_id=user_id, hoy=hoy)
+    if t is None:
+        return f"{titulo}\nTodavía no hay movimientos."
 
     lineas = [
         titulo,
-        f"Gastos: {pesos(gastos)}",
-        f"Ingresos: {pesos(ingresos)}",
-        f"Movimientos: {len(del_mes)}",
+        f"Gastos: {pesos(t.gastos)}",
+        f"Ingresos: {pesos(t.ingresos)}",
+        f"Movimientos: {t.movimientos}",
     ]
-    if sin_cat:
-        lineas.append(f"Sin categorizar: {pesos(sin_cat)} (asignales grupo en Configuración)")
+    if t.sin_categorizar:
+        lineas.append(f"Sin categorizar: {pesos(t.sin_categorizar)} (asignales grupo en Configuración)")
 
     ultimas = list_recent(conn, 5, user_id=user_id)
     if ultimas:

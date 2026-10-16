@@ -1,4 +1,4 @@
-"""Arranque de la API (Fase A, ADR-0008). Lo lanza `docker-entrypoint.sh`.
+"""Arranque de la API (Fase A y B, ADR-0008). Lo lanza `docker-entrypoint.sh`.
 
 Escucha en 127.0.0.1:8000 (no se expone: nginx le pasa `/api/`). Si se cae,
 el entrypoint la vuelve a levantar.
@@ -9,8 +9,9 @@ from __future__ import annotations
 import logging
 import os
 
-from core.api.servidor import crear_servidor
+from core.api.servidor import ahora_ar, crear_servidor
 from core.db import init_db
+from places.finanzas.core import briefing
 from places.finanzas.core.comandos import procesar
 
 
@@ -18,12 +19,16 @@ def _procesar(conn, texto: str, user_id: int):
     return procesar(conn, texto, user_id=user_id)
 
 
+def _componer(conn, texto: str, tipo: str, user_id: int) -> str:
+    return briefing.componer(conn, texto, tipo, user_id=user_id, hoy=ahora_ar().date())
+
+
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="[api] %(levelname)s %(name)s: %(message)s")
     init_db()
     host = os.environ.get("API_HOST", "127.0.0.1")
     puerto = int(os.environ.get("API_PORT", "8000"))
-    servidor = crear_servidor(host, puerto, procesar=_procesar)
+    servidor = crear_servidor(host, puerto, procesar=_procesar, componer=_componer)
     logging.getLogger("superapp.api").info("Escuchando en %s:%s", host, puerto)
     servidor.serve_forever()
 

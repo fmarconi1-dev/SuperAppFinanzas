@@ -29,7 +29,7 @@
 | Retirar el lugar Inversiones entero (ADR-0007) | ✅ HECHA, en `main` (`e1adc13`, `7a0c139`); **sin desplegar** | Claude (Opus 5.5) | 2026-10-14 |
 | **Enfoque "secretario" (ADR-0008)**: canal decidido (Meta Cloud API, costo cero: `docs/WHATSAPP-CANAL.md`), Apps Script reescrito (`integraciones/google-apps-script/`, **sin instalar ni probar**), plan de la Fase A (`docs/PLAN-FASE-A.md`) | ✅ preparación hecha, **sin commitear** | Claude (Opus 5.5) | 2026-10-14 |
 | **Fase A — gastos por WhatsApp** (`docs/PLAN-FASE-A.md`) | ✅ **CERRADA en producción (15/10/2026)**: `resumen`, carga y `deshacer` probados desde el celular de Franco; costo cero | Claude (Opus 5.5) | 2026-10-15 |
-| **Fase B — briefing + cierre de mercado + agenda** (ADR-0008). Plan: `docs/PLAN-FASE-B.md`. **Los dos briefings (mañana y cierre de las 18:30) los genera Gemini por mail**; la SuperApp los recibe y los manda por WhatsApp | ⬜ **arranca el 16/10/2026** | — | — |
+| **Fase B — briefing + cierre de mercado + agenda** (ADR-0008). Plan: `docs/PLAN-FASE-B.md`. **Los dos briefings (mañana y cierre de las 18:30) los genera Gemini por mail**; la SuperApp los recibe y los manda por WhatsApp | 🔵 **EN CURSO**: pasos 1–2 hechos en código (cola de salida, `/api/briefing`), 495 verdes, **sin desplegar**; `Reenvio.gs` listo para pegar | Claude (Opus 5.5) | 2026-10-16 |
 | **Fase 5 · Paso 0 — Cuentas y perímetro (M16)** | ⏸️ en pausa por ADR-0008 | — | — |
 
 ## ✅ Hecho hasta ahora (resumen; detalle en ROADMAP.md y en el archivo)

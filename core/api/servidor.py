@@ -7,6 +7,7 @@ Escucha en ``127.0.0.1:8000``; nginx le pasa todo lo que empieza con
     GET  /api/whatsapp    → verificación de la suscripción de Meta (hub.challenge)
     POST /api/whatsapp    → mensajes entrantes, firmados por Meta
     GET  /api/privacidad  → política de privacidad (Meta la pide para el modo Live)
+    POST /api/briefing    → briefings de Gemini (Fase B), con Bearer SUPERAPP_API_TOKEN
 
 **Flujo de un mensaje** (el orden importa):
 
@@ -21,19 +22,27 @@ Escucha en ``127.0.0.1:8000``; nginx le pasa todo lo que empieza con
    avisa a Franco por WhatsApp. El dedupe no puede convertir un fallo en
    silencio.
 
-`core/` no importa `places/`: la lógica de los comandos llega inyectada
-(`procesar`), y quien la conecta es `api.py`.
+**Cola de salida (Fase B):** lo que el bot manda por su cuenta (los
+briefings) solo es gratis dentro de la ventana de 24 h desde el último mensaje
+de Franco. Si la ventana está abierta sale en el momento; si no, queda en
+``whatsapp_salientes`` y sale apenas Franco escribe, antes de contestarle.
+No hay un camino pago (ADR-0008).
+
+`core/` no importa `places/`: la lógica de los comandos y del briefing llega
+inyectada (`procesar`, `componer`), y quien la conecta es `api.py`.
 """
 
 from __future__ import annotations
 
+import hmac
 import json
 import logging
+import os
 import queue
 import sqlite3
 import threading
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Callable, Optional
@@ -66,6 +75,18 @@ base de datos, y no se comparten con terceros.</p>
 
 Procesar = Callable[[sqlite3.Connection, str, int], Any]
 Enviar = Callable[[wa.ConfigWhatsApp, str, str], list]
+#: (conexión, texto de Gemini, tipo, user_id) → texto final. `ValueError` si no sirve.
+Componer = Callable[[sqlite3.Connection, str, str, int], str]
+
+#: Meta deja mandar texto gratis hasta 24 h después del último mensaje de
+#: Franco. Se deja un margen para no mandar justo en el borde.
+VENTANA = timedelta(hours=23, minutes=50)
+AVISO_PENDIENTES = "📬 Te guardé esto mientras no hablábamos:"
+
+
+def token_api_desde_entorno() -> Optional[str]:
+    """`SUPERAPP_API_TOKEN`, o None si no está: sin default, la ruta responde 503."""
+    return os.environ.get("SUPERAPP_API_TOKEN", "").strip() or None
 
 
 @dataclass
@@ -94,13 +115,20 @@ class ServidorAPI(ThreadingHTTPServer):
         procesar: Procesar,
         enviar: Enviar = wa.enviar_texto,
         cargar_config: Callable[[], wa.ConfigWhatsApp] = wa.ConfigWhatsApp.desde_entorno,
+        componer: Optional[Componer] = None,
+        cargar_token_api: Callable[[], Optional[str]] = token_api_desde_entorno,
         db_path: Optional[Path] = None,
     ):
         super().__init__(direccion, _Manejador)
         self.procesar = procesar
         self.enviar = enviar
         self.cargar_config = cargar_config
+        self.componer = componer
+        self.cargar_token_api = cargar_token_api
         self.db_path = db_path
+        # Un solo envío de la cola a la vez: si el hilo trabajador entrega
+        # pendientes mientras llega un briefing nuevo, ninguno sale dos veces.
+        self._lock_salida = threading.Lock()
         self.cola: "queue.Queue[_Trabajo]" = queue.Queue()
         self._trabajador = threading.Thread(target=self._trabajar, name="whatsapp", daemon=True)
         self._trabajador.start()
@@ -119,6 +147,9 @@ class ServidorAPI(ThreadingHTTPServer):
 
     def _procesar_uno(self, t: _Trabajo) -> None:
         m, cfg = t.mensaje, t.cfg
+        # Franco acaba de escribir: la ventana de 24 h está abierta. Primero
+        # sale lo que estaba guardado, después la respuesta a su mensaje.
+        self.entregar_pendientes(cfg)
         # Se le pasa al canal el `from` tal como vino; el formato con que Meta
         # acepta el envío (en AR, sin el 9) lo resuelve `wa.enviar_texto`.
         destino = wa.digitos(m.remitente)
@@ -164,6 +195,81 @@ class ServidorAPI(ThreadingHTTPServer):
                          (resultado, wamid))
         finally:
             conn.close()
+
+    # -- cola de salida (Fase B) -------------------------------------------
+
+    def ventana_abierta(self, conn: sqlite3.Connection, ahora: Optional[datetime] = None) -> bool:
+        """¿Franco escribió hace menos de `VENTANA`? Sin ningún mensaje previo, no."""
+        row = conn.execute(
+            "SELECT valor FROM whatsapp_estado WHERE clave = 'ultimo_entrante'").fetchone()
+        if row is None:
+            return False
+        ahora = ahora or ahora_ar()
+        return ahora - datetime.fromisoformat(row["valor"]) < VENTANA
+
+    def encolar_saliente(
+        self, cfg: wa.ConfigWhatsApp, tipo: str, texto: str, id_origen: Optional[str]
+    ) -> dict:
+        """Guarda el mensaje y lo manda si la ventana está abierta.
+
+        Devuelve `{"estado": "enviado" | "en_cola", "id": …}` y, si el mismo
+        `id_origen` ya había llegado, `"repetido": True` sin mandar nada.
+        """
+        with self._lock_salida:
+            conn = connect(self.db_path)
+            try:
+                cur = conn.execute(
+                    "INSERT OR IGNORE INTO whatsapp_salientes (tipo, texto, id_origen, creado_en) "
+                    "VALUES (?, ?, ?, ?)",
+                    (tipo, texto, id_origen, ahora_ar().isoformat()),
+                )
+                if cur.rowcount == 0:
+                    row = conn.execute(
+                        "SELECT id, enviado_en FROM whatsapp_salientes WHERE id_origen = ?",
+                        (id_origen,)).fetchone()
+                    log.info("Briefing repetido (%s): ya estaba, no se manda de nuevo", id_origen)
+                    return {"estado": "enviado" if row["enviado_en"] else "en_cola",
+                            "id": row["id"], "repetido": True}
+                fila = cur.lastrowid
+                if not self.ventana_abierta(conn):
+                    log.info("Ventana de 24 h cerrada: %s #%s queda en cola", tipo, fila)
+                    return {"estado": "en_cola", "id": fila}
+                enviado = self._mandar_saliente(conn, cfg, fila, texto)
+                return {"estado": "enviado" if enviado else "en_cola", "id": fila}
+            finally:
+                conn.close()
+
+    def entregar_pendientes(self, cfg: wa.ConfigWhatsApp) -> int:
+        """Manda en orden lo que quedó en cola. Devuelve cuántos salieron."""
+        with self._lock_salida:
+            conn = connect(self.db_path)
+            try:
+                filas = conn.execute(
+                    "SELECT id, texto FROM whatsapp_salientes WHERE enviado_en IS NULL "
+                    "ORDER BY id").fetchall()
+                salieron = 0
+                for i, f in enumerate(filas):
+                    texto = f"{AVISO_PENDIENTES}\n\n{f['texto']}" if i == 0 else f["texto"]
+                    if not self._mandar_saliente(conn, cfg, f["id"], texto):
+                        break  # el resto espera al próximo mensaje, sin perder el orden
+                    salieron += 1
+                return salieron
+            finally:
+                conn.close()
+
+    def _mandar_saliente(
+        self, conn: sqlite3.Connection, cfg: wa.ConfigWhatsApp, fila: int, texto: str
+    ) -> bool:
+        try:
+            self.enviar(cfg, cfg.numero_autorizado, texto)
+        except wa.CanalNoDisponible as e:
+            log.error("Saliente #%s no salió (código %s): %s — queda en cola", fila, e.codigo, e)
+            conn.execute("UPDATE whatsapp_salientes SET error = ? WHERE id = ?",
+                         (f"{e.codigo}: {e}", fila))
+            return False
+        conn.execute("UPDATE whatsapp_salientes SET enviado_en = ?, error = NULL WHERE id = ?",
+                     (ahora_ar().isoformat(), fila))
+        return True
 
     # -- recepción ---------------------------------------------------------
 
@@ -279,7 +385,11 @@ class _Manejador(BaseHTTPRequestHandler):
             self._json(404, {"ok": False, "error": "no_existe"})
 
     def do_POST(self) -> None:  # noqa: N802
-        if urlsplit(self.path).path != "/api/whatsapp":
+        ruta = urlsplit(self.path).path
+        if ruta == "/api/briefing":
+            self._post_briefing()
+            return
+        if ruta != "/api/whatsapp":
             self._json(404, {"ok": False, "error": "no_existe"})
             return
         # El cuerpo se lee **antes** de cualquier rechazo: si se responde sin
@@ -313,6 +423,60 @@ class _Manejador(BaseHTTPRequestHandler):
 
         self.server.recibir(payload, cfg, user_id)
         self._json(200, {"ok": True})
+
+
+    def _post_briefing(self) -> None:
+        """Briefing de Gemini (vía Apps Script) → se arma y sale por la cola."""
+        largo = int(self.headers.get("Content-Length") or 0)
+        if largo <= 0 or largo > MAX_CUERPO:
+            self._json(400, {"ok": False, "error": "cuerpo_invalido"})
+            return
+        cuerpo = self.rfile.read(largo)  # antes de cualquier rechazo (ver do_POST)
+
+        token = self.server.cargar_token_api()
+        if token is None or self.server.componer is None:
+            log.error("/api/briefing deshabilitado: falta SUPERAPP_API_TOKEN")
+            self._json(503, {"ok": False, "error": "sin_configurar"})
+            return
+        recibido = self.headers.get("Authorization", "").removeprefix("Bearer ").strip()
+        if not hmac.compare_digest(recibido.encode("utf-8"), token.encode("utf-8")):
+            log.warning("POST /api/briefing con token inválido: descartado")
+            self._json(401, {"ok": False, "error": "no_autorizado"})
+            return
+        cfg = self._config()
+        if cfg is None:
+            return
+        try:
+            datos = json.loads(cuerpo)
+            texto = datos["texto"]
+            tipo = datos.get("tipo") or "briefing"
+            id_origen = datos.get("id") or None
+            if not isinstance(texto, str) or not isinstance(tipo, str):
+                raise TypeError("texto y tipo tienen que ser texto")
+        except (json.JSONDecodeError, KeyError, TypeError, AttributeError) as e:
+            self._json(400, {"ok": False, "error": "json_invalido", "detalle": str(e)})
+            return
+        try:
+            user_id = self.server.resolver_usuario(cfg)
+        except LookupError as e:
+            log.error("/api/briefing deshabilitado: %s", e)
+            self._json(503, {"ok": False, "error": "usuario_invalido"})
+            return
+
+        set_current_workspace_id(cfg.workspace_id)
+        conn = connect(self.server.db_path)
+        try:
+            final = self.server.componer(conn, texto, tipo, user_id)
+        except ValueError as e:
+            self._json(400, {"ok": False, "error": "parametros_invalidos", "detalle": str(e)})
+            return
+        finally:
+            conn.close()
+            set_current_workspace_id(None)
+
+        resultado = self.server.encolar_saliente(
+            cfg, tipo, final, str(id_origen) if id_origen else None)
+        self._json(200, {"ok": True, **resultado})
 
 
 def crear_servidor(host: str, puerto: int, **dependencias) -> ServidorAPI:

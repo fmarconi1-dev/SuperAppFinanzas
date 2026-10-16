@@ -26,6 +26,8 @@ Resumen: Puente Google ↔ SuperApp en Apps Script: reenvía el briefing de Gmai
 
 - **16/10/2026:** `reenviarBriefingAWhatsApp` pasa a ser el **reemplazo del reenvío por CallMeBot** (mismo nombre de función, misma etiqueta `WA-Enviado`, mismo filtro): procesa todos los mails pendientes en orden, manda `tipo` (cierre si el asunto dice "Cierre de Mercado"), sin `$`→`ARS` ni bloques de 650, con lock. Se instala **después** de desplegar `/api/briefing`. Sin probar en Google.
 
+- **16/10/2026:** separado en **`Reenvio.gs`** (reenvío de briefings; reemplaza al script de CallMeBot y funciona solo) y **`Codigo.gs`** (agenda, se suma al mismo proyecto después). El reenvío manda también `id` (id del mail en Gmail) para que un reintento no duplique.
+
 ## Proximo paso
 
 Instalarlo siguiendo el `README.md` cuando arranque la Fase B (briefing + Calendar/Tasks), y correr `probarLecturas` / `probarAcortador` desde el editor.
