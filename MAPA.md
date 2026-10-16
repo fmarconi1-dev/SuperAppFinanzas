@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-16 14:44 UTC · 81 archivos · 14,581 LOC -->
+<!-- 2026-10-16 17:46 UTC · 81 archivos · 14,718 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-16 84aa1ce Briefings: se mandan tal cual, sin las finanzas del mes · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-16 364b648 Reenvio.gs: comentario del encabezado al dÃ­a · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -93,8 +93,8 @@ Rama `main` — ultimo commit: 2026-10-16 84aa1ce Briefings: se mandan tal cual,
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (493 tests al 16/10/2026, con la Fase B en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 26 | 4,679 | ok |
-| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 12 | 2,536 | ok |
+| `tests/` | La suite completa (515 tests al 16/10/2026, con la Fase B en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 26 | 4,752 | ok |
+| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 12 | 2,600 | ok |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | ok |
 | `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M18 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,671 | ok |
 | `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa. | 6 | 1,301 | ok |
@@ -162,7 +162,7 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)
 - `BITACORA.md` + `EN-HUMANO.md` (24 commits)
 - `ESTADO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (23 commits)
-- `.mapa/mapa.json` + `MAPA.md` (21 commits)
+- `.mapa/mapa.json` + `MAPA.md` (22 commits)
 - `places/inversiones/cartera/bitacora_de_trabajo.md` + `places/inversiones/cartera/view.py` (21 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/view.py` (17 commits)
 - `BITACORA.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (15 commits)

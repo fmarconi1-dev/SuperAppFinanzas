@@ -336,3 +336,76 @@ def test_hoy_es_buenos_aires_no_utc(db):
     procesar(db, "100, nafta", user_id=UID, ahora=tarde.astimezone(timezone.utc))
     assert _txns(db)[0]["fecha"] == "2026-10-15"
 
+
+
+# ---------------------------------------------------------------- cuentas (16/10/2026)
+
+@pytest.mark.parametrize("texto, monto, cuenta", [
+    ("100-50, compras", 50.0, "100-50"),
+    ("100 - 50, compras", 50.0, "100-50"),
+    ("100+50, compras", 150.0, "100+50"),
+    ("3x2.500, super", 7500.0, "3x2.500"),
+    ("3 × 2500 super", 7500.0, "3×2500"),
+    ("12.000/3, nafta", 4000.0, "12.000/3"),
+    ("1000+500*2, nafta", 2000.0, "1000+500*2"),     # × antes que +
+    ("$100-$50 compras", 50.0, "$100-$50"),
+])
+def test_el_monto_puede_ser_una_cuenta(texto, monto, cuenta):
+    g = parsear_gasto(texto, HOY)
+    assert (g.monto, g.cuenta) == (monto, cuenta)
+    assert g.categoria in {"compras", "super", "nafta"}
+
+
+def test_un_monto_sin_cuenta_no_tiene_cuenta():
+    assert parsear_gasto("2500,50, super", HOY).cuenta is None
+
+
+def test_mas_adelante_sigue_siendo_ingreso():
+    g = parsear_gasto("+100+50, sueldo", HOY)
+    assert (g.monto, g.es_ingreso) == (150.0, True)
+
+
+@pytest.mark.parametrize("texto, motivo", [
+    ("100-150, compras", "mayor que cero"),
+    ("100-100, compras", "mayor que cero"),
+    ("100/0, compras", "divide por cero"),
+    ("1.5*2, compras", "No sé si"),            # cada número sigue las reglas de siempre
+])
+def test_cuentas_que_no_se_cargan(texto, motivo):
+    with pytest.raises(EntradaInvalida, match=motivo):
+        parsear_gasto(texto, HOY)
+
+
+@pytest.mark.parametrize("texto", ["100 - , compras", "100, 50", "100, -50"])
+def test_lo_que_no_es_categoria_se_rechaza(texto):
+    """Antes "100 - 50, compras" tomaba $100 y la categoría "- 50"."""
+    with pytest.raises(EntradaInvalida):
+        parsear_gasto(texto, HOY)
+
+
+def test_dia_barra_mes_es_fecha_solo_si_despues_viene_un_monto():
+    assert parsear_gasto("12/3, 500, compras", HOY).fecha == date(2026, 3, 12)
+    g = parsear_gasto("12/3, compras", HOY)
+    assert (g.fecha, g.monto, g.cuenta) == (HOY, 4.0, "12/3")
+
+
+def test_una_x_seguida_de_letras_no_es_multiplicar():
+    assert parsear_gasto("100, xbox", HOY).categoria == "xbox"
+
+
+def test_la_confirmacion_muestra_la_cuenta(db):
+    r = procesar(db, "100-50, nafta", user_id=UID, ahora=AHORA)
+    assert r.resultado == "cargado" and "$50 en Nafta (15/10) · 100-50" in r.texto
+    assert _txns(db)[0]["pasivos"] == 50.0
+
+
+def test_la_cuenta_sobrevive_a_la_pregunta_de_categoria(db):
+    r = procesar(db, "3x2.500, super", user_id=UID, ahora=AHORA)
+    assert r.resultado == "pendiente" and "$7.500 = 3x2.500" in r.texto
+    r = procesar(db, "si", user_id=UID, ahora=AHORA)
+    assert r.resultado == "cargado" and "· 3x2.500" in r.texto
+    assert _txns(db)[0]["pasivos"] == 7500.0
+
+
+def test_la_ayuda_explica_las_cuentas(db):
+    assert "Cuentas: 100-50" in procesar(db, "ayuda", user_id=UID, ahora=AHORA).texto

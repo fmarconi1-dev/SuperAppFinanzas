@@ -66,6 +66,7 @@ AYUDA = (
     "  • ayer; 4500 | farmacia\n"
     "  • +350000, sueldo  (el + es ingreso)\n"
     "Montos: 25.000 · 2500,50 · $25.000 · 25k\n"
+    "Cuentas: 100-50 · 3x2.500 · 12.000/3 · 1500+800\n"
     "Fechas: hoy · ayer · 13/10 · 13/10/2026\n\n"
     "*Comandos*\n"
     "  • resumen — gastos e ingresos del mes\n"
@@ -93,6 +94,8 @@ class Gasto:
     es_ingreso: bool
     categoria: str
     comentario: Optional[str] = None
+    #: La cuenta tal como la escribió Franco ("100-50"), si el monto era una.
+    cuenta: Optional[str] = None
 
 
 class EntradaInvalida(ValueError):
@@ -113,8 +116,56 @@ _RE_K = re.compile(r"^(\d+(?:,\d{1,3})?)k$")
 _RE_PUNTO_DECIMAL = re.compile(r"^\d+\.\d{1,2}$")
 
 
+#: Signos de cuenta que se aceptan en el monto, con sus equivalentes del
+#: teclado del celular (× ÷ − y la "x" de "3x2.500").
+_OPERADORES = {"+": "+", "-": "-", "−": "-", "*": "*", "x": "*", "×": "*",
+               "/": "/", "÷": "/"}
+_RE_OPERADOR = re.compile(r"\s*([-+*/x×÷−])\s*", re.IGNORECASE)
+
+
 def parsear_monto(crudo: str) -> float:
-    """Monto tipeado en el celular, en formato argentino. Estricto a propósito.
+    """Monto tipeado en el celular: un número o una **cuenta** con + − × ÷.
+
+    Cada número sigue las reglas de `_numero` (formato argentino, estricto).
+    La cuenta respeta la precedencia de siempre (× y ÷ antes que + y −):
+    ``100-50`` = 50 · ``3x2.500`` = 7.500 · ``1000+500*2`` = 2.000.
+    Solo números y esos signos: no se evalúa texto libre. Un resultado de
+    cero o negativo, o una división por cero, se rechazan.
+    """
+    partes = _RE_OPERADOR.split(crudo.strip())
+    if len(partes) == 1:
+        valor = _numero(partes[0])
+    else:
+        if len(partes) % 2 == 0 or any(not partes[i].strip() for i in range(0, len(partes), 2)):
+            raise EntradaInvalida(f"No entendí la cuenta «{crudo.strip()}».")
+        terminos = [_numero(partes[0])]
+        sumas: list[str] = []
+        for i in range(1, len(partes), 2):
+            op, n = _OPERADORES[partes[i].lower()], _numero(partes[i + 1])
+            if op == "*":
+                terminos[-1] *= n
+            elif op == "/":
+                if n == 0:
+                    raise EntradaInvalida(f"La cuenta «{crudo.strip()}» divide por cero.")
+                terminos[-1] /= n
+            else:
+                sumas.append(op)
+                terminos.append(n)
+        valor = terminos[0]
+        for op, n in zip(sumas, terminos[1:]):
+            valor = valor + n if op == "+" else valor - n
+
+    valor = round(valor, 2)
+    if valor <= 0:
+        if len(partes) > 1:
+            raise EntradaInvalida(
+                f"La cuenta «{crudo.strip()}» da {valor:g}: el monto tiene que ser mayor que cero.")
+        raise EntradaInvalida("El monto tiene que ser mayor que cero.")
+    return valor
+
+
+def _numero(crudo: str) -> float:
+    """Un número tipeado en el celular, en formato argentino. Estricto a propósito.
 
     * Punto: solo miles, en grupos de 3 (``25.000``, ``1.250.000``).
     * Coma: decimal (``2500,50``).
@@ -143,10 +194,7 @@ def parsear_monto(crudo: str) -> float:
         )
     else:
         raise EntradaInvalida(f"No entendí el monto «{crudo.strip()}».")
-
-    if valor <= 0:
-        raise EntradaInvalida("El monto tiene que ser mayor que cero.")
-    return round(valor, 2)
+    return valor
 
 
 # ---------------------------------------------------------------------------
@@ -202,11 +250,16 @@ def parsear_fecha(crudo: str, hoy: date) -> date:
 # Tiene que **terminar en dígito** (o k): si no, en "2500, super" la coma
 # separadora quedaba pegada al monto ("2500,"). Con eso, en "2500,50, super"
 # el monto es "2500,50" y la coma siguiente es el separador.
+# Puede ser una **cuenta**: números unidos por + − × ÷ (con o sin espacios).
+# Sin esto, "100 - 50, compras" tomaba $100 y la categoría "- 50".
+_NUM = r"(?:ars)?\s*\$?\s*\d(?:[\d.,]*\d)?k?"
 _RE_MONTO_INICIO = re.compile(
-    r"^\s*(?P<signo>\+)?\s*(?P<monto>(?:ars)?\s*\$?\s*\d(?:[\d.,]*\d)?k?)"
+    rf"^\s*(?P<signo>\+)?\s*(?P<monto>{_NUM}(?:\s*[-+*/x×÷−]\s*{_NUM})*)"
     r"\s*(?:[,;|]\s*|\s+)(?P<resto>.+)$",
     re.IGNORECASE | re.DOTALL,
 )
+#: Una categoría tiene que tener al menos una letra y no empezar con un signo.
+_RE_TIENE_LETRA = re.compile(r"[^\W\d_]")
 _RE_SEPARADOR = re.compile(r"\s*[,;|]\s*")
 
 
@@ -214,21 +267,28 @@ def parsear_gasto(texto: str, hoy: date) -> Gasto:
     """Texto de una carga → `Gasto`. `EntradaInvalida` con el motivo si no se puede."""
     resto = texto.strip()
     fecha = hoy
-    if m := _RE_FECHA_INICIO.match(resto):
+    # Un "12/3" al principio es fecha **solo si después viene un monto**
+    # ("12/3, 500, super"). Si no ("12/3, super"), es la cuenta 12 ÷ 3.
+    m = _RE_FECHA_INICIO.match(resto)
+    if m and _RE_MONTO_INICIO.match(resto[m.end():]):
         fecha = parsear_fecha(m.group(1), hoy)
         resto = resto[m.end():]
 
     m = _RE_MONTO_INICIO.match(resto)
     if not m:
         raise EntradaInvalida("No encontré monto y categoría.")
-    monto = parsear_monto(m.group("monto"))
+    crudo = m.group("monto")
+    monto = parsear_monto(crudo)
     partes = [p for p in _RE_SEPARADOR.split(m.group("resto").strip()) if p]
     if not partes:
         raise EntradaInvalida("Falta la categoría.")
     categoria = " ".join(partes[0].split())
+    if not _RE_TIENE_LETRA.search(categoria) or categoria[0] in "+-*/×÷−=":
+        raise EntradaInvalida(f"«{categoria}» no parece una categoría.")
     comentario = ", ".join(partes[1:]) or None
+    cuenta = "".join(crudo.split()) if _RE_OPERADOR.search(crudo) else None
     return Gasto(fecha=fecha, monto=monto, es_ingreso=bool(m.group("signo")),
-                 categoria=categoria, comentario=comentario)
+                 categoria=categoria, comentario=comentario, cuenta=cuenta)
 
 
 # ---------------------------------------------------------------------------
@@ -315,6 +375,8 @@ def _fecha_corta(f: date, hoy: date) -> str:
 def _confirmacion(txn_id: int, g: Gasto, categoria: str, hoy: date) -> str:
     linea = (f"✅ Cargado #{txn_id}: {pesos(g.monto)} en {categoria} "
              f"({_fecha_corta(g.fecha, hoy)})")
+    if g.cuenta:
+        linea += f" · {g.cuenta}"
     if g.es_ingreso:
         linea += " — ingreso"
     if g.comentario:
@@ -374,6 +436,7 @@ def procesar(
         "es_ingreso": g.es_ingreso,
         "categoria": propuesta,
         "comentario": g.comentario,
+        "cuenta": g.cuenta,
         "creado_en": ahora.isoformat(),
     }), ahora)
     if tipo == "parecida":
@@ -381,7 +444,8 @@ def procesar(
     else:
         pregunta = f"La categoría *{propuesta}* no existe. ¿La creo?"
     return Respuesta(
-        f"{pregunta} ({pesos(g.monto)}, {_fecha_corta(g.fecha, hoy)})\nRespondé *sí* o *no*.", "pendiente"
+        f"{pregunta} ({pesos(g.monto)}{' = ' + g.cuenta if g.cuenta else ''}, "
+        f"{_fecha_corta(g.fecha, hoy)})\nRespondé *sí* o *no*.", "pendiente"
     )
 
 
@@ -411,7 +475,7 @@ def _responder_pendiente(
                          "rechazado")
     g = Gasto(fecha=date.fromisoformat(p["fecha"]), monto=float(p["monto"]),
               es_ingreso=bool(p["es_ingreso"]), categoria=p["categoria"],
-              comentario=p.get("comentario"))
+              comentario=p.get("comentario"), cuenta=p.get("cuenta"))
     txn_id = _insertar(conn, g, g.categoria, user_id)
     return Respuesta(_confirmacion(txn_id, g, g.categoria, hoy), "cargado", txn_id)
 
