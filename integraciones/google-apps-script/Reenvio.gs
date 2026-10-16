@@ -16,7 +16,7 @@
  *   SUPERAPP_TOKEN    el mismo valor que SUPERAPP_API_TOKEN en `fly secrets`
  *
  * Funciona solo, sin `Codigo.gs`. `Codigo.gs` (agenda: Calendar y Tasks) se
- * suma al mismo proyecto más adelante y usa `requerirPropiedad_` de acá.
+ * suma al mismo proyecto más adelante.
  */
 
 const NOMBRE_ETIQUETA = "WA-Enviado";
