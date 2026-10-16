@@ -1,13 +1,13 @@
 # places/finanzas/core/
 
-<!-- huella: 6fd6d31f4088 -->
+<!-- huella: d6f4ffad0e04 -->
 
 Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel.
 
 ## Buscar acá si
 
 - números del dashboard que no cierran → `metrics.py`
-- qué se le suma a un briefing de Gemini (finanzas del mes al de la mañana, nada al cierre) → `briefing.py` (usa `comandos.totales_mes`, lo mismo que `resumen`)
+- un briefing de Gemini que llega distinto de como lo mandó Gemini → `briefing.py` (no le suma nada: los dos tipos salen tal cual)
 - un mensaje de WhatsApp que no se cargó, se cargó mal o pidió confirmación → `comandos.py` (parser de montos y fechas, "¿quisiste decir?", `resumen`, `deshacer`)
 - Previsión vs Realidad por mes → `budget.py`
 - categorías, "sin categorizar", mapping Motivo → Grupo/Subcategoría → `categorizer.py`, `categorias.py`
@@ -32,7 +32,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 ## Estado
 
 - **Funciona:** en producción.
-- **16/10/2026 (Fase B):** `briefing.py` nuevo, puro: `componer` (texto de Gemini + bloque "📊 MIS FINANZAS" al de la mañana; el cierre tal cual). `comandos.totales_mes` extraído de `resumen_mes` para que los dos usen los mismos números. La SuperApp **no** genera ni valida datos de mercado: eso es de Gemini.
+- **16/10/2026 (Fase B):** `briefing.py` nuevo, puro: `componer` valida tipo y texto y lo devuelve **tal cual**. Primero le sumaba un bloque de finanzas al de la mañana; Franco lo sacó el mismo día: *"El briefing es una cosa, mis finanzas son otra"*. `comandos.totales_mes` quedó extraído de `resumen_mes` (lo usa `resumen`). La SuperApp **no** genera ni valida datos de mercado: eso es de Gemini.
 - **15/10/2026 (Fase A, sin desplegar):** `comandos.py` nuevo, puro y sin red: carga de gastos/ingresos por WhatsApp, categorías con "¿quisiste decir?" (prefijo único o difflib ≥ 0,75) y confirmación con vencimiento a los 10 min, `resumen` con la fórmula del dashboard (+ renglón "Sin categorizar"), `deshacer` (solo lo de WhatsApp, 24 h) y `ayuda`. Tests: `tests/test_comandos_whatsapp.py`.
 
 ## Proximo paso

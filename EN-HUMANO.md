@@ -11,11 +11,11 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ## 16 de octubre de 2026 — Tus briefings se mudan al Secretario
 
-**Qué se hizo.** Tus dos resúmenes diarios, el de la mañana y el cierre de mercado, los sigue armando Gemini y te los manda por mail, como siempre. Lo que cambia es el cartero: en vez de CallMeBot, ahora los va a traer el Secretario. Dejé listo el programita que va en tu Google (reemplaza al de CallMeBot) y la parte de la app que los recibe. Al de la mañana le agrega al final cómo vas con tus gastos e ingresos del mes; el cierre de mercado pasa tal cual.
+**Qué se hizo.** Tus dos resúmenes diarios, el de la mañana y el cierre de mercado, los sigue armando Gemini y te los manda por mail, como siempre. Lo que cambia es el cartero: en vez de CallMeBot, ahora los va a traer el Secretario. Dejé listo el programita que va en tu Google (reemplaza al de CallMeBot) y la parte de la app que los recibe. Te llegan **tal cual** los arma Gemini: tus finanzas no se mezclan, para eso le pedís *resumen* cuando quieras.
 
 **El detalle de las 24 horas.** WhatsApp solo deja que el bot te escriba gratis si vos le escribiste en las últimas 24 horas. Si un día no le escribiste, el briefing no se pierde ni se paga: queda guardado y te llega apenas le mandes cualquier cosa, con un aviso de que te lo tenía guardado.
 
-**Para qué te sirve.** Todo por el mismo chat, con tus números del mes incluidos, y sin depender de CallMeBot.
+**Para qué te sirve.** Todo por el mismo chat, sin depender de CallMeBot.
 
 **Qué sigue.** Publicar la app, cargar una clave nueva en Fly y en tu Google, y recién ahí cambiar el programita de CallMeBot por el nuevo. En ese orden, para no quedarte un día sin briefings.
 

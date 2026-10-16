@@ -1,6 +1,6 @@
 # Plan — Fase B: briefing, cierre de mercado y agenda (ADR-0008)
 
-**Objetivo:** que el Secretario, además de cargar gastos (Fase A), **te escriba él**: el briefing de la mañana con tus finanzas del mes, el **cierre de mercado** a la tarde, y que puedas agendar eventos y tareas por WhatsApp.
+**Objetivo:** que el Secretario, además de cargar gastos (Fase A), **te escriba él**: el briefing de la mañana y el **cierre de mercado** a la tarde, **tal cual los arma Gemini**, y que puedas agendar eventos y tareas por WhatsApp.
 
 Mismo canal, mismo costo: **cero** (ADR-0008, `docs/WHATSAPP-CANAL.md`).
 
@@ -12,7 +12,7 @@ Mismo canal, mismo costo: **cero** (ADR-0008, `docs/WHATSAPP-CANAL.md`).
 
 | Cuándo | Qué | Lo genera | Lo trae a WhatsApp |
 |---|---|---|---|
-| A la mañana | Briefing (mail `[Briefing-WhatsApp] Briefing Matutino y Agenda - DD/MM/AAAA`) + al final **📊 Mis finanzas del mes** | Gemini (como hoy) | Nuestro Apps Script → `/api/briefing` |
+| A la mañana | Briefing (mail `[Briefing-WhatsApp] Briefing Matutino y Agenda - DD/MM/AAAA`), **tal cual** | Gemini (como hoy) | Nuestro Apps Script → `/api/briefing` |
 | **18:30**, lunes a viernes | **Cierre de mercado** (mail `[Briefing-WhatsApp] Cierre de Mercado - DD/MM/AAAA`): EE.UU. acciones y Treasuries; Argentina acciones, hard dollar, riesgo país y curva en pesos | **Gemini** (ya lo genera) | Nuestro Apps Script → `/api/briefing` |
 | Cuando escribís `evento: …` / `tarea: …` | ✅ Evento agendado / ✅ Tarea creada (o el error real) | — | Vos → Apps Script |
 | Cuando escribís `agenda` | Eventos de la semana y tareas pendientes | — | Vos → Apps Script |
@@ -53,7 +53,7 @@ Qué se corrigió respecto del de CallMeBot: manda a `POST /api/briefing` con `t
 
 | Archivo | Qué |
 |---|---|
-| `places/finanzas/core/briefing.py` | Puro: texto del mail + tipo → mensaje final. Al `briefing` le suma las finanzas del mes (reusa `comandos.resumen_mes`); al `cierre` no le suma nada |
+| `places/finanzas/core/briefing.py` | Puro: valida el tipo y el texto, y lo devuelve **tal cual**. Decisión de Franco (16/10): *"El briefing es una cosa, mis finanzas son otra"*; las finanzas se piden aparte con `resumen` |
 | `places/finanzas/core/comandos.py` | `evento:`, `tarea:`, `agenda` |
 | `core/api/servidor.py` | `POST /api/briefing` (con `tipo`), cola de salida, entrega de pendientes al recibir un mensaje |
 | `core/api/google.py` | Cliente del Apps Script: `crear_evento`, `crear_tarea`, `resumen_semana`; sigue el 302 y **lee `ok`** |
@@ -88,7 +88,7 @@ Las fechas y horas se validan con el mismo rigor que en la Fase A: una fecha imp
 > **Progreso (16/10/2026):** ✅ 1 y 2 hechos en código (M18, cola de salida, `POST /api/briefing` con `tipo` e `id`), con tests; **sin desplegar**. ✅ El reenvío del Apps Script quedó en `integraciones/google-apps-script/Reenvio.gs` (reemplazo del script de CallMeBot). Falta: deploy + secreto, pegar `Reenvio.gs`, y los comandos de agenda (paso 3).
 
 1. **M18 + cola de salida + entrega de pendientes** (sin esto, nada de lo que el bot inicia es gratis seguro).
-2. **`/api/briefing` con `tipo`** (briefing con finanzas; cierre tal cual).
+2. **`/api/briefing` con `tipo`** (los dos tal cual, sin agregados).
 3. **Apps Script:** reenvío de los dos asuntos, instalación (`integraciones/google-apps-script/README.md`) y comandos `evento:` / `tarea:` / `agenda`.
 4. **Mudanza desde CallMeBot** (ver arriba): con `/api/briefing` ya desplegado, reemplazar el script de CallMeBot por `Codigo.gs`, que lo apaga en el mismo paso. Confirmar que el cierre sale a las **18:30** (desde el 1/11 Wall Street cierra a las 18:00 hora argentina).
 5. Deploy y pruebas reales: un cierre a las 18:30, un briefing a la mañana, un evento y una tarea desde el celular.
@@ -98,7 +98,7 @@ Las fechas y horas se validan con el mismo rigor que en la Fase A: una fecha imp
 ## Tests (gate: suite completa en verde, 0 skipped)
 
 - Cola: ventana abierta → envía; cerrada → encola; el próximo mensaje entrante entrega lo pendiente en orden y lo marca enviado; un fallo de envío queda en `error`, no se pierde.
-- Briefing: el texto llega intacto; el `briefing` lleva el bloque de finanzas igual al `resumen`; el `cierre` no lleva nada agregado; un texto largo se parte en mensajes de 4096 sin cortar renglones.
+- Briefing: el texto llega intacto en los dos tipos, **sin nada agregado** (ni finanzas ni montos); un texto largo se parte en mensajes de 4096 sin cortar renglones.
 - Google: `ok: false` no confirma; el 302 se sigue; `id_solicitud` viaja.
 - Endpoint: sin token → 401; token mal → 401; sin configurar → 503.
 - Costo cero: el test de plantillas cubre los archivos nuevos.

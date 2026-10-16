@@ -7,9 +7,8 @@
  *
  * Toma de Gmail los mails "[Briefing-WhatsApp] Briefing Matutino y Agenda - …"
  * y "[Briefing-WhatsApp] Cierre de Mercado - …", acorta sus links y los manda
- * a `POST /api/briefing`. La SuperApp le suma las finanzas del mes al de la
- * mañana y los manda por WhatsApp (o los guarda hasta que le escribas, por la
- * ventana de 24 h de Meta).
+ * a `POST /api/briefing`. La SuperApp los manda tal cual por WhatsApp (o los
+ * guarda hasta que le escribas, por la ventana de 24 h de Meta).
  *
  * Nada de credenciales en este archivo. Propiedades del script
  * (Configuración del proyecto -> Propiedades del script):

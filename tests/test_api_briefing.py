@@ -59,10 +59,11 @@ def db(tmp_path, monkeypatch):
     conn.close()
 
 
-def test_el_briefing_lleva_las_finanzas_del_mes_al_final(db):
-    final = briefing.componer(db, "Buen día.\r\nAgenda: nada.", "briefing", user_id=1, hoy=HOY)
-    assert final.startswith("Buen día.\nAgenda: nada.\n\n*📊 MIS FINANZAS (10/2026)*")
-    assert "Gastos $10.000 · Ingresos $300.000 · 2 mov." in final
+def test_el_briefing_sale_tal_cual_sin_finanzas(db):
+    """Franco, 16/10/2026: "El briefing es una cosa, mis finanzas son otra"."""
+    final = briefing.componer(db, "Buen día.\r\nAgenda: nada.\n", "briefing", user_id=1, hoy=HOY)
+    assert final == "Buen día.\nAgenda: nada."
+    assert "FINANZAS" not in final and "$" not in final
 
 
 def test_el_cierre_sale_tal_cual(db):
@@ -75,14 +76,6 @@ def test_tipo_desconocido_o_texto_vacio(db):
         briefing.componer(db, "hola", "otro", user_id=1, hoy=HOY)
     with pytest.raises(ValueError, match="vacío"):
         briefing.componer(db, "   ", "briefing", user_id=1, hoy=HOY)
-
-
-def test_sin_movimientos(tmp_path, monkeypatch):
-    _, conn = _base(tmp_path, monkeypatch)
-    try:
-        assert "Todavía no hay movimientos" in briefing.bloque_finanzas(conn, user_id=1, hoy=HOY)
-    finally:
-        conn.close()
 
 
 # ------------------------------------------------------------------ servidor real
@@ -162,10 +155,10 @@ def test_con_la_ventana_abierta_sale_en_el_momento(entorno):
     codigo, r = _briefing(entorno["url"], {"texto": "Buen día", "tipo": "briefing", "id": "m1"})
     assert codigo == 200 and r["ok"] is True and r["estado"] == "enviado"
     (numero, texto), = entorno["enviados"]
-    assert numero == NUMERO and texto.startswith("Buen día\n\n*📊 MIS FINANZAS")
+    assert numero == NUMERO and texto == "Buen día"
 
 
-def test_el_cierre_no_lleva_finanzas(entorno):
+def test_el_cierre_sale_tal_cual(entorno):
     _ultimo_entrante(entorno["db"], timedelta(minutes=5))
     _briefing(entorno["url"], {"texto": "*📈 CIERRE*", "tipo": "cierre"})
     assert entorno["enviados"] == [(NUMERO, "*📈 CIERRE*")]
@@ -222,7 +215,9 @@ def test_si_meta_rechaza_queda_en_cola_con_el_error_y_sale_despues(entorno):
 def test_sin_tipo_es_briefing(entorno):
     _ultimo_entrante(entorno["db"], timedelta(hours=1))
     _briefing(entorno["url"], {"texto": "Buen día"})
-    assert "MIS FINANZAS" in entorno["enviados"][0][1]
+    codigo, r = _briefing(entorno["url"], {"texto": "Otro"})
+    assert codigo == 200 and r["ok"] is True
+    assert [t for _, t in entorno["enviados"]] == ["Buen día", "Otro"]
 
 
 @pytest.mark.parametrize("token, esperado", [(None, 401), ("otro", 401)])

@@ -25,7 +25,7 @@ Estado al escribirlo (15/10/2026): **Fase A cerrada en producción** (el Secreta
 >   - **Mañana:** mail `[Briefing-WhatsApp] Briefing Matutino y Agenda - DD/MM/AAAA` (como hoy).
 >   - **Cierre de mercado, 18:30 de lunes a viernes:** mail `[Briefing-WhatsApp] Cierre de Mercado - DD/MM/AAAA`. Gemini ya lo genera; `docs/PEDIDO-GEMINI-CIERRE.md` es una guía opcional por si lo ajusto.
 > - **Hoy los dos ya me llegan a WhatsApp por CallMeBot**, y llegan a mi mail `fmarconi1@gmail.com` (la misma cuenta del Apps Script). Los quiero **mudar al Secretario** y apagar CallMeBot en el mismo paso, para no recibir todo dos veces. Ver la sección "Mudanza desde CallMeBot" del plan.
-> - **Nuestra parte:** nuestro Apps Script levanta los dos mails (busca `[Briefing-WhatsApp]`; es cierre si el asunto dice "Cierre de Mercado"), acorta los links y los manda a `POST /api/briefing` con `tipo` (`briefing` o `cierre`). Al briefing la SuperApp le suma mis finanzas del mes; al cierre, nada. Los dos salen por WhatsApp.
+> - **Nuestra parte:** nuestro Apps Script levanta los dos mails (busca `[Briefing-WhatsApp]`; es cierre si el asunto dice "Cierre de Mercado"), acorta los links y los manda a `POST /api/briefing` con `tipo` (`briefing` o `cierre`). Los dos salen **tal cual** por WhatsApp: **no se les suman mis finanzas** ("el briefing es una cosa, mis finanzas son otra"; para eso está `resumen`).
 > - **Comandos** `evento:`, `tarea:` y `agenda`, vía el Apps Script.
 > - Todo lo que el bot manda por su cuenta pasa por una **cola de salida**: sale si la ventana de 24 h de Meta está abierta y, si no, espera a mi próximo mensaje. **Nunca plantillas.**
 >

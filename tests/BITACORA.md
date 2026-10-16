@@ -1,8 +1,8 @@
 # tests/
 
-<!-- huella: 157dc8b18e8d -->
+<!-- huella: 9939341103ef -->
 
-Resumen: La suite completa (495 tests al 16/10/2026, con la Fase B en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde.
+Resumen: La suite completa (493 tests al 16/10/2026, con la Fase B en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde.
 
 ## Buscar acá si
 
@@ -31,7 +31,7 @@ Resumen: La suite completa (495 tests al 16/10/2026, con la Fase B en curso) en 
 
 ## Estado
 
-- **16/10/2026:** 495 passed, 0 skipped (Fase B, pasos 1–2: cola de salida y `/api/briefing`).
+- **16/10/2026:** 493 passed, 0 skipped (Fase B, pasos 1–2: cola de salida y `/api/briefing`).
 - **15/10/2026:** 468 passed, 0 skipped (Fase A: +109 tests de WhatsApp, API y contenedor).
 - **Antes:** 359 passed, 0 skipped en local (14/10/2026, tras retirar Inversiones — se fueron ~550 tests de cartera y market_data); en CI salen skipped los oráculos de los CSV.
 

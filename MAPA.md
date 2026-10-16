@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-16 12:28 UTC · 81 archivos · 14,601 LOC -->
+<!-- 2026-10-16 14:22 UTC · 81 archivos · 14,581 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-16 80681bf Apps Script: reemplazo del reenvÃ­o por CallMeBot (Fase B) · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-16 6a0c7f9 Fase B (pasos 1â€“2): cola de salida y POST /api/briefing; Reenvio.gs · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -54,7 +54,7 @@ Rama `main` — ultimo commit: 2026-10-16 80681bf Apps Script: reemplazo del ree
 | el orden de las pestañas o una pestaña entera caída → `home.py` | `places\finanzas/` |
 | el badge grande del modo familiar | `places\finanzas/` |
 | números del dashboard que no cierran → `metrics.py` | `places\finanzas\core/` |
-| qué se le suma a un briefing de Gemini (finanzas del mes al de la mañana, nada al cierre) → `briefing.py` (usa `comandos.totales_mes`, lo mismo que `resumen`) | `places\finanzas\core/` |
+| un briefing de Gemini que llega distinto de como lo mandó Gemini → `briefing.py` (no le suma nada: los dos tipos salen tal cual) | `places\finanzas\core/` |
 | un mensaje de WhatsApp que no se cargó, se cargó mal o pidió confirmación → `comandos.py` (parser de montos y fechas, "¿quisiste decir?", `resumen`, `deshacer`) | `places\finanzas\core/` |
 | Previsión vs Realidad por mes → `budget.py` | `places\finanzas\core/` |
 | categorías, "sin categorizar", mapping Motivo → Grupo/Subcategoría → `categorizer.py`, `categorias.py` | `places\finanzas\core/` |
@@ -93,8 +93,8 @@ Rama `main` — ultimo commit: 2026-10-16 80681bf Apps Script: reemplazo del ree
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (495 tests al 16/10/2026, con la Fase B en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 26 | 4,684 | ok |
-| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 12 | 2,551 | ok |
+| `tests/` | La suite completa (493 tests al 16/10/2026, con la Fase B en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 26 | 4,679 | ok |
+| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 12 | 2,536 | ok |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | ok |
 | `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M18 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,671 | ok |
 | `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa. | 6 | 1,301 | ok |
