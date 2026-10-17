@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-16 17:46 UTC · 81 archivos · 14,718 LOC -->
+<!-- 2026-10-17 10:42 UTC · 81 archivos · 14,718 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-16 364b648 Reenvio.gs: comentario del encabezado al dÃ­a · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-16 f94d0bf WhatsApp: cuentas en el monto (100-50, 3x2.500, 12.000/3) · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -161,8 +161,8 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 - `BITACORA.md` + `ESTADO.md` (26 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)
 - `BITACORA.md` + `EN-HUMANO.md` (24 commits)
+- `.mapa/mapa.json` + `MAPA.md` (23 commits)
 - `ESTADO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (23 commits)
-- `.mapa/mapa.json` + `MAPA.md` (22 commits)
 - `places/inversiones/cartera/bitacora_de_trabajo.md` + `places/inversiones/cartera/view.py` (21 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/view.py` (17 commits)
 - `BITACORA.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (15 commits)

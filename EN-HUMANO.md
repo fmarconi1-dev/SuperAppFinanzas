@@ -9,6 +9,14 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 16 de octubre de 2026 (tarde) — Mudanza hecha
+
+**Qué pasó.** El cierre de mercado de hoy te llegó por el chat del Secretario, tal cual lo armó Gemini. CallMeBot ya no se usa. De paso, el Secretario aprendió a hacer cuentas: podés mandarle `100-50, compras` o `3x2.500, super` y te muestra la cuenta en la confirmación.
+
+**Qué sigue.** Poder agendar eventos y tareas escribiéndole `evento:` o `tarea:`, y pedirle `agenda`.
+
+---
+
 ## 16 de octubre de 2026 — Tus briefings se mudan al Secretario
 
 **Qué se hizo.** Tus dos resúmenes diarios, el de la mañana y el cierre de mercado, los sigue armando Gemini y te los manda por mail, como siempre. Lo que cambia es el cartero: en vez de CallMeBot, ahora los va a traer el Secretario. Dejé listo el programita que va en tu Google (reemplaza al de CallMeBot) y la parte de la app que los recibe. Te llegan **tal cual** los arma Gemini: tus finanzas no se mezclan, para eso le pedís *resumen* cuando quieras.

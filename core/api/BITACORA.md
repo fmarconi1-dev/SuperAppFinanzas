@@ -26,10 +26,10 @@ Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webh
 
 ## Estado
 
-- **16/10/2026 (Fase B, sin desplegar):** `POST /api/briefing` (Bearer `SUPERAPP_API_TOKEN`, `tipo` briefing/cierre, `id` del mail como dedupe) y **cola de salida** (`whatsapp_salientes`, M18): sale si la ventana de 24 h está abierta (margen de 10 min), si no queda en cola y se entrega, con aviso, apenas Franco escribe y antes de contestarle. Un lock evita que el hilo trabajador y un briefing nuevo manden lo mismo dos veces. El armado (`componer`) llega inyectado desde `api.py`. Tests: `tests/test_api_briefing.py`.
+- **16/10/2026 (Fase B, desplegado y probado):** `POST /api/briefing` (Bearer `SUPERAPP_API_TOKEN`, `tipo` briefing/cierre, `id` del mail como dedupe) y **cola de salida** (`whatsapp_salientes`, M18): sale si la ventana de 24 h está abierta (margen de 10 min), si no queda en cola y se entrega, con aviso, apenas Franco escribe y antes de contestarle. Un lock evita que el hilo trabajador y un briefing nuevo manden lo mismo dos veces. El armado (`componer`) llega inyectado desde `api.py` y no agrega nada. Tests: `tests/test_api_briefing.py`. **El cierre de mercado del 16/10 llegó por el Secretario.**
 
 - **15/10/2026:** creado y **desplegado**. Webhook verificado por Meta; la app tuvo que suscribirse a la cuenta de WhatsApp Business (`POST /{waba}/subscribed_apps`): solo estaba suscripta la app de prueba de Meta y por eso no llegaba nada. Primer mensaje real recibido a las 20:50 (`from` = `549…`); la respuesta rebotó con 131030 por mandar con el 9 → corregido (se manda sin el 9).
 
 ## Proximo paso
 
-Fase A cerrada (15/10/2026). Formato real del `from` entrante: **`549…`** (con el 9), visto en los logs del primer mensaje. Lo próximo de esta carpeta llega con la Fase B: `POST /api/briefing` y el puente con el Apps Script.
+Fases A y B (briefings) en producción. Formato real del `from` entrante: **`549…`** (con el 9). Lo próximo de esta carpeta: el cliente del Apps Script para `evento:` / `tarea:` / `agenda` (paso 3 de la Fase B).

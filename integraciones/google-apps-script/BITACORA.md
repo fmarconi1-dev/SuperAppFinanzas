@@ -28,6 +28,8 @@ Resumen: Puente Google ↔ SuperApp en Apps Script: reenvía el briefing de Gmai
 
 - **16/10/2026:** separado en **`Reenvio.gs`** (reenvío de briefings; reemplaza al script de CallMeBot y funciona solo) y **`Codigo.gs`** (agenda, se suma al mismo proyecto después). El reenvío manda también `id` (id del mail en Gmail) para que un reintento no duplique.
 
+- **16/10/2026:** ✅ `Reenvio.gs` **instalado y andando**: reemplazó al script de CallMeBot y el cierre de mercado del 16/10 llegó por el Secretario. `Codigo.gs` (agenda) todavía sin instalar.
+
 ## Proximo paso
 
 Instalarlo siguiendo el `README.md` cuando arranque la Fase B (briefing + Calendar/Tasks), y correr `probarLecturas` / `probarAcortador` desde el editor.
