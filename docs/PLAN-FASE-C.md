@@ -101,6 +101,8 @@ Streamlit corre en el mismo contenedor que la API, así que lee las mismas varia
 ## Orden de trabajo (cada paso desplegable)
 
 > **Progreso (17/10/2026):** ✅ 1 (marca "Secretario", logo nuevo, íconos Material en Finanzas, navegación Inicio/Finanzas) y ✅ 2 (Inicio con KPIs del mes contra el mismo período del anterior y últimos movimientos), sin desplegar. De paso se arregló un error de `resumen` en un mes sin movimientos (`KeyError: 'pasivos'`). Sigue el 3.
+>
+> **Progreso (17/10/2026, más tarde):** ✅ 3 (semana y tareas en el Inicio, caché de 5 min, Actualizar, estados), ✅ 4 (tilde para completar en Google Tasks, solo con `ok: true`) y ✅ 5 (estado del Secretario). Sin desplegar. **Falta el 6:** mirarlo en el navegador, en escritorio y a 375 px, y pulirlo con el checklist de la skill.
 
 1. **Rebranding base:** nombre, títulos, logo, íconos Material, navegación Inicio/Finanzas (Inicio vacío con un "próximamente"). Chico, se ve enseguida.
 2. **Inicio con finanzas:** KPIs del mes con variación, últimos movimientos, estados. Sin Google todavía.

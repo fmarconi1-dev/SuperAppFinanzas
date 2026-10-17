@@ -1,14 +1,15 @@
 # tests/
 
-<!-- huella: dd4f4e0604b6 -->
+<!-- huella: 0b379748da6e -->
 
-Resumen: La suite completa (601 tests al 17/10/2026, con la Fase C en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde.
+Resumen: La suite completa (615 tests al 17/10/2026, con la Fase C en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde.
 
 ## Buscar acá si
 
 - tests que escanean el código fuente: `test_nombres_definidos.py` (AST de names), `test_transacciones_formulario.py` (ramas del form), `test_env_example_sin_secretos.py`
 - los CSV oráculo de Finanzas → `_oraculos.py` (`DIARIO_CSV`/`MENSUAL_CSV`)
 - convención de nombres: `test_backup_*`/`test_db_*`/`test_workspaces_*` → core · el resto → Finanzas
+- agenda en el Inicio (Fase C) → `test_inicio_agenda.py` (semana por día, tareas, y AppTest con cliente falso: completar bien, rechazo de Google, agenda caída, sin configurar)
 - Inicio y marca (Fase C) → `test_inicio.py` (variación contra el mismo período, KPIs = `resumen`, AppTest del Inicio y de la app entera, "Radar Financiero" fuera de la interfaz)
 - agenda por WhatsApp (Fase B) → `test_agenda_whatsapp.py` (intérprete, comandos con cliente falso, y el cliente real contra un **Apps Script de mentira** que redirige con 302 como Google)
 - briefings de Gemini y cola de salida (Fase B) → `test_api_briefing.py` (servidor real; ventana abierta/cerrada/vencida, entrega al escribir, dedupe por id, Meta que rechaza, auth)
@@ -34,7 +35,7 @@ Resumen: La suite completa (601 tests al 17/10/2026, con la Fase C en curso) en 
 
 ## Estado
 
-- **17/10/2026:** 601 passed, 0 skipped (Fase C, pasos 1–2). Antes en el día, 568 (agenda por WhatsApp).
+- **17/10/2026:** 615 passed, 0 skipped (Fase C, pasos 1–5). Antes, 601 (pasos 1–2). Antes en el día, 568 (agenda por WhatsApp).
 - **16/10/2026:** 515 passed, 0 skipped (con las cuentas en el monto); antes, 493 (Fase B, pasos 1–2: cola de salida y `/api/briefing`).
 - **15/10/2026:** 468 passed, 0 skipped (Fase A: +109 tests de WhatsApp, API y contenedor).
 - **Antes:** 359 passed, 0 skipped en local (14/10/2026, tras retirar Inversiones — se fueron ~550 tests de cartera y market_data); en CI salen skipped los oráculos de los CSV.

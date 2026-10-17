@@ -101,6 +101,13 @@ def ultimos_movimientos(conn: sqlite3.Connection, *, user_id: int, n: int = 5) -
     return filas
 
 
+def mensajes_en_cola(conn: sqlite3.Connection) -> int:
+    """Briefings esperando a que Franco le escriba al bot (ventana de 24 h de Meta)."""
+    row = conn.execute(
+        "SELECT COUNT(*) AS n FROM whatsapp_salientes WHERE enviado_en IS NULL").fetchone()
+    return int(row["n"])
+
+
 def saludo(hora: int) -> str:
     if 5 <= hora < 13:
         return "Buen día"

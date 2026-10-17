@@ -75,6 +75,11 @@ class ClienteAgenda:
     def resumen_semana(self, *, desde: Optional[str] = None, hasta: Optional[str] = None) -> dict:
         return self._pedir("resumen_semana", None, desde=desde, hasta=hasta)
 
+    def completar_tarea(self, *, lista_id: str, tarea_id: str,
+                        id_solicitud: Optional[str] = None) -> dict:
+        """Marca la tarea como hecha en Google Tasks (el tilde del Inicio)."""
+        return self._pedir("completar_tarea", id_solicitud, lista_id=lista_id, tarea_id=tarea_id)
+
     # -- transporte ----------------------------------------------------------
 
     def _pedir(self, accion: str, id_solicitud: Optional[str], **campos) -> dict:

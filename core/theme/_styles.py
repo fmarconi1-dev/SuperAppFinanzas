@@ -177,6 +177,60 @@ h3 { font-weight: 600; color: #E4E4E7; }
 }
 
 /* ============================================================
+   2c. Inicio (Fase C): la semana y las tareas pendientes.
+   Contenedores con key → clases .st-key-*; sin clases emotion.
+   ============================================================ */
+
+.st-key-inicio_tareas [data-testid="stCheckbox"] {
+    min-height: 44px;              /* objetivo táctil (celular) */
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--cs-border-soft);
+}
+
+.st-key-inicio_tareas [data-testid="stCheckbox"] label {
+    width: 100%;
+    cursor: pointer;
+}
+
+.cs-dia {
+    margin: 0.9rem 0 0.25rem;
+    color: var(--cs-text-mid);
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.cs-dia .cs-hoy {
+    color: var(--cs-accent-light);
+}
+
+.cs-evento {
+    display: flex;
+    gap: 0.9rem;
+    align-items: baseline;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid var(--cs-border-soft);
+}
+
+.cs-evento .cs-hora {
+    min-width: 6.2rem;
+    color: var(--cs-text-mid);
+    font-family: var(--cs-font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+}
+
+.cs-evento .cs-titulo {
+    color: var(--cs-text);
+}
+
+.cs-evento .cs-extra {
+    color: var(--cs-text-dim);
+}
+
+/* ============================================================
    3. Botones primarios: gradient violet (Cosmic Slate IA accent)
    ============================================================ */
 

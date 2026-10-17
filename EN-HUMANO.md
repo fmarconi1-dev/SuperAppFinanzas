@@ -9,6 +9,16 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 17 de octubre de 2026 (más tarde) — Tu semana y tus pendientes, en el Inicio
+
+**Qué se hizo.** El Inicio ahora también te muestra **los eventos de la semana**, agrupados por día y con hoy destacado, y **tus tareas pendientes** de Google, con las vencidas arriba y marcadas. Tildás una y queda hecha en Google Tasks; si Google no la acepta, el tilde vuelve atrás y te dice por qué. Abajo, una línea te cuenta si hay algún briefing esperando a que le escribas al Secretario.
+
+**Un detalle.** La agenda se guarda 5 minutos para que la pantalla no tarde: si recién agendaste algo por WhatsApp, tocá **Actualizar agenda**.
+
+**Qué sigue.** Publicarlo y mirarlo juntos en la compu y en el celular, para pulir lo que haga falta.
+
+---
+
 ## 17 de octubre de 2026 (noche) — La app pasa a llamarse Secretario
 
 **Qué se hizo.** La app ahora se llama **Secretario**, con un logo nuevo (un globo de chat con un tilde) y los mismos colores de siempre. Arriba hay dos lugares: **Inicio** y **Finanzas**. Inicio es lo primero que ves al entrar: te saluda, te muestra cómo vas en el mes (ingresos menos gastos, gastos, ingresos y cantidad de movimientos) y tus últimos movimientos. La comparación con el mes anterior es justa: contra los mismos días del mes pasado, no contra el mes entero. Finanzas es lo de siempre, con íconos más prolijos en las pestañas.
