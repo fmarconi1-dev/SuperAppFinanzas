@@ -1,6 +1,6 @@
 # core/theme/
 
-<!-- huella: dd478f620354 -->
+<!-- huella: 06b5138f4871 -->
 
 Resumen: Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semántica + template Plotly unificado, ajustes responsive y logo.
 
@@ -26,6 +26,8 @@ Resumen: Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semán
 - Skill `ui-ux-web-moderno` **obligatoria** para tocar esta carpeta (regla de claude.md).
 
 ## Estado
+
+- **17/10/2026 (Fase C):** sección **2c. Inicio** en `_styles.py`: tildes de tareas de 44 px de alto (celular) y clases `.cs-dia` / `.cs-evento` (semana y movimientos del Inicio), todo con tokens `--cs-*`. Logo nuevo de **Secretario** en `assets/logo.svg` (globo de chat con tilde; `_logo.py` no cambió).
 
 - **Funciona:** en producción.
 
