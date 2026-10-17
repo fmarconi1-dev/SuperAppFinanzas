@@ -85,7 +85,7 @@ Las fechas y horas se validan con el mismo rigor que en la Fase A: una fecha imp
 
 ## Orden de trabajo
 
-> **Progreso:** ✅ 1 y 2 (M18, cola de salida, `POST /api/briefing` con `tipo` e `id`). ✅ 4 **Mudanza desde CallMeBot hecha y probada en producción (16/10/2026).** ✅ 3 **en código (17/10/2026)**: `core/api/google.py` (cliente del Apps Script: sigue el 302, lee `ok`, `id_solicitud` = wamid), `places/finanzas/core/agenda.py` (intérprete puro), comandos en `procesar`. Tests: `tests/test_agenda_whatsapp.py`. **Falta:** deploy, publicar `Codigo.gs` como aplicación web y cargar sus dos secretos (paso 5).
+> ✅ **FASE B CERRADA en producción (17/10/2026).** Pasos 1–5 hechos: cola de salida y `/api/briefing` (M18); mudanza desde CallMeBot (`Reenvio.gs`, 16/10); agenda (`core/api/google.py`, `agenda.py`, `Codigo.gs` publicado como aplicación web, 17/10). Franco lo probó punta a punta.
 
 1. **M18 + cola de salida + entrega de pendientes** (sin esto, nada de lo que el bot inicia es gratis seguro).
 2. **`/api/briefing` con `tipo`** (los dos tal cual, sin agregados).

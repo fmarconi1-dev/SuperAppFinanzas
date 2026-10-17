@@ -28,7 +28,7 @@ Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webh
 
 ## Estado
 
-- **17/10/2026 (Fase B, paso 3, sin desplegar):** `google.py` nuevo: cliente del Apps Script de agenda (`crear_evento`, `crear_tarea`, `resumen_semana`). El servidor ahora le pasa a `procesar` el wamid de cada mensaje, que viaja a Google como `id_solicitud` (un reintento de Meta no crea dos eventos). Se configura con `GOOGLE_WORKSPACE_WEBHOOK_URL` y `GOOGLE_WORKSPACE_SECRET`; sin ellas, la agenda queda apagada y lo demás anda igual.
+- **17/10/2026 (Fase B, paso 3, desplegado y probado punta a punta por Franco):** `google.py` nuevo: cliente del Apps Script de agenda (`crear_evento`, `crear_tarea`, `resumen_semana`). El servidor ahora le pasa a `procesar` el wamid de cada mensaje, que viaja a Google como `id_solicitud` (un reintento de Meta no crea dos eventos). Se configura con `GOOGLE_WORKSPACE_WEBHOOK_URL` y `GOOGLE_WORKSPACE_SECRET`; sin ellas, la agenda queda apagada y lo demás anda igual.
 
 - **16/10/2026 (Fase B, desplegado y probado):** `POST /api/briefing` (Bearer `SUPERAPP_API_TOKEN`, `tipo` briefing/cierre, `id` del mail como dedupe) y **cola de salida** (`whatsapp_salientes`, M18): sale si la ventana de 24 h está abierta (margen de 10 min), si no queda en cola y se entrega, con aviso, apenas Franco escribe y antes de contestarle. Un lock evita que el hilo trabajador y un briefing nuevo manden lo mismo dos veces. El armado (`componer`) llega inyectado desde `api.py` y no agrega nada. Tests: `tests/test_api_briefing.py`. **El cierre de mercado del 16/10 llegó por el Secretario.**
 

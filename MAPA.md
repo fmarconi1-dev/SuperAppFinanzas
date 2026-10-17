@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-17 10:54 UTC · 84 archivos · 15,376 LOC -->
+<!-- 2026-10-17 11:09 UTC · 84 archivos · 15,376 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-17 240f560 docs: briefings ya salen por el Secretario (CallMeBot apagado) · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-17 9d48e4b Fase B (paso 3): evento:, tarea: y agenda por WhatsApp · **hay cambios sin commitear**
 
 ## Donde buscar que
 

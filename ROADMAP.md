@@ -67,7 +67,7 @@ La app pasa a ser el secretario personal de Franco: gastos por WhatsApp, agenda 
   - ✅ Prueba de costo cero contra Meta (15/10): texto libre **entregado** sin tarjeta. Lección: el número va en el panel con el 9.
   - ✅ Código + tests (15/10): `core/api/`, `comandos.py`, M17, nginx, entrypoint.
   - ✅ Deploy + secretos + webhook + prueba real desde el celular (15/10): `resumen`, carga y `deshacer` respondidos.
-- 🔵 **Fase B — Briefing + cierre de mercado + agenda.** ✅ **Los dos briefings de Gemini (mañana y cierre de las 18:30) ya llegan por el Secretario** (16/10/2026, CallMeBot apagado), tal cual, por una cola que respeta la ventana de 24 h. ✅ Cuentas en el monto (`100-50`, `3x2.500`). 🟡 `evento:` / `tarea:` / `agenda` vía Apps Script: hechos en código (17/10), falta publicar `Codigo.gs` y desplegar. Plan: `docs/PLAN-FASE-B.md`.
+- ✅ **Fase B — Briefing + cierre de mercado + agenda (cerrada en producción el 17/10/2026).** Los dos briefings de Gemini (mañana y cierre de las 18:30) llegan por el Secretario, tal cual, por una cola que respeta la ventana de 24 h (CallMeBot apagado). `evento:` / `tarea:` / `agenda` vía Apps Script, probados punta a punta. Cuentas en el monto (`100-50`, `3x2.500`). Plan: `docs/PLAN-FASE-B.md`.
 - ⬜ **Fase C — Dashboard "secretario" + rebranding.** Finanzas + eventos de la semana + tareas pendientes (`resumen_semana` del Apps Script), con la skill `ui-ux-web-moderno`.
 - ⬜ **Fase D — Conciliación por lotes.** `GET /api/transacciones` + `POST /api/conciliar`: todo o nada, `dry_run`, backup antes.
 

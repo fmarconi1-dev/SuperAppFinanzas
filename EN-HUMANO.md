@@ -9,6 +9,14 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 17 de octubre de 2026 (tarde) — Etapa B terminada
+
+**Qué quedó funcionando.** El Secretario ya hace todo lo de esta etapa, y lo probaste vos de punta a punta: te trae el briefing de la mañana y el cierre de mercado tal cual los arma Gemini, anota eventos en tu Calendario y tareas en tus Tareas de Google, y te pasa la agenda de la semana cuando se la pedís. Todo por el mismo chat, sin CallMeBot y sin pagar nada.
+
+**Qué sigue.** La etapa C: el tablero nuevo que junte tus finanzas con los eventos de la semana y las tareas pendientes, y el cambio de imagen de la app.
+
+---
+
 ## 17 de octubre de 2026 — El Secretario aprende a agendar
 
 **Qué se hizo.** Ya está programado que le puedas escribir `evento: viernes, 15:00, 16:00, Dentista` y lo anote en tu Google Calendar, `tarea: 25/10, Pagar seguro` y lo anote en tus Tareas de Google, o `agenda` y te pase los eventos de la semana y lo que tenés pendiente. Entiende `mañana`, `pasado mañana`, días de la semana, fechas y horas escritas de varias formas, y siempre te confirma con el día de la semana para que veas que entendió bien. Si Google no lo acepta, te lo dice: nunca te confirma algo que no se agendó.
