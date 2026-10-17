@@ -12,6 +12,7 @@
 | `PLAN-FASE-B.md` | Plan de la Fase B: briefing y cierre de mercado (los genera Gemini por mail), cola de salida por la ventana de 24 h y comandos de agenda. |
 | `PEDIDO-GEMINI-CIERRE.md` | El pedido para pegar en el Apps Script de Gemini: cierre de mercado de las 18:30 (datos, formato, reglas, fuentes). |
 | `PROMPT-INICIO-FASE-B.md` | Prompt para arrancar la Fase B en una sesión nueva. |
+| `PLAN-FASE-C.md` | Plan de la Fase C: tablero "secretario" (finanzas + semana + tareas) y rebranding, con criterios de diseño y decisiones pendientes. |
 | `CRONOGRAMAS-RENTA-FIJA.md` | Fuente de cronogramas de bonos (Docta) y su verificación. |
 | `PROMPT-INICIO-FASE-5.md` | Prompt de arranque de la Fase 5 (ADR-0006). Los de fases anteriores se borraron el 22/9/2026: están en el historial de git. |
 | `archivo/` | Historia de `ESTADO.md` (lo que ya cerró). |

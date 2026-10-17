@@ -68,7 +68,7 @@ La app pasa a ser el secretario personal de Franco: gastos por WhatsApp, agenda 
   - ✅ Código + tests (15/10): `core/api/`, `comandos.py`, M17, nginx, entrypoint.
   - ✅ Deploy + secretos + webhook + prueba real desde el celular (15/10): `resumen`, carga y `deshacer` respondidos.
 - ✅ **Fase B — Briefing + cierre de mercado + agenda (cerrada en producción el 17/10/2026).** Los dos briefings de Gemini (mañana y cierre de las 18:30) llegan por el Secretario, tal cual, por una cola que respeta la ventana de 24 h (CallMeBot apagado). `evento:` / `tarea:` / `agenda` vía Apps Script, probados punta a punta. Cuentas en el monto (`100-50`, `3x2.500`). Plan: `docs/PLAN-FASE-B.md`.
-- ⬜ **Fase C — Dashboard "secretario" + rebranding.** Finanzas + eventos de la semana + tareas pendientes (`resumen_semana` del Apps Script), con la skill `ui-ux-web-moderno`.
+- ⬜ **Fase C — Tablero "secretario" + rebranding.** Pantalla de **Inicio** (la primera al entrar): KPIs del mes (los mismos números que `resumen`), eventos de la semana y tareas pendientes desde el Apps Script (con caché de 5 min y tildar para completar), últimos movimientos y estado del Secretario. Rebranding: nombre, logo, íconos Material, navegación Inicio/Finanzas; el tema Cosmic Slate se extiende. Plan: `docs/PLAN-FASE-C.md`.
 - ⬜ **Fase D — Conciliación por lotes.** `GET /api/transacciones` + `POST /api/conciliar`: todo o nada, `dry_run`, backup antes.
 
 ## ⏸️ Fase 5 — Captura *source-first* del Lugar A (ADR-0006) — aprobada, EN PAUSA por ADR-0008 (su Paso 4, WhatsApp, lo adelanta la Fase A)
