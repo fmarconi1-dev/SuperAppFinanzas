@@ -254,7 +254,13 @@ Los de WhatsApp (`WHATSAPP_*`, `SUPERAPP_DEFAULT_USER`) también: sin ellos el w
    - En el editor del Apps Script → *Ejecuciones*: cada corrida de `reenviarBriefingAWhatsApp` loguea `[briefing|cierre] <asunto> → HTTP <código>`. **401** = `SUPERAPP_TOKEN` no coincide con `SUPERAPP_API_TOKEN`; **503** = falta el secreto en Fly; si no aparece el mail, Gemini no lo mandó o ya tiene la etiqueta `WA-Enviado`.
    - En `fly logs`: `Ventana de 24 h cerrada: … queda en cola` es **normal** si no le escribiste al bot en las últimas 24 h. Sale apenas le mandes cualquier cosa, con el aviso "📬 Te guardé esto…".
    - `Saliente #N no salió (código …)` = Meta lo rechazó; queda en cola con el error y se reintenta con tu próximo mensaje.
-4. Qué pasó con cada mensaje queda en la tabla `whatsapp_mensajes` (`resultado`: cargado, pendiente, rechazado, deshecho, ignorado, error).
+4. **`evento:` / `tarea:` / `agenda` no funcionan:**
+   - "La agenda todavía no está conectada" → faltan `GOOGLE_WORKSPACE_WEBHOOK_URL` o `GOOGLE_WORKSPACE_SECRET` en Fly.
+   - "Google no lo aceptó (no_autorizado)" → `GOOGLE_WORKSPACE_SECRET` no coincide con `SECRETO_WEBHOOK` del Apps Script.
+   - "No pude hablar con Google (… no devolvió JSON …)" → la aplicación web no está publicada con acceso **Cualquier persona**, o la URL no es la `/exec`.
+   - Cambiaste `Codigo.gs` y sigue haciendo lo viejo → falta **Implementar → Gestionar implementaciones → editar → Versión nueva**.
+   - Eventos con la hora corrida → la zona horaria del manifiesto (`appsscript.json`) no es `America/Argentina/Buenos_Aires`.
+5. Qué pasó con cada mensaje queda en la tabla `whatsapp_mensajes` (`resultado`: cargado, pendiente, rechazado, deshecho, ignorado, error).
 
 ---
 

@@ -73,7 +73,8 @@ base de datos, y no se comparten con terceros.</p>
 </body></html>
 """
 
-Procesar = Callable[[sqlite3.Connection, str, int], Any]
+#: (conexión, texto, user_id, wamid) → Respuesta. El wamid viaja a Google como id_solicitud.
+Procesar = Callable[[sqlite3.Connection, str, int, str], Any]
 Enviar = Callable[[wa.ConfigWhatsApp, str, str], list]
 #: (conexión, texto de Gemini, tipo, user_id) → texto final. `ValueError` si no sirve.
 Componer = Callable[[sqlite3.Connection, str, str, int], str]
@@ -163,7 +164,7 @@ class ServidorAPI(ThreadingHTTPServer):
         set_current_workspace_id(cfg.workspace_id)
         conn = connect(self.db_path)
         try:
-            respuesta = self.procesar(conn, m.texto, t.user_id)
+            respuesta = self.procesar(conn, m.texto, t.user_id, m.wamid)
             conn.execute(
                 "UPDATE whatsapp_mensajes SET resultado = ?, transaccion_id = ? WHERE wamid = ?",
                 (respuesta.resultado, respuesta.transaccion_id, m.wamid),

@@ -192,7 +192,7 @@ def entorno(tmp_path, monkeypatch):
 
     srv = crear_servidor(
         "127.0.0.1", 0,
-        procesar=lambda c, t, u: estado["procesar"](c, t, u),
+        procesar=lambda c, t, u, w: estado["procesar"](c, t, u, w),
         enviar=lambda cfg, numero, texto: enviados.append((numero, texto)) or ["w"],
         cargar_config=cargar_config,
         db_path=db_path,
@@ -327,7 +327,7 @@ def test_usuario_inexistente_responde_503(entorno):
 
 
 def test_un_fallo_al_procesar_queda_registrado_y_se_avisa(entorno, caplog):
-    def explota(conn, texto, uid):
+    def explota(conn, texto, uid, wamid):
         raise RuntimeError("bug")
 
     entorno["estado"]["procesar"] = explota

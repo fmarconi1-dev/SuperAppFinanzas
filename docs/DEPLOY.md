@@ -89,6 +89,16 @@ El mismo valor va en las Propiedades del script como `SUPERAPP_TOKEN`. Chequeo d
 curl.exe -s -X POST -H "Content-Type: application/json" -d "{}" https://superapp-finanzas.fly.dev/api/briefing
 ```
 
+### Fase B — agenda (`evento:` / `tarea:` / `agenda`)
+
+Con `Codigo.gs` publicado como aplicación web (`integraciones/google-apps-script/README.md`):
+
+```powershell
+fly secrets set GOOGLE_WORKSPACE_WEBHOOK_URL=<URL /exec> GOOGLE_WORKSPACE_SECRET=<= SECRETO_WEBHOOK> -a superapp-finanzas
+```
+
+Sin estos dos, los comandos de agenda responden que no está conectada y todo lo demás anda igual.
+
 ## Pendiente
 - [ ] Dominio FreeDomain apuntando al deploy.
 - [x] `requirements.lock` (pip freeze de build conocida-buena) para builds reproducibles. **Hecho el 27/8/2026.** El `Dockerfile` ya lo usaba si existía, así que no hubo que tocar el deploy. Ojo con una cosa al regenerarlo: ese día `pip` resolvía `pandas>=2.0.0` como **pandas 3.0.5**, un salto de major contra el que la suite nunca corrió, así que el lock se generó con los topes `pandas<3` / `numpy<2.3` y quedó en **pandas 2.3.3**. Verificado corriendo la suite completa en un venv de Python 3.11 con esos pines exactos: **679 passed**. Instrucciones de regeneración en la cabecera del propio archivo.

@@ -8,15 +8,20 @@ from __future__ import annotations
 
 import logging
 import os
+from typing import Optional
 
+from core.api.google import ClienteAgenda
 from core.api.servidor import ahora_ar, crear_servidor
 from core.db import init_db
 from places.finanzas.core import briefing
 from places.finanzas.core.comandos import procesar
 
 
-def _procesar(conn, texto: str, user_id: int):
-    return procesar(conn, texto, user_id=user_id)
+def _procesar(conn, texto: str, user_id: int, id_mensaje: Optional[str] = None):
+    # La agenda se lee del entorno en cada mensaje: si faltan sus variables,
+    # los comandos de agenda lo dicen y todo lo demás anda igual.
+    return procesar(conn, texto, user_id=user_id, agenda=ClienteAgenda.desde_entorno(),
+                    id_mensaje=id_mensaje)
 
 
 def _componer(conn, texto: str, tipo: str, user_id: int) -> str:

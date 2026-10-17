@@ -31,8 +31,11 @@ import sqlite3
 import unicodedata
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-from typing import Optional
+from typing import Any, Optional
 from zoneinfo import ZoneInfo
+
+from core.api.google import AgendaNoDisponible, AgendaRechazo
+from places.finanzas.core import agenda as ag
 
 from places.finanzas.core.metrics import (
     ingresos_vs_gastos_mensual,
@@ -68,6 +71,11 @@ AYUDA = (
     "Montos: 25.000 · 2500,50 · $25.000 · 25k\n"
     "Cuentas: 100-50 · 3x2.500 · 12.000/3 · 1500+800\n"
     "Fechas: hoy · ayer · 13/10 · 13/10/2026\n\n"
+    "*Agenda*\n"
+    "  • evento: viernes, 15:00, 16:00, Dentista\n"
+    "  • evento: 20/10, Cumple de Juan  (todo el día)\n"
+    "  • tarea: 25/10, Pagar seguro  ·  tarea: Llamar al contador\n"
+    "  • agenda — eventos de la semana y tareas pendientes\n\n"
     "*Comandos*\n"
     "  • resumen — gastos e ingresos del mes\n"
     "  • deshacer — borra lo último que cargaste por acá\n"
@@ -394,8 +402,15 @@ def procesar(
     *,
     user_id: int,
     ahora: Optional[datetime] = None,
+    agenda: Optional[Any] = None,
+    id_mensaje: Optional[str] = None,
 ) -> Respuesta:
-    """Interpreta un mensaje de Franco y, si corresponde, escribe en la base."""
+    """Interpreta un mensaje de Franco y, si corresponde, escribe en la base.
+
+    `agenda` es el cliente del Apps Script (`core.api.google.ClienteAgenda`),
+    o None si no está configurado. `id_mensaje` (el wamid) viaja a Google como
+    `id_solicitud`, para que un reintento de Meta no cree dos eventos.
+    """
     ahora = ahora or ahora_ar()
     hoy = ahora.astimezone(ZONA).date()
     limpio = (texto or "").strip()
@@ -418,6 +433,10 @@ def procesar(
         return deshacer(conn, user_id=user_id, ahora=ahora)
     if clave in SI or clave in NO:
         return Respuesta("No tengo nada pendiente de confirmar.", "rechazado")
+    if m := _RE_COMANDO_AGENDA.match(limpio):
+        return _comando_agenda(m.group(1).lower(), m.group(2), agenda, id_mensaje, hoy)
+    if clave in {"agenda", "semana"}:
+        return _comando_agenda("agenda", "", agenda, id_mensaje, hoy)
 
     try:
         g = parsear_gasto(limpio, hoy)
@@ -447,6 +466,35 @@ def procesar(
         f"{pregunta} ({pesos(g.monto)}{' = ' + g.cuenta if g.cuenta else ''}, "
         f"{_fecha_corta(g.fecha, hoy)})\nRespondé *sí* o *no*.", "pendiente"
     )
+
+
+_RE_COMANDO_AGENDA = re.compile(r"^\s*(evento|tarea|task)\s*:\s*(.*)$", re.IGNORECASE | re.DOTALL)
+
+
+def _comando_agenda(
+    comando: str, cuerpo: str, agenda: Optional[Any], id_mensaje: Optional[str], hoy: date
+) -> Respuesta:
+    """`evento:`, `tarea:` y `agenda`. Confirma **solo** si Google dijo `ok: true`."""
+    if agenda is None:
+        return Respuesta("La agenda todavía no está conectada (falta configurar el Apps Script).",
+                         "rechazado")
+    try:
+        if comando == "evento":
+            ev = ag.parsear_evento(cuerpo, hoy)
+            agenda.crear_evento(**ev, id_solicitud=id_mensaje)
+            return Respuesta(ag.confirmar_evento(ev, hoy), "agendado")
+        if comando in {"tarea", "task"}:
+            ta = ag.parsear_tarea(cuerpo, hoy)
+            agenda.crear_tarea(**ta, id_solicitud=id_mensaje)
+            return Respuesta(ag.confirmar_tarea(ta, hoy), "agendado")
+        return Respuesta(ag.formatear_semana(agenda.resumen_semana(), hoy), "consulta")
+    except ag.AgendaInvalida as e:
+        return Respuesta(f"⚠️ {e}", "rechazado")
+    except AgendaRechazo as e:
+        return Respuesta(f"⚠️ Google no lo aceptó ({e}). No se agendó nada.", "error")
+    except AgendaNoDisponible as e:
+        return Respuesta(f"⚠️ No pude hablar con Google ({e}). No se agendó nada; "
+                         "probá de nuevo en un rato.", "error")
 
 
 def _capitalizar(s: str) -> str:

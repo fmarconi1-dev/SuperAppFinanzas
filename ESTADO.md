@@ -29,7 +29,7 @@
 | Retirar el lugar Inversiones entero (ADR-0007) | ✅ HECHA, en `main` (`e1adc13`, `7a0c139`); **sin desplegar** | Claude (Opus 5.5) | 2026-10-14 |
 | **Enfoque "secretario" (ADR-0008)**: canal decidido (Meta Cloud API, costo cero: `docs/WHATSAPP-CANAL.md`), Apps Script reescrito (`integraciones/google-apps-script/`, **sin instalar ni probar**), plan de la Fase A (`docs/PLAN-FASE-A.md`) | ✅ preparación hecha, **sin commitear** | Claude (Opus 5.5) | 2026-10-14 |
 | **Fase A — gastos por WhatsApp** (`docs/PLAN-FASE-A.md`) | ✅ **CERRADA en producción (15/10/2026)**: `resumen`, carga y `deshacer` probados desde el celular de Franco; costo cero | Claude (Opus 5.5) | 2026-10-15 |
-| **Fase B — briefing + cierre de mercado + agenda** (ADR-0008). Plan: `docs/PLAN-FASE-B.md` | 🔵 **EN CURSO**: los dos briefings de Gemini **ya salen por el Secretario** (cierre del 16/10 probado en producción; CallMeBot apagado). Falta el paso 3: `evento:` / `tarea:` / `agenda` | Claude (Opus 5.5) | 2026-10-16 |
+| **Fase B — briefing + cierre de mercado + agenda** (ADR-0008). Plan: `docs/PLAN-FASE-B.md` | 🔵 **EN CURSO**: briefings por el Secretario ✅ (16/10, en producción). Agenda (`evento:` / `tarea:` / `agenda`) **hecha en código el 17/10**, 568 verdes, **sin desplegar**; falta publicar `Codigo.gs` como aplicación web y cargar `GOOGLE_WORKSPACE_WEBHOOK_URL` + `GOOGLE_WORKSPACE_SECRET` | Claude (Opus 5.5) | 2026-10-17 |
 | **Fase 5 · Paso 0 — Cuentas y perímetro (M16)** | ⏸️ en pausa por ADR-0008 | — | — |
 
 ## ✅ Hecho hasta ahora (resumen; detalle en ROADMAP.md y en el archivo)

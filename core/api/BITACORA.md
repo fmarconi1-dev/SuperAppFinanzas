@@ -1,6 +1,6 @@
 # core/api/
 
-<!-- huella: 8335512705d3 -->
+<!-- huella: d286b993a9fd -->
 
 Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla).
 
@@ -9,6 +9,7 @@ Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webh
 - el bot no contesta, contesta dos veces o un mensaje "se perdió" → `servidor.py` (firma, remitente, dedupe por wamid, cola, `resultado` en `whatsapp_mensajes`)
 - Meta rechaza un envío o aparece un código 131xxx en `fly logs` → `whatsapp_meta.py` (`CanalNoDisponible` con el código; ante un 131030 prueba sin el 9 y con el 9, y si ninguno sirve dice que el número del panel va con el 9)
 - un briefing de Gemini que no llegó, llegó dos veces o llegó tarde → `servidor.py` (`_post_briefing`, `encolar_saliente`, `entregar_pendientes`; la tabla `whatsapp_salientes`)
+- `evento:` / `tarea:` / `agenda` no llegan a Google, o Google contesta raro → `google.py` (`ClienteAgenda`: el 302 de Apps Script, `ok: false` → `AgendaRechazo`, página de login → `AgendaNoDisponible`)
 - configurar el webhook en el panel de Meta (verify token, `hub.challenge`) → `servidor.py` + `docs/WHATSAPP-CANAL.md`
 - qué variables de entorno hacen falta → `ConfigWhatsApp.desde_entorno` (y `.env.example`)
 - la interpretación del texto (montos, categorías, `resumen`, `deshacer`) → **no es acá**: `places/finanzas/core/comandos.py`
@@ -22,9 +23,12 @@ Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webh
 - **Un solo hilo trabajador** a propósito: un "sí" nunca se adelanta al gasto que confirma, y no compiten dos escrituras. Los contextvars arrancan vacíos en ese hilo: el workspace se fija ahí, y `user_id` viaja explícito.
 - Si procesar falla, `resultado='error'` + aviso a Franco. El dedupe no puede convertir un fallo en silencio.
 - **La cola de salida no tiene camino pago:** fuera de la ventana el mensaje espera. No "arreglar" un briefing que no llegó mandándolo igual: fuera de la ventana Meta lo rechaza (131047) y queda con su error en la cola.
+- **Apps Script siempre contesta HTTP 200**: el resultado real es `ok`. Y un POST a `/exec` vuelve con 302 a `script.googleusercontent.com`, que `urllib` sigue con GET sin cuerpo (así tiene que ser). Si en vez de JSON llega HTML, es la página de login: la aplicación web no está publicada con acceso "Cualquier persona".
 - Los estados `failed` que manda Meta se loguean con el código: ahí aparecería tarde un 131042 (pago) o un 131047 (ventana cerrada).
 
 ## Estado
+
+- **17/10/2026 (Fase B, paso 3, sin desplegar):** `google.py` nuevo: cliente del Apps Script de agenda (`crear_evento`, `crear_tarea`, `resumen_semana`). El servidor ahora le pasa a `procesar` el wamid de cada mensaje, que viaja a Google como `id_solicitud` (un reintento de Meta no crea dos eventos). Se configura con `GOOGLE_WORKSPACE_WEBHOOK_URL` y `GOOGLE_WORKSPACE_SECRET`; sin ellas, la agenda queda apagada y lo demás anda igual.
 
 - **16/10/2026 (Fase B, desplegado y probado):** `POST /api/briefing` (Bearer `SUPERAPP_API_TOKEN`, `tipo` briefing/cierre, `id` del mail como dedupe) y **cola de salida** (`whatsapp_salientes`, M18): sale si la ventana de 24 h está abierta (margen de 10 min), si no queda en cola y se entrega, con aviso, apenas Franco escribe y antes de contestarle. Un lock evita que el hilo trabajador y un briefing nuevo manden lo mismo dos veces. El armado (`componer`) llega inyectado desde `api.py` y no agrega nada. Tests: `tests/test_api_briefing.py`. **El cierre de mercado del 16/10 llegó por el Secretario.**
 

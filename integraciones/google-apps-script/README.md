@@ -5,7 +5,7 @@ Código que corre en **Google Apps Script**, no en Fly. Vive en el repo para ver
 | Archivo | Qué es |
 |---|---|
 | `Reenvio.gs` | Reenvío de los briefings de Gemini (Gmail → SuperApp → WhatsApp). **Reemplaza al script de CallMeBot.** Funciona solo. |
-| `Codigo.gs` | Agenda: webhook SuperApp → Calendar/Tasks. Se suma al **mismo proyecto** que `Reenvio.gs` cuando lleguen los comandos `evento:` / `tarea:` / `agenda`. |
+| `Codigo.gs` | Agenda: webhook SuperApp → Calendar/Tasks, para los comandos `evento:` / `tarea:` / `agenda`. Va en el **mismo proyecto** que `Reenvio.gs` y se publica como aplicación web. |
 | `appsscript.json` | Manifiesto: zona horaria Buenos Aires, servicio avanzado **Tasks**, web app. |
 
 ## Instalación (una sola vez)
@@ -26,7 +26,8 @@ Código que corre en **Google Apps Script**, no en Fly. Vive en el repo para ver
 5. **Implementar → Nueva implementación → Aplicación web**: ejecutar como *yo*, acceso *cualquier persona*. Copiá la URL `/exec` → va a Fly como `GOOGLE_WORKSPACE_WEBHOOK_URL`.
    - "Cualquier persona" es necesario para que Fly pueda llamarla sin login de Google. La protección es `SECRETO_WEBHOOK`.
    - Cada cambio de código requiere **Implementar → Gestionar implementaciones → editar → versión nueva**; si no, la URL sigue sirviendo la versión vieja.
-6. Corré a mano `instalarDisparadores` (reenvío de briefings cada 10 minutos).
+6. El disparador del reenvío (cada 10 minutos) ya existe si migraste desde CallMeBot; si no, corré a mano `instalarDisparadores`.
+7. En Fly: `fly secrets set GOOGLE_WORKSPACE_WEBHOOK_URL=<la URL /exec> GOOGLE_WORKSPACE_SECRET=<el mismo SECRETO_WEBHOOK> -a superapp-finanzas`. Probalo mandándole `agenda` al Secretario.
 
 ## Contrato del webhook (`doPost`)
 
