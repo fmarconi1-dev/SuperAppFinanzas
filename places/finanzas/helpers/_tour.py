@@ -91,7 +91,7 @@ _PANELS = {
             "ruido del ciclo mensual. También editás el **Fondo de Emergencia "
             "(USD)** desde acá."
         ),
-        "hint": "Próxima parada: pestaña **➕ Transacciones**.",
+        "hint": "Próxima parada: pestaña **Transacciones**.",
     },
     "transacciones": {
         "titulo": "💸 Paso 2 de 5 · Transacciones",
@@ -104,7 +104,7 @@ _PANELS = {
             "`5000 + 3200 - 200` por si tenés que sumar varios ítems en una "
             "sola transacción."
         ),
-        "hint": "Próxima parada: pestaña **📒 Diario**.",
+        "hint": "Próxima parada: pestaña **Diario**.",
     },
     "diario": {
         "titulo": "📒 Paso 3 de 5 · Diario",
@@ -114,7 +114,7 @@ _PANELS = {
             "semana o detectar duplicados a primera vista. Cambiá la cantidad "
             "de días con el selector arriba a la derecha."
         ),
-        "hint": "Próxima parada: pestaña **🎯 Mensual**.",
+        "hint": "Próxima parada: pestaña **Mensual**.",
     },
     "mensual": {
         "titulo": "🎯 Paso 4 de 5 · Mensual",
@@ -126,7 +126,7 @@ _PANELS = {
             "para modificar tus presupuestos del mes o copiarlos al año entero "
             "de un toque."
         ),
-        "hint": "Última parada: pestaña **⚙️ Configuración**.",
+        "hint": "Última parada: pestaña **Configuración**.",
     },
     "configuracion": {
         "titulo": "⚙️ Paso 5 de 5 · Configuración",

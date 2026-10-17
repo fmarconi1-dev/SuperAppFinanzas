@@ -1,6 +1,6 @@
 # BITÁCORA — changelog narrativo global
 
-<!-- huella: 574a11725ce1 -->
+<!-- huella: 47d1460691b2 -->
 
 Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías).
 

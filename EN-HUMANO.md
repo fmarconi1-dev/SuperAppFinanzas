@@ -9,6 +9,16 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 17 de octubre de 2026 (noche) — La app pasa a llamarse Secretario
+
+**Qué se hizo.** La app ahora se llama **Secretario**, con un logo nuevo (un globo de chat con un tilde) y los mismos colores de siempre. Arriba hay dos lugares: **Inicio** y **Finanzas**. Inicio es lo primero que ves al entrar: te saluda, te muestra cómo vas en el mes (ingresos menos gastos, gastos, ingresos y cantidad de movimientos) y tus últimos movimientos. La comparación con el mes anterior es justa: contra los mismos días del mes pasado, no contra el mes entero. Finanzas es lo de siempre, con íconos más prolijos en las pestañas.
+
+**De paso.** Encontré y arreglé un error: el primer día de cada mes, antes de cargar nada, pedirle *resumen* al Secretario hacía fallar la respuesta.
+
+**Qué sigue.** Publicarlo y mirarlo en el navegador. Después, sumar al Inicio los eventos de la semana y las tareas pendientes, con tilde para completarlas.
+
+---
+
 ## 17 de octubre de 2026 (tarde) — Etapa B terminada
 
 **Qué quedó funcionando.** El Secretario ya hace todo lo de esta etapa, y lo probaste vos de punta a punta: te trae el briefing de la mañana y el cierre de mercado tal cual los arma Gemini, anota eventos en tu Calendario y tareas en tus Tareas de Google, y te pasa la agenda de la semana cuando se la pedís. Todo por el mismo chat, sin CallMeBot y sin pagar nada.

@@ -30,7 +30,7 @@
 | **Enfoque "secretario" (ADR-0008)**: canal decidido (Meta Cloud API, costo cero: `docs/WHATSAPP-CANAL.md`), Apps Script reescrito (`integraciones/google-apps-script/`, **sin instalar ni probar**), plan de la Fase A (`docs/PLAN-FASE-A.md`) | ✅ preparación hecha, **sin commitear** | Claude (Opus 5.5) | 2026-10-14 |
 | **Fase A — gastos por WhatsApp** (`docs/PLAN-FASE-A.md`) | ✅ **CERRADA en producción (15/10/2026)**: `resumen`, carga y `deshacer` probados desde el celular de Franco; costo cero | Claude (Opus 5.5) | 2026-10-15 |
 | **Fase B — briefing + cierre de mercado + agenda** (ADR-0008). Plan: `docs/PLAN-FASE-B.md` | ✅ **CERRADA en producción (17/10/2026)**: los dos briefings de Gemini llegan por el Secretario (CallMeBot apagado) y `evento:` / `tarea:` / `agenda` funcionan punta a punta (probado por Franco) | Claude (Opus 5.5) | 2026-10-17 |
-| **Fase C — tablero "secretario" + rebranding** (ADR-0008). Plan: `docs/PLAN-FASE-C.md` | ⬜ plan escrito (17/10); **antes de codear, Franco decide** nombre, logo, paleta, Inicio como pantalla principal y completar tareas desde el tablero | — | — |
+| **Fase C — tablero "secretario" + rebranding** (ADR-0008). Plan: `docs/PLAN-FASE-C.md` | 🔵 **EN CURSO**: decisiones tomadas (nombre **Secretario**, logo nuevo, Cosmic Slate, Inicio principal, completar tareas). **Pasos 1–2 hechos en código (17/10)**: marca, logo, íconos Material, navegación Inicio/Finanzas e Inicio con finanzas; 601 verdes; **sin desplegar ni mirar en el navegador**. Sigue el paso 3 (agenda en el Inicio) | Claude (Opus 5.5) | 2026-10-17 |
 | **Fase 5 · Paso 0 — Cuentas y perímetro (M16)** | ⏸️ en pausa por ADR-0008 | — | — |
 
 ## ✅ Hecho hasta ahora (resumen; detalle en ROADMAP.md y en el archivo)

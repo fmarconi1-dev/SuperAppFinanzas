@@ -3,7 +3,7 @@
 Contexto operativo para cualquier Claude (u otro agente) que trabaje acá. Resumen duro; el detalle está en `GUIA-DE-TRABAJO.md`.
 
 ## Qué es este proyecto
-Superapp web personal de Franco para **Finanzas Personales** (ex Mis-Finanzas-App), en un monorepo Streamlit/Python. **Inversiones (cartera + mercado en vivo) se retiró el 14/10/2026 (ADR-0007)**: el código está en el historial de git y las tablas `cartera_*` siguen en la base, quietas — no las borres sin el OK explícito de Franco. Uso personal primero; escalable después. **En producción** (Fly.io); la fase vigente está en `ESTADO.md`.
+**Secretario** (hasta el 17/10/2026 "Superapp de Finanzas" / "Radar Financiero"): app web personal de Franco, su secretario por WhatsApp (ADR-0008) con **Inicio** (el día: finanzas, agenda, tareas) y **Finanzas Personales** (ex Mis-Finanzas-App), en un monorepo Streamlit/Python. **Inversiones (cartera + mercado en vivo) se retiró el 14/10/2026 (ADR-0007)**: el código está en el historial de git y las tablas `cartera_*` siguen en la base, quietas — no las borres sin el OK explícito de Franco. Uso personal primero; escalable después. **En producción** (Fly.io); la fase vigente está en `ESTADO.md`.
 
 **La suite se corre con el Python del venv:** `.venv\Scripts\python.exe -m pytest -q`. `python` a secas agarra la 3.14 del sistema, que no tiene dependencias, y la suite ni siquiera colecta.
 

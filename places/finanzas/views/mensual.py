@@ -158,7 +158,7 @@ def render() -> None:
             )
             st.markdown(
                 "- Elegir otro mes en el selector de arriba.\n"
-                "- Ir a `➕ Transacciones` y cargar la primera del mes."
+                "- Ir a **Transacciones** y cargar la primera del mes."
             )
         return
 
@@ -259,7 +259,7 @@ def _render_editor_previsiones(db_path, anio: int, mes: int) -> None:
 
         if not datos:
             st.info(
-                "Todavía no tenés categorías cargadas. Andá a `⚙️ Configuración` "
+                "Todavía no tenés categorías cargadas. Andá a **Configuración** "
                 "para crear las primeras."
             )
             return

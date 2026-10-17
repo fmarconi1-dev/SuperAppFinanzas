@@ -1,13 +1,12 @@
 <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-  <!-- Fondo circular oscuro -->
-  <circle cx="32" cy="32" r="30" fill="#0e1117"/>
-  <!-- Anillo exterior (radar) -->
-  <circle cx="32" cy="32" r="26" fill="none" stroke="#6ee7b7" stroke-width="2.5" opacity="0.55"/>
-  <!-- Anillo intermedio -->
-  <circle cx="32" cy="32" r="17" fill="none" stroke="#6ee7b7" stroke-width="2" opacity="0.75"/>
-  <!-- Centro lleno -->
-  <circle cx="32" cy="32" r="6" fill="#6ee7b7"/>
-  <!-- Línea de barrido del radar -->
-  <line x1="32" y1="32" x2="55" y2="14"
-        stroke="#6ee7b7" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
+  <!-- Secretario (17/10/2026): un globo de chat (el canal es WhatsApp) con un
+       tilde adentro (lo que el Secretario resuelve). Colores Cosmic Slate:
+       superficie #18181B, borde #27272A, acento violeta #8B5CF6. -->
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="#18181B" stroke="#27272A" stroke-width="2"/>
+  <!-- Globo de chat -->
+  <path d="M17 18h30a5 5 0 0 1 5 5v15a5 5 0 0 1-5 5H30l-8 7v-7h-5a5 5 0 0 1-5-5V23a5 5 0 0 1 5-5z"
+        fill="#8B5CF6"/>
+  <!-- Tilde -->
+  <path d="M23 30.5l5.5 5.5L41 23.5" fill="none" stroke="#F8FAFC" stroke-width="4"
+        stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

@@ -1,4 +1,4 @@
-"""Lugar A — Finanzas Personales (ex Mis-Finanzas-App / Radar Financiero).
+"""Lugar A — Finanzas Personales (ex Mis-Finanzas-App / Radar Financiero, hoy dentro de Secretario).
 
 El contenido es el mismo que la app original: onboarding si faltan categorías
 y las cinco pestañas de siempre. Solo cambió la puerta de entrada (el shell).
@@ -48,12 +48,14 @@ def render() -> None:
         )
         return
 
-    st.title("💰 Radar Financiero")
+    st.title(":material/account_balance_wallet: Finanzas")
     if st.session_state.get("active_workspace_kind") == "familiar":
         workspaces_ui.render_badge(grande=True)
 
     tab_dash, tab_txn, tab_diario, tab_mensual, tab_cfg = st.tabs(
-        ["📊 Dashboard", "➕ Transacciones", "📒 Diario", "🎯 Mensual", "⚙️ Configuración"]
+        [":material/dashboard: Dashboard", ":material/add_circle: Transacciones",
+         ":material/menu_book: Diario", ":material/target: Mensual",
+         ":material/settings: Configuración"]
     )
 
     with tab_dash:

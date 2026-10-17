@@ -1,11 +1,15 @@
-"""Superapp de Finanzas — entry point y shell unificado (Fase 2).
+"""Secretario — entry point y shell unificado.
+
+La app se llamó "Radar Financiero" / "Superapp de Finanzas" hasta el
+17/10/2026, cuando pasó a ser el secretario personal de Franco (ADR-0008,
+Fase C). La app de Fly sigue siendo `superapp-finanzas`: Fly no deja renombrar.
 
 Flow:
   1. init_db + migraciones (idempotente).
-  2. Sin sesión → login (único para toda la superapp).
+  2. Sin sesión → login (único para toda la app).
   3. Con sesión → contextvar de usuario + navegación entre "lugares":
-     🏠 Finanzas Personales (places/finanzas). Inversiones se retiró el 14/10/2026
-     (ADR-0007).
+     Inicio (places/inicio, la pantalla principal) y Finanzas
+     (places/finanzas). Inversiones se retiró el 14/10/2026 (ADR-0007).
 """
 
 from __future__ import annotations
@@ -23,10 +27,12 @@ from core.db import connect, init_db
 from core.theme._responsive import apply_responsive_css
 from core.theme._styles import apply_design_system_css
 from places.finanzas import home as finanzas_home
+from places.inicio import home as inicio_home
 
 st.set_page_config(
-    page_title="Superapp de Finanzas",
-    page_icon="💸",  # emoji en page_icon (no SVG): evita el TypeError de MIME
+    page_title="Secretario",
+    # Ícono de Material (no un SVG: un SVG en page_icon daba un TypeError de MIME).
+    page_icon=":material/task_alt:",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -103,11 +109,17 @@ def main() -> None:
     # Navegación entre lugares (barra superior).
     paginas = [
         st.Page(
+            inicio_home.render,
+            title="Inicio",
+            icon=":material/today:",
+            url_path="inicio",
+            default=True,
+        ),
+        st.Page(
             finanzas_home.render,
             title="Finanzas",
-            icon=":material/home:",
+            icon=":material/account_balance_wallet:",
             url_path="finanzas",
-            default=True,
         ),
     ]
     st.navigation(paginas, position="top").run()

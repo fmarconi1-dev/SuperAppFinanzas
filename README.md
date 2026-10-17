@@ -1,4 +1,6 @@
-# Superapp de Finanzas
+# Secretario (ex Superapp de Finanzas)
+
+> Desde el 17/10/2026 la app se llama **Secretario** (ADR-0008, Fase C): tu secretario personal por WhatsApp y en la web. La app de Fly sigue siendo `superapp-finanzas`.
 
 App web personal que unifica, en un solo lugar y bajo un login único:
 

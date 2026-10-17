@@ -76,7 +76,7 @@ def render() -> None:
             st.markdown(f"### 👋 Hola, {nombre}")
             st.markdown(
                 "Tu radar está esperando datos. **Cargá tu primera transacción** "
-                "desde la pestaña `➕ Transacciones` y los KPIs van a aparecer acá."
+                "desde la pestaña **Transacciones** y los KPIs van a aparecer acá."
             )
             st.caption(
                 "💡 **Tip:** podés usar expresiones aritméticas en el importe — "

@@ -1,6 +1,6 @@
 # places/finanzas/core/
 
-<!-- huella: cb1fe230ffb0 -->
+<!-- huella: 8f77e826c1c8 -->
 
 Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel.
 
@@ -33,6 +33,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 ## Estado
 
 - **Funciona:** en producción.
+- **17/10/2026 (Fase C):** `totales_mes(..., hasta_dia=)` para comparar contra el mismo período del mes anterior (lo usa el Inicio). **Arreglado:** `totales_mes` en un mes sin movimientos (habiendo movimientos en otros meses) tiraba `KeyError: 'pasivos'`, o sea que `resumen` por WhatsApp se rompía el 1° de cada mes antes de cargar nada. Test: `test_resumen_de_un_mes_sin_movimientos_no_se_rompe`. Las pestañas y los textos de ayuda nombran las pestañas sin emoji (ahora son íconos Material).
 - **17/10/2026 (Fase B, paso 3):** `agenda.py` nuevo, puro: `evento: fecha, [hora inicio], [hora fin], título[, descripción]`, `tarea: [fecha], título[, descripción]` y el formato de `agenda`. Las fechas de agenda **sí pueden ser futuras** (al revés que los gastos): `hoy`, `mañana`, `pasado mañana`, días de la semana, `DD/MM` (si ya pasó, es del año que viene), con año (si ya pasó, se rechaza). Horas `15`, `15hs`, `15:30`, `9.30`, rango `9-10:30`. La confirmación muestra el día de la semana. `procesar` recibe el cliente (`agenda`) y el wamid (`id_mensaje`); confirma **solo** si Google dijo `ok: true`.
 - **16/10/2026:** **cuentas en el monto** (`100-50`, `3x2.500`, `12.000/3`, con + − × ÷ y la precedencia de siempre). Solo números y signos, nada de texto libre; cada número sigue las reglas estrictas de `_numero`; resultado ≤ 0 o división por cero se rechazan; la confirmación muestra la cuenta. Arreglado: "100 - 50, compras" tomaba $100 y la categoría "- 50" (ahora una categoría necesita una letra y no puede empezar con un signo). `12/3` al principio es fecha solo si después viene un monto; si no, es 12 ÷ 3.
 - **16/10/2026 (Fase B):** `briefing.py` nuevo, puro: `componer` valida tipo y texto y lo devuelve **tal cual**. Primero le sumaba un bloque de finanzas al de la mañana; Franco lo sacó el mismo día: *"El briefing es una cosa, mis finanzas son otra"*. `comandos.totales_mes` quedó extraído de `resumen_mes` (lo usa `resumen`). La SuperApp **no** genera ni valida datos de mercado: eso es de Gemini.

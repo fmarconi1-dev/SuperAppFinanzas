@@ -82,7 +82,7 @@ def render(user_id: int, fullname: str = "") -> None:
             st.subheader("🚀 Tu punto de partida")
             st.caption(
                 "Estos dos valores los podés cambiar cuando quieras desde "
-                "**⚙️ Configuración**. Ahora sólo nos sirven para arrancar."
+                "**Configuración**. Ahora sólo nos sirven para arrancar."
             )
 
             with st.form("onboarding"):

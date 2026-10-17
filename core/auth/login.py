@@ -139,10 +139,10 @@ def render() -> None:
             <div style="text-align:center; padding: 0.25rem 0 0.5rem 0;">
                 <h1 style="margin: 0.25rem 0 0.25rem; font-size: 2rem;
                            font-weight: 700; letter-spacing: -0.02em;">
-                    Radar Financiero
+                    Secretario
                 </h1>
-                <p style="color: #9aa3b8; font-size: 1rem; margin: 0;">
-                    Llevá el control de tus gastos en serio.
+                <p style="color: var(--cs-text-mid); font-size: 1rem; margin: 0;">
+                    Tus finanzas, tu agenda y tus pendientes, en un solo lugar.
                 </p>
             </div>
             """

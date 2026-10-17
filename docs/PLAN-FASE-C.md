@@ -74,7 +74,10 @@ La agenda se guarda **5 minutos** en caché (`st.cache_data(ttl=300)`) para no l
 - **Sin animaciones de entrada:** con el modelo de rerun de Streamlit se repetirían en cada click.
 - **Probado a 375 px** (celular) además de escritorio.
 
-## Decisiones para Franco (antes de codear)
+## Decisiones — ✅ tomadas por Franco el 17/10/2026
+
+> **Nombre: Secretario.** Logo: lo diseña Claude. Paleta: **se mantiene Cosmic Slate**. **Inicio es la pantalla principal.** **Se completan tareas desde el tablero.** Lo de abajo queda como registro de las opciones.
+
 
 1. **Nombre de la app.** Lo elegís vos. Ideas, por si sirven: "Secretario" (como el bot), "Mi Secretario", o un nombre propio. Va en el título, el login, la pestaña del navegador y el logo.
 2. **Logo:** lo diseño yo (SVG simple, monograma o símbolo, en el color de acento), **o** traés uno.
@@ -96,6 +99,8 @@ La agenda se guarda **5 minutos** en caché (`st.cache_data(ttl=300)`) para no l
 Streamlit corre en el mismo contenedor que la API, así que lee las mismas variables (`GOOGLE_WORKSPACE_WEBHOOK_URL`, `GOOGLE_WORKSPACE_SECRET`): no hay secretos nuevos.
 
 ## Orden de trabajo (cada paso desplegable)
+
+> **Progreso (17/10/2026):** ✅ 1 (marca "Secretario", logo nuevo, íconos Material en Finanzas, navegación Inicio/Finanzas) y ✅ 2 (Inicio con KPIs del mes contra el mismo período del anterior y últimos movimientos), sin desplegar. De paso se arregló un error de `resumen` en un mes sin movimientos (`KeyError: 'pasivos'`). Sigue el 3.
 
 1. **Rebranding base:** nombre, títulos, logo, íconos Material, navegación Inicio/Finanzas (Inicio vacío con un "próximamente"). Chico, se ve enseguida.
 2. **Inicio con finanzas:** KPIs del mes con variación, últimos movimientos, estados. Sin Google todavía.

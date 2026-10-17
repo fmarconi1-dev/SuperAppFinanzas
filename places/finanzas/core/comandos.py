@@ -564,8 +564,14 @@ class TotalesMes:
     sin_categorizar: float
 
 
-def totales_mes(conn: sqlite3.Connection, *, user_id: int, hoy: date) -> Optional[TotalesMes]:
+def totales_mes(
+    conn: sqlite3.Connection, *, user_id: int, hoy: date, hasta_dia: Optional[int] = None
+) -> Optional[TotalesMes]:
     """Totales del mes con la **misma fórmula que el dashboard**. None si no hay movimientos.
+
+    `hasta_dia` corta el mes en ese día (inclusive): sirve para comparar el
+    mes en curso contra **el mismo período** del anterior, no contra el mes
+    entero (el 17/10, octubre lleva 17 días y septiembre 30).
 
     "Gastos" = Gasto Fijo + Gasto Variable (no cuenta la Compra Divisa, que es
     ahorro). Esa fórmula deja afuera "Sin categorizar", que es justo donde
@@ -577,6 +583,13 @@ def totales_mes(conn: sqlite3.Connection, *, user_id: int, hoy: date) -> Optiona
         return None
     cats = load_categorias_full(conn, user_id=user_id)
     del_mes = df[(df["fecha"].dt.year == hoy.year) & (df["fecha"].dt.month == hoy.month)]
+    if hasta_dia is not None:
+        del_mes = del_mes[del_mes["fecha"].dt.day <= hasta_dia]
+    if del_mes.empty:
+        # Hay movimientos, pero no en este mes (el 1° antes de cargar nada, o
+        # el período previo vacío). Sin esto, el filtro de "sin categorizar"
+        # sobre una tabla vacía tiraba KeyError: 'pasivos' (17/10/2026).
+        return TotalesMes(gastos=0.0, ingresos=0.0, movimientos=0, sin_categorizar=0.0)
     tabla = ingresos_vs_gastos_mensual(del_mes, cats)
     return TotalesMes(
         gastos=float(tabla["gastos"].sum()) if not tabla.empty else 0.0,

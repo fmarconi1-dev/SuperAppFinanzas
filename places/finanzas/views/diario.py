@@ -37,7 +37,7 @@ def render() -> None:
             st.markdown(f"### 🗓️ Nada en los últimos {dias} días")
             st.markdown(
                 "Probá ampliar la ventana arriba (subí los días), o si "
-                "olvidaste cargar algo, andá a `➕ Transacciones`."
+                "olvidaste cargar algo, andá a **Transacciones**."
             )
         return
 

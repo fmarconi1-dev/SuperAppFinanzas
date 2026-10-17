@@ -409,3 +409,11 @@ def test_la_cuenta_sobrevive_a_la_pregunta_de_categoria(db):
 
 def test_la_ayuda_explica_las_cuentas(db):
     assert "Cuentas: 100-50" in procesar(db, "ayuda", user_id=UID, ahora=AHORA).texto
+
+
+def test_resumen_de_un_mes_sin_movimientos_no_se_rompe(db):
+    """Hay movimientos en la base, pero no este mes (el 1° antes de cargar nada).
+    Hasta el 17/10/2026 esto tiraba KeyError: 'pasivos'."""
+    insert_transaction(db, fecha=date(2026, 9, 30), motivo="Nafta", pasivos=500, user_id=UID)
+    texto = comandos.resumen_mes(db, user_id=UID, hoy=HOY)
+    assert "Gastos: $0" in texto and "Movimientos: 0" in texto

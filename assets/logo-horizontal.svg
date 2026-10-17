@@ -1,14 +1,13 @@
 <svg viewBox="0 0 220 48" xmlns="http://www.w3.org/2000/svg">
-  <!-- Ícono -->
-  <circle cx="24" cy="24" r="20" fill="#0e1117"/>
-  <circle cx="24" cy="24" r="18" fill="none" stroke="#6ee7b7" stroke-width="2" opacity="0.55"/>
-  <circle cx="24" cy="24" r="11" fill="none" stroke="#6ee7b7" stroke-width="1.5" opacity="0.75"/>
-  <circle cx="24" cy="24" r="4" fill="#6ee7b7"/>
-  <line x1="24" y1="24" x2="40" y2="11"
-        stroke="#6ee7b7" stroke-width="1.5" stroke-linecap="round" opacity="0.85"/>
-  <!-- Wordmark -->
-  <text x="56" y="22" font-family="system-ui, -apple-system, sans-serif"
-        font-size="14" font-weight="700" fill="#e8ecf4">RADAR</text>
-  <text x="56" y="38" font-family="system-ui, -apple-system, sans-serif"
-        font-size="14" font-weight="400" fill="#6ee7b7">FINANCIERO</text>
+  <!-- Ícono: el mismo de logo.svg, a 44 px -->
+  <g transform="translate(2 2) scale(0.6875)">
+    <rect x="2" y="2" width="60" height="60" rx="16" fill="#18181B" stroke="#27272A" stroke-width="2"/>
+    <path d="M17 18h30a5 5 0 0 1 5 5v15a5 5 0 0 1-5 5H30l-8 7v-7h-5a5 5 0 0 1-5-5V23a5 5 0 0 1 5-5z"
+          fill="#8B5CF6"/>
+    <path d="M23 30.5l5.5 5.5L41 23.5" fill="none" stroke="#F8FAFC" stroke-width="4"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <!-- Wordmark (Space Grotesk si está, si no la del sistema) -->
+  <text x="58" y="31" font-family="'Space Grotesk', system-ui, -apple-system, sans-serif"
+        font-size="20" font-weight="700" letter-spacing="-0.4" fill="#E4E4E7">Secretario</text>
 </svg>
