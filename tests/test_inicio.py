@@ -113,7 +113,14 @@ def test_los_kpis_del_inicio_son_los_de_resumen(db):
     assert f"Ingresos: {comandos.pesos(r.actual.ingresos)}" in texto
     assert f"Movimientos: {r.actual.movimientos}" in texto
     assert f"Sin categorizar: {comandos.pesos(r.actual.sin_categorizar)}" in texto
-    assert r.balance == 900_000 - 25_000
+
+
+def test_el_saldo_es_el_de_la_cuenta_como_en_el_dashboard(db):
+    """Franco, 18/10/2026: el número grande es el saldo de la cuenta, el mismo del Dashboard."""
+    from places.finanzas.core.metrics import saldo_cuenta_corriente
+    _cargar(db, date(2026, 9, 3), "Sueldo", ingresos=500_000)        # de otro mes: también cuenta
+    _cargar(db, date(2026, 10, 3), "Supermercado", pasivos=25_000)
+    assert rs.saldo_cuenta(db, user_id=1) == saldo_cuenta_corriente(db, user_id=1) == 475_000
 
 
 def test_ultimos_movimientos_con_signo(db):
@@ -178,13 +185,14 @@ def test_el_inicio_abre_con_movimientos(base):
     at = _inicio(con_movimientos=True)
     assert "Franco" in at.title[0].value
     etiquetas = [m.label for m in at.metric]
-    assert any(e.startswith("Ingresos − gastos") for e in etiquetas)
-    assert {"Gastos", "Ingresos", "Movimientos"} <= set(etiquetas)
+    assert etiquetas[0] == "Saldo de la cuenta"                       # primero y solo, en grande
+    assert [e.split(" de ")[0] for e in etiquetas[1:]] == ["Gastos", "Ingresos", "Movimientos"]
+    assert not any("Ingresos − gastos" in e for e in etiquetas)
 
 
 def test_el_inicio_abre_sin_movimientos(base):
     at = _inicio(con_movimientos=False)
-    assert not at.metric
+    assert [m.label for m in at.metric] == ["Saldo de la cuenta"]     # el saldo se ve igual
     assert any("Todavía no hay movimientos" in i.value for i in at.info)
 
 
@@ -223,3 +231,15 @@ def test_las_pestanas_de_finanzas_usan_iconos_material():
     home = (RAIZ / "places/finanzas/home.py").read_text(encoding="utf-8")
     for nombre in ("Dashboard", "Transacciones", "Diario", "Mensual", "Configuración"):
         assert re.search(rf":material/\w+: {nombre}", home), nombre
+
+
+def test_el_logo_va_centrado_como_imagen_embebida(monkeypatch):
+    """`st.image` lo alineaba a la izquierda de su columna (login del 18/10/2026)."""
+    from core.theme import _logo
+    capturado = []
+    monkeypatch.chdir(RAIZ)
+    monkeypatch.setattr(_logo, "render_html", capturado.append)
+    _logo.render_logo(72)
+    (html_logo,) = capturado
+    assert "justify-content:center" in html_logo
+    assert 'src="data:image/svg+xml;base64,' in html_logo and 'width="72"' in html_logo

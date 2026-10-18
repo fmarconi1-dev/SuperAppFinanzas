@@ -18,6 +18,7 @@ from datetime import date, timedelta
 from typing import Optional
 
 from places.finanzas.core.comandos import TotalesMes, totales_mes
+from places.finanzas.core.metrics import saldo_cuenta_corriente
 from places.finanzas.core.transactions import list_recent
 
 MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
@@ -31,10 +32,6 @@ class ResumenMes:
     actual: TotalesMes
     #: El mismo período del mes anterior; None si ese mes no tuvo movimientos.
     previo: Optional[TotalesMes]
-
-    @property
-    def balance(self) -> float:
-        return self.actual.ingresos - self.actual.gastos
 
     @property
     def mes(self) -> str:
@@ -89,6 +86,16 @@ def resumen_del_mes(conn: sqlite3.Connection, *, user_id: int, hoy: date) -> Opt
     if previo is not None and previo.movimientos == 0:
         previo = None
     return ResumenMes(hoy=hoy, actual=actual, previo=previo)
+
+
+def saldo_cuenta(conn: sqlite3.Connection, *, user_id: int) -> float:
+    """Lo que hay hoy en la cuenta: saldo inicial + todo lo que entró − todo lo que salió.
+
+    Es **el mismo número** que "Saldo cuenta corriente" del Dashboard de
+    Finanzas (`metrics.saldo_cuenta_corriente`). Franco lo pidió así el
+    18/10/2026: el número grande del Inicio es el saldo, no ingresos − gastos.
+    """
+    return saldo_cuenta_corriente(conn, user_id=user_id)
 
 
 def ultimos_movimientos(conn: sqlite3.Connection, *, user_id: int, n: int = 5) -> list[dict]:

@@ -1,8 +1,8 @@
 # places/inicio/
 
-<!-- huella: fb175930ef87 -->
+<!-- huella: 45c13f01fd29 -->
 
-Resumen: Lugar Inicio — la pantalla principal de Secretario (Fase C, ADR-0008): saludo, finanzas del mes contra el mismo período del anterior, la semana y las tareas de Google (con tilde para completarlas), últimos movimientos y estado del Secretario.
+Resumen: Lugar Inicio — la pantalla principal de Secretario (Fase C, ADR-0008): saludo, **saldo de la cuenta** en grande, gastos/ingresos/movimientos del mes contra el mismo período del anterior, la semana y las tareas de Google (con tilde para completarlas), últimos movimientos y estado del Secretario.
 
 ## Buscar acá si
 
@@ -16,6 +16,7 @@ Resumen: Lugar Inicio — la pantalla principal de Secretario (Fase C, ADR-0008)
 - **Comparar contra el mismo período, no contra el mes entero:** el 17/10, octubre lleva 17 días y septiembre tuvo 30. Contra septiembre completo, siempre parecería que se gasta menos. `totales_mes(..., hasta_dia=)` corta el mes.
 - **El delta de `st.metric` va con "-" ASCII**, no con el "−" tipográfico: Streamlit decide la flecha y el color por el primer carácter, y con "−" pintaba una baja como suba.
 - Gastos usa `delta_color="inverse"`: gastar más es malo.
+- **El saldo grande es el de la cuenta, no ingresos − gastos del mes** (Franco, 18/10/2026). Tiene que coincidir con "Saldo cuenta corriente" del Dashboard: test `test_el_saldo_es_el_de_la_cuenta_como_en_el_dashboard`.
 - Sin categorías todavía (usuario nuevo), el Inicio muestra la bienvenida de Finanzas, igual que antes.
 - **La agenda se guarda 5 minutos** (`st.cache_data`): un evento recién creado por WhatsApp aparece al tocar **Actualizar agenda** o a los 5 minutos. Los errores no se cachean.
 - **Una tarea se tacha solo si Google confirma.** El tilde llama a `completar_tarea` en el callback; si Google rechaza, el callback vuelve a poner el checkbox en `False` y deja el error para mostrarlo. En el callback no se usan contextvars (premortem #5): el cliente viaja en `args`.
@@ -25,6 +26,7 @@ Resumen: Lugar Inicio — la pantalla principal de Secretario (Fase C, ADR-0008)
 
 ## Estado
 
+- **18/10/2026 (correcciones de Franco tras verlo publicado):** el número grande es el **saldo de la cuenta** (`rs.saldo_cuenta` = `metrics.saldo_cuenta_corriente`, el mismo del Dashboard), solo en su bloque; debajo, gastos, ingresos y movimientos del mes. Se fue "Ingresos − gastos". Sin marco doble (los contenedores no llevan borde; el acento violeta va en la tarjeta del saldo). Mirado en el navegador local (escritorio y 375 px) con una base de prueba.
 - **17/10/2026 (Fase C, pasos 3–5, sin desplegar):** semana y tareas desde `resumen_semana` (caché 5 min, **Actualizar agenda**, estados de carga, vacío, error con **Reintentar** y sin configurar), tilde para completar en Google Tasks, y renglón de estado del Secretario (mensajes en cola + agenda conectada). Tests: `tests/test_inicio_agenda.py`.
 - **17/10/2026 (Fase C, pasos 1–2, sin desplegar):** creado. Inicio es la página default de `app.py`. Tests: `tests/test_inicio.py` (lógica, igualdad con `resumen`, AppTest con y sin movimientos, la app abre en Inicio, marca "Secretario"). **No se miró en un navegador todavía.**
 

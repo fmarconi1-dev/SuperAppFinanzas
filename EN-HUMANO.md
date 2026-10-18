@@ -9,6 +9,14 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 18 de octubre de 2026 — Ajustes después de verlo publicado
+
+**Qué cambió.** Arriba del Inicio ahora está tu **saldo**, grande y solo en su bloque: es el mismo saldo del Dashboard de Finanzas, lo que tenés hoy en la cuenta. Debajo, los gastos, los ingresos y la cantidad de movimientos del mes. El logo ahora es **un moño de secretario**, y aparece centrado en la pantalla de entrada. Lo miré en la compu y en tamaño celular antes de dártelo.
+
+**Qué sigue.** Publicarlo y seguir con los ajustes que veas.
+
+---
+
 ## 17 de octubre de 2026 (más tarde) — Tu semana y tus pendientes, en el Inicio
 
 **Qué se hizo.** El Inicio ahora también te muestra **los eventos de la semana**, agrupados por día y con hoy destacado, y **tus tareas pendientes** de Google, con las vencidas arriba y marcadas. Tildás una y queda hecha en Google Tasks; si Google no la acepta, el tilde vuelve atrás y te dice por qué. Abajo, una línea te cuenta si hay algún briefing esperando a que le escribas al Secretario.

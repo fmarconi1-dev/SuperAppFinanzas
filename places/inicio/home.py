@@ -4,7 +4,7 @@ Saludo, finanzas del mes, la semana, las tareas pendientes (con tilde para
 completarlas en Google Tasks), los últimos movimientos y una línea de estado
 del Secretario. Plan: `docs/PLAN-FASE-C.md`.
 
-Criterios (skill `ui-ux-web-moderno`): un número "rey" (ingresos − gastos),
+Criterios (skill `ui-ux-web-moderno`): un número "rey" (el saldo de la cuenta, solo y en grande),
 cifras tabulares, el color nunca solo (siempre con signo o texto), tokens
 `--cs-*`, y cada bloque con sus estados de carga, vacío y error.
 
@@ -42,18 +42,25 @@ def _con_signo(valor: float) -> str:
 # Finanzas
 # ---------------------------------------------------------------------------
 
-def _render_kpis(r: rs.ResumenMes) -> None:
+def _render_saldo(saldo: float) -> None:
+    """El número "rey": el saldo de la cuenta, solo y en grande."""
+    with st.container(key="inicio_saldo"):
+        st.metric("Saldo de la cuenta", pesos(saldo))
+        st.caption("Lo que tenés hoy: saldo inicial + todo lo que entró − todo lo que salió. "
+                   "Es el mismo saldo del Dashboard de Finanzas.")
+
+
+def _render_mes(r: rs.ResumenMes) -> None:
+    """Debajo del saldo: gastos, ingresos y movimientos del mes."""
     a, p = r.actual, r.previo
-    with st.container(key="kpi_hero", border=True):
-        # La primera columna es el KPI "rey": el CSS de kpi_hero la agranda.
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric(f"Ingresos − gastos · {r.mes}", _con_signo(r.balance))
-        c2.metric("Gastos", pesos(a.gastos),
+    with st.container(key="inicio_mes"):
+        c1, c2, c3 = st.columns(3)
+        c1.metric(f"Gastos de {r.mes}", pesos(a.gastos),
                   delta=rs.formatear_variacion(rs.variacion(a.gastos, p.gastos if p else None)),
                   delta_color="inverse")  # gastar más es malo
-        c3.metric("Ingresos", pesos(a.ingresos),
+        c2.metric(f"Ingresos de {r.mes}", pesos(a.ingresos),
                   delta=rs.formatear_variacion(rs.variacion(a.ingresos, p.ingresos if p else None)))
-        c4.metric("Movimientos", f"{a.movimientos}")
+        c3.metric("Movimientos", f"{a.movimientos}")
     contexto = (f"Variaciones contra el mismo período del mes anterior ({r.periodo_previo()})."
                 if p else f"Sin movimientos del {r.periodo_previo()} para comparar.")
     if a.sin_categorizar:
@@ -224,14 +231,16 @@ def render() -> None:
     st.caption(rs.fecha_larga(hoy).capitalize())
 
     with connect() as conn:
+        saldo = rs.saldo_cuenta(conn, user_id=user_id)
         r = rs.resumen_del_mes(conn, user_id=user_id, hoy=hoy)
         filas = rs.ultimos_movimientos(conn, user_id=user_id)
 
+    _render_saldo(saldo)
     if r is None or r.actual.movimientos == 0:
         st.info("Todavía no hay movimientos este mes. Cargalos en **Finanzas → Transacciones** "
                 "o mandándole un gasto al Secretario por WhatsApp (por ejemplo, `2500, super`).")
     else:
-        _render_kpis(r)
+        _render_mes(r)
 
     agenda_ok = _render_agenda(hoy)
     _render_movimientos(filas)

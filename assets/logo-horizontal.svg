@@ -1,11 +1,12 @@
 <svg viewBox="0 0 220 48" xmlns="http://www.w3.org/2000/svg">
-  <!-- Ícono: el mismo de logo.svg, a 44 px -->
+  <!-- Ícono: el mismo moño de logo.svg, a 44 px -->
   <g transform="translate(2 2) scale(0.6875)">
     <rect x="2" y="2" width="60" height="60" rx="16" fill="#18181B" stroke="#27272A" stroke-width="2"/>
-    <path d="M17 18h30a5 5 0 0 1 5 5v15a5 5 0 0 1-5 5H30l-8 7v-7h-5a5 5 0 0 1-5-5V23a5 5 0 0 1 5-5z"
-          fill="#8B5CF6"/>
-    <path d="M23 30.5l5.5 5.5L41 23.5" fill="none" stroke="#F8FAFC" stroke-width="4"
-          stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M27 28.5 L14.5 21.5 Q11 19.8 11 23.6 V40.4 Q11 44.2 14.5 42.5 L27 35.5 Z" fill="#8B5CF6"/>
+    <path d="M27 30.5 L17 26 V38 L27 33.5 Z" fill="#A78BFA" opacity="0.55"/>
+    <path d="M37 28.5 L49.5 21.5 Q53 19.8 53 23.6 V40.4 Q53 44.2 49.5 42.5 L37 35.5 Z" fill="#8B5CF6"/>
+    <path d="M37 30.5 L47 26 V38 L37 33.5 Z" fill="#A78BFA" opacity="0.55"/>
+    <rect x="26" y="26.5" width="12" height="11" rx="3.5" fill="#F8FAFC"/>
   </g>
   <!-- Wordmark (Space Grotesk si está, si no la del sistema) -->
   <text x="58" y="31" font-family="'Space Grotesk', system-ui, -apple-system, sans-serif"

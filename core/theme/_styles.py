@@ -181,6 +181,23 @@ h3 { font-weight: 600; color: #E4E4E7; }
    Contenedores con key → clases .st-key-*; sin clases emotion.
    ============================================================ */
 
+/* El saldo de la cuenta: el número "rey" del Inicio, solo en su bloque. */
+.st-key-inicio_saldo [data-testid="stMetric"] {
+    border-color: rgba(139, 92, 246, 0.30);   /* el acento marca al número "rey" */
+}
+
+.st-key-inicio_saldo [data-testid="stMetricValue"] {
+    font-size: 2.8rem !important;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+}
+
+@media (max-width: 640px) {
+    .st-key-inicio_saldo [data-testid="stMetricValue"] {
+        font-size: 2.1rem !important;
+    }
+}
+
 .st-key-inicio_tareas [data-testid="stCheckbox"] {
     min-height: 44px;              /* objetivo táctil (celular) */
     display: flex;
