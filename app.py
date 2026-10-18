@@ -14,6 +14,8 @@ Flow:
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import streamlit as st
 from dotenv import load_dotenv
 
@@ -31,8 +33,9 @@ from places.inicio import home as inicio_home
 
 st.set_page_config(
     page_title="Secretario",
-    # Ícono de Material (no un SVG: un SVG en page_icon daba un TypeError de MIME).
-    page_icon=":material/task_alt:",
+    # El moño en PNG (`assets/favicon.png`, lo genera scripts/generar_favicon.py):
+    # un SVG en page_icon daba un TypeError de MIME.
+    page_icon=str(Path(__file__).resolve().parent / "assets" / "favicon.png"),
     layout="wide",
     initial_sidebar_state="collapsed",
 )

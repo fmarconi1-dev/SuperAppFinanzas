@@ -1,6 +1,6 @@
 # scripts/
 
-<!-- huella: c29209c5bb9b -->
+<!-- huella: 1f5002dbcc21 -->
 
 Resumen: Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa.
 
@@ -9,6 +9,7 @@ Resumen: Operación y mantenimiento: backups remotos (PowerShell + verificación
 - backup remoto diario, restaurar, "¿este backup sirve de verdad?" → `backup_remoto.ps1`, `restaurar_backup.ps1`, `verificar_backup.py`, `estado_backup.ps1`, `programar_backup.ps1`
 - resetear la contraseña de un usuario → `setup_password.py`
 - reindexar el mapa del repo → `indexar.py` (ver `/MAPA.md`)
+- el ícono de la pestaña del navegador (el moño) → `generar_favicon.py` (dibuja `assets/favicon.png` con Pillow; correr si cambia `assets/logo.svg`)
 - "¿Meta deja mandar texto sin tarjeta?" → `probar_whatsapp_texto.py` (prueba única de costo cero, ADR-0008; manda un texto libre y traduce el código de error de Meta)
 - "el backup no corre solo", "la sesión de fly venció", token de Fly → `guardar_token_fly.ps1`, `_fly_comun.ps1` (`Use-TokenFly`)
 - un archivo "BACKUP SUPERAPP - FALLO.txt" apareció en el Escritorio → lo deja `backup_remoto.ps1` al fallar; `estado_backup.ps1` dice por qué

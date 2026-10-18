@@ -243,3 +243,12 @@ def test_el_logo_va_centrado_como_imagen_embebida(monkeypatch):
     (html_logo,) = capturado
     assert "justify-content:center" in html_logo
     assert 'src="data:image/svg+xml;base64,' in html_logo and 'width="72"' in html_logo
+
+
+def test_el_icono_de_la_pestana_es_el_mono():
+    """PNG (no SVG: page_icon con SVG daba TypeError de MIME), y existe en la imagen."""
+    from PIL import Image
+    app = (RAIZ / "app.py").read_text(encoding="utf-8")
+    assert '"assets" / "favicon.png"' in app
+    with Image.open(RAIZ / "assets" / "favicon.png") as img:
+        assert img.format == "PNG" and img.size == (128, 128)

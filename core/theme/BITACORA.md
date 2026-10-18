@@ -27,6 +27,7 @@ Resumen: Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semán
 
 ## Estado
 
+- **18/10/2026:** **ícono de la pestaña = el moño**: `assets/favicon.png` (128 px), generado con Pillow por `scripts/generar_favicon.py` con las mismas formas y colores del SVG. Va como `page_icon` en `app.py` (PNG porque un SVG ahí daba TypeError de MIME). Si cambia el logo, regenerarlo.
 - **18/10/2026:** logo nuevo: **un moño de secretario** (elegido por Franco), en `assets/logo.svg` y `logo-horizontal.svg`. `render_logo` ahora lo dibuja como `<img>` con data URI **centrado** (con `st.image` en una columna quedaba corrido a la izquierda). Estilo `.st-key-inicio_saldo` para el saldo grande del Inicio.
 - **17/10/2026 (Fase C):** sección **2c. Inicio** en `_styles.py`: tildes de tareas de 44 px de alto (celular) y clases `.cs-dia` / `.cs-evento` (semana y movimientos del Inicio), todo con tokens `--cs-*`. Logo nuevo de **Secretario** en `assets/logo.svg` (globo de chat con tilde; `_logo.py` no cambió).
 
