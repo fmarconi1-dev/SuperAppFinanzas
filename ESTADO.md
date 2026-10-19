@@ -30,8 +30,9 @@
 | **Enfoque "secretario" (ADR-0008)**: canal decidido (Meta Cloud API, costo cero: `docs/WHATSAPP-CANAL.md`), Apps Script reescrito (`integraciones/google-apps-script/`, **sin instalar ni probar**), plan de la Fase A (`docs/PLAN-FASE-A.md`) | ✅ preparación hecha, **sin commitear** | Claude (Opus 5.5) | 2026-10-14 |
 | **Fase A — gastos por WhatsApp** (`docs/PLAN-FASE-A.md`) | ✅ **CERRADA en producción (15/10/2026)**: `resumen`, carga y `deshacer` probados desde el celular de Franco; costo cero | Claude (Opus 5.5) | 2026-10-15 |
 | **Fase B — briefing + cierre de mercado + agenda** (ADR-0008). Plan: `docs/PLAN-FASE-B.md` | ✅ **CERRADA en producción (17/10/2026)**: los dos briefings de Gemini llegan por el Secretario (CallMeBot apagado) y `evento:` / `tarea:` / `agenda` funcionan punta a punta (probado por Franco) | Claude (Opus 5.5) | 2026-10-17 |
-| **Fase C — tablero "secretario" + rebranding** (ADR-0008). Plan: `docs/PLAN-FASE-C.md` | 🔵 **EN CURSO**: pasos 1–5 hechos en código (17/10): marca **Secretario**, logo, íconos Material, Inicio con finanzas, semana, tareas con tilde y estado del Secretario; 615 verdes; **sin desplegar ni mirar en el navegador**. Falta el paso 6 (verlo y pulirlo) | Claude (Opus 5.5) | 2026-10-17 |
-| **Fase 5 · Paso 0 — Cuentas y perímetro (M16)** | ⏸️ en pausa por ADR-0008 | — | — |
+| **Fase C — tablero "secretario" + rebranding** (ADR-0008). Plan: `docs/PLAN-FASE-C.md` | ✅ **Dada por buena por Franco (18/10/2026)**: marca **Secretario**, logo del moño, Inicio con el saldo de la cuenta, semana y tareas con tilde. Los dos últimos commits (saldo/logo y favicon) **faltan pushear y desplegar** | Claude (Opus 5.5) | 2026-10-17 |
+| **Fase D — conciliación desde el Secretario** (fusiona la D original y la Fase 5; diseño saldado con Franco el 18/10/2026) | ⏭️ **Lista para arrancar** en una sesión nueva con `docs/PROMPT-INICIO-FASE-D.md`. Archivos reales en `data/extractos/` | — | 2026-10-18 |
+| ~~Fase 5 · Paso 0 — Cuentas y perímetro (M16)~~ | Reemplazada: el modelo de cuentas de ADR-0006 §1 se cambió por "filas del banco que se desarman" (Fase D) | — | — |
 
 ## ✅ Hecho hasta ahora (resumen; detalle en ROADMAP.md y en el archivo)
 
@@ -56,7 +57,7 @@
 1. **Franco, el 28/9 o después:** `powershell -ExecutionPolicy Bypass -File scripts\estado_backup.ps1` → tiene que dar todo en verde (la tarea todavía no corrió nunca al 27/9). Si aparece "BACKUP SUPERAPP - FALLO.txt" en el Escritorio, dice qué pasó.
 2. **Franco:** vaciar la Papelera cuando quieras (los dos `.tar.gz` del 18/8).
 3. ~~Login sin distinguir mayúsculas~~ — descartado por Franco el 27/9 (ver `MEJORAS.md`).
-4. **Después, cuando Franco lo pida:** Fase 5, Paso 0 — Cuentas y perímetro (M16). **Gate innegociable: ningún número histórico se mueve un peso.** Arrancar por `docs/PROMPT-INICIO-FASE-5.md`.
+4. **Fase D (conciliación con el extracto de Galicia y los resúmenes AMEX/VISA, por WhatsApp):** arrancar en una sesión nueva con **`docs/PROMPT-INICIO-FASE-D.md`**, que tiene todo el diseño acordado. Antes, **Franco carga el ajuste inicial** (+$82.758,25 en "Ajuste Reconciliación", 18/10/2026) para arrancar parejos. `docs/PROMPT-INICIO-FASE-5.md` queda superado.
 
 **Pendientes menores** (sin apuro; detalle en `MEJORAS.md`): tests de la edición de categorías (cobertura 35%) · retirar `radar-financiero` de Fly (Franco) · dominio propio (estético) · bajar la memoria de Fly ahora que no hay cartera (decisión aparte; `test_scripts_backup` la fija en 1 GB) · migrar a pandas 3 (tarea deliberada, con su propio día).
 
