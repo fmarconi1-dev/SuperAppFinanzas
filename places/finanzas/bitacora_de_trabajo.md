@@ -61,4 +61,5 @@
 - **Autor:** Claude (Opus 5.5), con Franco.
 - **Qué:** lector del extracto (`extracto_galicia.py`, verificado contra el archivo real: 406 filas, cadena entera, $153.263,01 al 16/10) y la conciliación (`conciliacion.py`): ancla y empalme, clasificación por tipo, emparejamiento uno a uno con ±$1 y −5/+2 días, empates que se preguntan, devoluciones contra el bruto, regla del corte, sobrantes (efectivo salvo tarjeta) y cola de 5 días. Aplica como un lote y `deshacer` lo revierte entero. Franco decidió tres tipos nuevos (depósito de efectivo = Haberes SBT, transferencias a terceros = gasto por destinatario, percepción RG 5617 = línea neutra).
 - **Por qué:** es el corazón de la Fase D (ADR-0009): que cada gasto quede una sola vez.
-- **Estado:** ✅ 775 tests en verde, 0 skipped. Sin desplegar. Sigue el 4b (FIMA, efectivo y ajuste).
+- **Ensayo con datos reales** (copia del backup, mes 16/9–16/10, solo cantidades): sumó la guarda del corte, los empates entre gastos iguales, los gastos cargados netos y los montos parecidos.
+- **Estado:** ✅ 781 tests en verde, 0 skipped. Sin desplegar. Sigue el 4b (FIMA, efectivo y ajuste).

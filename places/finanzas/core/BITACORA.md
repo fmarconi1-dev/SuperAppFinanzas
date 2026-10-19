@@ -1,6 +1,6 @@
 # places/finanzas/core/
 
-<!-- huella: 0e9d97b2e24c -->
+<!-- huella: ce8868bcca63 -->
 
 Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel.
 
@@ -36,6 +36,9 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 - **El bruto es lo de antes del primer −**, con cada división reemplazada por su dividendo (`1000+500*2-300` → 2.000, no 1.000). Es función pura de la cuenta guardada: el paso 4 la usa también para releer mensajes viejos.
 - ⚠️ **La conciliación trabaja en centavos enteros** (`banco_filas.monto`, la tolerancia de $1 = 100); `transacciones` sigue en pesos. Convertir con `round(x * 100)`, nunca comparar floats.
 - **La regla del corte se decide por la hora de carga, no por la fecha** (`creado_en` del gasto contra el del primer "Ajuste Reconciliación"). Si no hay ajuste inicial y algo coincide con un gasto anterior al corte, **no se adivina**: se rechaza la propuesta.
+- **Un empate entre gastos iguales no es un empate** (misma categoría y monto): va el de id más chico. En el ensayo con datos reales eran 8 de 31 sobrantes.
+- **Gastos cargados netos** (`_netos`): un débito menos 1 a 5 créditos posteriores que da justo lo cargado. Es una sugerencia que se muestra en "Revisá"; `N no` deshace el grupo entero.
+- **La guarda del corte**: los gastos de los 10 días antes del corte que tienen su fila antes del corte se marcan `anterior` (`emparejamientos`, sin fila) y salen del juego para siempre. Sin eso, un pasaje de subte del 15/10 "coincidía" con uno igual del 18/10 y disparaba una regla del corte falsa.
 - **Lo que sobra se busca desde el corte, no desde el principio del extracto**: un gasto pudo quedar esperando en la cola (últimos 5 días) del extracto anterior.
 - Las categorías del Secretario ("Ajuste Reconciliación", "Percepción 30% (se devuelve)") se crean **con su grupo** antes del lote (`conciliacion.asegurar_categoria`); `insertar_sin_backup` las crearía como "Sin categorizar".
 - `comandos` y `conciliacion` se importan uno al otro **de forma diferida** (dentro de las funciones): no subir esos imports al principio del archivo.

@@ -256,6 +256,50 @@ def test_un_empate_se_pregunta(db):
     assert len(_txns(db)) == 2                   # no cargó otro
 
 
+def test_dos_gastos_iguales_no_son_un_empate(db):
+    """Dos pasajes iguales el mismo día contra dos filas iguales: da lo mismo cuál va
+    con cuál, así que no se pregunta (en el ensayo con datos reales eran 8 de 31)."""
+    a = _cargar(db, date(2026, 10, 21), "Transportes", pasivos=13000)
+    b = _cargar(db, date(2026, 10, 21), "Transportes", pasivos=13000)
+    r = _mandar(db, _extracto([("21/10/2026", A_TERCEROS, -13000),
+                               ("21/10/2026", A_TERCEROS, -13000)]))
+    assert "Coinciden 2" in r.texto and "puede ser" not in r.texto
+    _p(db, "ok")
+    assert sorted(x for (x,) in _q(db, "SELECT transaccion_id FROM emparejamientos "
+                                       "WHERE rol = 'mismo'")) == [a, b]
+
+
+def test_un_gasto_cargado_neto_se_reconoce(db):
+    """Pagó $60.000 con débito, le devolvieron 2 × $22.500 y cargó $15.000 sin la cuenta."""
+    salidas = _cargar(db, date(2026, 10, 20), "Salidas", pasivos=15000)
+    r = _mandar(db, _extracto([("20/10/2026", COMPRA.format("PARRILLA INVENTADA"), -60000),
+                               ("21/10/2026", TERCEROS, 22500), ("22/10/2026", TERCEROS, 22500)]))
+    assert "= Salidas $15.000 (20/10) (lo cargaste neto" in r.texto
+    assert r.texto.count("devolución de Salidas $15.000 (20/10): no se carga") == 2
+    assert "Sobran" not in r.texto and "Faltan" not in r.texto
+    _p(db, "ok")
+    assert [(t["id"], t["pasivos"]) for t in _txns(db)] == [(salidas, 15000.0)]
+
+
+def test_si_no_era_neto_todo_pasa_a_faltar(db):
+    _cargar(db, date(2026, 10, 20), "Salidas", pasivos=15000)
+    _mandar(db, _extracto([("20/10/2026", COMPRA.format("PARRILLA INVENTADA"), -60000),
+                           ("21/10/2026", TERCEROS, 22500), ("22/10/2026", TERCEROS, 22500)]))
+    r = _p(db, "1 no")
+    assert r.texto.count("¿categoría?") == 3
+
+
+def test_un_monto_parecido_se_sugiere(db):
+    compras = _cargar(db, date(2026, 10, 16 + 4), "Compras", pasivos=29000)
+    r = _mandar(db, _extracto([("21/10/2026", COMPRA.format("SUPER INVENTADO"), -29025)]))
+    assert f"¿será #{compras} Compras $29.000 (20/10)?" in r.texto
+    r = _p(db, f"1 es {compras}, ok")
+    assert r.resultado == "lote"
+    assert [(t["id"], t["pasivos"]) for t in _txns(db)] == [(compras, 29025.0)]
+    assert _q(db, "SELECT rol FROM emparejamientos WHERE transaccion_id = ?", compras) == [
+        ("mismo",)]
+
+
 def test_rechazar_un_emparejamiento_lo_pasa_a_faltar(db):
     _cargar(db, date(2026, 10, 24), "Auto", pasivos=50000.01)
     _mandar(db, _extracto([("27/10/2026", PROPIA, -50000)]))
@@ -315,6 +359,32 @@ def test_un_gasto_cargado_despues_del_ajuste_no_tiene_regla_del_corte(db):
     _cargar(db, date(2026, 10, 18), "Compras", pasivos=40000, creado_en="2026-10-18 22:00:00")
     r = _mandar(db, _extracto([("19/10/2026", COMPRA.format("SUPER INVENTADO"), -40000)]))
     assert "ajuste inicial" not in r.texto
+
+
+SUBTE = "PAGO EN TRANSPORTE\nSUBTE INVENTADO\n4517XXXX\nA1"
+
+
+def test_un_gasto_de_antes_del_corte_con_su_fila_no_se_confunde(db):
+    """Un pasaje de $1.100 el 15/10 (con su fila del 15/10) y otro el 18/10: el
+    del 18 es nuevo, no una regla del corte falsa contra el del 15."""
+    _cargar(db, date(2026, 10, 15), "Transportes", pasivos=1100, creado_en="2026-10-15 12:00:00")
+    r = _mandar(db, armar_extracto([("15/10/2026", SUBTE, -1100), ("16/10/2026", SUBTE, -500),
+                                    ("18/10/2026", SUBTE, -1100)], saldo_inicial=SALDO))
+    assert "ajuste inicial" not in r.texto
+    assert "Subte Inventado" not in r.texto or "→ Transportes" in r.texto
+    _p(db, "ok")
+    assert [t["pasivos"] for t in _txns(db) if t["motivo"] == "Transportes"] == [1100.0, 1100.0]
+
+
+def test_la_guarda_queda_para_el_extracto_siguiente(db):
+    """Primero el extracto viejo (solo el ancla); después uno que arranca el 17/10."""
+    _cargar(db, date(2026, 10, 15), "Transportes", pasivos=1100, creado_en="2026-10-15 12:00:00")
+    _mandar(db, armar_extracto([("15/10/2026", SUBTE, -1100)], saldo_inicial=SALDO))
+    _p(db, "ok")
+    assert _q(db, "SELECT rol FROM emparejamientos") == [("anterior",)]
+    siguiente = armar_extracto([("18/10/2026", SUBTE, -1100)], saldo_inicial="152163,01")
+    r = _mandar(db, siguiente)
+    assert "ajuste inicial" not in r.texto and "→ Transportes" in r.texto
 
 
 def test_sin_ajuste_inicial_no_adivina(db):

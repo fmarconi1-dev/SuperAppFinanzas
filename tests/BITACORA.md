@@ -1,8 +1,8 @@
 # tests/
 
-<!-- huella: 3c55c991433a -->
+<!-- huella: d4f08f02316e -->
 
-Resumen: La suite completa (775 tests al 19/10/2026, Fase D en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde.
+Resumen: La suite completa (781 tests al 19/10/2026, Fase D en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde.
 
 ## Buscar acá si
 
@@ -39,7 +39,7 @@ Resumen: La suite completa (775 tests al 19/10/2026, Fase D en curso) en carpeta
 
 ## Estado
 
-- **19/10/2026 (noche):** 775 passed, 0 skipped (Fase D, paso 4a: lector del extracto y conciliación).
+- **19/10/2026 (noche):** 781 passed, 0 skipped (Fase D, paso 4a: lector del extracto y conciliación, con las mejoras del ensayo con datos reales).
 - **19/10/2026 (más tarde):** 711 passed, 0 skipped (Fase D, paso 3: recibir archivos).
 - **19/10/2026:** 677 passed, 0 skipped (Fase D, paso 2: lotes y bruto; el test de costo cero ahora recorre las carpetas enteras).
 - **18/10/2026:** 618 passed, 0 skipped (Fase C: saldo de la cuenta en el Inicio y `test_el_icono_de_la_pestana_es_el_mono`).

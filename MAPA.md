@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-19 22:21 UTC · 100 archivos · 20,052 LOC -->
+<!-- 2026-10-19 22:31 UTC · 100 archivos · 20,245 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-19 42502a8 feat: lector del extracto de la caja de Galicia · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-19 fa243a8 feat: el Secretario concilia el extracto de la caja de Galicia · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -119,10 +119,10 @@ Rama `main` — ultimo commit: 2026-10-19 42502a8 feat: lector del extracto de l
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (775 tests al 19/10/2026, Fase D en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 33 | 6,887 | ok |
-| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 16 | 4,664 | ok |
+| `tests/` | La suite completa (781 tests al 19/10/2026, Fase D en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 33 | 6,957 | ok |
+| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 16 | 4,786 | ok |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | ok |
-| `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M21 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,820 | ok |
+| `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M21 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,821 | **vencida** |
 | `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa. | 7 | 1,357 | ok |
 | `core\api/` | API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla). | 5 | 1,100 | ok |
 | `core\theme/` | Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semántica + template Plotly unificado, ajustes responsive y logo. | 5 | 710 | ok |
@@ -154,7 +154,7 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 | Archivo | LOC | Lo usan | Simbolos |
 |---|---:|---:|---|
-| `core\db.py` | 1348 | 41 | `_migrate`, `es_tabla_faltante`, `get_db_path`, `connect` |
+| `core\db.py` | 1349 | 41 | `_migrate`, `es_tabla_faltante`, `get_db_path`, `connect` |
 | `core\context.py` | 105 | 21 | `set_current_user_id`, `get_current_user_id`, `require_current_user_id`, `set_current_workspace_id` |
 | `core\workspaces.py` | 261 | 15 | `_hash_code`, `_uid`, `get_personal_workspace_id`, `ensure_personal_workspace` |
 | `places\finanzas\core\metrics.py` | 359 | 14 | `_uid`, `anios_con_datos`, `filtrar_anio`, `load_transactions` |
@@ -201,13 +201,13 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
 - `superapp-finanzas.fly.dev` — `docs\DEPLOY.md`, `docs\RUNBOOK.md`, `docs\WHATSAPP-CANAL.md`
 - `graph.facebook.com` — `core\api\whatsapp_meta.py`, `docs\PLAN-FASE-A.md`, `scripts\probar_whatsapp_texto.py`
+- `query1.finance.yahoo.com` — `docs\PEDIDO-GEMINI-CIERRE.md`, `integraciones\google-apps-script\Mercado.gs`
+- `data912.com` — `docs\PEDIDO-GEMINI-CIERRE.md`, `integraciones\google-apps-script\Mercado.gs`
+- `api.argentinadatos.com` — `docs\PEDIDO-GEMINI-CIERRE.md`, `integraciones\google-apps-script\Mercado.gs`
 - `api.doctacapital.com.ar` — `docs\CRONOGRAMAS-RENTA-FIJA.md`
 - `docs.docta.com.ar` — `docs\CRONOGRAMAS-RENTA-FIJA.md`
 - `app.docta.com.ar` — `docs\CRONOGRAMAS-RENTA-FIJA.md`
 - `mcp.docta.com.ar` — `docs\CRONOGRAMAS-RENTA-FIJA.md`
-- `query1.finance.yahoo.com` — `docs\PEDIDO-GEMINI-CIERRE.md`
-- `data912.com` — `docs\PEDIDO-GEMINI-CIERRE.md`
-- `api.argentinadatos.com` — `docs\PEDIDO-GEMINI-CIERRE.md`
 - `x.com` — `docs\PUBLICAR-EN-TIENDAS.md`
 - `developers.facebook.com` — `docs\WHATSAPP-CANAL.md`
 - `help.datacrazy.io` — `docs\WHATSAPP-CANAL.md`
@@ -231,4 +231,4 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
 ## Frescura
 
-- Bitacoras vencidas: `integraciones\google-apps-script/`, `places\finanzas/`
+- Bitacoras vencidas: `core/`, `integraciones\google-apps-script/`, `places\finanzas/`

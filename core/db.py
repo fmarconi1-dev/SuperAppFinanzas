@@ -1107,7 +1107,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
         cur.execute("""
             CREATE UNIQUE INDEX IF NOT EXISTS idx_emparejamientos_gasto
                 ON emparejamientos(transaccion_id)
-                WHERE rol IN ('origen', 'mismo', 'arrastre', 'efectivo', 'tarjeta', 'reversion')
+                WHERE rol IN ('origen', 'mismo', 'arrastre', 'efectivo', 'tarjeta', 'reversion',
+                              'anterior')
         """)
         cur.execute("""
             CREATE UNIQUE INDEX IF NOT EXISTS idx_emparejamientos_fila

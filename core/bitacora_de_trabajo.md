@@ -45,4 +45,4 @@
 ## 2026-10-19 (noche) — M21: conciliación (Fase D, paso 4a)
 - **Autor:** Claude (Opus 5.5), con Franco.
 - **Qué:** M21 en `db.py`: filas del banco, emparejamientos, reglas aprendidas y saldos declarados. Aditiva.
-- **Estado:** ✅ suite 775 passed, 0 skipped. Sin desplegar.
+- **Estado:** ✅ suite 781 passed, 0 skipped. Sin desplegar. (El índice único de `emparejamientos` incluye el rol `anterior`, de la guarda del corte.)

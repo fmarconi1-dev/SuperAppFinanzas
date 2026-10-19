@@ -34,6 +34,7 @@ Montos del banco en **centavos enteros**; los de `transacciones` son pesos.
 
 from __future__ import annotations
 
+import itertools
 import sqlite3
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
@@ -54,6 +55,7 @@ DIAS_DESPUES = 2         # o hasta 2 posterior
 TOLERANCIA = 100         # $1, en centavos
 DIAS_DEVOLUCION = 30     # una devolución entra hasta 30 días después del gasto
 DIAS_COLA = 5            # lo cargado en los últimos 5 días del extracto espera al próximo
+DIAS_GUARDA = 10         # días antes del corte que se miran para no confundir gastos viejos
 
 MOTIVO_AJUSTE = "Ajuste Reconciliación"
 MOTIVO_PERCEPCION = "Percepción 30% (se devuelve)"
@@ -124,7 +126,10 @@ APRENDEN = {"gasto", "ingreso", "desconocido", "movimiento"}
 _MOTIVOS_DEL_SECRETARIO = {"ajuste reconciliacion", "rendimiento fima", "caja",
                            "percepcion 30% (se devuelve)"}
 #: Roles de `emparejamientos` que sacan un gasto del juego (ya tiene pareja o destino).
-_ROLES_EXCLUSIVOS = ("origen", "mismo", "arrastre", "efectivo", "tarjeta", "reversion")
+#: "anterior" = un gasto de antes del corte que ya tiene su fila del banco antes
+#: del corte: queda fuera del juego para no confundirlo con una fila nueva igual.
+_ROLES_EXCLUSIVOS = ("origen", "mismo", "arrastre", "efectivo", "tarjeta", "reversion",
+                     "anterior")
 
 
 class ConciliacionInvalida(ValueError):
@@ -251,7 +256,8 @@ def _cargados(conn: sqlite3.Connection, wid: int, desde: date, hasta: date) -> l
                (SELECT e.id FROM emparejamientos e WHERE e.transaccion_id = t.id
                   AND e.rol = 'efectivo') AS efectivo_id,
                (SELECT COUNT(*) FROM emparejamientos e WHERE e.transaccion_id = t.id
-                  AND e.rol IN ('origen', 'mismo', 'arrastre', 'tarjeta', 'reversion')) AS ocupado
+                  AND e.rol IN ('origen', 'mismo', 'arrastre', 'tarjeta', 'reversion',
+                                'anterior')) AS ocupado
         FROM transacciones t
         LEFT JOIN gasto_cuentas gc ON gc.transaccion_id = t.id
         LEFT JOIN categorias c ON c.motivo = t.motivo AND c.workspace_id = t.workspace_id
@@ -318,8 +324,10 @@ def emparejar(filas: list[FilaBanco], cargados: list[Cargado]) -> tuple[
 
     Se va resolviendo de a una la fila con el candidato más cercano. Si esa
     fila tiene dos o más candidatos libres a la misma distancia, es un empate:
-    se pregunta y no se toca.
+    se pregunta y no se toca. **Salvo que sean iguales** (misma categoría y
+    monto: dos pasajes del mismo día): ahí da lo mismo cuál, y va el primero.
     """
+    como_es = {c.id: (c.motivo, c.importe) for c in cargados}
     candidatos: dict[int, list[tuple[int, int, str]]] = {}
     for i, f in enumerate(filas):
         for c in cargados:
@@ -342,12 +350,46 @@ def emparejar(filas: list[FilaBanco], cargados: list[Cargado]) -> tuple[
         if mejor is None:
             return asignados, empates
         _, i, cercanos = mejor
-        if len(cercanos) > 1:
+        if len({(como_es[x[1]], x[2]) for x in cercanos}) > 1:
             empates[i] = sorted(x[1] for x in cercanos)
         else:
-            _, cid, por = cercanos[0]
+            _, cid, por = min(cercanos, key=lambda x: x[1])
             asignados[i] = (cid, por)
             usados.add(cid)
+
+
+def _netos(filas: list[FilaBanco], debitos: list[int], creditos: list[int],
+           sueltos: list[Cargado]) -> dict[int, tuple[int, list[int]]]:
+    """{débito: (gasto, [créditos])} para gastos cargados **ya netos** de devoluciones.
+
+    Franco a veces carga lo que le quedó después de que le devolvieron
+    (pagó $60.000, le transfirieron $45.000, cargó $15.000) sin escribir la
+    cuenta. Se reconoce cuando un débito cercano menos unos créditos que
+    entraron después da justo lo cargado (±$1). Determinístico, y se muestra
+    para que Franco lo confirme: nunca se carga solo.
+    """
+    grupos: dict[int, tuple[int, list[int]]] = {}
+    libres_d, libres_c = list(debitos), list(creditos)
+    for c in sorted(sueltos, key=lambda c: (c.fecha, c.id)):
+        if not c.es_debito:
+            continue
+        for i in libres_d:
+            f = filas[i]
+            resto = -f.monto - c.importe
+            if not (_en_ventana(f, c) and resto > TOLERANCIA):
+                continue
+            cerca = [j for j in libres_c if f.fecha - timedelta(days=3) <= filas[j].fecha
+                     <= f.fecha + timedelta(days=DIAS_DEVOLUCION)][:12]
+            hallado = next((list(combo) for k in range(1, 6)
+                            for combo in itertools.combinations(cerca, k)
+                            if abs(sum(filas[j].monto for j in combo) - resto) <= TOLERANCIA), None)
+            if hallado:
+                grupos[i] = (c.id, hallado)
+                libres_d.remove(i)
+                for j in hallado:
+                    libres_c.remove(j)
+                break
+    return grupos
 
 
 def _devoluciones(conn: sqlite3.Connection, wid: int, filas: list[FilaBanco],
@@ -441,10 +483,25 @@ def proponer_extracto(
             ancla_nueva = previa
         ultima = {"orden": 0, "fecha": previa["fecha"], "saldo": previa["saldo"]}
 
+    aprendidos = {r["tipo"]: r["tratamiento"] for r in conn.execute(
+        "SELECT tipo, tratamiento FROM reglas_tipo WHERE workspace_id = ?", (wid,))}
+    # Guarda: un gasto de los días antes del corte que ya tiene su fila del banco
+    # **antes** del corte no puede emparejarse con una fila nueva del mismo monto
+    # (un pasaje de subte, un kiosco): sería una regla del corte falsa. Se lo saca
+    # del juego, y queda guardado para los próximos extractos.
+    previas = [f for f in extracto.filas
+               if desde_corte - timedelta(days=DIAS_GUARDA) <= f.fecha < desde_corte
+               and clasificar(f.tipo, aprendidos) in EMPAREJABLES]
+    viejos = [c for c in _cargados(conn, wid,
+                                   desde_corte - timedelta(days=DIAS_GUARDA + DIAS_ANTES),
+                                   desde_corte - timedelta(days=1))]
+    anteriores = sorted(cid for cid, _ in emparejar(previas, viejos)[0].values())
+
     if not nuevas:
         if ancla_nueva:
             return {"tipo": "extracto", "ancla": ancla_nueva, "orden_inicial": 1, "filas": [],
-                    "items": [], "numerados": 0, "desde": extracto.desde.isoformat(),
+                    "items": [], "numerados": 0, "anteriores": anteriores,
+                    "desde": extracto.desde.isoformat(),
                     "hasta": extracto.hasta.isoformat(), "saldo_final": extracto.saldo_final}
         raise ConciliacionInvalida("Ya tenía todo este extracto: no hay movimientos nuevos.")
     if nuevas[0].saldo_antes != ultima["saldo"] or nuevas[0].fecha.isoformat() < ultima["fecha"]:
@@ -455,8 +512,6 @@ def proponer_extracto(
             f"{pesos_c(nuevas[0].saldo_antes)}. Falta un pedazo: bajá el extracto desde el "
             f"{date.fromisoformat(ultima['fecha']) + timedelta(days=1):%d/%m}.")
 
-    aprendidos = {r["tipo"]: r["tratamiento"] for r in conn.execute(
-        "SELECT tipo, tratamiento FROM reglas_tipo WHERE workspace_id = ?", (wid,))}
     tratamientos = [clasificar(f.tipo, aprendidos) for f in nuevas]
     desde = nuevas[0].fecha
     hasta = nuevas[-1].fecha
@@ -464,8 +519,9 @@ def proponer_extracto(
     # que está en la ventana de alguna fila puede emparejarse, y lo que quedó
     # más viejo que la cola del extracto es un sobrante (aunque sea de antes de
     # este extracto: pudo haber quedado esperando en la cola del anterior).
-    cargados = _cargados(conn, wid, min(desde_corte, desde) - timedelta(days=DIAS_ANTES),
-                         max(hasta, ahora.date()) + timedelta(days=DIAS_DESPUES))
+    cargados = [c for c in _cargados(conn, wid, min(desde_corte, desde) - timedelta(days=DIAS_ANTES),
+                                     max(hasta, ahora.date()) + timedelta(days=DIAS_DESPUES))
+                if c.id not in anteriores]
     por_id = {c.id: c for c in cargados}
     emparejables = [i for i, t in enumerate(tratamientos) if t in EMPAREJABLES]
     asignados, empates = emparejar([nuevas[i] for i in emparejables], cargados)
@@ -475,6 +531,15 @@ def proponer_extracto(
                       and nuevas[i].monto > 0 and tratamientos[i] in
                       ("terceros", "propia", "desconocido", "movimiento")]
     devoluciones = _devoluciones(conn, wid, nuevas, libres_credito, desde, hasta)
+    # Gastos que Franco cargó ya netos de devoluciones, sin escribir la cuenta.
+    usados = {cid for cid, _ in asignados.values()}
+    netos = _netos(
+        nuevas,
+        [i for i in emparejables if i not in asignados and i not in empates and nuevas[i].monto < 0],
+        [i for i in libres_credito if i not in devoluciones],
+        [c for c in cargados if c.id not in usados and not c.efectivo_id
+         and c.fecha >= desde_corte])
+    credito_de_neto = {j: (i, cid) for i, (cid, js) in netos.items() for j in js}
 
     gastos_devueltos = {gid: conn.execute(
         "SELECT id, fecha, pasivos, motivo, creado_en FROM transacciones WHERE id = ?",
@@ -485,7 +550,8 @@ def proponer_extracto(
         return ajuste_inicial is not None and creado_en < ajuste_inicial
 
     fechas_involucradas = [por_id[c].fecha for c, _ in asignados.values()] + [
-        date.fromisoformat(g["fecha"]) for g in gastos_devueltos.values()]
+        date.fromisoformat(g["fecha"]) for g in gastos_devueltos.values()] + [
+        por_id[cid].fecha for cid, _ in netos.values()]
     if ajuste_inicial is None and any(f < desde_corte for f in fechas_involucradas):
         raise ConciliacionInvalida(
             f"Hay movimientos del banco que coinciden con gastos cargados antes del "
@@ -510,6 +576,17 @@ def proponer_extracto(
                           "arrastre": antes_del_ajuste(c.creado_en),
                           "efectivo_id": c.efectivo_id, "debito": c.es_debito,
                           "devolucion_manual": c.pasivos < 0})
+        elif i in netos:
+            c = por_id[netos[i][0]]
+            items.append({**base, "clase": "coincide", "txn": c.id, "por": "neto", "grupo": i,
+                          "desc": c.describir(), "correccion": None,
+                          "arrastre": antes_del_ajuste(c.creado_en), "efectivo_id": None,
+                          "debito": True, "devolucion_manual": False})
+        elif i in credito_de_neto:
+            grupo, cid = credito_de_neto[i]
+            c = por_id[cid]
+            items.append({**base, "clase": "devolucion", "txn": cid, "grupo": grupo,
+                          "desc": c.describir(), "arrastre": antes_del_ajuste(c.creado_en)})
         elif i in devoluciones:
             g = gastos_devueltos[devoluciones[i]]
             items.append({**base, "clase": "devolucion", "txn": g["id"],
@@ -536,12 +613,28 @@ def proponer_extracto(
         # se reemplaza por el detalle del resumen (paso 5). Queda sin decidir.
         destino = None if _norm(c.motivo) == "pago tarjeta" else "efectivo"
         sobran.append({"clase": "sobra", "txn": c.id, "desc": c.describir(), "destino": destino})
+    # Un faltante y un sobrante de montos parecidos (un redondeo, unos centavos
+    # de más) pueden ser el mismo gasto: no se empareja solo (la tolerancia
+    # acordada es $1), pero se sugiere, para que no quede cargado dos veces.
+    # (También los de la cola: un gasto de ayer puede ser el de esta fila.)
+    sueltos = [c for c in cargados if c.id not in emparejados and c.id not in pares
+               and c.fecha >= desde_corte]
+    for it in items:
+        if it["clase"] != "falta":
+            continue
+        f = nuevas[it["fila"]]
+        parecidos = [c for c in sueltos
+                     if c.es_debito == (f.monto < 0) and _en_ventana(f, c)
+                     and TOLERANCIA < abs(abs(f.monto) - c.importe) <= abs(f.monto) * 5 // 100]
+        it["parecidos"] = [c.id for c in parecidos]
+        it["parecidos_desc"] = [c.describir() for c in parecidos]
     items.extend(sobran)
 
     _numerar(items)
     return {"tipo": "extracto", "ancla": ancla_nueva, "orden_inicial": ultima["orden"] + 1,
             "filas": [_fila_json(f, t) for f, t in zip(nuevas, tratamientos)],
             "items": items, "numerados": sum(1 for it in items if it.get("n")),
+            "anteriores": anteriores,
             "desde": desde.isoformat(), "hasta": hasta.isoformat(),
             "saldo_final": nuevas[-1].saldo, "esperan": esperan}
 
@@ -573,7 +666,7 @@ def _numerar(items: list[dict]) -> None:
     for clase_ok in (lambda it: it["clase"] == "falta",
                      lambda it: it["clase"] == "devolucion" or (
                          it["clase"] == "coincide" and (it["correccion"] or it["arrastre"]
-                                                         or it["por"] == "bruto")),
+                                                         or it["por"] in ("bruto", "neto"))),
                      lambda it: it["clase"] == "sobra"):
         for it in items:
             if clase_ok(it):
@@ -636,6 +729,11 @@ def texto_propuesta(prop: dict, *, nuevo_ancla: bool) -> str:
             if it.get("empate") and not it["motivo"] and not it.get("descartada"):
                 opciones = " o ".join(f"#{i} {d}" for i, d in zip(it["empate_ids"], it["empate"]))
                 linea += f"\n     puede ser {opciones}: contestá *{it['n']} es {it['empate_ids'][0]}*"
+            elif it.get("parecidos") and not it.get("descartada"):
+                opciones = " o ".join(f"#{i} {d}" for i, d in zip(it["parecidos"],
+                                                                  it["parecidos_desc"]))
+                linea += (f"\n     ¿será {opciones}? Si es, contestá *{it['n']} es "
+                          f"{it['parecidos'][0]}* (y queda con el monto del banco)")
             lineas.append(linea)
 
     revisar = [it for it in items if it.get("n") and it["clase"] in ("coincide", "devolucion")]
@@ -652,6 +750,9 @@ def texto_propuesta(prop: dict, *, nuevo_ancla: bool) -> str:
                     linea += f" → lo corrijo a {pesos_c(it['correccion'])}"
                 if it["por"] == "bruto":
                     linea += " (por lo que pagaste en el momento)"
+                if it["por"] == "neto":
+                    linea += (" (lo cargaste neto: con las devoluciones de abajo da justo; "
+                              "si no, contestá *N no*)")
             if it["arrastre"]:
                 linea += " · ya estaba en el ajuste inicial: lo descuento del ajuste"
             lineas.append(linea)
@@ -705,7 +806,10 @@ def responder(
     dudosa, errores = False, []
     existentes = _motivos(conn, wid)
     for n, que in correcciones:
-        it = por_n[n]
+        it = por_n.get(n)
+        if it is None:
+            errores.append(f"{n}: ya no está en la propuesta")
+            continue
         clave = _norm(que)
         if clave in {"no", "interno", "sacar"}:
             if it["clase"] == "falta":
@@ -713,6 +817,11 @@ def responder(
             elif it["clase"] == "sobra":
                 it["destino"] = None
             else:   # deshacer el emparejamiento: pasa a faltar
+                if it.get("por") == "neto":
+                    # Las devoluciones que lo explicaban también pasan a faltar.
+                    for otro in items:
+                        if otro is not it and otro.get("grupo") == it["grupo"]:
+                            _a_falta(otro, None)
                 _a_falta(it, None)
             continue
         if it["clase"] == "sobra":
@@ -723,14 +832,22 @@ def responder(
             continue
         if clave.startswith("es "):
             cid = clave.removeprefix("es ").lstrip("#").strip()
-            if it["clase"] != "falta" or not cid.isdigit() or int(cid) not in it.get(
-                    "empate_ids", []):
+            opciones = dict(zip(it.get("empate_ids", []), it.get("empate", [])))
+            opciones.update(zip(it.get("parecidos", []), it.get("parecidos_desc", [])))
+            if it["clase"] != "falta" or not cid.isdigit() or int(cid) not in opciones:
                 errores.append(f"{n}: *es* solo sirve para elegir entre los candidatos que te mostré")
                 continue
-            it.update(clase="coincide", txn=int(cid), por="monto", correccion=None,
-                      desc=it["empate"][it["empate_ids"].index(int(cid))], arrastre=False,
-                      efectivo_id=None, debito=prop["filas"][it["fila"]]["monto"] < 0,
-                      devolucion_manual=False)
+            cid = int(cid)
+            fila = prop["filas"][it["fila"]]
+            t = conn.execute("SELECT pasivos, ingresos FROM transacciones WHERE id = ?",
+                             (cid,)).fetchone()
+            importe = _cent(t["pasivos"] or t["ingresos"])
+            it.update(clase="coincide", txn=cid, por="monto", desc=opciones[cid],
+                      correccion=abs(fila["monto"]) if abs(fila["monto"]) != abs(importe) else None,
+                      arrastre=False, efectivo_id=None, debito=fila["monto"] < 0,
+                      devolucion_manual=t["pasivos"] < 0)
+            # Si estaba en "sobran", ya no sobra: es este.
+            items[:] = [x for x in items if not (x["clase"] == "sobra" and x["txn"] == cid)]
             continue
         tipo, nombre = resolver_categoria(que, existentes)
         if it["clase"] != "falta":
@@ -799,6 +916,11 @@ def aplicar(conn: sqlite3.Connection, lote_id: int, prop: dict, *, user_id: int,
             "monto": f["monto"], "saldo": f["saldo"], "tipo": f["tipo"], "comercio": f["comercio"],
             "cotizacion": f["cotizacion"], "tratamiento": f["tratamiento"],
             "estado": estado_de.get(i, "cargada")}, clave=f"f{i}"))
+
+    for cid in prop.get("anteriores", []):
+        ops.append(Insertar("emparejamientos", {
+            "workspace_id": wid, "transaccion_id": cid, "banco_fila_id": None,
+            "rol": "anterior", "creado_en": creado}))
 
     reglas: dict[tuple[str, str], str] = {}
     tipos_nuevos: set[str] = set()
