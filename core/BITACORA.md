@@ -1,6 +1,6 @@
 # core/
 
-<!-- huella: e7b91ea9a109 -->
+<!-- huella: 4635ad7e8f9e -->
 
 Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M21 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias.
 
@@ -38,7 +38,7 @@ Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M21 + reparacione
 ## Estado
 
 - **Funciona:** todo en producción (Fly.io).
-- **19/10/2026 (Fase D, paso 4a, sin desplegar):** **M21**, aditiva: `banco_filas` (en centavos, `UNIQUE` fecha + monto + saldo), `emparejamientos` (FK con `ON DELETE CASCADE` y dos índices únicos parciales: uno a uno por gasto y por fila), `reglas_comercio`, `reglas_tipo` y `saldos_declarados`.
+- **19/10/2026 (Fase D, paso 4a, sin desplegar):** **M21**, aditiva: `banco_filas` (en centavos, `UNIQUE` fecha + monto + saldo), `emparejamientos` (FK con `ON DELETE CASCADE` y dos índices únicos parciales: uno a uno por gasto y por fila; el de gasto incluye el rol `anterior` de la guarda del corte), `reglas_comercio`, `reglas_tipo` y `saldos_declarados`.
 - **19/10/2026 (Fase D, paso 2, desplegado):** **M19** `lotes` + `lote_operaciones` (propuesta → aplicado → deshecho; cada fila tocada con su antes y su después; `fila_id` sin FK a propósito, para no trabar el borrado de un gasto desde la app) y **M20** `gasto_cuentas` (cuenta y bruto, FK con `ON DELETE CASCADE`). Aditivas, no tocan filas: no suben `_NIVEL_REPARACIONES`. **M16 liberada** (ADR-0009).
 - **16/10/2026 (Fase B):** **M18**, aditiva: `whatsapp_salientes` (cola de salida: tipo, texto, `id_origen` UNIQUE para el dedupe, `enviado_en`, `error`).
 - **15/10/2026 (Fase A, sin desplegar):** **M17**, aditiva: `whatsapp_mensajes` (dedupe por wamid + rastro para `deshacer`) y `whatsapp_estado` (`ultimo_entrante`, `pendiente`). No toca filas existentes, así que no sube `_NIVEL_REPARACIONES`. La **M16 queda reservada** para las cuentas de la Fase 5 (ADR-0006).

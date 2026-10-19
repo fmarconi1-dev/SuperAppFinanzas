@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-19 22:31 UTC · 100 archivos · 20,245 LOC -->
+<!-- 2026-10-19 22:32 UTC · 100 archivos · 20,245 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-19 fa243a8 feat: el Secretario concilia el extracto de la caja de Galicia · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-19 a2c8b5e fix: conciliaciÃ³n mÃ¡s fina tras el ensayo con datos reales · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -122,7 +122,7 @@ Rama `main` — ultimo commit: 2026-10-19 fa243a8 feat: el Secretario concilia e
 | `tests/` | La suite completa (781 tests al 19/10/2026, Fase D en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 33 | 6,957 | ok |
 | `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 16 | 4,786 | ok |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | ok |
-| `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M21 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,821 | **vencida** |
+| `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M21 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,821 | ok |
 | `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa. | 7 | 1,357 | ok |
 | `core\api/` | API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla). | 5 | 1,100 | ok |
 | `core\theme/` | Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semántica + template Plotly unificado, ajustes responsive y logo. | 5 | 710 | ok |
@@ -186,14 +186,14 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `.mapa/mapa.json` + `MAPA.md` (39 commits)
+- `.mapa/mapa.json` + `MAPA.md` (40 commits)
 - `EN-HUMANO.md` + `ESTADO.md` (39 commits)
-- `BITACORA.md` + `ESTADO.md` (27 commits)
+- `BITACORA.md` + `ESTADO.md` (28 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)
 - `BITACORA.md` + `EN-HUMANO.md` (24 commits)
 - `ESTADO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (23 commits)
-- `.mapa/mapa.json` + `ESTADO.md` (21 commits)
-- `ESTADO.md` + `MAPA.md` (21 commits)
+- `.mapa/mapa.json` + `ESTADO.md` (22 commits)
+- `ESTADO.md` + `MAPA.md` (22 commits)
 - `places/inversiones/cartera/bitacora_de_trabajo.md` + `places/inversiones/cartera/view.py` (21 commits)
 - `ESTADO.md` + `ROADMAP.md` (17 commits)
 
@@ -231,4 +231,4 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
 ## Frescura
 
-- Bitacoras vencidas: `core/`, `integraciones\google-apps-script/`, `places\finanzas/`
+- Bitacoras vencidas: `integraciones\google-apps-script/`, `places\finanzas/`
