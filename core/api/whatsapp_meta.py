@@ -200,17 +200,23 @@ def extraer_eventos(payload: dict) -> tuple[list[MensajeEntrante], list[dict]]:
 # Archivos recibidos
 # ---------------------------------------------------------------------------
 
-def _get(url: str, token: str, que: str) -> bytes:
+def _get(url: str, token: str, que: str, *, es_archivo: bool = False) -> bytes:
     pedido = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
     try:
         with urllib.request.urlopen(pedido, timeout=30) as r:
             datos = r.read(MAX_ARCHIVO + 1)
+            tipo = (r.headers.get("Content-Type") or "").lower()
     except urllib.error.HTTPError as e:
         raise ArchivoNoDisponible(f"Meta no me dio {que} (HTTP {e.code})") from None
     except urllib.error.URLError as e:
         raise ArchivoNoDisponible(f"no pude conectar con Meta para bajar {que}: {e.reason}") from None
     if len(datos) > MAX_ARCHIVO:
         raise ArchivoNoDisponible(f"el archivo pasa de {MAX_ARCHIVO // (1024 * 1024)} MB")
+    if es_archivo and tipo.startswith(("text/html", "application/json")):
+        # Un 200 con una página de error no es "un archivo que no sé leer":
+        # es una descarga que salió mal ("no contestó" ≠ "no existe").
+        log.error("La descarga devolvió %s (%s bytes) en vez del archivo", tipo, len(datos))
+        raise ArchivoNoDisponible("Meta devolvió una página en vez del archivo")
     return datos
 
 
@@ -231,7 +237,7 @@ def descargar_archivo(cfg: ConfigWhatsApp, media_id: str) -> bytes:
         raise ArchivoNoDisponible("Meta no me dio la dirección del archivo")
     if int(meta.get("file_size") or 0) > MAX_ARCHIVO:
         raise ArchivoNoDisponible(f"el archivo pasa de {MAX_ARCHIVO // (1024 * 1024)} MB")
-    return _get(meta["url"], cfg.token, "el archivo")
+    return _get(meta["url"], cfg.token, "el archivo", es_archivo=True)
 
 
 # ---------------------------------------------------------------------------

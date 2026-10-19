@@ -115,6 +115,15 @@ def ahora_ar() -> datetime:
     return datetime.now(ZONA)
 
 
+#: Lo que Meta llama a los tipos que se leen (su `mime_type`).
+_MIMES_QUE_LEO = ("application/pdf", "image/jpeg", "image/png", "image/webp",
+                  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+def _es_de_los_que_leo(mime: Optional[str]) -> bool:
+    return (mime or "").split(";")[0].strip().lower() in _MIMES_QUE_LEO
+
+
 def _texto_para_registrar(m: wa.MensajeEntrante) -> Optional[str]:
     """Lo que queda en `whatsapp_mensajes.texto`. De un archivo, solo qué era
     (el contenido nunca se guarda): «[document] extracto.xlsx · texto al pie»."""
@@ -236,6 +245,13 @@ class ServidorAPI(ThreadingHTTPServer):
             log.error("No se pudo bajar el archivo de %s: %s", m.wamid, e)
             return None, ("error", f"⚠️ No pude bajar el archivo: {e}. Mandalo de nuevo.")
         tipo = tipo_de_contenido(datos)
+        if tipo is None and _es_de_los_que_leo(m.archivo.mime):
+            # Meta dice que es un Excel, un PDF o una foto y no llegó como tal:
+            # la descarga salió mal, no es un archivo que no sé leer.
+            log.error("Archivo %s: Meta dice %s pero llegaron %s bytes que no lo son",
+                      m.wamid, m.archivo.mime, len(datos))
+            return None, ("error", "⚠️ No pude bajar bien el archivo (no llegó entero). "
+                                   "Mandalo de nuevo.")
         if tipo is None:
             log.info("Archivo %s de tipo desconocido (Meta dice %s)", m.wamid, m.archivo.mime)
             return None, ("rechazado", "No sé leer ese archivo. Mandame el extracto en Excel "

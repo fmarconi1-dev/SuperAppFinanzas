@@ -395,8 +395,9 @@ def test_ruta_inexistente(entorno):
 
 # ------------------------------------------------------------------ archivos (Fase D, paso 3)
 
-def _payload_archivo(wamid, tipo, media_id="m1", nombre=None, pie=None):
-    datos = {"id": media_id, "mime_type": "application/octet-stream"}
+def _payload_archivo(wamid, tipo, media_id="m1", nombre=None, pie=None,
+                     mime="application/octet-stream"):
+    datos = {"id": media_id, "mime_type": mime}
     if nombre:
         datos["filename"] = nombre
     if pie:
@@ -458,6 +459,18 @@ def test_un_archivo_que_no_es_excel_pdf_ni_foto(entorno):
     assert "No sé leer ese archivo" in entorno["enviados"][-1][1]
     assert _filas(entorno["db"], "SELECT resultado FROM whatsapp_mensajes") == [
         {"resultado": "rechazado"}]
+
+
+def test_un_pdf_que_no_llego_como_pdf_es_una_descarga_rota(entorno):
+    """Meta dice PDF y llegan bytes que no lo son: "no contestó" ≠ "no sé leerlo"."""
+    entorno["estado"]["descargar"] = lambda cfg, mid: b"\x00\x01 cortado"
+    _post(entorno["url"], _payload_archivo("w1", "document", nombre="RESUMEN.pdf",
+                                           mime="application/pdf"))
+    entorno["srv"].cola.join()
+    texto = entorno["enviados"][-1][1]
+    assert "No pude bajar bien el archivo" in texto and "No sé leer" not in texto
+    assert _filas(entorno["db"], "SELECT resultado FROM whatsapp_mensajes") == [
+        {"resultado": "error"}]
 
 
 def test_si_meta_no_da_el_archivo_se_avisa(entorno):

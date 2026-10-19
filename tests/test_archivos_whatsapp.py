@@ -13,6 +13,7 @@ import json
 import threading
 import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
 import openpyxl
 import pytest
@@ -95,6 +96,20 @@ def test_el_tipo_sale_de_los_primeros_bytes(datos, tipo):
     assert tipo_de_contenido(datos) == tipo
 
 
+_EXTRACTOS = Path(__file__).resolve().parents[1] / "data" / "extractos"
+
+
+@pytest.mark.skipif(not _EXTRACTOS.is_dir(), reason="sin los archivos de Franco (data/extractos)")
+def test_los_archivos_reales_de_franco_se_reconocen():
+    """El extracto de Galicia es un .xlsx de verdad y los 9 resúmenes son PDF.
+    Solo se mira el tipo: nada del contenido sale del archivo."""
+    excels = sorted(_EXTRACTOS.glob("*.xlsx"))
+    pdfs = sorted(_EXTRACTOS.glob("*.pdf"))
+    assert excels and len(pdfs) >= 9
+    assert {tipo_de_contenido(p.read_bytes()) for p in excels} == {"xlsx"}
+    assert {tipo_de_contenido(p.read_bytes()) for p in pdfs} == {"pdf"}
+
+
 def test_describir_dice_que_llego():
     a = ArchivoRecibido(tipo="xlsx", datos=b"x" * 46_000, nombre="galicia.xlsx")
     assert a.describir() == "un Excel (galicia.xlsx, 45 KB)"
@@ -107,7 +122,7 @@ def test_describir_dice_que_llego():
 @pytest.fixture()
 def meta_falso(monkeypatch):
     """Graph API de mentira: GET /v23.0/<id> da la URL; GET /archivo/<id>, el contenido."""
-    estado = {"archivos": {}, "info": {}, "pedidos": []}
+    estado = {"archivos": {}, "info": {}, "pedidos": [], "tipos": {}}
 
     class Manejador(BaseHTTPRequestHandler):
         def log_message(self, *a):
@@ -125,6 +140,8 @@ def meta_falso(monkeypatch):
                 self.end_headers()
                 return
             self.send_response(200)
+            self.send_header("Content-Type", estado["tipos"].get(partes[1],
+                                                                 "application/octet-stream"))
             self.send_header("Content-Length", str(len(cuerpo)))
             self.end_headers()
             self.wfile.write(cuerpo)
@@ -168,6 +185,13 @@ def test_demasiado_grande_aunque_meta_diga_otra_cosa(meta_falso, monkeypatch):
     monkeypatch.setattr(wa, "MAX_ARCHIVO", 100)
     meta_falso["publicar"]("m1", b"x" * 500, file_size=10)
     with pytest.raises(wa.ArchivoNoDisponible, match="pasa de"):
+        wa.descargar_archivo(CFG, "m1")
+
+
+def test_una_pagina_en_vez_del_archivo_es_una_descarga_rota(meta_falso):
+    meta_falso["publicar"]("m1", b"<html>Error</html>")
+    meta_falso["tipos"]["m1"] = "text/html; charset=utf-8"
+    with pytest.raises(wa.ArchivoNoDisponible, match="una página en vez del archivo"):
         wa.descargar_archivo(CFG, "m1")
 
 

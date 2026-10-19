@@ -1,6 +1,6 @@
 # core/api/
 
-<!-- huella: 9120103cdde0 -->
+<!-- huella: 70e1d4ef1e0a -->
 
 Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla).
 
@@ -27,6 +27,7 @@ Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webh
 - **Apps Script siempre contesta HTTP 200**: el resultado real es `ok`. Y un POST a `/exec` vuelve con 302 a `script.googleusercontent.com`, que `urllib` sigue con GET sin cuerpo (así tiene que ser). Si en vez de JSON llega HTML, es la página de login: la aplicación web no está publicada con acceso "Cualquier persona".
 - **Un archivo se baja antes que nada** (Fase D, paso 3): la URL que da Meta vence en minutos, así que el hilo trabajador lo baja incluso antes de entregar los briefings en cola. Se baja **a memoria** y nunca toca el disco (ni el volumen ni `/tmp`): no hay nada que borrar después, aunque el proceso se caiga a mitad. Tope: 10 MB (`MAX_ARCHIVO`), mirado en lo que dice Meta y en lo que llega.
 - **El tipo se decide por el contenido, no por el nombre ni por el `mime_type` de Meta**: un `.xlsx` es un zip con `xl/workbook.xml`; un zip cualquiera o un `.xls` viejo no se aceptan. De un archivo, en `whatsapp_mensajes.texto` queda solo qué era (`[document] nombre · pie`), nunca el contenido.
+- **Una descarga rota no es "un archivo que no sé leer"** ("no contestó" ≠ "no existe"). Si Meta devuelve una página (`text/html` o `application/json`) en vez del archivo, o si su `mime_type` dice Excel, PDF o foto y los bytes no lo son, es `error` con "mandalo de nuevo", y queda en el log el tipo y el largo (nunca el contenido). "No sé leer ese archivo" es solo para lo que de verdad no es de los tipos aceptados.
 - `GRAPH_BASE` es una constante del módulo para que los tests apunten a un Meta de mentira local; no la cambies por entorno.
 - Los estados `failed` que manda Meta se loguean con el código: ahí aparecería tarde un 131042 (pago) o un 131047 (ventana cerrada).
 

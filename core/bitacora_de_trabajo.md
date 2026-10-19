@@ -40,4 +40,4 @@
 - **Autor:** Claude (Opus 5.5), con Franco.
 - **Qué:** `core/api/archivos.py` (nuevo: qué es un archivo, por su contenido), `whatsapp_meta.descargar_archivo` (Graph API: id → URL → contenido, a memoria, tope 10 MB) y el hilo trabajador que lo baja primero y se lo pasa a `procesar_archivo`.
 - **Por qué:** el extracto, los resúmenes y las fotos llegan por acá (`docs/PLAN-FASE-D.md`).
-- **Estado:** ✅ suite 708 passed, 0 skipped. Sin desplegar.
+- **Estado:** ✅ suite 711 passed, 0 skipped. Sin desplegar.
