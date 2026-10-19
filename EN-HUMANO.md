@@ -9,6 +9,18 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 18 de octubre de 2026 (noche) — El plan de la conciliación, escrito
+
+**Qué se hizo.** Pasé a limpio lo que acordamos para la Fase D en dos documentos: la decisión (por qué se hace así) y el plan (cómo, en qué orden y cómo se va a ver en WhatsApp). Todavía no se programó nada.
+
+**Para qué te sirve.** Es el contrato antes de construir: le mandás al Secretario el extracto del banco o el resumen de la tarjeta, te dice qué falta, qué sobra y qué no coincide, y no carga nada hasta tu "ok". Si algo sale mal, "deshacer" vuelve todo atrás de una.
+
+**Algo que apareció.** Un gasto que ya habías cargado pero que el banco asienta después del 16/10 quedó metido en el ajuste inicial del 18/10. Cuando aparezca en el extracto, el plan propone descontarlo del ajuste para que no cuente dos veces. Tus $150.000 del 16/10 no tienen ese problema: fueron en efectivo, así que ya cierran.
+
+**Qué sigue.** El 19/10 contestaste las 8 preguntas y aprobaste el plan. Arranca el paso 2: mandar varios gastos en un solo mensaje. Con eso arranco el paso 2: mandar varios gastos en un solo mensaje.
+
+---
+
 ## 18 de octubre de 2026 — Ajustes después de verlo publicado
 
 **Qué cambió.** Arriba del Inicio ahora está tu **saldo**, grande y solo en su bloque: es el mismo saldo del Dashboard de Finanzas, lo que tenés hoy en la cuenta. Debajo, los gastos, los ingresos y la cantidad de movimientos del mes. El logo ahora es **un moño de secretario**, y aparece centrado en la pantalla de entrada. Lo miré en la compu y en tamaño celular antes de dártelo.

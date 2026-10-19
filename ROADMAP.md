@@ -68,10 +68,14 @@ La app pasa a ser el secretario personal de Franco: gastos por WhatsApp, agenda 
   - ✅ Código + tests (15/10): `core/api/`, `comandos.py`, M17, nginx, entrypoint.
   - ✅ Deploy + secretos + webhook + prueba real desde el celular (15/10): `resumen`, carga y `deshacer` respondidos.
 - ✅ **Fase B — Briefing + cierre de mercado + agenda (cerrada en producción el 17/10/2026).** Los dos briefings de Gemini (mañana y cierre de las 18:30) llegan por el Secretario, tal cual, por una cola que respeta la ventana de 24 h (CallMeBot apagado). `evento:` / `tarea:` / `agenda` vía Apps Script, probados punta a punta. Cuentas en el monto (`100-50`, `3x2.500`). Plan: `docs/PLAN-FASE-B.md`.
-- ⬜ **Fase C — Tablero "secretario" + rebranding.** Pantalla de **Inicio** (la primera al entrar): KPIs del mes (los mismos números que `resumen`), eventos de la semana y tareas pendientes desde el Apps Script (con caché de 5 min y tildar para completar), últimos movimientos y estado del Secretario. Rebranding: nombre, logo, íconos Material, navegación Inicio/Finanzas; el tema Cosmic Slate se extiende. Plan: `docs/PLAN-FASE-C.md`.
-- ⬜ **Fase D — Conciliación por lotes.** `GET /api/transacciones` + `POST /api/conciliar`: todo o nada, `dry_run`, backup antes.
+- ✅ **Fase C — Tablero "secretario" + rebranding (dada por buena por Franco el 18/10/2026).** Pantalla de **Inicio** (la primera al entrar): KPIs del mes (los mismos números que `resumen`), eventos de la semana y tareas pendientes desde el Apps Script (con caché de 5 min y tildar para completar), últimos movimientos y estado del Secretario. Rebranding: nombre, logo, íconos Material, navegación Inicio/Finanzas; el tema Cosmic Slate se extiende. Plan: `docs/PLAN-FASE-C.md`.
+- 🔵 **Fase D — Conciliación desde el Secretario (ADR-0009), en curso desde el 18/10/2026.** Fusiona la conciliación por lotes original con la Fase 5. Le mandás al Secretario el extracto de la caja, el resumen de una tarjeta o una foto; te propone qué falta, qué sobra y qué no coincide, y aplica con tu `ok` (todo o nada, con `deshacer`). Saldo real = caja + FIMA + efectivo. Plan: `docs/PLAN-FASE-D.md`. Los endpoints `GET /api/transacciones` / `POST /api/conciliar` pasan a opcionales.
+  - ✅ Paso 1 — ADR-0009 + plan (18/10/2026), aprobados por Franco el 19/10.
+  - ⬜ Paso 2 — varios gastos en un mensaje (sistema de lotes + bruto) · ⬜ 3 — recibir archivos · ⬜ 4 — extracto Galicia · ⬜ 5 — resúmenes AMEX/VISA · ⬜ 6 — fotos con Gemini · 7 opcional.
 
-## ⏸️ Fase 5 — Captura *source-first* del Lugar A (ADR-0006) — aprobada, EN PAUSA por ADR-0008 (su Paso 4, WhatsApp, lo adelanta la Fase A)
+## ↪️ Fase 5 — Captura *source-first* del Lugar A (ADR-0006) — FUSIONADA en la Fase D (ADR-0009, 18/10/2026)
+
+> Su objetivo sigue en pie, pero se hace dentro de la Fase D: sin cuentas ni perímetro (el Paso 0 / M16 queda reemplazado), con WhatsApp como canal y los lectores de Galicia sin IA. Lo de abajo queda como registro.
 
 **El problema que resuelve.** Toda app de finanzas personales se degrada porque su exactitud es función de la disciplina del usuario, y pasadas ~72 horas "cargar los gastos" ya es reconstruir desde el resumen. La Cartera nunca tuvo ese problema porque la foto del broker es un ancla que no se olvida (trampa nº4). **Esta fase le da esa ancla a Finanzas Personales.**
 
