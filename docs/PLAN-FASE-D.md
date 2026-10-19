@@ -214,7 +214,7 @@ Si el bruto es mayor que el neto, el gasto **espera devoluciones** por la difere
 
 ## Orden de trabajo (un paso a la vez, desplegable, suite en verde)
 
-> **Progreso (19/10/2026):** ✅ 1 · ✅ 2 en código (677 passed, 0 skipped), **sin desplegar**: falta la prueba de Franco desde el celular. Sigue el 3.
+> **Progreso (19/10/2026):** ✅ 1 · ✅ 2 (desplegado y probado por Franco desde el celular) · ✅ 3 en código (708 passed, 0 skipped), **sin desplegar**. El archivo se baja a memoria y nunca toca el disco, así que "borrarlo después de leerlo" se cumple solo. Sigue el 4.
 
 1. ✅ **ADR-0009 y este plan** (18/10/2026), aprobados por Franco el 19/10/2026.
 2. **Varios gastos en un mensaje = el sistema de lotes.** Varios renglones → propuesta numerada → `ok` / correcciones → aplica todo o nada → `deshacer` del lote. Guarda el bruto de todo gasto con cuenta, suelto o en lote. `deshacer` deshace **lo último**: el lote entero si lo último fue un lote, el gasto si fue un gasto.

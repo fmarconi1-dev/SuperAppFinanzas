@@ -14,7 +14,7 @@ from core.api.google import ClienteAgenda
 from core.api.servidor import ahora_ar, crear_servidor
 from core.db import init_db
 from places.finanzas.core import briefing
-from places.finanzas.core.comandos import procesar
+from places.finanzas.core.comandos import procesar, procesar_archivo
 
 
 def _procesar(conn, texto: str, user_id: int, id_mensaje: Optional[str] = None):
@@ -22,6 +22,10 @@ def _procesar(conn, texto: str, user_id: int, id_mensaje: Optional[str] = None):
     # los comandos de agenda lo dicen y todo lo demás anda igual.
     return procesar(conn, texto, user_id=user_id, agenda=ClienteAgenda.desde_entorno(),
                     id_mensaje=id_mensaje)
+
+
+def _procesar_archivo(conn, archivo, user_id: int, id_mensaje: Optional[str] = None):
+    return procesar_archivo(conn, archivo, user_id=user_id)
 
 
 def _componer(conn, texto: str, tipo: str, user_id: int) -> str:
@@ -33,7 +37,8 @@ def main() -> None:
     init_db()
     host = os.environ.get("API_HOST", "127.0.0.1")
     puerto = int(os.environ.get("API_PORT", "8000"))
-    servidor = crear_servidor(host, puerto, procesar=_procesar, componer=_componer)
+    servidor = crear_servidor(host, puerto, procesar=_procesar, componer=_componer,
+                              procesar_archivo=_procesar_archivo)
     logging.getLogger("superapp.api").info("Escuchando en %s:%s", host, puerto)
     servidor.serve_forever()
 

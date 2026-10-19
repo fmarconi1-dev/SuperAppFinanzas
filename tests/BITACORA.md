@@ -1,8 +1,8 @@
 # tests/
 
-<!-- huella: 6ae12dde6c57 -->
+<!-- huella: 9104bd5e7900 -->
 
-Resumen: La suite completa (677 tests al 19/10/2026, Fase D en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde.
+Resumen: La suite completa (708 tests al 19/10/2026, Fase D en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde.
 
 ## Buscar acá si
 
@@ -14,6 +14,7 @@ Resumen: La suite completa (677 tests al 19/10/2026, Fase D en curso) en carpeta
 - agenda por WhatsApp (Fase B) → `test_agenda_whatsapp.py` (intérprete, comandos con cliente falso, y el cliente real contra un **Apps Script de mentira** que redirige con 302 como Google)
 - briefings de Gemini y cola de salida (Fase B) → `test_api_briefing.py` (servidor real; ventana abierta/cerrada/vencida, entrega al escribir, dedupe por id, Meta que rechaza, auth)
 - varios gastos en un mensaje, lotes y bruto (Fase D, paso 2) → `test_lotes_whatsapp.py` (propuesta, correcciones, todo o nada, un backup por lote, deshacer del lote y su orden contra un gasto suelto, filas editadas desde la app) + `test_varios_gastos_ok_y_deshacer_de_punta_a_punta` en `test_api_whatsapp.py` (por el servidor real)
+- archivos por WhatsApp (Fase D, paso 3) → `test_archivos_whatsapp.py` (webhook, tipo por contenido, la descarga en dos pasos contra un **Meta de mentira** local, topes de tamaño) + los tests de archivos al final de `test_api_whatsapp.py` (servidor real, `descargar` falso por `entorno["estado"]`; verifica que no quede nada en disco)
 - el test de costo cero (que no aparezca la palabra de las plantillas) recorre **todo** `core/api/` y `places/finanzas/core/` desde el 19/10/2026: un módulo nuevo del canal queda vigilado solo
 - WhatsApp (Fase A): `test_comandos_whatsapp.py` (parser y comandos, base sintética) · `test_api_whatsapp.py` (canal de Meta + **servidor HTTP real** en un puerto libre, webhooks firmados, envío falso) · `test_deploy_api.py` (nginx/Dockerfile/entrypoint como texto: no hay Docker local)
 - los premortem-tests (`test_premortem3/5.py`): regresiones de los riesgos del premortem
@@ -37,6 +38,7 @@ Resumen: La suite completa (677 tests al 19/10/2026, Fase D en curso) en carpeta
 
 ## Estado
 
+- **19/10/2026 (más tarde):** 708 passed, 0 skipped (Fase D, paso 3: recibir archivos).
 - **19/10/2026:** 677 passed, 0 skipped (Fase D, paso 2: lotes y bruto; el test de costo cero ahora recorre las carpetas enteras).
 - **18/10/2026:** 618 passed, 0 skipped (Fase C: saldo de la cuenta en el Inicio y `test_el_icono_de_la_pestana_es_el_mono`).
 - **17/10/2026:** 615 passed, 0 skipped (Fase C, pasos 1–5). Antes, 601 (pasos 1–2). Antes en el día, 568 (agenda por WhatsApp).

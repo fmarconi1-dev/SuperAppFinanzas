@@ -9,6 +9,16 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 19 de octubre de 2026 (más tarde) — El Secretario ya recibe archivos
+
+**Qué se hizo.** Le podés mandar al Secretario el extracto del banco en Excel, el resumen de la tarjeta en PDF o una foto, y te contesta qué recibió ("Recibí un Excel, 45 KB"). Todavía no los lee: eso es lo que sigue. Reconoce el archivo por lo que tiene adentro, no por el nombre; si le mandás otra cosa, te dice qué tipos entiende.
+
+**Un detalle de cuidado.** El archivo nunca se guarda en ningún lado: se baja a la memoria, se mira y se suelta. No queda una copia en el servidor.
+
+**Qué sigue.** Que lo publiques y le mandes los tres tipos para probar. Después, el paso grande: que lea el extracto de Galicia y te diga qué falta y qué sobra.
+
+---
+
 ## 19 de octubre de 2026 — Varios gastos en un solo mensaje
 
 **Qué se hizo.** Ahora le podés mandar al Secretario varios gastos juntos, uno por renglón. No carga nada todavía: te los muestra numerados y espera tu *ok*. Antes de confirmar podés corregir ("2 transportes"), sacar uno ("2 no") o cancelar todo. Con el *ok* los carga todos juntos, o ninguno si algo falla, y *deshacer* los borra a todos de una.

@@ -1,6 +1,6 @@
 # BITÁCORA — changelog narrativo global
 
-<!-- huella: c6d27008885c -->
+<!-- huella: 9428c87c7af2 -->
 
 Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías).
 
@@ -18,6 +18,14 @@ Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación e
 Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión relevante. Lo fino de cada módulo va en su `bitacora_de_trabajo.md`.
 
 ---
+
+## 2026-10-19 — Fase D, pasos 1 a 3: ADR-0009, lotes y archivos por WhatsApp
+**Autor:** Claude (Opus 5.5), con Franco.
+
+- **Paso 1:** ADR-0009 y `docs/PLAN-FASE-D.md`, aprobados por Franco con las 8 preguntas contestadas. Los $150.000 del 16/10 fueron en efectivo, no con tarjeta: ya cierran en el punto de partida. De ese caso salió la **regla del corte**: un gasto cargado antes del ajuste inicial cuya fila del banco sale después ya estaba en el ajuste, y al emparejarlo se le resta.
+- **Paso 2 (en producción, probado por Franco):** varios gastos en un mensaje = un **lote**. Propone sin escribir, se aplica todo o nada con un backup antes, y `deshacer` revierte el lote entero. Se guarda el **bruto** de los gastos con cuenta. M19–M20; la M16 queda liberada.
+- **Paso 3 (en código, sin desplegar):** documentos y fotos por WhatsApp. Se bajan de la Graph API apenas llegan, **a memoria** (nunca al disco), y se reconocen por el contenido. `api.py` inyecta `procesar_archivo`, que por ahora solo confirma qué llegó.
+- Suite: 708 passed, 0 skipped.
 
 ## 2026-10-18 — Diseño de la Fase D: conciliación desde el Secretario
 **Autor:** Claude (Opus 5.5), con Franco.

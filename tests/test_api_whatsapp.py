@@ -193,7 +193,7 @@ def entorno(tmp_path, monkeypatch):
     conn.close()
 
     enviados: list[tuple[str, str]] = []
-    estado = {"cfg": CFG, "procesar": api._procesar}
+    estado = {"cfg": CFG, "procesar": api._procesar, "descargar": _sin_descargas}
 
     def cargar_config():
         if estado["cfg"] is None:
@@ -206,6 +206,8 @@ def entorno(tmp_path, monkeypatch):
         enviar=lambda cfg, numero, texto: enviados.append((numero, texto)) or ["w"],
         cargar_config=cargar_config,
         db_path=db_path,
+        procesar_archivo=api._procesar_archivo,
+        descargar=lambda cfg, media_id: estado["descargar"](cfg, media_id),
     )
     hilo = threading.Thread(target=srv.serve_forever, daemon=True)
     hilo.start()
@@ -214,6 +216,10 @@ def entorno(tmp_path, monkeypatch):
     srv.shutdown()
     srv.server_close()
     set_current_workspace_id(None)
+
+
+def _sin_descargas(cfg, media_id):
+    raise AssertionError("este test no esperaba bajar archivos")
 
 
 def _payload(mensajes, tipo="text"):
@@ -344,7 +350,7 @@ def test_reintento_de_meta_no_duplica(entorno):
 def test_mensaje_que_no_es_texto(entorno):
     _post(entorno["url"], _payload([("w1", NUMERO, None)], tipo="audio"))
     entorno["srv"].cola.join()
-    assert "solo entiendo mensajes de texto" in entorno["enviados"][0][1]
+    assert "entiendo texto, archivos" in entorno["enviados"][0][1]
     assert _filas(entorno["db"], "SELECT resultado FROM whatsapp_mensajes") == [
         {"resultado": "ignorado"}]
 
@@ -385,3 +391,92 @@ def test_envio_fallido_que_informa_meta_queda_en_el_log(entorno, caplog):
 
 def test_ruta_inexistente(entorno):
     assert _get(entorno["url"] + "/api/nada")[0] == 404
+
+
+# ------------------------------------------------------------------ archivos (Fase D, paso 3)
+
+def _payload_archivo(wamid, tipo, media_id="m1", nombre=None, pie=None):
+    datos = {"id": media_id, "mime_type": "application/octet-stream"}
+    if nombre:
+        datos["filename"] = nombre
+    if pie:
+        datos["caption"] = pie
+    return {"object": "whatsapp_business_account", "entry": [{"changes": [{"value": {
+        "messages": [{"id": wamid, "from": NUMERO, "type": tipo, tipo: datos}]}}]}]}
+
+
+def _xlsx() -> bytes:
+    import io
+    import openpyxl
+    libro = openpyxl.Workbook()
+    libro.active["A1"] = "Fecha"
+    salida = io.BytesIO()
+    libro.save(salida)
+    return salida.getvalue()
+
+
+def _archivos_en(carpeta):
+    return sorted(str(p.relative_to(carpeta)) for p in carpeta.rglob("*") if p.is_file()
+                  and "backups" not in p.parts)
+
+
+def test_un_excel_se_baja_se_reconoce_y_no_queda_en_disco(entorno, tmp_path):
+    pedidos = []
+    entorno["estado"]["descargar"] = lambda cfg, mid: pedidos.append(mid) or _xlsx()
+    antes = _archivos_en(tmp_path)
+    _post(entorno["url"], _payload_archivo("w1", "document", "media-9",
+                                           nombre="galicia.xlsx", pie="octubre"))
+    entorno["srv"].cola.join()
+    assert pedidos == ["media-9"]
+    texto = entorno["enviados"][-1][1]
+    assert "Recibí un Excel (galicia.xlsx," in texto and "No guardé el archivo" in texto
+    assert _filas(entorno["db"], "SELECT texto, resultado FROM whatsapp_mensajes") == [
+        {"texto": "[document] galicia.xlsx · octubre", "resultado": "archivo"}]
+    # Nada nuevo en disco más allá de la base (el archivo vivió en memoria).
+    nuevos = set(_archivos_en(tmp_path)) - set(antes)
+    assert all(n.startswith("finanzas.db") for n in nuevos), nuevos
+
+
+def test_una_foto_se_reconoce_por_el_contenido(entorno):
+    entorno["estado"]["descargar"] = lambda cfg, mid: b"\xff\xd8\xff\xe0" + b"0" * 2000
+    _post(entorno["url"], _payload_archivo("w1", "image"))
+    entorno["srv"].cola.join()
+    assert "Recibí una foto (2 KB)" in entorno["enviados"][-1][1]
+
+
+def test_un_pdf_mandado_como_documento(entorno):
+    entorno["estado"]["descargar"] = lambda cfg, mid: b"%PDF-1.7\n..."
+    _post(entorno["url"], _payload_archivo("w1", "document", nombre="RESUMEN.pdf"))
+    entorno["srv"].cola.join()
+    assert "Recibí un PDF (RESUMEN.pdf" in entorno["enviados"][-1][1]
+
+
+def test_un_archivo_que_no_es_excel_pdf_ni_foto(entorno):
+    entorno["estado"]["descargar"] = lambda cfg, mid: b"hola, soy un .txt"
+    _post(entorno["url"], _payload_archivo("w1", "document", nombre="notas.xlsx"))
+    entorno["srv"].cola.join()
+    assert "No sé leer ese archivo" in entorno["enviados"][-1][1]
+    assert _filas(entorno["db"], "SELECT resultado FROM whatsapp_mensajes") == [
+        {"resultado": "rechazado"}]
+
+
+def test_si_meta_no_da_el_archivo_se_avisa(entorno):
+    def falla(cfg, mid):
+        raise wa.ArchivoNoDisponible("Meta no me dio el archivo (HTTP 404)")
+
+    entorno["estado"]["descargar"] = falla
+    _post(entorno["url"], _payload_archivo("w1", "document"))
+    entorno["srv"].cola.join()
+    texto = entorno["enviados"][-1][1]
+    assert "No pude bajar el archivo: Meta no me dio el archivo (HTTP 404)" in texto
+    assert "Mandalo de nuevo" in texto
+    assert _filas(entorno["db"], "SELECT resultado FROM whatsapp_mensajes") == [
+        {"resultado": "error"}]
+
+
+def test_un_archivo_no_se_mete_en_la_propuesta_ni_carga_nada(entorno):
+    entorno["estado"]["descargar"] = lambda cfg, mid: _xlsx()
+    _post(entorno["url"], _payload_archivo("w1", "document"))
+    entorno["srv"].cola.join()
+    assert _filas(entorno["db"], "SELECT id FROM transacciones") == []
+

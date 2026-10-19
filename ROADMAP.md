@@ -71,7 +71,7 @@ La app pasa a ser el secretario personal de Franco: gastos por WhatsApp, agenda 
 - ✅ **Fase C — Tablero "secretario" + rebranding (dada por buena por Franco el 18/10/2026).** Pantalla de **Inicio** (la primera al entrar): KPIs del mes (los mismos números que `resumen`), eventos de la semana y tareas pendientes desde el Apps Script (con caché de 5 min y tildar para completar), últimos movimientos y estado del Secretario. Rebranding: nombre, logo, íconos Material, navegación Inicio/Finanzas; el tema Cosmic Slate se extiende. Plan: `docs/PLAN-FASE-C.md`.
 - 🔵 **Fase D — Conciliación desde el Secretario (ADR-0009), en curso desde el 18/10/2026.** Fusiona la conciliación por lotes original con la Fase 5. Le mandás al Secretario el extracto de la caja, el resumen de una tarjeta o una foto; te propone qué falta, qué sobra y qué no coincide, y aplica con tu `ok` (todo o nada, con `deshacer`). Saldo real = caja + FIMA + efectivo. Plan: `docs/PLAN-FASE-D.md`. Los endpoints `GET /api/transacciones` / `POST /api/conciliar` pasan a opcionales.
   - ✅ Paso 1 — ADR-0009 + plan (18/10/2026), aprobados por Franco el 19/10.
-  - ✅ Paso 2 — varios gastos en un mensaje (sistema de lotes + bruto), en código el 19/10, sin desplegar · ⬜ 3 — recibir archivos · ⬜ 4 — extracto Galicia · ⬜ 5 — resúmenes AMEX/VISA · ⬜ 6 — fotos con Gemini · 7 opcional.
+  - ✅ Paso 2 — varios gastos en un mensaje (sistema de lotes + bruto), en producción el 19/10 · ✅ 3 — recibir archivos, en código el 19/10, sin desplegar · ⬜ 4 — extracto Galicia · ⬜ 5 — resúmenes AMEX/VISA · ⬜ 6 — fotos con Gemini · 7 opcional.
 
 ## ↪️ Fase 5 — Captura *source-first* del Lugar A (ADR-0006) — FUSIONADA en la Fase D (ADR-0009, 18/10/2026)
 

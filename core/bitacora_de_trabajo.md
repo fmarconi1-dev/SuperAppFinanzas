@@ -35,3 +35,9 @@
 - **Qué:** `db.py` suma **M19** (`lotes`, `lote_operaciones`) y **M20** (`gasto_cuentas`), las dos aditivas (`CREATE TABLE IF NOT EXISTS`). La M16 queda liberada (ADR-0009 reemplazó las cuentas de ADR-0006).
 - **Por qué:** los lotes de la conciliación y el bruto de los gastos con cuenta (`docs/PLAN-FASE-D.md`).
 - **Estado:** ✅ suite 677 passed, 0 skipped. Sin desplegar.
+
+## 2026-10-19 (más tarde) — Recibir archivos por WhatsApp (Fase D, paso 3)
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** `core/api/archivos.py` (nuevo: qué es un archivo, por su contenido), `whatsapp_meta.descargar_archivo` (Graph API: id → URL → contenido, a memoria, tope 10 MB) y el hilo trabajador que lo baja primero y se lo pasa a `procesar_archivo`.
+- **Por qué:** el extracto, los resúmenes y las fotos llegan por acá (`docs/PLAN-FASE-D.md`).
+- **Estado:** ✅ suite 708 passed, 0 skipped. Sin desplegar.

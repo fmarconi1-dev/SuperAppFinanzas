@@ -1,6 +1,6 @@
 # places/finanzas/core/
 
-<!-- huella: 1903617489a2 -->
+<!-- huella: 25bd1660d3f2 -->
 
 Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel.
 
@@ -38,6 +38,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 ## Estado
 
 - **Funciona:** en producción.
+- **19/10/2026 (Fase D, paso 3, sin desplegar):** `comandos.procesar_archivo` recibe el archivo ya bajado y reconocido (`core.api.archivos.ArchivoRecibido`) y por ahora solo confirma qué llegó. Ahí se enchufan el lector del extracto (paso 4), el de resúmenes (5) y las fotos (6).
 - **19/10/2026 (Fase D, paso 2, sin desplegar):** **varios gastos en un mensaje** (uno por renglón): propuesta numerada sin escribir nada; `ok` aplica todo o nada (`lotes.py`, nuevo); correcciones `N categoría` / `N no` / `cancelar`; `deshacer` borra lo último, sea un gasto o el lote entero. Se guarda el **bruto** de todo gasto con cuenta (`gasto_cuentas`). `transactions.insert_transaction` se partió en `insertar_sin_backup` + backup, sin cambiar su comportamiento. Tests: `tests/test_lotes_whatsapp.py`.
 - **17/10/2026 (Fase C):** `totales_mes(..., hasta_dia=)` para comparar contra el mismo período del mes anterior (lo usa el Inicio). **Arreglado:** `totales_mes` en un mes sin movimientos (habiendo movimientos en otros meses) tiraba `KeyError: 'pasivos'`, o sea que `resumen` por WhatsApp se rompía el 1° de cada mes antes de cargar nada. Test: `test_resumen_de_un_mes_sin_movimientos_no_se_rompe`. Las pestañas y los textos de ayuda nombran las pestañas sin emoji (ahora son íconos Material).
 - **17/10/2026 (Fase B, paso 3):** `agenda.py` nuevo, puro: `evento: fecha, [hora inicio], [hora fin], título[, descripción]`, `tarea: [fecha], título[, descripción]` y el formato de `agenda`. Las fechas de agenda **sí pueden ser futuras** (al revés que los gastos): `hoy`, `mañana`, `pasado mañana`, días de la semana, `DD/MM` (si ya pasó, es del año que viene), con año (si ya pasó, se rechaza). Horas `15`, `15hs`, `15:30`, `9.30`, rango `9-10:30`. La confirmación muestra el día de la semana. `procesar` recibe el cliente (`agenda`) y el wamid (`id_mensaje`); confirma **solo** si Google dijo `ok: true`.

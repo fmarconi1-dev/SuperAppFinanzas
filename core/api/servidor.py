@@ -28,8 +28,14 @@ de Franco. Si la ventana está abierta sale en el momento; si no, queda en
 ``whatsapp_salientes`` y sale apenas Franco escribe, antes de contestarle.
 No hay un camino pago (ADR-0008).
 
-`core/` no importa `places/`: la lógica de los comandos y del briefing llega
-inyectada (`procesar`, `componer`), y quien la conecta es `api.py`.
+**Archivos (Fase D, paso 3):** un documento o una foto se baja de Meta
+**primero** (la URL vence en minutos), a memoria y nunca a disco; se reconoce
+por el contenido (`archivos.tipo_de_contenido`) y se le pasa a
+`procesar_archivo`. Lo que no es Excel, PDF ni foto se contesta sin leerlo.
+
+`core/` no importa `places/`: la lógica de los comandos, de los archivos y
+del briefing llega inyectada (`procesar`, `procesar_archivo`, `componer`), y
+quien la conecta es `api.py`.
 """
 
 from __future__ import annotations
@@ -50,6 +56,7 @@ from urllib.parse import parse_qsl, urlsplit
 from zoneinfo import ZoneInfo
 
 from core.api import whatsapp_meta as wa
+from core.api.archivos import ArchivoRecibido, tipo_de_contenido
 from core.context import set_current_workspace_id
 from core.db import connect
 
@@ -75,7 +82,14 @@ base de datos, y no se comparten con terceros.</p>
 
 #: (conexión, texto, user_id, wamid) → Respuesta. El wamid viaja a Google como id_solicitud.
 Procesar = Callable[[sqlite3.Connection, str, int, str], Any]
+#: (conexión, archivo ya bajado, user_id, wamid) → Respuesta (Fase D, paso 3).
+ProcesarArchivo = Callable[[sqlite3.Connection, ArchivoRecibido, int, str], Any]
 Enviar = Callable[[wa.ConfigWhatsApp, str, str], list]
+#: (config, id del archivo en Meta) → bytes. `wa.ArchivoNoDisponible` si no se pudo.
+Descargar = Callable[[wa.ConfigWhatsApp, str], bytes]
+
+NO_ENTIENDO_ESTE_TIPO = ("Por ahora entiendo texto, archivos (el extracto en Excel o el "
+                         "resumen en PDF) y fotos. Mandá *ayuda* para ver cómo cargar.")
 #: (conexión, texto de Gemini, tipo, user_id) → texto final. `ValueError` si no sirve.
 Componer = Callable[[sqlite3.Connection, str, str, int], str]
 
@@ -101,6 +115,15 @@ def ahora_ar() -> datetime:
     return datetime.now(ZONA)
 
 
+def _texto_para_registrar(m: wa.MensajeEntrante) -> Optional[str]:
+    """Lo que queda en `whatsapp_mensajes.texto`. De un archivo, solo qué era
+    (el contenido nunca se guarda): «[document] extracto.xlsx · texto al pie»."""
+    if m.archivo is None:
+        return m.texto
+    detalle = " · ".join(p for p in (m.archivo.nombre, m.archivo.pie) if p)
+    return f"[{m.tipo}] {detalle}".strip()
+
+
 def _enmascarar(numero: str) -> str:
     d = wa.digitos(numero)
     return d[:4] + "…" + d[-2:] if len(d) > 6 else "…"
@@ -119,9 +142,13 @@ class ServidorAPI(ThreadingHTTPServer):
         componer: Optional[Componer] = None,
         cargar_token_api: Callable[[], Optional[str]] = token_api_desde_entorno,
         db_path: Optional[Path] = None,
+        procesar_archivo: Optional[ProcesarArchivo] = None,
+        descargar: Descargar = wa.descargar_archivo,
     ):
         super().__init__(direccion, _Manejador)
         self.procesar = procesar
+        self.procesar_archivo = procesar_archivo
+        self.descargar = descargar
         self.enviar = enviar
         self.cargar_config = cargar_config
         self.componer = componer
@@ -148,23 +175,37 @@ class ServidorAPI(ThreadingHTTPServer):
 
     def _procesar_uno(self, t: _Trabajo) -> None:
         m, cfg = t.mensaje, t.cfg
-        # Franco acaba de escribir: la ventana de 24 h está abierta. Primero
-        # sale lo que estaba guardado, después la respuesta a su mensaje.
-        self.entregar_pendientes(cfg)
         # Se le pasa al canal el `from` tal como vino; el formato con que Meta
         # acepta el envío (en AR, sin el 9) lo resuelve `wa.enviar_texto`.
         destino = wa.digitos(m.remitente)
-        if m.tipo != "text" or not m.texto:
+        # Un archivo se baja **antes que nada**: la URL de Meta vence en minutos.
+        archivo, problema = self._bajar(m, cfg) if m.archivo is not None else (None, None)
+        # Franco acaba de escribir: la ventana de 24 h está abierta. Primero
+        # sale lo que estaba guardado, después la respuesta a su mensaje.
+        self.entregar_pendientes(cfg)
+        if problema is not None:
+            resultado, texto = problema
+            self._marcar(m.wamid, resultado)
+            self._avisar(cfg, destino, texto)
+            return
+        if archivo is None and (m.tipo != "text" or not m.texto):
             self._marcar(m.wamid, "ignorado")
-            self._avisar(cfg, destino, "Por ahora solo entiendo mensajes de texto. "
-                                       "Mandá *ayuda* para ver cómo cargar.")
+            self._avisar(cfg, destino, NO_ENTIENDO_ESTE_TIPO)
+            return
+        if archivo is not None and self.procesar_archivo is None:
+            self._marcar(m.wamid, "rechazado")
+            self._avisar(cfg, destino, f"Recibí {archivo.describir()}, pero todavía no sé "
+                                       "leer archivos.")
             return
 
         # Los contextvars arrancan vacíos en cada hilo: el workspace se fija acá.
         set_current_workspace_id(cfg.workspace_id)
         conn = connect(self.db_path)
         try:
-            respuesta = self.procesar(conn, m.texto, t.user_id, m.wamid)
+            if archivo is not None:
+                respuesta = self.procesar_archivo(conn, archivo, t.user_id, m.wamid)
+            else:
+                respuesta = self.procesar(conn, m.texto, t.user_id, m.wamid)
             conn.execute(
                 "UPDATE whatsapp_mensajes SET resultado = ?, transaccion_id = ? WHERE wamid = ?",
                 (respuesta.resultado, respuesta.transaccion_id, m.wamid),
@@ -180,6 +221,29 @@ class ServidorAPI(ThreadingHTTPServer):
             conn.close()
             set_current_workspace_id(None)
         self._avisar(cfg, destino, respuesta.texto)
+
+    def _bajar(
+        self, m: wa.MensajeEntrante, cfg: wa.ConfigWhatsApp
+    ) -> tuple[Optional[ArchivoRecibido], Optional[tuple[str, str]]]:
+        """(archivo, None) si se bajó y se reconoció; (None, (resultado, aviso)) si no.
+
+        Queda **en memoria**: nunca se escribe en disco, así que después de
+        leerlo no hay nada que borrar.
+        """
+        try:
+            datos = self.descargar(cfg, m.archivo.media_id)
+        except wa.ArchivoNoDisponible as e:
+            log.error("No se pudo bajar el archivo de %s: %s", m.wamid, e)
+            return None, ("error", f"⚠️ No pude bajar el archivo: {e}. Mandalo de nuevo.")
+        tipo = tipo_de_contenido(datos)
+        if tipo is None:
+            log.info("Archivo %s de tipo desconocido (Meta dice %s)", m.wamid, m.archivo.mime)
+            return None, ("rechazado", "No sé leer ese archivo. Mandame el extracto en Excel "
+                                       "(.xlsx), el resumen de la tarjeta en PDF o una foto.")
+        log.info("Archivo %s: %s, %s bytes", m.wamid, tipo, len(datos))
+        archivo = ArchivoRecibido(tipo=tipo, datos=datos, nombre=m.archivo.nombre,
+                                  pie=m.archivo.pie)
+        return archivo, None
 
     def _avisar(self, cfg: wa.ConfigWhatsApp, destino: str, texto: str) -> None:
         try:
@@ -295,7 +359,7 @@ class ServidorAPI(ThreadingHTTPServer):
                 cur = conn.execute(
                     "INSERT OR IGNORE INTO whatsapp_mensajes "
                     "(wamid, recibido_en, remitente, texto) VALUES (?, ?, ?, ?)",
-                    (m.wamid, ahora, m.remitente, m.texto),
+                    (m.wamid, ahora, m.remitente, _texto_para_registrar(m)),
                 )
                 if cur.rowcount == 0:
                     log.info("Mensaje repetido %s: Meta reintentó, se ignora", m.wamid)

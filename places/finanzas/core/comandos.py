@@ -34,6 +34,7 @@ from datetime import date, datetime, timedelta
 from typing import Any, Optional
 from zoneinfo import ZoneInfo
 
+from core.api.archivos import ArchivoRecibido
 from core.api.google import AgendaNoDisponible, AgendaRechazo
 from core.db import backup_db
 from core.workspaces import resolve_workspace_id
@@ -98,7 +99,7 @@ class Respuesta:
 
     texto: str
     #: cargado | lote (varios gastos aplicados juntos) | consulta | pendiente |
-    #: deshecho | rechazado | error | agendado
+    #: deshecho | rechazado | error | agendado | archivo (llegó un archivo)
     resultado: str
     transaccion_id: Optional[int] = None
 
@@ -518,6 +519,28 @@ def procesar(
     return Respuesta(
         f"{pregunta} ({pesos(g.monto)}{' = ' + g.cuenta if g.cuenta else ''}, "
         f"{_fecha_corta(g.fecha, hoy)})\nRespondé *sí* o *no*.", "pendiente"
+    )
+
+
+def procesar_archivo(
+    conn: sqlite3.Connection,
+    archivo: ArchivoRecibido,
+    *,
+    user_id: int,
+    ahora: Optional[datetime] = None,
+) -> Respuesta:
+    """Un archivo que mandó Franco, ya bajado y reconocido (Fase D, paso 3).
+
+    Por ahora solo confirma qué llegó: leer el extracto de Galicia es el paso
+    4, los resúmenes de tarjeta el 5 y las fotos el 6 (`docs/PLAN-FASE-D.md`).
+    El archivo vive en memoria y no se guarda en ningún lado.
+    """
+    que = {"xlsx": "Leer el extracto del banco", "pdf": "Leer los resúmenes de tarjeta"}.get(
+        archivo.tipo, "Leer fotos")
+    return Respuesta(
+        f"📎 Recibí {archivo.describir()}. {que} es lo próximo que aprendo: "
+        "todavía no lo leo. No guardé el archivo.",
+        "archivo",
     )
 
 

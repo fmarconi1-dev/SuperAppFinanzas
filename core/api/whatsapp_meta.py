@@ -44,6 +44,13 @@ GRAPH_VERSION_DEFAULT = "v23.0"
 LIMITE_TEXTO = 4096
 #: "Recipient phone number not in allowed list".
 NO_AUTORIZADO = 131030
+#: Base de la Graph API (los tests la apuntan a un servidor local).
+GRAPH_BASE = "https://graph.facebook.com"
+#: Tope de un archivo recibido. Un extracto o un resumen pesan unos cientos
+#: de KB; una foto del celular, 2–5 MB.
+MAX_ARCHIVO = 10 * 1024 * 1024
+#: Tipos de mensaje que traen un archivo.
+TIPOS_CON_ARCHIVO = ("document", "image")
 
 
 class CanalNoDisponible(Exception):
@@ -52,6 +59,10 @@ class CanalNoDisponible(Exception):
     def __init__(self, mensaje: str, codigo: Optional[int] = None):
         super().__init__(mensaje)
         self.codigo = codigo
+
+
+class ArchivoNoDisponible(Exception):
+    """No se pudo bajar un archivo de Meta (vencido, caído, demasiado grande)."""
 
 
 class ConfigIncompleta(Exception):
@@ -100,11 +111,22 @@ class ConfigWhatsApp:
 
 
 @dataclass(frozen=True)
+class ArchivoEntrante:
+    """Lo que Meta dice de un archivo. El contenido se baja aparte, con el id."""
+
+    media_id: str
+    mime: Optional[str] = None
+    nombre: Optional[str] = None
+    pie: Optional[str] = None
+
+
+@dataclass(frozen=True)
 class MensajeEntrante:
     wamid: str
     remitente: str
     tipo: str
     texto: Optional[str]
+    archivo: Optional[ArchivoEntrante] = None
 
 
 # ---------------------------------------------------------------------------
@@ -162,12 +184,54 @@ def extraer_eventos(payload: dict) -> tuple[list[MensajeEntrante], list[dict]]:
             for m in value.get("messages") or []:
                 tipo = m.get("type", "")
                 texto = (m.get("text") or {}).get("body") if tipo == "text" else None
+                archivo = None
+                if tipo in TIPOS_CON_ARCHIVO and (datos := m.get(tipo) or {}).get("id"):
+                    archivo = ArchivoEntrante(datos["id"], datos.get("mime_type"),
+                                              datos.get("filename"), datos.get("caption"))
                 if m.get("id") and m.get("from"):
-                    mensajes.append(MensajeEntrante(m["id"], m["from"], tipo, texto))
+                    mensajes.append(MensajeEntrante(m["id"], m["from"], tipo, texto, archivo))
             for s in value.get("statuses") or []:
                 if s.get("status") == "failed":
                     fallidos.append(s)
     return mensajes, fallidos
+
+
+# ---------------------------------------------------------------------------
+# Archivos recibidos
+# ---------------------------------------------------------------------------
+
+def _get(url: str, token: str, que: str) -> bytes:
+    pedido = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+    try:
+        with urllib.request.urlopen(pedido, timeout=30) as r:
+            datos = r.read(MAX_ARCHIVO + 1)
+    except urllib.error.HTTPError as e:
+        raise ArchivoNoDisponible(f"Meta no me dio {que} (HTTP {e.code})") from None
+    except urllib.error.URLError as e:
+        raise ArchivoNoDisponible(f"no pude conectar con Meta para bajar {que}: {e.reason}") from None
+    if len(datos) > MAX_ARCHIVO:
+        raise ArchivoNoDisponible(f"el archivo pasa de {MAX_ARCHIVO // (1024 * 1024)} MB")
+    return datos
+
+
+def descargar_archivo(cfg: ConfigWhatsApp, media_id: str) -> bytes:
+    """Baja un archivo recibido. **A memoria**: nunca se escribe en disco.
+
+    Son dos pasos: con el id se pide a la Graph API la URL del archivo, y
+    esa URL se baja con el mismo token. La URL **vence a los pocos minutos**:
+    por eso el hilo trabajador baja el archivo antes que cualquier otra cosa.
+    Bajar un archivo recibido es gratis (Meta cobra solo las plantillas).
+    """
+    info = _get(f"{GRAPH_BASE}/{cfg.graph_version}/{media_id}", cfg.token, "los datos del archivo")
+    try:
+        meta = json.loads(info)
+    except json.JSONDecodeError:
+        raise ArchivoNoDisponible("Meta contestó algo que no entiendo sobre el archivo") from None
+    if not meta.get("url"):
+        raise ArchivoNoDisponible("Meta no me dio la dirección del archivo")
+    if int(meta.get("file_size") or 0) > MAX_ARCHIVO:
+        raise ArchivoNoDisponible(f"el archivo pasa de {MAX_ARCHIVO // (1024 * 1024)} MB")
+    return _get(meta["url"], cfg.token, "el archivo")
 
 
 # ---------------------------------------------------------------------------
@@ -210,7 +274,7 @@ def _post_mensaje(cfg: ConfigWhatsApp, numero: str, cuerpo: str) -> dict:
         "text": {"body": cuerpo},
     }).encode("utf-8")
     pedido = urllib.request.Request(
-        f"https://graph.facebook.com/{cfg.graph_version}/{cfg.phone_number_id}/messages",
+        f"{GRAPH_BASE}/{cfg.graph_version}/{cfg.phone_number_id}/messages",
         data=datos,
         headers={"Authorization": f"Bearer {cfg.token}", "Content-Type": "application/json"},
         method="POST",

@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-19 16:37 UTC · 94 archivos · 17,487 LOC -->
+<!-- 2026-10-19 17:24 UTC · 96 archivos · 18,003 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-19 5b6b98b docs: ADR-0009 y plan de la Fase D (conciliaciÃ³n desde el Secretario) · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-19 8c11660 feat: varios gastos en un mensaje (lotes con deshacer) y el bruto de las cuentas · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -35,6 +35,7 @@ Rama `main` — ultimo commit: 2026-10-19 5b6b98b docs: ADR-0009 y plan de la Fa
 | un briefing de Gemini que no llegó, llegó dos veces o llegó tarde → `servidor.py` (`_post_briefing`, `encolar_saliente`, `entregar_pendientes`; la tabla `whatsapp_salientes`) | `core\api/` |
 | `evento:` / `tarea:` / `agenda` no llegan a Google, o Google contesta raro → `google.py` (`ClienteAgenda`: el 302 de Apps Script, `ok: false` → `AgendaRechazo`, página de login → `AgendaNoDisponible`) | `core\api/` |
 | configurar el webhook en el panel de Meta (verify token, `hub.challenge`) → `servidor.py` + `docs/WHATSAPP-CANAL.md` | `core\api/` |
+| un archivo (extracto, resumen, foto) que no llegó, no se bajó o se contestó "no sé leer ese archivo" → `whatsapp_meta.descargar_archivo` (dos pasos: id → URL → contenido; `ArchivoNoDisponible`), `archivos.tipo_de_contenido` (por los primeros bytes) y `servidor._bajar` | `core\api/` |
 | qué variables de entorno hacen falta → `ConfigWhatsApp.desde_entorno` (y `.env.example`) | `core\api/` |
 | la interpretación del texto (montos, categorías, `resumen`, `deshacer`) → **no es acá**: `places/finanzas/core/comandos.py` | `core\api/` |
 | login, signup, contraseñas, código de registro (`SIGNUP_CODE`) | `core\auth/` |
@@ -100,6 +101,7 @@ Rama `main` — ultimo commit: 2026-10-19 5b6b98b docs: ADR-0009 y plan de la Fa
 | agenda por WhatsApp (Fase B) → `test_agenda_whatsapp.py` (intérprete, comandos con cliente falso, y el cliente real contra un **Apps Script de mentira** que redirige con 302 como Google) | `tests/` |
 | briefings de Gemini y cola de salida (Fase B) → `test_api_briefing.py` (servidor real; ventana abierta/cerrada/vencida, entrega al escribir, dedupe por id, Meta que rechaza, auth) | `tests/` |
 | varios gastos en un mensaje, lotes y bruto (Fase D, paso 2) → `test_lotes_whatsapp.py` (propuesta, correcciones, todo o nada, un backup por lote, deshacer del lote y su orden contra un gasto suelto, filas editadas desde la app) + `test_varios_gastos_ok_y_deshacer_de_punta_a_punta` en `test_api_whatsapp.py` (por el servidor real) | `tests/` |
+| archivos por WhatsApp (Fase D, paso 3) → `test_archivos_whatsapp.py` (webhook, tipo por contenido, la descarga en dos pasos contra un **Meta de mentira** local, topes de tamaño) + los tests de archivos al final de `test_api_whatsapp.py` (servidor real, `descargar` falso por `entorno["estado"]`; verifica que no quede nada en disco) | `tests/` |
 | el test de costo cero (que no aparezca la palabra de las plantillas) recorre **todo** `core/api/` y `places/finanzas/core/` desde el 19/10/2026: un módulo nuevo del canal queda vigilado solo | `tests/` |
 | WhatsApp (Fase A): `test_comandos_whatsapp.py` (parser y comandos, base sintética) · `test_api_whatsapp.py` (canal de Meta + **servidor HTTP real** en un puerto libre, webhooks firmados, envío falso) · `test_deploy_api.py` (nginx/Dockerfile/entrypoint como texto: no hay Docker local) | `tests/` |
 | los premortem-tests (`test_premortem3/5.py`): regresiones de los riesgos del premortem | `tests/` |
@@ -114,15 +116,15 @@ Rama `main` — ultimo commit: 2026-10-19 5b6b98b docs: ADR-0009 y plan de la Fa
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (677 tests al 19/10/2026, Fase D en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 30 | 5,923 | ok |
-| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 14 | 3,385 | ok |
+| `tests/` | La suite completa (708 tests al 19/10/2026, Fase D en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 31 | 6,202 | ok |
+| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 14 | 3,408 | ok |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | ok |
 | `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M20 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,734 | ok |
 | `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa. | 7 | 1,357 | ok |
-| `core\api/` | API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla). | 4 | 869 | ok |
+| `core\api/` | API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla). | 5 | 1,078 | ok |
 | `core\theme/` | Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semántica + template Plotly unificado, ajustes responsive y logo. | 5 | 710 | ok |
 | `core\auth/` | Autenticación compartida: usuarios con bcrypt, pantalla de login/signup y tokens de sesión firmados. (Los contextvars de usuario/workspace viven en `core/context.py`.) | 4 | 422 | ok |
-| `./` | Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías). | 5 | 306 | ok |
+| `./` | Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías). | 5 | 311 | ok |
 | `places\finanzas\helpers/` | Utilidades de las vistas: formateo es-AR de montos, inyección de HTML y el tour guiado de bienvenida. | 4 | 278 | ok |
 | `places\inicio/` | Lugar Inicio — la pantalla principal de Secretario (Fase C, ADR-0008): saludo, **saldo de la cuenta** en grande, gastos/ingresos/movimientos del mes contra el mismo período del anterior, la semana y las tareas de Google (con tilde para completarlas), últimos movimientos y estado del Secretario. | 2 | 255 | ok |
 | `places\inicio\core/` | La lógica del Inicio, **pura y sin Streamlit**: los números del mes y el saldo (`resumen.py`) y la semana y las tareas de Google, listas para mostrar (`semana.py`). La pantalla está en `../home.py`. | 3 | 231 | ok |
@@ -157,7 +159,7 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 | `places\finanzas\core\transactions.py` | 265 | 12 | `_uid`, `_es_familiar`, `_asegurar_motivo`, `insert_transaction` |
 | `places\finanzas\helpers\_html.py` | 22 | 7 | `render_html` |
 | `places\finanzas\core\__init__.py` | 5 | 7 | — |
-| `places\finanzas\core\comandos.py` | 904 | 6 | `Respuesta`, `Gasto`, `EntradaInvalida`, `ahora_ar` |
+| `places\finanzas\core\comandos.py` | 927 | 6 | `Respuesta`, `Gasto`, `EntradaInvalida`, `ahora_ar` |
 | `places\finanzas\core\ingest.py` | 381 | 6 | `ImportResult`, `_importe`, `_read_csv_rows`, `import_diario` |
 | `places\finanzas\helpers\_tour.py` | 198 | 6 | `_user_id`, `is_tour_active`, `start_tour`, `finish_tour` |
 | `places\finanzas\core\parsers.py` | 247 | 5 | `parse_currency`, `parse_currency_estricto`, `parse_date`, `normalize_motivo` |
@@ -170,7 +172,7 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 - `places\finanzas\views/` → `places\finanzas\helpers/` (13)
 - `places\finanzas\views/` → `places\finanzas\core/` (12)
 - `places\finanzas\views/` → `core/` (8)
-- `tests/` → `core\api/` (6)
+- `tests/` → `core\api/` (8)
 - `./` → `core/` (4)
 - `places\inicio\core/` → `places\finanzas\core/` (4)
 - `core\theme/` → `places\finanzas\helpers/` (3)
