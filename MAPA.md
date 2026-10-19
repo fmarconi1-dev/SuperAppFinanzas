@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-19 16:24 UTC · 92 archivos · 16,501 LOC -->
+<!-- 2026-10-19 16:37 UTC · 94 archivos · 17,487 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-18 5be41ea docs: idea del espacio compartido en el Secretario, para despuÃ©s de la Fase D · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-19 5b6b98b docs: ADR-0009 y plan de la Fase D (conciliaciÃ³n desde el Secretario) · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -62,7 +62,9 @@ Rama `main` — ultimo commit: 2026-10-18 5be41ea docs: idea del espacio compart
 | categorías, "sin categorizar", mapping Motivo → Grupo/Subcategoría → `categorizer.py`, `categorias.py` | `places\finanzas\core/` |
 | importar `Diario.csv` / `Mensual.csv` (`ingest.py`, `parsers.py`; env `DIARIO_CSV`/`MENSUAL_CSV`) — por consola: `.venv\Scripts\python.exe -m places.finanzas.core.ingest --force` | `places\finanzas\core/` |
 | un gasto que entró como $0, o una advertencia de "importe ilegible" al importar → `parsers.parse_currency_estricto` + `ingest._importe` | `places\finanzas\core/` |
-| alta/edición/borrado de gastos y el backup automático que disparan → `transactions.py` | `places\finanzas\core/` |
+| alta/edición/borrado de gastos y el backup automático que disparan → `transactions.py` (`insertar_sin_backup` para escribir dentro de una transacción) | `places\finanzas\core/` |
+| varios gastos en un mensaje, la propuesta numerada, `ok`/correcciones, o un `deshacer` que borra varios juntos → `comandos.py` (`_proponer_varios`, `_leer_respuesta_lote`, `_responder_lote`) + `lotes.py` (aplicar todo o nada y deshacer) | `places\finanzas\core/` |
+| el bruto de un gasto con cuenta (`150000-25000*5` → $150.000) → `comandos.bruto_de_cuenta` y la tabla `gasto_cuentas` | `places\finanzas\core/` |
 | exportar todo a Excel → `export.py` | `places\finanzas\core/` |
 | "$ mal formateado", separador de miles, un NaN visible en pantalla → `_format.py` | `places\finanzas\helpers/` |
 | HTML que se muestra como texto crudo → `_html.render_html` | `places\finanzas\helpers/` |
@@ -97,6 +99,8 @@ Rama `main` — ultimo commit: 2026-10-18 5be41ea docs: idea del espacio compart
 | Inicio y marca (Fase C) → `test_inicio.py` (variación contra el mismo período, KPIs = `resumen`, AppTest del Inicio y de la app entera, "Radar Financiero" fuera de la interfaz) | `tests/` |
 | agenda por WhatsApp (Fase B) → `test_agenda_whatsapp.py` (intérprete, comandos con cliente falso, y el cliente real contra un **Apps Script de mentira** que redirige con 302 como Google) | `tests/` |
 | briefings de Gemini y cola de salida (Fase B) → `test_api_briefing.py` (servidor real; ventana abierta/cerrada/vencida, entrega al escribir, dedupe por id, Meta que rechaza, auth) | `tests/` |
+| varios gastos en un mensaje, lotes y bruto (Fase D, paso 2) → `test_lotes_whatsapp.py` (propuesta, correcciones, todo o nada, un backup por lote, deshacer del lote y su orden contra un gasto suelto, filas editadas desde la app) + `test_varios_gastos_ok_y_deshacer_de_punta_a_punta` en `test_api_whatsapp.py` (por el servidor real) | `tests/` |
+| el test de costo cero (que no aparezca la palabra de las plantillas) recorre **todo** `core/api/` y `places/finanzas/core/` desde el 19/10/2026: un módulo nuevo del canal queda vigilado solo | `tests/` |
 | WhatsApp (Fase A): `test_comandos_whatsapp.py` (parser y comandos, base sintética) · `test_api_whatsapp.py` (canal de Meta + **servidor HTTP real** en un puerto libre, webhooks firmados, envío falso) · `test_deploy_api.py` (nginx/Dockerfile/entrypoint como texto: no hay Docker local) | `tests/` |
 | los premortem-tests (`test_premortem3/5.py`): regresiones de los riesgos del premortem | `tests/` |
 | "¿la pantalla abre?" → `test_smoke_pantallas.py` (`AppTest`, base sintética) | `tests/` |
@@ -110,10 +114,10 @@ Rama `main` — ultimo commit: 2026-10-18 5be41ea docs: idea del espacio compart
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (615 tests al 17/10/2026, con la Fase C en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 29 | 5,525 | ok |
-| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 13 | 2,860 | ok |
+| `tests/` | La suite completa (677 tests al 19/10/2026, Fase D en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 30 | 5,923 | ok |
+| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 14 | 3,385 | ok |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | ok |
-| `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M18 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,671 | ok |
+| `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M20 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,734 | ok |
 | `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa. | 7 | 1,357 | ok |
 | `core\api/` | API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla). | 4 | 869 | ok |
 | `core\theme/` | Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semántica + template Plotly unificado, ajustes responsive y logo. | 5 | 710 | ok |
@@ -145,24 +149,24 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 | Archivo | LOC | Lo usan | Simbolos |
 |---|---:|---:|---|
-| `core\db.py` | 1199 | 36 | `_migrate`, `es_tabla_faltante`, `get_db_path`, `connect` |
-| `core\context.py` | 105 | 19 | `set_current_user_id`, `get_current_user_id`, `require_current_user_id`, `set_current_workspace_id` |
+| `core\db.py` | 1262 | 39 | `_migrate`, `es_tabla_faltante`, `get_db_path`, `connect` |
+| `core\context.py` | 105 | 20 | `set_current_user_id`, `get_current_user_id`, `require_current_user_id`, `set_current_workspace_id` |
+| `core\workspaces.py` | 261 | 15 | `_hash_code`, `_uid`, `get_personal_workspace_id`, `ensure_personal_workspace` |
 | `places\finanzas\core\metrics.py` | 359 | 14 | `_uid`, `anios_con_datos`, `filtrar_anio`, `load_transactions` |
-| `core\workspaces.py` | 261 | 14 | `_hash_code`, `_uid`, `get_personal_workspace_id`, `ensure_personal_workspace` |
 | `core\__init__.py` | 5 | 13 | — |
-| `places\finanzas\core\transactions.py` | 243 | 10 | `_uid`, `_es_familiar`, `_asegurar_motivo`, `insert_transaction` |
+| `places\finanzas\core\transactions.py` | 265 | 12 | `_uid`, `_es_familiar`, `_asegurar_motivo`, `insert_transaction` |
 | `places\finanzas\helpers\_html.py` | 22 | 7 | `render_html` |
+| `places\finanzas\core\__init__.py` | 5 | 7 | — |
+| `places\finanzas\core\comandos.py` | 904 | 6 | `Respuesta`, `Gasto`, `EntradaInvalida`, `ahora_ar` |
 | `places\finanzas\core\ingest.py` | 381 | 6 | `ImportResult`, `_importe`, `_read_csv_rows`, `import_diario` |
 | `places\finanzas\helpers\_tour.py` | 198 | 6 | `_user_id`, `is_tour_active`, `start_tour`, `finish_tour` |
-| `places\finanzas\core\__init__.py` | 5 | 6 | — |
-| `places\finanzas\core\comandos.py` | 630 | 5 | `Respuesta`, `Gasto`, `EntradaInvalida`, `ahora_ar` |
 | `places\finanzas\core\parsers.py` | 247 | 5 | `parse_currency`, `parse_currency_estricto`, `parse_date`, `normalize_motivo` |
 
 ## Flujo interno
 
-- `tests/` → `core/` (39)
-- `tests/` → `places\finanzas\core/` (27)
-- `places\finanzas\core/` → `core/` (17)
+- `tests/` → `core/` (41)
+- `tests/` → `places\finanzas\core/` (30)
+- `places\finanzas\core/` → `core/` (20)
 - `places\finanzas\views/` → `places\finanzas\helpers/` (13)
 - `places\finanzas\views/` → `places\finanzas\core/` (12)
 - `places\finanzas\views/` → `core/` (8)
@@ -177,16 +181,16 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `EN-HUMANO.md` + `ESTADO.md` (38 commits)
-- `.mapa/mapa.json` + `MAPA.md` (36 commits)
+- `EN-HUMANO.md` + `ESTADO.md` (39 commits)
+- `.mapa/mapa.json` + `MAPA.md` (37 commits)
 - `BITACORA.md` + `ESTADO.md` (26 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)
 - `BITACORA.md` + `EN-HUMANO.md` (24 commits)
 - `ESTADO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (23 commits)
 - `places/inversiones/cartera/bitacora_de_trabajo.md` + `places/inversiones/cartera/view.py` (21 commits)
-- `.mapa/mapa.json` + `ESTADO.md` (19 commits)
-- `ESTADO.md` + `MAPA.md` (19 commits)
-- `EN-HUMANO.md` + `places/inversiones/cartera/view.py` (17 commits)
+- `.mapa/mapa.json` + `ESTADO.md` (20 commits)
+- `ESTADO.md` + `MAPA.md` (20 commits)
+- `ESTADO.md` + `ROADMAP.md` (17 commits)
 
 ## Fuentes externas
 

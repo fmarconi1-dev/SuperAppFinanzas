@@ -4,10 +4,10 @@
 > Formato de cada entrada: `fecha · autor (Claude+modelo / Franco) · qué se hizo · por qué · estado`.
 > Regla: no cerrar una sesión sin dejar la entrada acá y actualizar `/ESTADO.md` en la raíz.
 
-<!-- ultima_actualizacion: 2026-09-22 -->
+<!-- ultima_actualizacion: 2026-10-19 -->
 
 ## Estado del módulo
-**Fase de implementación:** en producción desde Fase 1 (Fase 5 aprobada, sin arrancar)
+**Fase de implementación:** en producción desde Fase 1 (Fase D en curso, ADR-0009)
 **Situación:** ✅ en producción
 
 ## Registro
@@ -50,3 +50,9 @@
 - **Qué:** `core/comandos.py`: carga `[fecha], monto, categoría[, comentario]` con montos y fechas estrictos, "¿quisiste decir?" para categorías parecidas o nuevas (confirmación sí/no, vence a los 10 min), `resumen` con la fórmula del dashboard, `deshacer` y `ayuda`.
 - **Por qué:** que cargar un gasto sea mandar un WhatsApp, sin cargar nada a ciegas.
 - **Estado:** ✅ 60 tests; sin desplegar.
+
+## 2026-10-19 — Fase D, paso 2: varios gastos en un mensaje (lotes) y el bruto
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** `lotes.py` (propuesta → `ok` → todo o nada con un backup antes → `deshacer` del lote entero, con el antes/después de cada fila); en `comandos.py`, varios renglones = una propuesta numerada, respuestas `ok`/`N categoría`/`N no`/`cancelar`, y `deshacer` de lo último (gasto o lote). El bruto de los gastos con cuenta queda en `gasto_cuentas` (M20). `insert_transaction` partido en `insertar_sin_backup` + backup.
+- **Por qué:** es la base de la conciliación (ADR-0009 §6): todo lo que llegue de un extracto o un resumen va a pasar por un lote. El bruto hace falta para reconocer devoluciones y descontar del efectivo lo que salió de verdad.
+- **Estado:** ✅ 677 tests en verde, 0 skipped. Sin desplegar: falta que Franco pruebe desde el celular (tres gastos en un mensaje, `ok`, `resumen`, `deshacer`).

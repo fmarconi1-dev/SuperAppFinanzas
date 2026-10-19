@@ -9,6 +9,18 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 19 de octubre de 2026 — Varios gastos en un solo mensaje
+
+**Qué se hizo.** Ahora le podés mandar al Secretario varios gastos juntos, uno por renglón. No carga nada todavía: te los muestra numerados y espera tu *ok*. Antes de confirmar podés corregir ("2 transportes"), sacar uno ("2 no") o cancelar todo. Con el *ok* los carga todos juntos, o ninguno si algo falla, y *deshacer* los borra a todos de una.
+
+Además, cuando cargás un gasto con una cuenta (como `150000-25000*5`), la app ahora se guarda también lo que pagaste en el momento ($150.000), no solo lo que gastaste de verdad ($25.000). Lo va a necesitar la conciliación para reconocer las devoluciones.
+
+**Para qué te sirve.** Cargar el día entero en un mensaje, y es la base de lo que viene: el extracto del banco y el resumen de la tarjeta van a funcionar igual (te muestro, confirmás, se carga todo junto).
+
+**Qué sigue.** Que lo publiques y lo pruebes desde el celular. Después: que el Secretario pueda recibir archivos.
+
+---
+
 ## 18 de octubre de 2026 (noche) — El plan de la conciliación, escrito
 
 **Qué se hizo.** Pasé a limpio lo que acordamos para la Fase D en dos documentos: la decisión (por qué se hace así) y el plan (cómo, en qué orden y cómo se va a ver en WhatsApp). Todavía no se programó nada.

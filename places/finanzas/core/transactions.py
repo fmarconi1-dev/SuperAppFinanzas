@@ -58,6 +58,30 @@ def insert_transaction(
     como"): el `member_label` recibido, o la etiqueta del usuario en ese
     workspace si no se pasó ninguna.
     """
+    new_id = insertar_sin_backup(
+        conn, fecha, motivo, pasivos=pasivos, ingresos=ingresos, comentario=comentario,
+        user_id=user_id, member_label=member_label,
+    )
+    backup_db()
+    return new_id
+
+
+def insertar_sin_backup(
+    conn: sqlite3.Connection,
+    fecha: date,
+    motivo: str,
+    pasivos: float = 0.0,
+    ingresos: float = 0.0,
+    comentario: Optional[str] = None,
+    user_id: Optional[int] = None,
+    member_label: Optional[str] = None,
+) -> int:
+    """`insert_transaction` sin el backup: para escribir **dentro** de una transacción.
+
+    La usan los lotes de la Fase D (`lotes.py`): un backup antes de empezar y
+    después todo en un `BEGIN IMMEDIATE`. Con `insert_transaction` habría un
+    backup por fila, y cada uno abre otra conexión con la escritura a medias.
+    """
     uid = _uid(user_id)
     wid = resolve_workspace_id(conn, uid)
     motivo = motivo.strip()
@@ -80,9 +104,7 @@ def insert_transaction(
         (fecha.isoformat(), float(pasivos), float(ingresos), motivo, comentario,
          uid, wid, label),
     )
-    new_id = cur.lastrowid
-    backup_db()
-    return new_id
+    return cur.lastrowid
 
 
 def update_transaction(

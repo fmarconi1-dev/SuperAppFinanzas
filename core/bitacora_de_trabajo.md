@@ -4,7 +4,7 @@
 > Formato de cada entrada: `fecha · autor (Claude+modelo / Franco) · qué se hizo · por qué · estado`.
 > Regla: no cerrar una sesión sin dejar la entrada acá y actualizar `/ESTADO.md` en la raíz.
 
-<!-- ultima_actualizacion: 2026-09-22 -->
+<!-- ultima_actualizacion: 2026-10-19 -->
 
 ## Estado del módulo
 **Fase de implementación:** en producción desde Fase 1
@@ -29,3 +29,9 @@
 - **Qué:** `core/api/` nuevo: `servidor.py` (ThreadingHTTPServer en 127.0.0.1:8000, firma HMAC de Meta, dedupe por wamid, cola con un solo hilo trabajador, 503 sin configuración) y `whatsapp_meta.py` (único módulo que habla con Meta: verificación, eventos, envío de texto partido en 4096, números canónicos sin el 9). `db.py`: M17 (`whatsapp_mensajes`, `whatsapp_estado`), aditiva.
 - **Por qué:** cargar gastos desde el celular con costo cero (sin plantillas, sin tarjeta).
 - **Estado:** ✅ tests en verde y smoke test del proceso real; sin desplegar.
+
+## 2026-10-19 — M19 y M20 (Fase D, paso 2)
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** `db.py` suma **M19** (`lotes`, `lote_operaciones`) y **M20** (`gasto_cuentas`), las dos aditivas (`CREATE TABLE IF NOT EXISTS`). La M16 queda liberada (ADR-0009 reemplazó las cuentas de ADR-0006).
+- **Por qué:** los lotes de la conciliación y el bruto de los gastos con cuenta (`docs/PLAN-FASE-D.md`).
+- **Estado:** ✅ suite 677 passed, 0 skipped. Sin desplegar.

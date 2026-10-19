@@ -151,13 +151,23 @@ def test_enviar_no_traga_otros_errores(monkeypatch):
     assert e.value.codigo == 131047
 
 
-@pytest.mark.parametrize("archivo", [
-    "core/api/whatsapp_meta.py",
-    "core/api/servidor.py",
-    "places/finanzas/core/comandos.py",
-    "places/finanzas/core/briefing.py",
-    "api.py",
-])
+#: Todo lo que arma o manda mensajes del Secretario. Desde la Fase D se
+#: recorren las carpetas enteras (antes era una lista fija): un módulo nuevo
+#: del canal queda vigilado sin que nadie se acuerde de sumarlo.
+_ARCHIVOS_DEL_CANAL = sorted(
+    str(p.relative_to(RAIZ)).replace("\\", "/")
+    for carpeta in ("core/api", "places/finanzas/core")
+    for p in (RAIZ / carpeta).glob("*.py")
+) + ["api.py"]
+
+
+def test_la_lista_del_canal_incluye_lo_conocido():
+    for archivo in ("core/api/whatsapp_meta.py", "core/api/servidor.py",
+                    "places/finanzas/core/comandos.py", "places/finanzas/core/lotes.py"):
+        assert archivo in _ARCHIVOS_DEL_CANAL
+
+
+@pytest.mark.parametrize("archivo", _ARCHIVOS_DEL_CANAL)
 def test_costo_cero_el_codigo_no_sabe_mandar_plantillas(archivo):
     """Candado 2 de ADR-0008: lo único que Meta cobra son las plantillas."""
     assert "template" not in (RAIZ / archivo).read_text(encoding="utf-8").lower()
@@ -281,6 +291,30 @@ def test_deshacer_de_punta_a_punta(entorno):
     entorno["srv"].cola.join()
     assert _filas(entorno["db"], "SELECT id FROM transacciones") == []
     assert f"Borré #{txn['id']}" in entorno["enviados"][1][1]
+
+
+def test_varios_gastos_ok_y_deshacer_de_punta_a_punta(entorno):
+    """Fase D, paso 2, por el servidor real: el hilo trabajador arranca sin
+    contextvars, así que el lote tiene que encontrar el espacio solo."""
+    url, srv = entorno["url"], entorno["srv"]
+    _post(url, _payload([("w1", NUMERO, "2500, nafta\n4.000, nafta, peaje\n100-50, nafta")]))
+    srv.cola.join()
+    assert _filas(entorno["db"], "SELECT id FROM transacciones") == []
+    assert "Te cargo 3" in entorno["enviados"][-1][1]
+
+    _post(url, _payload([("w2", NUMERO, "ok")]))
+    srv.cola.join()
+    txns = _filas(entorno["db"], "SELECT pasivos FROM transacciones ORDER BY id")
+    assert [t["pasivos"] for t in txns] == [2500.0, 4000.0, 50.0]
+    assert _filas(entorno["db"], "SELECT cuenta, bruto FROM gasto_cuentas") == [
+        {"cuenta": "100-50", "bruto": 100.0}]
+    assert "Cargados 3" in entorno["enviados"][-1][1]
+
+    _post(url, _payload([("w3", NUMERO, "deshacer")]))
+    srv.cola.join()
+    assert _filas(entorno["db"], "SELECT id FROM transacciones") == []
+    assert _filas(entorno["db"], "SELECT * FROM gasto_cuentas") == []
+    assert "Borré los 3" in entorno["enviados"][-1][1]
 
 
 def test_firma_invalida_no_procesa(entorno):

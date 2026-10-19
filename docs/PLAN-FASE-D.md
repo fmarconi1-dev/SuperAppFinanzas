@@ -16,19 +16,24 @@ Los comercios y montos de estos ejemplos son inventados.
 
 **Varios gastos en un mensaje (paso 2):**
 
+Cada renglón se escribe igual que un gasto suelto (`[fecha], monto, categoría[, comentario]`), así que valen las mismas fechas, cuentas y el `+` de ingreso.
+
 ```
-Vos:  super 12.500
-      nafta 30000
-      cena 60000-15000*3
+Vos:  12.500, super
+      13/10, 30000, nafta, YPF
+      60000-15000*3, salidas
 
 Sec.: Te cargo 3:
-      1. Supermercado  $12.500     hoy
-      2. Auto          $30.000     hoy
-      3. Salidas       $15.000     hoy  (60000-15000*3)
-      ¿Va? Contestá *ok*, o corregí: *2 transportes, ok*
+      1. Supermercado $12.500 (19/10)  ← ¿quisiste decir? (escribiste «super»)
+      2. Nafta $30.000 (13/10) · YPF
+      3. Salidas $15.000 (19/10) = 60000-15000*3
+      Total: gastos $57.500
+
+      ¿Va? Contestá *ok*. Para corregir antes: *2 transportes* · *2 no* (lo saco) · *cancelar*
 
 Vos:  ok
-Sec.: ✅ Cargados 3 ($57.500). *deshacer* borra los tres.
+Sec.: ✅ Cargados 3 (gastos $57.500).
+      *deshacer* borra los 3.
 ```
 
 **El extracto (paso 4):**
@@ -208,6 +213,8 @@ Si el bruto es mayor que el neto, el gasto **espera devoluciones** por la difere
 ---
 
 ## Orden de trabajo (un paso a la vez, desplegable, suite en verde)
+
+> **Progreso (19/10/2026):** ✅ 1 · ✅ 2 en código (677 passed, 0 skipped), **sin desplegar**: falta la prueba de Franco desde el celular. Sigue el 3.
 
 1. ✅ **ADR-0009 y este plan** (18/10/2026), aprobados por Franco el 19/10/2026.
 2. **Varios gastos en un mensaje = el sistema de lotes.** Varios renglones → propuesta numerada → `ok` / correcciones → aplica todo o nada → `deshacer` del lote. Guarda el bruto de todo gasto con cuenta, suelto o en lote. `deshacer` deshace **lo último**: el lote entero si lo último fue un lote, el gasto si fue un gasto.

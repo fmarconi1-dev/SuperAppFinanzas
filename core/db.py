@@ -108,8 +108,8 @@ _USER_SCOPED_TABLES = ("transacciones", "categorias", "presupuesto", "configurac
 #: Es la misma lección del incidente de M4: el guard de una migración vieja
 #: tiene que seguir siendo correcto frente al esquema **y los datos** de hoy.
 #: Con `user_version >= 1` ya no corren. `user_version` es del header de
-#: SQLite: no es una tabla ni una migración nueva (el M16 lo reserva el
-#: ADR-0006). Si hace falta otra reparación única, sube a 2.
+#: SQLite: no es una tabla ni una migración nueva (M16 quedó liberada por
+#: ADR-0009). Si hace falta otra reparación única, sube a 2.
 _NIVEL_REPARACIONES = 1
 
 
@@ -132,6 +132,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
       M13–M15 (4)   ajustes de tenencia, vencimientos a mano, cronogramas.
       M17 (A)       mensajes y estado del canal de WhatsApp (M16: reservada, ADR-0006).
       M18 (B)       cola de salida de WhatsApp (ventana de 24 h).
+      M19–M20 (D)   lotes con su deshacer, y el bruto de los gastos con cuenta
+                    (M16 queda liberada, ADR-0009).
 
     "Única" = reparación de datos que corre una sola vez por base, marcada con
     `PRAGMA user_version` (ver `_NIVEL_REPARACIONES`).
@@ -950,7 +952,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
         # ============================================================
         # M17 (Fase A, ADR-0008): mensajes de WhatsApp.
         # ============================================================
-        # (M16 sigue reservada para las cuentas de la Fase 5, ADR-0006.)
+        # (M16 estaba reservada para las cuentas de ADR-0006; ADR-0009 la liberó.)
         #
         # `whatsapp_mensajes` es el **dedupe**: Meta reintenta un webhook
         # hasta 7 días si no recibe 200 a tiempo (un arranque en frío de Fly
@@ -996,6 +998,67 @@ def _migrate(conn: sqlite3.Connection) -> None:
                 creado_en   TEXT NOT NULL,
                 enviado_en  TEXT,
                 error       TEXT
+            )
+        """)
+
+        # ============================================================
+        # M19 (Fase D, paso 2, ADR-0009): lotes.
+        # ============================================================
+        # (M16 quedó liberada: ADR-0009 reemplazó las cuentas de ADR-0006.)
+        #
+        # Un lote es una **propuesta** (varios gastos en un mensaje; después,
+        # un extracto o un resumen) que se aplica entera o nada con el `ok` de
+        # Franco, y que `deshacer` revierte entera. `lote_operaciones` guarda
+        # cada fila tocada con cómo estaba **antes** y cómo quedó **después**:
+        # deshacer solo procede si la fila sigue igual que la dejó el lote.
+        # `fila_id` **no** es FK a propósito: con `foreign_keys = ON`, una FK
+        # sin ON DELETE haría fallar el borrado de un gasto desde la app.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS lotes (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id  INTEGER NOT NULL,
+                user_id       INTEGER NOT NULL,
+                origen        TEXT NOT NULL,
+                estado        TEXT NOT NULL
+                    CHECK (estado IN ('propuesto', 'aplicado', 'deshecho', 'descartado')),
+                propuesta     TEXT NOT NULL,
+                creado_en     TEXT NOT NULL,
+                aplicado_en   TEXT,
+                deshecho_en   TEXT
+            )
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_lotes_estado
+                ON lotes(workspace_id, estado)
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS lote_operaciones (
+                id       INTEGER PRIMARY KEY AUTOINCREMENT,
+                lote_id  INTEGER NOT NULL REFERENCES lotes(id) ON DELETE CASCADE,
+                orden    INTEGER NOT NULL,
+                tabla    TEXT NOT NULL,
+                fila_id  INTEGER NOT NULL,
+                accion   TEXT NOT NULL CHECK (accion IN ('insert', 'update')),
+                antes    TEXT,
+                despues  TEXT NOT NULL
+            )
+        """)
+
+        # ============================================================
+        # M20 (Fase D, paso 2, ADR-0009): el bruto de un gasto con cuenta.
+        # ============================================================
+        # "150000-25000*5" se carga como $25.000 (lo gastado de verdad), pero
+        # la conciliación necesita los $150.000 que salieron en el momento
+        # para reconocer las devoluciones. Tabla aparte y no columna en
+        # `transacciones`: las migraciones viejas reconstruyen esa tabla con
+        # listas de columnas fijas, y el export y el ingest la leen.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS gasto_cuentas (
+                transaccion_id  INTEGER PRIMARY KEY
+                    REFERENCES transacciones(id) ON DELETE CASCADE,
+                workspace_id    INTEGER NOT NULL,
+                cuenta          TEXT NOT NULL,
+                bruto           REAL NOT NULL
             )
         """)
 
