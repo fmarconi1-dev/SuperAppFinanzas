@@ -1,6 +1,6 @@
 # places/finanzas/helpers/
 
-<!-- huella: 8bd938f46a52 -->
+<!-- huella: ec676ab690fb -->
 
 Resumen: Utilidades de las vistas: formateo es-AR de montos, inyección de HTML y el tour guiado de bienvenida.
 
@@ -18,6 +18,7 @@ Resumen: Utilidades de las vistas: formateo es-AR de montos, inyección de HTML 
 ## Estado
 
 - **Funciona:** en producción.
+- **17/10/2026 (Fase C, rebranding):** los avisos del tour (`_tour.py`) nombran las pestañas sin emojis (**Transacciones**, **Diario**, **Mensual**, **Configuración**), igual que las pestañas, que ahora usan íconos Material. Sin cambios de lógica.
 
 ## Proximo paso
 

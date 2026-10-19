@@ -1,6 +1,6 @@
 # core/auth/
 
-<!-- huella: e7866487f35c -->
+<!-- huella: 8342769211eb -->
 
 Resumen: Autenticación compartida: usuarios con bcrypt, pantalla de login/signup y tokens de sesión firmados. (Los contextvars de usuario/workspace viven en `core/context.py`.)
 
@@ -27,6 +27,7 @@ Resumen: Autenticación compartida: usuarios con bcrypt, pantalla de login/signu
 ## Estado
 
 - **Funciona:** en producción desde Fase 1.
+- **17/10/2026 (Fase C, rebranding):** la pantalla de login dice **Secretario** (antes "Radar Financiero") con la bajada "Tus finanzas, tu agenda y tus pendientes, en un solo lugar.", y el color de la bajada sale del token `--cs-text-mid` en vez de un hex fijo. El logo del moño, centrado, lo dibuja `core/theme/_logo.py`. Sin cambios en la autenticación.
 
 ## Proximo paso
 
