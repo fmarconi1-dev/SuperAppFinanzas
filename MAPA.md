@@ -8,7 +8,7 @@
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-18 5d8af02 docs: prompt de inicio de la Fase D (conciliaciÃ³n desde el Secretario)
+Rama `main` — ultimo commit: 2026-10-18 546011f mapa: reindexado · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -103,7 +103,7 @@ Rama `main` — ultimo commit: 2026-10-18 5d8af02 docs: prompt de inicio de la F
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (615 tests al 17/10/2026, con la Fase C en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 29 | 5,525 | **vencida** |
+| `tests/` | La suite completa (615 tests al 17/10/2026, con la Fase C en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 29 | 5,525 | ok |
 | `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 13 | 2,860 | ok |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | **vencida** |
 | `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M18 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,671 | ok |
@@ -111,7 +111,7 @@ Rama `main` — ultimo commit: 2026-10-18 5d8af02 docs: prompt de inicio de la F
 | `core\api/` | API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla). | 4 | 869 | ok |
 | `core\theme/` | Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semántica + template Plotly unificado, ajustes responsive y logo. | 5 | 710 | ok |
 | `core\auth/` | Autenticación compartida: usuarios con bcrypt, pantalla de login/signup y tokens de sesión firmados. (Los contextvars de usuario/workspace viven en `core/context.py`.) | 4 | 422 | **vencida** |
-| `./` | Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías). | 5 | 306 | **vencida** |
+| `./` | Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías). | 5 | 306 | ok |
 | `places\finanzas\helpers/` | Utilidades de las vistas: formateo es-AR de montos, inyección de HTML y el tour guiado de bienvenida. | 4 | 278 | **vencida** |
 | `places\inicio/` | Lugar Inicio — la pantalla principal de Secretario (Fase C, ADR-0008): saludo, **saldo de la cuenta** en grande, gastos/ingresos/movimientos del mes contra el mismo período del anterior, la semana y las tareas de Google (con tilde para completarlas), últimos movimientos y estado del Secretario. | 2 | 255 | ok |
 | `places\inicio\core/` | _sin describir_ | 3 | 231 | — |
@@ -171,7 +171,7 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
 - `EN-HUMANO.md` + `ESTADO.md` (38 commits)
-- `.mapa/mapa.json` + `MAPA.md` (31 commits)
+- `.mapa/mapa.json` + `MAPA.md` (32 commits)
 - `BITACORA.md` + `ESTADO.md` (26 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)
 - `BITACORA.md` + `EN-HUMANO.md` (24 commits)
@@ -215,5 +215,5 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
 ## Frescura
 
-- Bitacoras vencidas: `./`, `core\auth/`, `integraciones\google-apps-script/`, `places\finanzas/`, `places\finanzas\helpers/`, `places\finanzas\views/`, `tests/`
+- Bitacoras vencidas: `core\auth/`, `integraciones\google-apps-script/`, `places\finanzas/`, `places\finanzas\helpers/`, `places\finanzas\views/`
 - Carpetas sin bitacora: `places\inicio\core/`

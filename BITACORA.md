@@ -1,6 +1,6 @@
 # BITÁCORA — changelog narrativo global
 
-<!-- huella: 47d1460691b2 -->
+<!-- huella: c6d27008885c -->
 
 Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías).
 
@@ -18,6 +18,15 @@ Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación e
 Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión relevante. Lo fino de cada módulo va en su `bitacora_de_trabajo.md`.
 
 ---
+
+## 2026-10-18 — Diseño de la Fase D: conciliación desde el Secretario
+**Autor:** Claude (Opus 5.5), con Franco.
+
+- La Fase D original y la Fase 5 (ADR-0006) se fusionan. Se estudiaron los archivos reales de Franco: extracto de Galicia (Excel) y 9 resúmenes AMEX/VISA (PDF con texto). Se leen sin IA. Gemini gratis queda solo para fotos.
+- **Por qué cambia ADR-0006 §1:** no hacen falta cuentas. La caja de ahorro manda, y algunas filas del banco son contenedores que se desarman: el pago de tarjeta en el detalle del resumen, la compra de dólares en los consumos en USD, la extracción en efectivo. Así se evita el doble conteo sin migrar la tabla más sensible.
+- Verificado: los pagos de tarjeta del extracto coinciden al centavo con su resumen. La diferencia es la percepción RG 5617 del 30%, que se paga y se devuelve, y va a una línea neutra.
+- Saldo real = caja + FIMA + efectivo. Ajuste inicial de +$82.758,25 (18/10/2026) para arrancar parejos.
+- Todo el diseño está en `docs/PROMPT-INICIO-FASE-D.md`. Los archivos reales quedan en `data/extractos/` (ignorado por git).
 
 ## 2026-10-15 — Fase A: gastos por WhatsApp (ADR-0008)
 **Autor:** Claude (Opus 5.5), con Franco.

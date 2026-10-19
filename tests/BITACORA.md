@@ -1,6 +1,6 @@
 # tests/
 
-<!-- huella: 0b379748da6e -->
+<!-- huella: 20ac6757efbf -->
 
 Resumen: La suite completa (615 tests al 17/10/2026, con la Fase C en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde.
 
@@ -35,6 +35,7 @@ Resumen: La suite completa (615 tests al 17/10/2026, con la Fase C en curso) en 
 
 ## Estado
 
+- **18/10/2026:** 618 passed, 0 skipped (Fase C: saldo de la cuenta en el Inicio y `test_el_icono_de_la_pestana_es_el_mono`).
 - **17/10/2026:** 615 passed, 0 skipped (Fase C, pasos 1–5). Antes, 601 (pasos 1–2). Antes en el día, 568 (agenda por WhatsApp).
 - **16/10/2026:** 515 passed, 0 skipped (con las cuentas en el monto); antes, 493 (Fase B, pasos 1–2: cola de salida y `/api/briefing`).
 - **15/10/2026:** 468 passed, 0 skipped (Fase A: +109 tests de WhatsApp, API y contenedor).
