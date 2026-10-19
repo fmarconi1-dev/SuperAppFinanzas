@@ -56,6 +56,16 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 - 🟢 💡 **Chatbot de WhatsApp.** Tier gratis de WhatsApp Business Cloud API. **Pre-requisito: M5.**
 - 🟡 💡 **Dictar varios gastos en un solo mensaje** (idea tomada de Kesef, 29/9/2026). "Gasté 4.200 en el súper, 1.800 de café y 12.000 de nafta" → la app **propone** tres gastos y Franco confirma. Entra en el **Paso 4 de la Fase 5** (efectivo por WhatsApp), por texto o audio. Respeta la regla de la fase: el LLM extrae y propone, **nunca escribe ni decide montos**; la confirmación y el guardado son determinísticos.
 - 🟡 💡 **Gastos recurrentes automáticos** (idea tomada de Kesef, 29/9/2026): expensas, servicios, suscripciones que se repiten cada mes se cargan solos (o se proponen para confirmar). **Ojo con la Fase 5:** cuando la caja de ahorro y las tarjetas entren por archivo, un recurrente cargado a mano **duplicaría** el mismo pago; o se hace antes de la Fase 5 y se integra al dedupe (Paso 5), o se hace como "esperado" que el import confirma en vez de como gasto.
+- 🟡 💡 **Espacio compartido en el Secretario** (idea de Franco, 18/10/2026; **para pensar después de la Fase D**). Que más de una persona cargue gastos a un mismo espacio, como el grupo familiar D2 que ya existe en la app (`workspace_id`, código de invitación, "Firmar como").
+   **Lo que ya decidió Franco:**
+   - Se carga **desde la app y por WhatsApp**, como hoy.
+   - El espacio compartido **convive** con el personal: no lo reemplaza.
+   - Se quiere ver **el total gastado** entre todos, **no** quién le debe a quién (nada de Splitwise).
+
+   **Lo que falta pensar:**
+   - **WhatsApp atiende un solo número** (`WHATSAPP_NUMERO_AUTORIZADO`) y todo va al espacio personal. Hay que sumar números autorizados (verificar cuántos acepta gratis el número de prueba de Meta) y decidir a qué espacio va cada mensaje, por ejemplo con un prefijo o con un espacio por defecto para cada número.
+   - **Conciliación:** la Fase D concilia la caja, el FIMA y el efectivo de Franco. En un espacio compartido los gastos salen de cuentas de distintas personas: hay que decidir qué extracto concilia cada uno y si se controla algún saldo del espacio.
+   - **Doble conteo entre espacios:** un gasto que Franco paga y carga en el compartido aparece igual en su extracto personal. El emparejamiento de la Fase D tiene que reconocerlo como ya cargado (en el otro espacio) y no duplicarlo.
 - 🟢 💡 Portar lo que quede del backlog de UX del repo original (`docs/MEJORAS-UX.md` allá).
 
 ### Descartado
