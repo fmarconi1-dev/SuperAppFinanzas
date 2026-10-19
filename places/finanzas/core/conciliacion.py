@@ -997,4 +997,6 @@ def _texto_aplicado(prop: dict, cargados: int, emparejados: int) -> str:
               f"emparejé {emparejados} con lo que ya tenías" if emparejados else None]
     hecho = " y ".join(p for p in partes if p) or "anoté los movimientos"
     return (f"✅ Listo: {hecho}. La caja quedó en {pesos_c(prop['saldo_final'])} el "
-            f"{date.fromisoformat(prop['hasta']):%d/%m}.\n*deshacer* vuelve todo atrás.")
+            f"{date.fromisoformat(prop['hasta']):%d/%m}.\n*deshacer* vuelve todo atrás.\n\n"
+            "Ahora decime cuánto tenés en el FIMA y en efectivo, así cierro la cuenta: "
+            "*fima 512.300 efectivo 98.000*")

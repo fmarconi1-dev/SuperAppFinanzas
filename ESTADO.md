@@ -34,6 +34,7 @@
 | **Fase B — briefing + cierre de mercado + agenda** (ADR-0008). Plan: `docs/PLAN-FASE-B.md` | ✅ **CERRADA en producción (17/10/2026)**: los dos briefings de Gemini llegan por el Secretario (CallMeBot apagado) y `evento:` / `tarea:` / `agenda` funcionan punta a punta (probado por Franco) | Claude (Opus 5.5) | 2026-10-17 |
 | **Fase C — tablero "secretario" + rebranding** (ADR-0008). Plan: `docs/PLAN-FASE-C.md` | ✅ **Dada por buena por Franco (18/10/2026)**: marca **Secretario**, logo del moño, Inicio con el saldo de la cuenta, semana y tareas con tilde. Los dos últimos commits (saldo/logo y favicon) **faltan pushear y desplegar** | Claude (Opus 5.5) | 2026-10-17 |
 | **Fase D — conciliación desde el Secretario** (fusiona la D original y la Fase 5; diseño saldado con Franco el 18/10/2026) | 🔵 **EN CURSO.** Paso 1 ✅ (ADR-0009 + `docs/PLAN-FASE-D.md`, aprobados el 19/10). **Paso 2 ✅ en producción** (lotes + bruto, M19–M20, probado por Franco el 19/10). **Paso 3 ✅ en producción** (recibir archivos). **Paso 4a ✅ en código** (extracto + conciliación, M21), commiteado en `main`, **sin desplegar**. Ajuste inicial ya cargado por Franco | Claude (Opus 5.5) | 2026-10-18 |
+| **Números de mercado por código (ADR-0010)**: el 19/10 Gemini mandó cierres de otros días como de hoy. `Mercado.gs` (nuevo) arma el tablero del matutino y el cierre entero; `Reenvio.gs` pone el tablero y descarta el cierre de Gemini. La SuperApp no cambia | 🟡 **Hecho en código, probado con QuickJS contra las fuentes reales, sin commitear.** Falta lo de Franco: pegar `Mercado.gs` y `Reenvio.gs` en el Apps Script, correr `probarMercado` y pasarle a Gemini `docs/PEDIDO-GEMINI.md` | Claude (Opus 5.5) | 2026-10-19 |
 | ~~Fase 5 · Paso 0 — Cuentas y perímetro (M16)~~ | Reemplazada: el modelo de cuentas de ADR-0006 §1 se cambió por "filas del banco que se desarman" (Fase D) | — | — |
 
 ## ✅ Hecho hasta ahora (resumen; detalle en ROADMAP.md y en el archivo)
@@ -47,6 +48,13 @@
 
 ## ⏭️ Próximo paso concreto
 
+-3. 🟡 **Números de mercado (ADR-0010), lo de Franco:**
+   1. En el proyecto de Apps Script del reenvío, agregar `Mercado.gs` y reemplazar `Reenvio.gs`, los dos de `integraciones/google-apps-script/`.
+   2. Correr `probarMercado` y mirar el registro. Si Yahoo da error desde Google, el plan B es `GOOGLEFINANCE` en una planilla.
+   3. Pegar en la conversación de Gemini el pedido de `docs/PEDIDO-GEMINI.md`: da de baja el cierre y rearma el matutino con `[TABLERO]`.
+   4. Mañana, mirar el matutino y el cierre de las 18:30.
+   5. Commit en `main` cuando dé el OK.
+
 -2. ✅ **Backup externo: vuelve a andar (15/10/2026, 13:55, 456 transacciones, `auth=token`).** Estuvo caído del 13/10 al 15/10 porque `fly.exe` quedó en 0 bytes tras una actualización a medias; Franco reinstaló flyctl. El token estaba bien: el aviso del Escritorio culpaba al token por error (`_fly_comun.ps1` no distingue "flyctl no ejecuta"; arreglo propuesto como tarea aparte).
 
 -1. ✅ **Fase A (ADR-0008) — CERRADA el 15/10/2026.** El Secretario carga gastos, responde `resumen` y `deshace`, desde WhatsApp y sin costo. Cómo quedó armado (y las trampas: el 9 de los números argentinos, la suscripción de la app a la cuenta de WhatsApp Business): `core/api/BITACORA.md` y `docs/WHATSAPP-CANAL.md`.
@@ -59,7 +67,7 @@
 1. **Franco, el 28/9 o después:** `powershell -ExecutionPolicy Bypass -File scripts\estado_backup.ps1` → tiene que dar todo en verde (la tarea todavía no corrió nunca al 27/9). Si aparece "BACKUP SUPERAPP - FALLO.txt" en el Escritorio, dice qué pasó.
 2. **Franco:** vaciar la Papelera cuando quieras (los dos `.tar.gz` del 18/8).
 3. ~~Login sin distinguir mayúsculas~~ — descartado por Franco el 27/9 (ver `MEJORAS.md`).
-4. **Fase D, paso 4a — Franco:** push de `main` y deploy (trae M21, aditiva; backup antes). Después, desde el celular: **primero** el extracto que ya tiene (16/6–16/10: solo deja el punto de partida, $153.263,01 al 16/10) y `ok`; **después** un extracto bajado hoy, **desde el 1/10** (así ve los días antes del corte). Dejar de cargar "Pago tarjeta" a mano. Confirmar que el ajuste inicial está en la categoría "Ajuste Reconciliación" (la busca por ese nombre). Revisar la propuesta, contestar y `ok`. Siguiente: **paso 4b** (FIMA, efectivo y ajuste; el "¿es el mismo?" de WhatsApp). El ajuste inicial (+$82.758,25) ya está cargado. `docs/PROMPT-INICIO-FASE-5.md` queda superado.
+4. **Fase D, paso 4a — Franco:** push de `main` y deploy (trae M21, aditiva; backup antes). Después, desde el celular: **primero** el extracto que ya tiene (16/6–16/10: solo deja el punto de partida, $153.263,01 al 16/10) y `ok`; **después** un extracto bajado hoy, **desde el 1/10** (así ve los días antes del corte). Dejar de cargar "Pago tarjeta" a mano. Confirmar que el ajuste inicial está en la categoría "Ajuste Reconciliación" (la busca por ese nombre). Revisar la propuesta, contestar y `ok`. **Paso 4b en código (19/10, sin desplegar):** `fima … efectivo …` propone el ajuste (Rendimiento FIMA y Ajuste Reconciliación) y muestra el control del total (`places/finanzas/core/saldos.py`, `tests/test_saldos.py`). **Falta del 4b:** el "¿es el mismo?" cuando se manda por WhatsApp algo que ya vino del banco, y sugerir un ingreso manual de la misma categoría hasta 30 días antes de un depósito (Haberes SBT). Después, **paso 5** (resúmenes AMEX/VISA). Franco prueba todo junto a fin de mes, con el resumen nuevo. El ajuste inicial (+$82.758,25) ya está cargado. `docs/PROMPT-INICIO-FASE-5.md` queda superado.
 
 **Pendientes menores** (sin apuro; detalle en `MEJORAS.md`): tests de la edición de categorías (cobertura 35%) · retirar `radar-financiero` de Fly (Franco) · dominio propio (estético) · bajar la memoria de Fly ahora que no hay cartera (decisión aparte; `test_scripts_backup` la fija en 1 GB) · migrar a pandas 3 (tarea deliberada, con su propio día).
 

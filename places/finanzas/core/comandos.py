@@ -40,6 +40,7 @@ from core.db import backup_db
 from core.workspaces import resolve_workspace_id
 from places.finanzas.core import agenda as ag
 from places.finanzas.core import lotes
+from places.finanzas.core import saldos
 
 from places.finanzas.core.metrics import (
     ingresos_vs_gastos_mensual,
@@ -84,6 +85,8 @@ AYUDA = (
     "  • agenda — eventos de la semana y tareas pendientes\n\n"
     "*Comandos*\n"
     "  • resumen — gastos e ingresos del mes\n"
+    "  • fima 512.300 efectivo 98.000 — tus saldos, para el ajuste\n"
+    "    (el extracto de la caja y el resumen de la tarjeta, mandalos como archivo)\n"
     "  • deshacer — borra lo último que cargaste por acá (si fueron\n"
     "    varios juntos, los borra a todos)\n"
     "  • ayuda — este mensaje"
@@ -478,6 +481,8 @@ def procesar(
                 conn, lote, aceptar=respuesta_lote.aceptar, cancelar=respuesta_lote.cancelar,
                 correcciones=respuesta_lote.correcciones, user_id=user_id, wid=wid, ahora=ahora)
             return Respuesta(r.texto, r.resultado)
+        if lote.propuesta.get("tipo") == "saldos":
+            return _responder_saldos(conn, lote, respuesta_lote, user_id, wid, ahora)
         return _responder_lote(conn, lote, respuesta_lote, user_id, ahora, hoy)
 
     if not limpio:
@@ -497,6 +502,12 @@ def procesar(
     renglones = [r.strip() for r in limpio.splitlines() if r.strip()]
     if len(renglones) >= 2 and _RE_EMPIEZA_COMO_GASTO.match(renglones[0]):
         return _proponer_varios(conn, renglones, user_id, wid, ahora, hoy)
+    try:
+        declarados = saldos.parsear(limpio, hoy)
+    except EntradaInvalida as e:
+        return Respuesta(f"⚠️ {e}", "rechazado")
+    if declarados:
+        return _proponer_saldos(conn, declarados, user_id, wid, ahora)
 
     try:
         g = parsear_gasto(limpio, hoy)
@@ -667,7 +678,7 @@ def _cantidad(propuesta: dict) -> int:
     """Cuántos renglones se pueden nombrar con su número en esta propuesta."""
     if "numerados" in propuesta:
         return propuesta["numerados"]
-    return len(propuesta["items"])
+    return len(propuesta.get("items", []))   # los saldos no tienen renglones: solo ok/cancelar
 
 
 @dataclass
@@ -872,6 +883,40 @@ def deshacer(conn: sqlite3.Connection, *, user_id: int, ahora: datetime) -> Resp
         f"({date.fromisoformat(txn['fecha']):%d/%m})",
         "deshecho",
     )
+
+
+def _proponer_saldos(conn: sqlite3.Connection, declarados: tuple[date, dict[str, int]],
+                     user_id: int, wid: int, ahora: datetime) -> Respuesta:
+    """``fima 512.300 efectivo 98.000``: propone el ajuste (Fase D, paso 4b). No escribe."""
+    from places.finanzas.core.conciliacion import ConciliacionInvalida
+
+    fecha, partes = declarados
+    try:
+        prop = saldos.proponer(conn, user_id=user_id, wid=wid, fecha=fecha, partes=partes,
+                               ahora=ahora)
+    except ConciliacionInvalida as e:
+        return Respuesta(f"⚠️ {e}", "rechazado")
+    _borrar_pendiente(conn)
+    habia_otra = lotes.proponer(conn, workspace_id=wid, user_id=user_id, origen="saldos",
+                                propuesta=prop, ahora=ahora)
+    texto = saldos.texto(prop)
+    if habia_otra:
+        texto = "(Descarté la propuesta anterior, que no habías confirmado.)\n\n" + texto
+    return Respuesta(texto, "pendiente")
+
+
+def _responder_saldos(conn: sqlite3.Connection, lote: lotes.Lote, r: "RespuestaLote",
+                      user_id: int, wid: int, ahora: datetime) -> Respuesta:
+    if r.cancelar or not r.aceptar:
+        lotes.descartar(conn, lote.id)
+        return Respuesta("Listo, no guardé los saldos ni cargué ningún ajuste.", "rechazado")
+    saldos.aplicar(conn, lote.id, lote.propuesta, user_id=user_id, wid=wid, ahora=ahora)
+    texto = "✅ Guardé los saldos" + (" y cargué el ajuste." if any(
+        abs(p.get("diferencia") or 0) > 1 for p in lote.propuesta["partes"]) else ".")
+    control = saldos.control_total(conn, user_id=user_id, wid=wid)
+    if control:
+        texto += "\n\n" + control
+    return Respuesta(texto + "\n*deshacer* vuelve atrás.", "lote")
 
 
 def _deshacer_lote(conn: sqlite3.Connection, lote_id: int, ahora: datetime) -> Respuesta:
