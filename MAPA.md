@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-19 00:08 UTC · 92 archivos · 16,501 LOC -->
+<!-- 2026-10-19 00:13 UTC · 92 archivos · 16,501 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-18 546011f mapa: reindexado · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-18 c476115 docs: bitÃ¡coras de la raÃ­z y de tests al dÃ­a (diseÃ±o de la Fase D, suite 618) · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -76,6 +76,13 @@ Rama `main` — ultimo commit: 2026-10-18 546011f mapa: reindexado · **hay camb
 | un KPI del Inicio no coincide con `resumen` por WhatsApp → **no debería poder**: los dos usan `comandos.totales_mes`; ver `core/resumen.py` y el test `test_los_kpis_del_inicio_son_los_de_resumen` | `places\inicio/` |
 | la semana o las tareas no aparecen, aparecen viejas o un tilde no completa → `home.py` (`_render_agenda`, caché `_semana` de 5 min, callback `_completar`) y `core/semana.py` (agrupar por día, ordenar tareas) | `places\inicio/` |
 | la variación contra el mes anterior parece mal → `core/resumen.py` (`resumen_del_mes`: compara contra el **mismo período**, del 1 al día de hoy) | `places\inicio/` |
+| el saldo grande del Inicio no coincide con el del Dashboard → `resumen.py` (`saldo_cuenta`, que es `metrics.saldo_cuenta_corriente`) | `places\inicio\core/` |
+| gastos, ingresos o movimientos del mes no coinciden con `resumen` por WhatsApp → `resumen.py` (`resumen_del_mes` usa `comandos.totales_mes`, la misma función del bot) | `places\inicio\core/` |
+| la variación contra el mes anterior da rara, o la flecha apunta al revés → `resumen.py` (`variacion`, `formatear_variacion`, `mes_anterior`) | `places\inicio\core/` |
+| "Buen día / Buenas tardes" o la fecha larga en castellano → `resumen.py` (`saludo`, `fecha_larga`) | `places\inicio\core/` |
+| el renglón "mensajes en cola" del estado del Secretario → `resumen.py` (`mensajes_en_cola`, tabla `whatsapp_salientes`) | `places\inicio\core/` |
+| un evento aparece en el día equivocado, o falta uno que sigue en curso → `semana.py` (`dias_de_la_semana`) | `places\inicio\core/` |
+| el orden de las tareas (vencidas, con fecha, sin fecha) → `semana.py` (`tareas_ordenadas`) | `places\inicio\core/` |
 | backup remoto diario, restaurar, "¿este backup sirve de verdad?" → `backup_remoto.ps1`, `restaurar_backup.ps1`, `verificar_backup.py`, `estado_backup.ps1`, `programar_backup.ps1` | `scripts/` |
 | resetear la contraseña de un usuario → `setup_password.py` | `scripts/` |
 | reindexar el mapa del repo → `indexar.py` (ver `/MAPA.md`) | `scripts/` |
@@ -105,7 +112,7 @@ Rama `main` — ultimo commit: 2026-10-18 546011f mapa: reindexado · **hay camb
 |---|---|---:|---:|---|
 | `tests/` | La suite completa (615 tests al 17/10/2026, con la Fase C en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 29 | 5,525 | ok |
 | `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 13 | 2,860 | ok |
-| `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | **vencida** |
+| `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | ok |
 | `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M18 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,671 | ok |
 | `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa. | 7 | 1,357 | ok |
 | `core\api/` | API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla). | 4 | 869 | ok |
@@ -114,7 +121,7 @@ Rama `main` — ultimo commit: 2026-10-18 546011f mapa: reindexado · **hay camb
 | `./` | Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías). | 5 | 306 | ok |
 | `places\finanzas\helpers/` | Utilidades de las vistas: formateo es-AR de montos, inyección de HTML y el tour guiado de bienvenida. | 4 | 278 | **vencida** |
 | `places\inicio/` | Lugar Inicio — la pantalla principal de Secretario (Fase C, ADR-0008): saludo, **saldo de la cuenta** en grande, gastos/ingresos/movimientos del mes contra el mismo período del anterior, la semana y las tareas de Google (con tilde para completarlas), últimos movimientos y estado del Secretario. | 2 | 255 | ok |
-| `places\inicio\core/` | _sin describir_ | 3 | 231 | — |
+| `places\inicio\core/` | La lógica del Inicio, **pura y sin Streamlit**: los números del mes y el saldo (`resumen.py`) y la semana y las tareas de Google, listas para mostrar (`semana.py`). La pantalla está en `../home.py`. | 3 | 231 | ok |
 | `.github\workflows/` | CI: `tests.yml` corre la suite pytest en cada push (el gate de recon se saltea sin el Excel, así CI no depende de datos personales). | 1 | 82 | ok |
 | `places\finanzas/` | Lugar A — Finanzas Personales (ex Mis-Finanzas-App / Radar Financiero): home con onboarding y las 5 pestañas. La lógica vive en `core/` local, las pantallas en `views/`. | 2 | 73 | **vencida** |
 | `places/` | _sin describir_ | 1 | 2 | — |
@@ -171,7 +178,7 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
 - `EN-HUMANO.md` + `ESTADO.md` (38 commits)
-- `.mapa/mapa.json` + `MAPA.md` (32 commits)
+- `.mapa/mapa.json` + `MAPA.md` (33 commits)
 - `BITACORA.md` + `ESTADO.md` (26 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)
 - `BITACORA.md` + `EN-HUMANO.md` (24 commits)
@@ -215,5 +222,4 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
 ## Frescura
 
-- Bitacoras vencidas: `core\auth/`, `integraciones\google-apps-script/`, `places\finanzas/`, `places\finanzas\helpers/`, `places\finanzas\views/`
-- Carpetas sin bitacora: `places\inicio\core/`
+- Bitacoras vencidas: `core\auth/`, `integraciones\google-apps-script/`, `places\finanzas/`, `places\finanzas\helpers/`

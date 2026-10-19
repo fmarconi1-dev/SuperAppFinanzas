@@ -1,6 +1,6 @@
 # places/finanzas/views/
 
-<!-- huella: 2f2ff6f56b44 -->
+<!-- huella: eb82a09ccd84 -->
 
 Resumen: Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`.
 
@@ -21,6 +21,7 @@ Resumen: Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica
 ## Estado
 
 - **Funciona:** en producción.
+- **17/10/2026 (Fase C, rebranding):** los textos que nombran pestañas ya no llevan emojis (`➕ Transacciones` → **Transacciones**, `⚙️ Configuración` → **Configuración**), porque las pestañas ahora usan íconos Material (skill `ui-ux-web-moderno`: nada de emojis como ícono estructural). Toca `dashboard.py`, `diario.py`, `mensual.py` y `onboarding.py`. Sin cambios de lógica.
 
 ## Proximo paso
 

@@ -32,4 +32,4 @@ Resumen: Lugar Inicio — la pantalla principal de Secretario (Fase C, ADR-0008)
 
 ## Proximo paso
 
-Paso 6 del plan: deploy, mirarlo en el navegador (escritorio y celular, 375 px) y pulir contra el checklist de la skill `ui-ux-web-moderno`.
+— (Fase C dada por buena por Franco el 18/10/2026; ajustes futuros, cuando los pida.)
