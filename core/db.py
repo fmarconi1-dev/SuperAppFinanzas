@@ -134,6 +134,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
       M18 (B)       cola de salida de WhatsApp (ventana de 24 h).
       M19–M20 (D)   lotes con su deshacer, y el bruto de los gastos con cuenta
                     (M16 queda liberada, ADR-0009).
+      M21 (D)       conciliación: filas del banco, emparejamientos, reglas
+                    aprendidas y saldos declarados.
 
     "Única" = reparación de datos que corre una sola vez por base, marcada con
     `PRAGMA user_version` (ver `_NIVEL_REPARACIONES`).
@@ -1059,6 +1061,90 @@ def _migrate(conn: sqlite3.Connection) -> None:
                 workspace_id    INTEGER NOT NULL,
                 cuenta          TEXT NOT NULL,
                 bruto           REAL NOT NULL
+            )
+        """)
+
+        # ============================================================
+        # M21 (Fase D, paso 4, ADR-0009): conciliación con el extracto.
+        # ============================================================
+        # `banco_filas`: cada movimiento de la caja de ahorro importado, en
+        # **centavos**. La identidad (fecha + monto + saldo parcial) hace que
+        # reimportar el mismo archivo no duplique nada; `orden` sigue la
+        # cadena de saldos (sirve para ver si el extracto siguiente empalma).
+        # Nunca se guardan CUIT, CBU ni números de cuenta: solo tipo y comercio.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS banco_filas (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id  INTEGER NOT NULL,
+                orden         INTEGER NOT NULL,
+                fecha         TEXT NOT NULL,
+                monto         INTEGER NOT NULL,
+                saldo         INTEGER NOT NULL,
+                tipo          TEXT NOT NULL,
+                comercio      TEXT,
+                cotizacion    REAL,
+                tratamiento   TEXT NOT NULL,
+                estado        TEXT NOT NULL,
+                UNIQUE (workspace_id, fecha, monto, saldo)
+            )
+        """)
+        # Qué gasto corresponde a qué fila (o qué se decidió de un gasto que no
+        # está en el banco). Las FK borran el vínculo si se borra el gasto o la
+        # fila, así que borrar un gasto desde la app nunca se traba.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS emparejamientos (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id    INTEGER NOT NULL,
+                transaccion_id  INTEGER REFERENCES transacciones(id) ON DELETE CASCADE,
+                banco_fila_id   INTEGER REFERENCES banco_filas(id) ON DELETE CASCADE,
+                rol             TEXT NOT NULL,
+                era_efectivo    INTEGER NOT NULL DEFAULT 0,
+                creado_en       TEXT NOT NULL
+            )
+        """)
+        # Uno a uno: un gasto se empareja con una sola fila, y una fila con un
+        # solo gasto. (Una devolución va a un gasto que ya puede tener pareja.)
+        cur.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_emparejamientos_gasto
+                ON emparejamientos(transaccion_id)
+                WHERE rol IN ('origen', 'mismo', 'arrastre', 'efectivo', 'tarjeta', 'reversion')
+        """)
+        cur.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_emparejamientos_fila
+                ON emparejamientos(banco_fila_id)
+                WHERE rol IN ('mismo', 'arrastre', 'devolucion')
+        """)
+        # Lo que aprende de lo que Franco confirma: comercio → categoría, y
+        # qué hacer con un tipo de movimiento que no conocía.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS reglas_comercio (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id  INTEGER NOT NULL,
+                tipo          TEXT NOT NULL,
+                comercio      TEXT NOT NULL,
+                motivo        TEXT NOT NULL,
+                UNIQUE (workspace_id, tipo, comercio)
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS reglas_tipo (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id  INTEGER NOT NULL,
+                tipo          TEXT NOT NULL,
+                tratamiento   TEXT NOT NULL,
+                UNIQUE (workspace_id, tipo)
+            )
+        """)
+        # Los saldos que declara Franco (FIMA, efectivo) y el ancla de la caja,
+        # en centavos y con fecha. Nunca van escritos en una migración.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS saldos_declarados (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id  INTEGER NOT NULL,
+                parte         TEXT NOT NULL CHECK (parte IN ('caja', 'fima', 'efectivo')),
+                fecha         TEXT NOT NULL,
+                monto         INTEGER NOT NULL,
+                declarado_en  TEXT NOT NULL
             )
         """)
 

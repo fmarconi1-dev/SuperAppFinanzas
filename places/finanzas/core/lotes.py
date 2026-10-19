@@ -109,6 +109,61 @@ def descartar(conn: sqlite3.Connection, lote_id: int) -> None:
                  (lote_id,))
 
 
+
+
+# ---------------------------------------------------------------------------
+# Operaciones de un lote
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class Ref:
+    """El id de una fila insertada antes en el mismo lote (por su `clave`)."""
+
+    clave: str
+
+
+@dataclass
+class InsertarMovimiento:
+    """Una fila nueva de `transacciones` (con su bruto, si tiene cuenta)."""
+
+    mov: Movimiento
+    clave: Optional[str] = None
+
+
+@dataclass
+class Insertar:
+    """Una fila nueva en otra tabla del lote. Los valores pueden ser `Ref`."""
+
+    tabla: str
+    valores: dict
+    clave: Optional[str] = None
+
+
+@dataclass
+class Actualizar:
+    """Cambiar columnas de una fila que ya existe (se guarda cómo estaba)."""
+
+    tabla: str
+    fila_id: "int | Ref"
+    cambios: dict
+
+
+#: Las tablas que un lote puede tocar. Toda otra se rechaza: el nombre de la
+#: tabla va en el SQL y no puede venir de afuera.
+TABLAS = {"transacciones", "banco_filas", "emparejamientos", "reglas_comercio",
+          "reglas_tipo", "saldos_declarados"}
+
+
+@dataclass
+class Deshecho:
+    """Lo que revirtió `deshacer`."""
+
+    #: Los gastos e ingresos que el lote había cargado, como estaban.
+    borradas: list[dict]
+    #: Cuántos gastos que ya existían volvieron a como estaban antes del lote.
+    restauradas: int
+
+
 # ---------------------------------------------------------------------------
 # Aplicar (todo o nada)
 # ---------------------------------------------------------------------------
@@ -120,6 +175,17 @@ def _foto(conn: sqlite3.Connection, txn_id: int) -> Optional[dict]:
     return dict(row) if row else None
 
 
+def _tabla(tabla: str) -> str:
+    if tabla not in TABLAS:
+        raise ValueError(f"Un lote no puede tocar la tabla {tabla!r}")
+    return tabla
+
+
+def _fila(conn: sqlite3.Connection, tabla: str, fila_id: int) -> Optional[dict]:
+    row = conn.execute(f"SELECT * FROM {_tabla(tabla)} WHERE id = ?", (fila_id,)).fetchone()
+    return dict(row) if row else None
+
+
 def aplicar(
     conn: sqlite3.Connection, lote_id: int, movimientos: list[Movimiento], *,
     user_id: int, ahora: datetime,
@@ -127,32 +193,81 @@ def aplicar(
     """Escribe los movimientos del lote: backup antes, todo o nada. Devuelve los ids."""
     if not movimientos:
         raise ValueError("Un lote sin movimientos no se aplica")
+    claves = aplicar_operaciones(
+        conn, lote_id, [InsertarMovimiento(m, clave=f"m{i}") for i, m in enumerate(movimientos)],
+        user_id=user_id, ahora=ahora)
+    return [claves[f"m{i}"] for i in range(len(movimientos))]
+
+
+def aplicar_operaciones(
+    conn: sqlite3.Connection, lote_id: int, operaciones: list, *, user_id: int, ahora: datetime,
+) -> dict[str, int]:
+    """Aplica las operaciones en orden: backup antes, todo o nada.
+
+    Devuelve el id de cada fila insertada con `clave`. Cada operación queda en
+    `lote_operaciones` con el antes y el después, para `deshacer`.
+    """
     backup_db()
     conn.execute("BEGIN IMMEDIATE")
     try:
         estado = conn.execute("SELECT estado FROM lotes WHERE id = ?", (lote_id,)).fetchone()
         if estado is None or estado["estado"] != "propuesto":
             raise ValueError(f"El lote {lote_id} no está esperando confirmación")
-        ids = []
-        for orden, m in enumerate(movimientos):
-            txn_id = insertar_sin_backup(
-                conn, m.fecha, m.motivo, pasivos=m.pasivos, ingresos=m.ingresos,
-                comentario=m.comentario, user_id=user_id,
-            )
-            foto = _foto(conn, txn_id)
-            if m.cuenta:
-                conn.execute(
-                    "INSERT INTO gasto_cuentas (transaccion_id, workspace_id, cuenta, bruto) "
-                    "VALUES (?, ?, ?, ?)",
-                    (txn_id, foto["workspace_id"], m.cuenta,
-                     m.bruto if m.bruto is not None else m.pasivos or m.ingresos),
+        claves: dict[str, int] = {}
+
+        def resolver(v):
+            return claves[v.clave] if isinstance(v, Ref) else v
+
+        for orden, op in enumerate(operaciones):
+            if isinstance(op, InsertarMovimiento):
+                m = op.mov
+                fila_id = insertar_sin_backup(
+                    conn, m.fecha, m.motivo, pasivos=m.pasivos, ingresos=m.ingresos,
+                    comentario=m.comentario, user_id=user_id,
                 )
+                despues = _foto(conn, fila_id)
+                if m.cuenta:
+                    conn.execute(
+                        "INSERT INTO gasto_cuentas (transaccion_id, workspace_id, cuenta, bruto) "
+                        "VALUES (?, ?, ?, ?)",
+                        (fila_id, despues["workspace_id"], m.cuenta,
+                         m.bruto if m.bruto is not None else m.pasivos or m.ingresos),
+                    )
+                tabla, accion, antes = "transacciones", "insert", None
+            elif isinstance(op, Insertar):
+                tabla, accion, antes = _tabla(op.tabla), "insert", None
+                valores = {k: resolver(v) for k, v in op.valores.items()}
+                cur = conn.execute(
+                    f"INSERT INTO {tabla} ({', '.join(valores)}) "
+                    f"VALUES ({', '.join('?' for _ in valores)})",
+                    tuple(valores.values()),
+                )
+                fila_id = cur.lastrowid
+                despues = _fila(conn, tabla, fila_id)
+            elif isinstance(op, Actualizar):
+                tabla, accion = _tabla(op.tabla), "update"
+                fila_id = resolver(op.fila_id)
+                previa = _fila(conn, tabla, fila_id)
+                if previa is None:
+                    raise ValueError(f"No existe la fila {fila_id} de {tabla}")
+                cambios = {k: resolver(v) for k, v in op.cambios.items()}
+                antes = {k: previa[k] for k in cambios}
+                conn.execute(
+                    f"UPDATE {tabla} SET {', '.join(f'{c} = ?' for c in cambios)} WHERE id = ?",
+                    (*cambios.values(), fila_id),
+                )
+                despues = (_foto(conn, fila_id) if tabla == "transacciones"
+                           else _fila(conn, tabla, fila_id))
+            else:
+                raise TypeError(f"Operación desconocida: {op!r}")
+            if getattr(op, "clave", None):
+                claves[op.clave] = fila_id
             conn.execute(
                 "INSERT INTO lote_operaciones (lote_id, orden, tabla, fila_id, accion, antes, "
-                "despues) VALUES (?, ?, 'transacciones', ?, 'insert', NULL, ?)",
-                (lote_id, orden, txn_id, json.dumps(foto)),
+                "despues) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (lote_id, orden, tabla, fila_id, accion,
+                 json.dumps(antes) if antes is not None else None, json.dumps(despues)),
             )
-            ids.append(txn_id)
         conn.execute(
             "UPDATE lotes SET estado = 'aplicado', aplicado_en = ? WHERE id = ?",
             (ahora.isoformat(), lote_id),
@@ -161,7 +276,7 @@ def aplicar(
     except BaseException:
         conn.execute("ROLLBACK")
         raise
-    return ids
+    return claves
 
 
 # ---------------------------------------------------------------------------
@@ -185,11 +300,13 @@ def ultimo_aplicado(
     return lote_id, cuando
 
 
-def deshacer(conn: sqlite3.Connection, lote_id: int, *, ahora: datetime) -> list[dict]:
-    """Revierte el lote entero. Devuelve cómo eran las filas que borró.
+def deshacer(conn: sqlite3.Connection, lote_id: int, *, ahora: datetime) -> Deshecho:
+    """Revierte el lote entero, de la última operación a la primera.
 
-    `LoteNoDeshacible` si alguna fila cambió o ya no está: en ese caso no se
-    toca nada (deshacer a medias dejaría la base en un estado que nadie pidió).
+    Los gastos (`transacciones`) que tocó tienen que estar **igual** que como
+    los dejó el lote: si Franco editó o borró uno desde la app, `LoteNoDeshacible`
+    y no se toca nada (deshacer a medias dejaría la base en un estado que nadie
+    pidió). Las demás tablas son del Secretario y se revierten sin chequeo.
     """
     ops = conn.execute(
         "SELECT tabla, fila_id, accion, antes, despues FROM lote_operaciones "
@@ -197,6 +314,8 @@ def deshacer(conn: sqlite3.Connection, lote_id: int, *, ahora: datetime) -> list
         (lote_id,),
     ).fetchall()
     for op in ops:
+        if op["tabla"] != "transacciones":
+            continue
         actual = _foto(conn, op["fila_id"])
         if actual is None:
             raise LoteNoDeshacible(f"el #{op['fila_id']} ya no está (¿lo borraste desde la app?)")
@@ -206,17 +325,19 @@ def deshacer(conn: sqlite3.Connection, lote_id: int, *, ahora: datetime) -> list
     backup_db()
     conn.execute("BEGIN IMMEDIATE")
     try:
-        borradas = []
+        borradas, restauradas = [], 0
         for op in ops:
+            tabla = _tabla(op["tabla"])
             if op["accion"] == "insert":
-                # `gasto_cuentas` se va solo (ON DELETE CASCADE).
-                conn.execute("DELETE FROM transacciones WHERE id = ?", (op["fila_id"],))
-                borradas.append({"id": op["fila_id"], **json.loads(op["despues"])})
+                # `gasto_cuentas` y los vínculos de un gasto se van solos (ON DELETE CASCADE).
+                conn.execute(f"DELETE FROM {tabla} WHERE id = ?", (op["fila_id"],))
+                if tabla == "transacciones":
+                    borradas.append({"id": op["fila_id"], **json.loads(op["despues"])})
             else:
                 antes = json.loads(op["antes"])
-                asignaciones = ", ".join(f"{c} = ?" for c in antes)
-                conn.execute(f"UPDATE transacciones SET {asignaciones} WHERE id = ?",
-                             (*antes.values(), op["fila_id"]))
+                conn.execute(f"UPDATE {tabla} SET {', '.join(f'{c} = ?' for c in antes)} "
+                             "WHERE id = ?", (*antes.values(), op["fila_id"]))
+                restauradas += tabla == "transacciones"
         conn.execute(
             "UPDATE lotes SET estado = 'deshecho', deshecho_en = ? WHERE id = ?",
             (ahora.isoformat(), lote_id),
@@ -225,4 +346,4 @@ def deshacer(conn: sqlite3.Connection, lote_id: int, *, ahora: datetime) -> list
     except BaseException:
         conn.execute("ROLLBACK")
         raise
-    return list(reversed(borradas))
+    return Deshecho(list(reversed(borradas)), restauradas)

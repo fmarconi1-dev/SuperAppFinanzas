@@ -471,7 +471,13 @@ def procesar(
     # mensaje: solo la tocan `ok`, `no`/`cancelar` o "N algo" con N de la lista.
     wid = resolve_workspace_id(conn, user_id)
     lote = lotes.vigente(conn, workspace_id=wid, ahora=ahora)
-    if lote and (respuesta_lote := _leer_respuesta_lote(limpio, len(lote.propuesta["items"]))):
+    if lote and (respuesta_lote := _leer_respuesta_lote(limpio, _cantidad(lote.propuesta))):
+        if lote.propuesta.get("tipo") == "extracto":
+            from places.finanzas.core import conciliacion  # diferido: conciliacion usa este módulo
+            r = conciliacion.responder(
+                conn, lote, aceptar=respuesta_lote.aceptar, cancelar=respuesta_lote.cancelar,
+                correcciones=respuesta_lote.correcciones, user_id=user_id, wid=wid, ahora=ahora)
+            return Respuesta(r.texto, r.resultado)
         return _responder_lote(conn, lote, respuesta_lote, user_id, ahora, hoy)
 
     if not limpio:
@@ -531,12 +537,35 @@ def procesar_archivo(
 ) -> Respuesta:
     """Un archivo que mandó Franco, ya bajado y reconocido (Fase D, paso 3).
 
-    Por ahora solo confirma qué llegó: leer el extracto de Galicia es el paso
-    4, los resúmenes de tarjeta el 5 y las fotos el 6 (`docs/PLAN-FASE-D.md`).
-    El archivo vive en memoria y no se guarda en ningún lado.
+    Un Excel es el extracto de la caja de Galicia: se lee y se arma la
+    propuesta de conciliación (un lote, que no escribe nada hasta el `ok`).
+    Los resúmenes de tarjeta son el paso 5 y las fotos el 6
+    (`docs/PLAN-FASE-D.md`). El archivo vive en memoria y no se guarda.
     """
-    que = {"xlsx": "Leer el extracto del banco", "pdf": "Leer los resúmenes de tarjeta"}.get(
-        archivo.tipo, "Leer fotos")
+    ahora = ahora or ahora_ar()
+    if archivo.tipo == "xlsx":
+        from places.finanzas.core import conciliacion  # diferido: conciliacion usa este módulo
+        from places.finanzas.core.extracto_galicia import ExtractoInvalido, leer_extracto
+
+        try:
+            extracto = leer_extracto(archivo.datos)
+        except ExtractoInvalido as e:
+            return Respuesta(f"⚠️ No pude leer el extracto: {e}", "rechazado")
+        wid = resolve_workspace_id(conn, user_id)
+        try:
+            propuesta = conciliacion.proponer_extracto(conn, extracto, user_id=user_id, wid=wid,
+                                                       ahora=ahora)
+        except conciliacion.ConciliacionInvalida as e:
+            return Respuesta(f"⚠️ {e}", "rechazado")
+        _borrar_pendiente(conn)
+        habia_otra = lotes.proponer(conn, workspace_id=wid, user_id=user_id, origen="extracto",
+                                    propuesta=propuesta, ahora=ahora)
+        texto = conciliacion.texto_propuesta(propuesta, nuevo_ancla=bool(propuesta["ancla"]))
+        if habia_otra:
+            texto = "(Descarté la propuesta anterior, que no habías confirmado.)\n\n" + texto
+        return Respuesta(texto, "pendiente")
+
+    que = {"pdf": "Leer los resúmenes de tarjeta"}.get(archivo.tipo, "Leer fotos")
     return Respuesta(
         f"📎 Recibí {archivo.describir()}. {que} es lo próximo que aprendo: "
         "todavía no lo leo. No guardé el archivo.",
@@ -632,6 +661,13 @@ def _movimiento(item: dict) -> lotes.Movimiento:
 _RE_EMPIEZA_COMO_GASTO = re.compile(r"^(?:\+|\$|hoy\b|ayer\b|\d)", re.IGNORECASE)
 #: "2 transportes", "3 no": número de renglón de la propuesta y qué hacer.
 _RE_CORRECCION = re.compile(r"^(\d{1,3})\s+(\S.*)$")
+
+
+def _cantidad(propuesta: dict) -> int:
+    """Cuántos renglones se pueden nombrar con su número en esta propuesta."""
+    if "numerados" in propuesta:
+        return propuesta["numerados"]
+    return len(propuesta["items"])
 
 
 @dataclass
@@ -840,16 +876,26 @@ def deshacer(conn: sqlite3.Connection, *, user_id: int, ahora: datetime) -> Resp
 
 def _deshacer_lote(conn: sqlite3.Connection, lote_id: int, ahora: datetime) -> Respuesta:
     try:
-        borradas = lotes.deshacer(conn, lote_id, ahora=ahora)
+        d = lotes.deshacer(conn, lote_id, ahora=ahora)
     except lotes.LoteNoDeshacible as e:
         return Respuesta(f"⚠️ No puedo deshacer los gastos que cargaste juntos: {e}. "
                          "No toqué nada; corregilo desde la app.", "rechazado")
-    lineas = [f"↩️ Borré los {len(borradas)} que cargaste juntos:" if len(borradas) > 1
-              else "↩️ Borré el que cargaste:"]
-    for b in borradas:
+    if not d.borradas and not d.restauradas:
+        return Respuesta("↩️ Deshice lo último que confirmaste. No había cargado gastos: "
+                         "solo lo que anoté del banco.", "deshecho")
+    if len(d.borradas) > 1:
+        lineas = [f"↩️ Borré los {len(d.borradas)} que cargaste juntos:"]
+    elif d.borradas:
+        lineas = ["↩️ Borré el que cargaste:"]
+    else:
+        lineas = ["↩️ Deshice lo último que confirmaste."]
+    for b in d.borradas:
         monto = b["ingresos"] or b["pasivos"]
         lineas.append(f"  #{b['id']}: {pesos(monto)} en {b['motivo']} "
                       f"({date.fromisoformat(b['fecha']):%d/%m})")
+    if d.restauradas:
+        lineas.append(f"Y volví a como estaban {d.restauradas} gasto(s) que había corregido "
+                      "con el monto del banco.")
     return Respuesta("\n".join(lineas), "deshecho")
 
 

@@ -41,3 +41,8 @@
 - **Qué:** `core/api/archivos.py` (nuevo: qué es un archivo, por su contenido), `whatsapp_meta.descargar_archivo` (Graph API: id → URL → contenido, a memoria, tope 10 MB) y el hilo trabajador que lo baja primero y se lo pasa a `procesar_archivo`.
 - **Por qué:** el extracto, los resúmenes y las fotos llegan por acá (`docs/PLAN-FASE-D.md`).
 - **Estado:** ✅ suite 711 passed, 0 skipped. Sin desplegar.
+
+## 2026-10-19 (noche) — M21: conciliación (Fase D, paso 4a)
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** M21 en `db.py`: filas del banco, emparejamientos, reglas aprendidas y saldos declarados. Aditiva.
+- **Estado:** ✅ suite 775 passed, 0 skipped. Sin desplegar.

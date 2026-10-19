@@ -181,9 +181,8 @@ La hora de carga de cada gasto y la del ajuste están en la base: no hace falta 
 |---|---|---|
 | M19 (2) | `lotes`, `lote_operaciones` | La propuesta, su estado (propuesta → aplicado → deshecho) y cada operación con su "antes", para deshacer el lote entero |
 | M20 (2) | `gasto_cuentas` | `transaccion_id` (FK, `ON DELETE CASCADE`), la cuenta tal como la escribiste y el bruto |
-| M21 (4) | `banco_filas`, `emparejamientos`, `reglas_tipo`, `reglas_comercio` | Filas de la caja (`UNIQUE` fecha + monto + saldo), con qué gasto se emparejó cada una (uno a uno; una devolución puede ir a un gasto que ya tiene pareja), y lo aprendido |
-| M22 (4) | `saldos_declarados` | Último FIMA y efectivo que declaraste, con fecha |
-| M23 (5) | `resumenes`, `resumen_lineas` | Resúmenes (`UNIQUE` tarjeta + cierre) y sus líneas (`UNIQUE` resumen + comprobante + monto) |
+| M21 (4) | `banco_filas`, `emparejamientos`, `reglas_tipo`, `reglas_comercio`, `saldos_declarados` | Filas de la caja (`UNIQUE` fecha + monto + saldo), con qué gasto se emparejó cada una (uno a uno; una devolución puede ir a un gasto que ya tiene pareja), lo aprendido, y el ancla de la caja y los saldos de FIMA y efectivo que declares |
+| M22 (5) | `resumenes`, `resumen_lineas` | Resúmenes (`UNIQUE` tarjeta + cierre) y sus líneas (`UNIQUE` resumen + comprobante + monto) |
 
 - Toda FK a `transacciones(id)` lleva `ON DELETE` (con `foreign_keys = ON`, sin eso borrar un gasto desde la app fallaría).
 - **La M16 queda sin usar** (ADR-0009). Ninguna de estas migraciones hace `UPDATE` ni `DELETE` de filas; si alguna lo necesitara, va detrás de `_NIVEL_REPARACIONES`.
@@ -214,7 +213,9 @@ Si el bruto es mayor que el neto, el gasto **espera devoluciones** por la difere
 
 ## Orden de trabajo (un paso a la vez, desplegable, suite en verde)
 
-> **Progreso (19/10/2026):** ✅ 1 · ✅ 2 (desplegado y probado por Franco desde el celular) · ✅ 3 en código (711 passed, 0 skipped), **sin desplegar**. El archivo se baja a memoria y nunca toca el disco, así que "borrarlo después de leerlo" se cumple solo. Sigue el 4.
+> **Progreso (19/10/2026):** ✅ 1 · ✅ 2 y ✅ 3 (desplegados y probados por Franco desde el celular) · ✅ **4a** en código (775 passed, 0 skipped), **sin desplegar**. El paso 4 se partió en dos: **4a** = leer el extracto, el ancla y el empalme, clasificar, emparejar (con la regla del corte y las devoluciones contra el bruto), la propuesta, aplicar y `deshacer`; **4b** = `fima … efectivo …`, el ajuste, el control del total y el "¿es el mismo?" de un gasto por WhatsApp que ya vino del banco. Sigue el 4b.
+>
+> **Decisiones de Franco del 19/10/2026 sobre tipos del banco que no estaban en la tabla:** `DEP.EFVO.AUTOSERVICIO` (depósito de efectivo) son los **haberes de SBT** (ingreso); `TRANSFERENCIA A TERCEROS` es **gasto**, con la categoría aprendida **por destinatario**; `PERCEPCION RG 5617/24` cobrada en la caja va a la **línea neutra** de la percepción. Y del archivo real: los datos arrancan en la fila 7 (la 6 son los títulos) y el saldo a veces viene con un solo decimal (`709269,8`).
 
 1. ✅ **ADR-0009 y este plan** (18/10/2026), aprobados por Franco el 19/10/2026.
 2. **Varios gastos en un mensaje = el sistema de lotes.** Varios renglones → propuesta numerada → `ok` / correcciones → aplica todo o nada → `deshacer` del lote. Guarda el bruto de todo gasto con cuenta, suelto o en lote. `deshacer` deshace **lo último**: el lote entero si lo último fue un lote, el gasto si fue un gasto.

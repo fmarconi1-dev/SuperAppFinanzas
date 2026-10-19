@@ -9,6 +9,18 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 19 de octubre de 2026 (noche) — El Secretario lee el extracto del banco
+
+**Qué se hizo.** Cuando le mandás el extracto de la caja de ahorro, el Secretario lo lee entero y lo compara con lo que ya cargaste. Te contesta cuántos movimientos coinciden, cuáles faltan (con la categoría que propone, o preguntándote), cuáles conviene que revises (un monto que corrige, una devolución, un gasto que ya estaba en el ajuste inicial) y qué cargaste vos que no aparece en el banco (lo da por efectivo, salvo que digas tarjeta). No carga nada hasta tu *ok*, y *deshacer* vuelve todo atrás.
+
+**Lo más importante.** Cada gasto queda una sola vez: si ya lo habías mandado por WhatsApp, lo reconoce aunque el banco lo haya pasado unos días después o con unos centavos de diferencia. Si mandás el mismo extracto dos veces, no duplica nada. Y si entre dos extractos falta un pedazo, te avisa en vez de seguir.
+
+**Aprende.** La categoría que le decís para un comercio o una persona a la que le transferís, la recuerda para la próxima.
+
+**Qué sigue.** Que lo publiques y le mandes primero el extracto que ya tenés (el que termina el 16/10: solo marca el punto de partida) y después uno bajado hoy. Después: que te pida el FIMA y el efectivo y proponga el ajuste.
+
+---
+
 ## 19 de octubre de 2026 (más tarde) — El Secretario ya recibe archivos
 
 **Qué se hizo.** Le podés mandar al Secretario el extracto del banco en Excel, el resumen de la tarjeta en PDF o una foto, y te contesta qué recibió ("Recibí un Excel, 45 KB"). Todavía no los lee: eso es lo que sigue. Reconoce el archivo por lo que tiene adentro, no por el nombre; si le mandás otra cosa, te dice qué tipos entiende.

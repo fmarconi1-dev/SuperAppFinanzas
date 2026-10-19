@@ -56,3 +56,9 @@
 - **Qué:** `lotes.py` (propuesta → `ok` → todo o nada con un backup antes → `deshacer` del lote entero, con el antes/después de cada fila); en `comandos.py`, varios renglones = una propuesta numerada, respuestas `ok`/`N categoría`/`N no`/`cancelar`, y `deshacer` de lo último (gasto o lote). El bruto de los gastos con cuenta queda en `gasto_cuentas` (M20). `insert_transaction` partido en `insertar_sin_backup` + backup.
 - **Por qué:** es la base de la conciliación (ADR-0009 §6): todo lo que llegue de un extracto o un resumen va a pasar por un lote. El bruto hace falta para reconocer devoluciones y descontar del efectivo lo que salió de verdad.
 - **Estado:** ✅ 677 tests en verde, 0 skipped. Sin desplegar: falta que Franco pruebe desde el celular (tres gastos en un mensaje, `ok`, `resumen`, `deshacer`).
+
+## 2026-10-19 (noche) — Fase D, paso 4a: el Secretario lee el extracto de Galicia
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** lector del extracto (`extracto_galicia.py`, verificado contra el archivo real: 406 filas, cadena entera, $153.263,01 al 16/10) y la conciliación (`conciliacion.py`): ancla y empalme, clasificación por tipo, emparejamiento uno a uno con ±$1 y −5/+2 días, empates que se preguntan, devoluciones contra el bruto, regla del corte, sobrantes (efectivo salvo tarjeta) y cola de 5 días. Aplica como un lote y `deshacer` lo revierte entero. Franco decidió tres tipos nuevos (depósito de efectivo = Haberes SBT, transferencias a terceros = gasto por destinatario, percepción RG 5617 = línea neutra).
+- **Por qué:** es el corazón de la Fase D (ADR-0009): que cada gasto quede una sola vez.
+- **Estado:** ✅ 775 tests en verde, 0 skipped. Sin desplegar. Sigue el 4b (FIMA, efectivo y ajuste).

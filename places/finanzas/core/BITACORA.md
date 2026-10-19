@@ -1,6 +1,6 @@
 # places/finanzas/core/
 
-<!-- huella: 25bd1660d3f2 -->
+<!-- huella: 0e9d97b2e24c -->
 
 Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel.
 
@@ -17,6 +17,8 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 - alta/edición/borrado de gastos y el backup automático que disparan → `transactions.py` (`insertar_sin_backup` para escribir dentro de una transacción)
 - varios gastos en un mensaje, la propuesta numerada, `ok`/correcciones, o un `deshacer` que borra varios juntos → `comandos.py` (`_proponer_varios`, `_leer_respuesta_lote`, `_responder_lote`) + `lotes.py` (aplicar todo o nada y deshacer)
 - el bruto de un gasto con cuenta (`150000-25000*5` → $150.000) → `comandos.bruto_de_cuenta` y la tabla `gasto_cuentas`
+- el extracto de Galicia no se lee, una columna salió corrida o la cadena de saldos "se corta" → `extracto_galicia.py` (por posición, en centavos, desde la primera fila con fecha)
+- la conciliación propuso algo raro: qué tipo es cada fila, por qué emparejó (o no) con un gasto, una devolución, la regla del corte, lo que sobra → `conciliacion.py` (`clasificar`, `emparejar`, `_devoluciones`, `proponer_extracto`, `aplicar`)
 - exportar todo a Excel → `export.py`
 
 ## Qué hay acá
@@ -32,12 +34,18 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 - ⚠️ **Un lote se escribe todo o nada** (19/10/2026): backup **antes** y después un solo `BEGIN IMMEDIATE`. No usar `insert_transaction` en un bucle: hace un backup por fila y no corre en una transacción. `deshacer` de un lote compara cada fila con su "después": si Franco editó o borró una desde la app, no toca nada y dice cuál.
 - **Una propuesta (lote) no se descarta con cualquier mensaje** (al revés que el "¿quisiste decir?" de un gasto suelto, que vence a los 10 min): la tocan solo `ok`/sí, `no`/`cancelar` y "N algo" con N entero **dentro de la lista** (`2.500 super` sigue siendo un gasto). Vence a las 48 h. El sí/no de un gasto suelto pendiente va primero, porque es la pregunta más nueva. Una corrección que no es exacta ("1 trnasportes, ok") **no se carga**: se muestra marcada y espera otro `ok`.
 - **El bruto es lo de antes del primer −**, con cada división reemplazada por su dividendo (`1000+500*2-300` → 2.000, no 1.000). Es función pura de la cuenta guardada: el paso 4 la usa también para releer mensajes viejos.
+- ⚠️ **La conciliación trabaja en centavos enteros** (`banco_filas.monto`, la tolerancia de $1 = 100); `transacciones` sigue en pesos. Convertir con `round(x * 100)`, nunca comparar floats.
+- **La regla del corte se decide por la hora de carga, no por la fecha** (`creado_en` del gasto contra el del primer "Ajuste Reconciliación"). Si no hay ajuste inicial y algo coincide con un gasto anterior al corte, **no se adivina**: se rechaza la propuesta.
+- **Lo que sobra se busca desde el corte, no desde el principio del extracto**: un gasto pudo quedar esperando en la cola (últimos 5 días) del extracto anterior.
+- Las categorías del Secretario ("Ajuste Reconciliación", "Percepción 30% (se devuelve)") se crean **con su grupo** antes del lote (`conciliacion.asegurar_categoria`); `insertar_sin_backup` las crearía como "Sin categorizar".
+- `comandos` y `conciliacion` se importan uno al otro **de forma diferida** (dentro de las funciones): no subir esos imports al principio del archivo.
 - `comandos.py` corre en un hilo del servidor HTTP: **`user_id` explícito en toda llamada** (los contextvars arrancan vacíos en cada hilo) y "hoy" en Buenos Aires, nunca en la zona del servidor.
 - **El CLI de `ingest.py` se corre solo como `python -m places.finanzas.core.ingest` desde la raíz.** Hasta el 22/9 tenía un `sys.path.insert` heredado de Mis-Finanzas-App que hacía resolver `core` a `places/finanzas/core`: el CLI moría y la suite no lo veía porque importa el `core` bueno antes. `tests/test_importes_ilegibles.py` lo corre como subproceso.
 
 ## Estado
 
 - **Funciona:** en producción.
+- **19/10/2026 (Fase D, paso 4a, sin desplegar):** `extracto_galicia.py` (lector) y `conciliacion.py` (clasificar, emparejar, devoluciones, regla del corte, sobrantes, propuesta y aplicar); `lotes.py` ahora aplica operaciones genéricas (insertar y actualizar en las tablas de la conciliación, con referencias entre filas del mismo lote) y `deshacer` las revierte todas. `procesar_archivo` lee el Excel y propone; las respuestas `N categoría`/`N no`/`N es 12`/`N efectivo`/`N tarjeta` van a `conciliacion.responder`. Tests: `tests/test_extracto_galicia.py`, `tests/test_conciliacion.py`.
 - **19/10/2026 (Fase D, paso 3, sin desplegar):** `comandos.procesar_archivo` recibe el archivo ya bajado y reconocido (`core.api.archivos.ArchivoRecibido`) y por ahora solo confirma qué llegó. Ahí se enchufan el lector del extracto (paso 4), el de resúmenes (5) y las fotos (6).
 - **19/10/2026 (Fase D, paso 2, sin desplegar):** **varios gastos en un mensaje** (uno por renglón): propuesta numerada sin escribir nada; `ok` aplica todo o nada (`lotes.py`, nuevo); correcciones `N categoría` / `N no` / `cancelar`; `deshacer` borra lo último, sea un gasto o el lote entero. Se guarda el **bruto** de todo gasto con cuenta (`gasto_cuentas`). `transactions.insert_transaction` se partió en `insertar_sin_backup` + backup, sin cambiar su comportamiento. Tests: `tests/test_lotes_whatsapp.py`.
 - **17/10/2026 (Fase C):** `totales_mes(..., hasta_dia=)` para comparar contra el mismo período del mes anterior (lo usa el Inicio). **Arreglado:** `totales_mes` en un mes sin movimientos (habiendo movimientos en otros meses) tiraba `KeyError: 'pasivos'`, o sea que `resumen` por WhatsApp se rompía el 1° de cada mes antes de cargar nada. Test: `test_resumen_de_un_mes_sin_movimientos_no_se_rompe`. Las pestañas y los textos de ayuda nombran las pestañas sin emoji (ahora son íconos Material).

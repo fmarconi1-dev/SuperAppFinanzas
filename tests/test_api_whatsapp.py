@@ -421,21 +421,43 @@ def _archivos_en(carpeta):
                   and "backups" not in p.parts)
 
 
-def test_un_excel_se_baja_se_reconoce_y_no_queda_en_disco(entorno, tmp_path):
+def test_el_extracto_por_whatsapp_de_punta_a_punta(entorno, tmp_path):
+    """Fase D, paso 4, por el servidor real: el extracto llega como documento, se
+    propone, `ok` lo aplica, y el archivo nunca toca el disco."""
+    from tests.test_extracto_galicia import armar_extracto
+
     pedidos = []
-    entorno["estado"]["descargar"] = lambda cfg, mid: pedidos.append(mid) or _xlsx()
+    extracto = armar_extracto([
+        ("16/10/2026", "COMPRA DEBITO\nKIOSCO INVENTADO\n4517XXXX\nA1", -100),
+        ("20/10/2026", "COMPRA DEBITO\nFERRETERIA INVENTADA\n4517XXXX\nA1", -2500),
+    ])
+    entorno["estado"]["descargar"] = lambda cfg, mid: pedidos.append(mid) or extracto
     antes = _archivos_en(tmp_path)
     _post(entorno["url"], _payload_archivo("w1", "document", "media-9",
                                            nombre="galicia.xlsx", pie="octubre"))
     entorno["srv"].cola.join()
     assert pedidos == ["media-9"]
     texto = entorno["enviados"][-1][1]
-    assert "Recibí un Excel (galicia.xlsx," in texto and "No guardé el archivo" in texto
+    assert "Punto de partida" in texto and "FERRETERIA INVENTADA $2.500 → ¿categoría?" in texto
     assert _filas(entorno["db"], "SELECT texto, resultado FROM whatsapp_mensajes") == [
-        {"texto": "[document] galicia.xlsx · octubre", "resultado": "archivo"}]
+        {"texto": "[document] galicia.xlsx · octubre", "resultado": "pendiente"}]
+    assert _filas(entorno["db"], "SELECT id FROM transacciones") == []
+
+    _post(entorno["url"], _payload([("w2", NUMERO, "1 nafta, ok")]))
+    entorno["srv"].cola.join()
+    assert "✅ Listo: cargué 1" in entorno["enviados"][-1][1]
+    assert _filas(entorno["db"], "SELECT motivo, pasivos FROM transacciones") == [
+        {"motivo": "Nafta", "pasivos": 2500.0}]
     # Nada nuevo en disco más allá de la base (el archivo vivió en memoria).
     nuevos = set(_archivos_en(tmp_path)) - set(antes)
     assert all(n.startswith("finanzas.db") for n in nuevos), nuevos
+
+
+def test_un_excel_que_no_es_el_extracto(entorno):
+    entorno["estado"]["descargar"] = lambda cfg, mid: _xlsx()
+    _post(entorno["url"], _payload_archivo("w1", "document", nombre="planilla.xlsx"))
+    entorno["srv"].cola.join()
+    assert "No pude leer el extracto: No encontré movimientos" in entorno["enviados"][-1][1]
 
 
 def test_una_foto_se_reconoce_por_el_contenido(entorno):

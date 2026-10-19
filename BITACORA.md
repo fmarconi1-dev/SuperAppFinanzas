@@ -25,7 +25,8 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 - **Paso 1:** ADR-0009 y `docs/PLAN-FASE-D.md`, aprobados por Franco con las 8 preguntas contestadas. Los $150.000 del 16/10 fueron en efectivo, no con tarjeta: ya cierran en el punto de partida. De ese caso salió la **regla del corte**: un gasto cargado antes del ajuste inicial cuya fila del banco sale después ya estaba en el ajuste, y al emparejarlo se le resta.
 - **Paso 2 (en producción, probado por Franco):** varios gastos en un mensaje = un **lote**. Propone sin escribir, se aplica todo o nada con un backup antes, y `deshacer` revierte el lote entero. Se guarda el **bruto** de los gastos con cuenta. M19–M20; la M16 queda liberada.
 - **Paso 3 (en código, sin desplegar):** documentos y fotos por WhatsApp. Se bajan de la Graph API apenas llegan, **a memoria** (nunca al disco), y se reconocen por el contenido. `api.py` inyecta `procesar_archivo`, que por ahora solo confirma qué llegó.
-- Suite: 711 passed, 0 skipped.
+- **Paso 4a (en código, sin desplegar):** el Secretario lee el extracto de Galicia (por posición, en centavos, verificado contra el archivo real) y concilia: ancla y empalme, clasificación por tipo, emparejamiento uno a uno, empates, devoluciones contra el bruto, regla del corte y sobrantes. Todo como un lote. El paso 4 se partió en 4a y 4b (saldos y ajuste) para poder probarlo antes. Franco decidió tres tipos que no estaban en la tabla.
+- Suite: 775 passed, 0 skipped.
 
 ## 2026-10-18 — Diseño de la Fase D: conciliación desde el Secretario
 **Autor:** Claude (Opus 5.5), con Franco.
