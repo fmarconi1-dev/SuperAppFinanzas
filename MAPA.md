@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-19 22:32 UTC · 100 archivos · 20,245 LOC -->
+<!-- 2026-10-20 13:01 UTC · 103 archivos · 20,783 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-19 a2c8b5e fix: conciliaciÃ³n mÃ¡s fina tras el ensayo con datos reales · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-19 1031250 feat: FIMA, efectivo y el ajuste por WhatsApp (Fase D, paso 4b, parcial) · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -48,6 +48,7 @@ Rama `main` — ultimo commit: 2026-10-19 a2c8b5e fix: conciliaciÃ³n mÃ¡s fi
 | KPI cards, tokens de diseño, flash sin estilos (FOUC) | `core\theme/` |
 | el logo → `_logo.py` | `core\theme/` |
 | el briefing matutino no llegó o llegó dos veces → `reenviarBriefingAWhatsApp` (etiqueta `WA-Enviado`, solo si la API devolvió `ok: true`) | `integraciones\google-apps-script/` |
+| números de mercado mal o viejos, `s/d` en el tablero, el cierre de las 18:30 no salió → `Mercado.gs` (`probarMercado`, `cierrePendiente_`, propiedad `ULTIMO_CIERRE`; ADR-0010) | `integraciones\google-apps-script/` |
 | links del briefing sin acortar → `acortarUrls` (TinyURL vía `fetchAll`; si falla, deja el original) | `integraciones\google-apps-script/` |
 | el contrato SuperApp → Google (acciones, campos, errores) → `README.md` de esta carpeta | `integraciones\google-apps-script/` |
 | eventos con la hora corrida → zona horaria en `appsscript.json` | `integraciones\google-apps-script/` |
@@ -67,6 +68,8 @@ Rama `main` — ultimo commit: 2026-10-19 a2c8b5e fix: conciliaciÃ³n mÃ¡s fi
 | varios gastos en un mensaje, la propuesta numerada, `ok`/correcciones, o un `deshacer` que borra varios juntos → `comandos.py` (`_proponer_varios`, `_leer_respuesta_lote`, `_responder_lote`) + `lotes.py` (aplicar todo o nada y deshacer) | `places\finanzas\core/` |
 | el bruto de un gasto con cuenta (`150000-25000*5` → $150.000) → `comandos.bruto_de_cuenta` y la tabla `gasto_cuentas` | `places\finanzas\core/` |
 | el extracto de Galicia no se lee, una columna salió corrida o la cadena de saldos "se corta" → `extracto_galicia.py` (por posición, en centavos, desde la primera fila con fecha) | `places\finanzas\core/` |
+| `fima … efectivo …`, el ajuste o el control "saldo de la app = caja + FIMA + efectivo" → `saldos.py` (`parsear`, `proponer`, `_efectivo_a_contar`, `control_total`) | `places\finanzas\core/` |
+| un gasto por WhatsApp que preguntó "¿es el mismo?" (o que no preguntó y debía) → `comandos._ya_vino_del_banco` (solo contra lo que **vino del banco**: rol `origen`) | `places\finanzas\core/` |
 | la conciliación propuso algo raro: qué tipo es cada fila, por qué emparejó (o no) con un gasto, una devolución, la regla del corte, lo que sobra → `conciliacion.py` (`clasificar`, `emparejar`, `_devoluciones`, `proponer_extracto`, `aplicar`) | `places\finanzas\core/` |
 | exportar todo a Excel → `export.py` | `places\finanzas\core/` |
 | "$ mal formateado", separador de miles, un NaN visible en pantalla → `_format.py` | `places\finanzas\helpers/` |
@@ -104,6 +107,7 @@ Rama `main` — ultimo commit: 2026-10-19 a2c8b5e fix: conciliaciÃ³n mÃ¡s fi
 | briefings de Gemini y cola de salida (Fase B) → `test_api_briefing.py` (servidor real; ventana abierta/cerrada/vencida, entrega al escribir, dedupe por id, Meta que rechaza, auth) | `tests/` |
 | varios gastos en un mensaje, lotes y bruto (Fase D, paso 2) → `test_lotes_whatsapp.py` (propuesta, correcciones, todo o nada, un backup por lote, deshacer del lote y su orden contra un gasto suelto, filas editadas desde la app) + `test_varios_gastos_ok_y_deshacer_de_punta_a_punta` en `test_api_whatsapp.py` (por el servidor real) | `tests/` |
 | el extracto de Galicia (Fase D, paso 4) → `test_extracto_galicia.py` (`armar_extracto` arma un Excel sintético como el del banco; lo reusan otros tests) y `test_conciliacion.py` (punto de partida, lo que falta, emparejar, empates, regla del corte, devoluciones contra el bruto, sobrantes, deshacer, y `test_cada_gasto_una_sola_vez`). Los tests contra el archivo real de Franco miran solo cantidades | `tests/` |
+| saldos y ajuste, y el "¿es el mismo?" (Fase D, paso 4b) → `test_saldos.py`, `test_ya_vino_del_banco.py` (reusan el fixture `db` de `test_conciliacion.py`) | `tests/` |
 | archivos por WhatsApp (Fase D, paso 3) → `test_archivos_whatsapp.py` (webhook, tipo por contenido, la descarga en dos pasos contra un **Meta de mentira** local, topes de tamaño) + los tests de archivos al final de `test_api_whatsapp.py` (servidor real, `descargar` falso por `entorno["estado"]`; verifica que no quede nada en disco) | `tests/` |
 | el test de costo cero (que no aparezca la palabra de las plantillas) recorre **todo** `core/api/` y `places/finanzas/core/` desde el 19/10/2026: un módulo nuevo del canal queda vigilado solo | `tests/` |
 | WhatsApp (Fase A): `test_comandos_whatsapp.py` (parser y comandos, base sintética) · `test_api_whatsapp.py` (canal de Meta + **servidor HTTP real** en un puerto libre, webhooks firmados, envío falso) · `test_deploy_api.py` (nginx/Dockerfile/entrypoint como texto: no hay Docker local) | `tests/` |
@@ -119,8 +123,8 @@ Rama `main` — ultimo commit: 2026-10-19 a2c8b5e fix: conciliaciÃ³n mÃ¡s fi
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (781 tests al 19/10/2026, Fase D en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 33 | 6,957 | ok |
-| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 16 | 4,786 | ok |
+| `tests/` | La suite completa (794 tests al 20/10/2026, Fase D en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 35 | 7,078 | ok |
+| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 17 | 5,203 | ok |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | ok |
 | `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M21 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,821 | ok |
 | `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa. | 7 | 1,357 | ok |
@@ -156,12 +160,12 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 |---|---:|---:|---|
 | `core\db.py` | 1349 | 41 | `_migrate`, `es_tabla_faltante`, `get_db_path`, `connect` |
 | `core\context.py` | 105 | 21 | `set_current_user_id`, `get_current_user_id`, `require_current_user_id`, `set_current_workspace_id` |
+| `places\finanzas\core\metrics.py` | 359 | 15 | `_uid`, `anios_con_datos`, `filtrar_anio`, `load_transactions` |
 | `core\workspaces.py` | 261 | 15 | `_hash_code`, `_uid`, `get_personal_workspace_id`, `ensure_personal_workspace` |
-| `places\finanzas\core\metrics.py` | 359 | 14 | `_uid`, `anios_con_datos`, `filtrar_anio`, `load_transactions` |
 | `places\finanzas\core\transactions.py` | 265 | 13 | `_uid`, `_es_familiar`, `_asegurar_motivo`, `insert_transaction` |
 | `core\__init__.py` | 5 | 13 | — |
-| `places\finanzas\core\comandos.py` | 973 | 8 | `Respuesta`, `Gasto`, `EntradaInvalida`, `ahora_ar` |
-| `places\finanzas\core\__init__.py` | 5 | 8 | — |
+| `places\finanzas\core\comandos.py` | 1065 | 11 | `Respuesta`, `Gasto`, `EntradaInvalida`, `ahora_ar` |
+| `places\finanzas\core\__init__.py` | 5 | 9 | — |
 | `places\finanzas\helpers\_html.py` | 22 | 7 | `render_html` |
 | `places\finanzas\core\ingest.py` | 381 | 6 | `ImportResult`, `_importe`, `_read_csv_rows`, `import_diario` |
 | `places\finanzas\helpers\_tour.py` | 198 | 6 | `_user_id`, `is_tour_active`, `start_tour`, `finish_tour` |
@@ -170,7 +174,7 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 ## Flujo interno
 
 - `tests/` → `core/` (43)
-- `tests/` → `places\finanzas\core/` (33)
+- `tests/` → `places\finanzas\core/` (35)
 - `places\finanzas\core/` → `core/` (21)
 - `places\finanzas\views/` → `places\finanzas\helpers/` (13)
 - `places\finanzas\views/` → `places\finanzas\core/` (12)
@@ -186,7 +190,7 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `.mapa/mapa.json` + `MAPA.md` (40 commits)
+- `.mapa/mapa.json` + `MAPA.md` (41 commits)
 - `EN-HUMANO.md` + `ESTADO.md` (39 commits)
 - `BITACORA.md` + `ESTADO.md` (28 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)

@@ -213,7 +213,7 @@ Si el bruto es mayor que el neto, el gasto **espera devoluciones** por la difere
 
 ## Orden de trabajo (un paso a la vez, desplegable, suite en verde)
 
-> **Progreso (19/10/2026):** ✅ 1 · ✅ 2 y ✅ 3 (desplegados y probados por Franco desde el celular) · ✅ **4a** en código (781 passed, 0 skipped), **sin desplegar**. El paso 4 se partió en dos: **4a** = leer el extracto, el ancla y el empalme, clasificar, emparejar (con la regla del corte y las devoluciones contra el bruto), la propuesta, aplicar y `deshacer`; **4b** = `fima … efectivo …`, el ajuste, el control del total y el "¿es el mismo?" de un gasto por WhatsApp que ya vino del banco. Sigue el 4b.
+> **Progreso (19/10/2026):** ✅ 1 · ✅ 2 y ✅ 3 (desplegados y probados por Franco desde el celular) · ✅ **4a** y ✅ **4b** en código (794 passed, 0 skipped), **sin desplegar** (Franco lo prueba todo junto a fin de mes, con el resumen nuevo). El paso 4 se partió en dos: **4a** = leer el extracto, el ancla y el empalme, clasificar, emparejar (con la regla del corte y las devoluciones contra el bruto), la propuesta, aplicar y `deshacer`; **4b** = `fima … efectivo …`, el ajuste, el control del total y el "¿es el mismo?" de un gasto por WhatsApp que ya vino del banco. Sigue el 5.
 >
 > **Decisiones de Franco del 19/10/2026 sobre tipos del banco que no estaban en la tabla:** `DEP.EFVO.AUTOSERVICIO` (depósito de efectivo) son los **haberes de SBT** (ingreso); `TRANSFERENCIA A TERCEROS` es **gasto**, con la categoría aprendida **por destinatario**; `PERCEPCION RG 5617/24` cobrada en la caja va a la **línea neutra** de la percepción. Y del archivo real: los datos arrancan en la fila 7 (la 6 son los títulos) y el saldo a veces viene con un solo decimal (`709269,8`).
 >

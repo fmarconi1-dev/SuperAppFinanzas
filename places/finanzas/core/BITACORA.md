@@ -1,6 +1,6 @@
 # places/finanzas/core/
 
-<!-- huella: ce8868bcca63 -->
+<!-- huella: 896694c81b49 -->
 
 Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel.
 
@@ -18,6 +18,8 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 - varios gastos en un mensaje, la propuesta numerada, `ok`/correcciones, o un `deshacer` que borra varios juntos → `comandos.py` (`_proponer_varios`, `_leer_respuesta_lote`, `_responder_lote`) + `lotes.py` (aplicar todo o nada y deshacer)
 - el bruto de un gasto con cuenta (`150000-25000*5` → $150.000) → `comandos.bruto_de_cuenta` y la tabla `gasto_cuentas`
 - el extracto de Galicia no se lee, una columna salió corrida o la cadena de saldos "se corta" → `extracto_galicia.py` (por posición, en centavos, desde la primera fila con fecha)
+- `fima … efectivo …`, el ajuste o el control "saldo de la app = caja + FIMA + efectivo" → `saldos.py` (`parsear`, `proponer`, `_efectivo_a_contar`, `control_total`)
+- un gasto por WhatsApp que preguntó "¿es el mismo?" (o que no preguntó y debía) → `comandos._ya_vino_del_banco` (solo contra lo que **vino del banco**: rol `origen`)
 - la conciliación propuso algo raro: qué tipo es cada fila, por qué emparejó (o no) con un gasto, una devolución, la regla del corte, lo que sobra → `conciliacion.py` (`clasificar`, `emparejar`, `_devoluciones`, `proponer_extracto`, `aplicar`)
 - exportar todo a Excel → `export.py`
 
@@ -41,6 +43,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 - **La guarda del corte**: los gastos de los 10 días antes del corte que tienen su fila antes del corte se marcan `anterior` (`emparejamientos`, sin fila) y salen del juego para siempre. Sin eso, un pasaje de subte del 15/10 "coincidía" con uno igual del 18/10 y disparaba una regla del corte falsa.
 - **Lo que sobra se busca desde el corte, no desde el principio del extracto**: un gasto pudo quedar esperando en la cola (últimos 5 días) del extracto anterior.
 - Las categorías del Secretario ("Ajuste Reconciliación", "Percepción 30% (se devuelve)") se crean **con su grupo** antes del lote (`conciliacion.asegurar_categoria`); `insertar_sin_backup` las crearía como "Sin categorizar".
+- ⚠️ **Qué efectivo cuenta en cada declaración** (`saldos._efectivo_a_contar`): lo marcado efectivo con fecha posterior a la declaración anterior (o marcado después de ella), más lo que nadie decidió (se marca efectivo en el mismo lote). Si algo contado como efectivo aparece después en el banco (`era_efectivo = 1`), se devuelve una vez y pasa a 2. Los movimientos del banco cuentan por **fecha**: lo declarado incluye todo lo que se movió hasta ese día. Por eso conviene mandar el extracto del día y recién después los saldos (si el extracto es más viejo que 3 días, avisa).
 - `comandos` y `conciliacion` se importan uno al otro **de forma diferida** (dentro de las funciones): no subir esos imports al principio del archivo.
 - `comandos.py` corre en un hilo del servidor HTTP: **`user_id` explícito en toda llamada** (los contextvars arrancan vacíos en cada hilo) y "hoy" en Buenos Aires, nunca en la zona del servidor.
 - **El CLI de `ingest.py` se corre solo como `python -m places.finanzas.core.ingest` desde la raíz.** Hasta el 22/9 tenía un `sys.path.insert` heredado de Mis-Finanzas-App que hacía resolver `core` a `places/finanzas/core`: el CLI moría y la suite no lo veía porque importa el `core` bueno antes. `tests/test_importes_ilegibles.py` lo corre como subproceso.
@@ -48,6 +51,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 ## Estado
 
 - **Funciona:** en producción.
+- **20/10/2026 (Fase D, paso 4b, sin desplegar):** `saldos.py` (FIMA, efectivo, ajuste y control del total), "¿es el mismo?" para un gasto que ya vino del banco (pendiente `duplicado`: *sí* = no se carga), y en la conciliación un depósito sugiere el ingreso cargado a mano de la misma categoría hasta 30 días antes. Tests: `tests/test_saldos.py`, `tests/test_ya_vino_del_banco.py`.
 - **19/10/2026 (Fase D, paso 4a, sin desplegar):** `extracto_galicia.py` (lector) y `conciliacion.py` (clasificar, emparejar, devoluciones, regla del corte, sobrantes, propuesta y aplicar); `lotes.py` ahora aplica operaciones genéricas (insertar y actualizar en las tablas de la conciliación, con referencias entre filas del mismo lote) y `deshacer` las revierte todas. `procesar_archivo` lee el Excel y propone; las respuestas `N categoría`/`N no`/`N es 12`/`N efectivo`/`N tarjeta` van a `conciliacion.responder`. Tests: `tests/test_extracto_galicia.py`, `tests/test_conciliacion.py`.
 - **19/10/2026 (Fase D, paso 3, sin desplegar):** `comandos.procesar_archivo` recibe el archivo ya bajado y reconocido (`core.api.archivos.ArchivoRecibido`) y por ahora solo confirma qué llegó. Ahí se enchufan el lector del extracto (paso 4), el de resúmenes (5) y las fotos (6).
 - **19/10/2026 (Fase D, paso 2, sin desplegar):** **varios gastos en un mensaje** (uno por renglón): propuesta numerada sin escribir nada; `ok` aplica todo o nada (`lotes.py`, nuevo); correcciones `N categoría` / `N no` / `cancelar`; `deshacer` borra lo último, sea un gasto o el lote entero. Se guarda el **bruto** de todo gasto con cuenta (`gasto_cuentas`). `transactions.insert_transaction` se partió en `insertar_sin_backup` + backup, sin cambiar su comportamiento. Tests: `tests/test_lotes_whatsapp.py`.

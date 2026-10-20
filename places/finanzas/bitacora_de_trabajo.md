@@ -63,3 +63,8 @@
 - **Por qué:** es el corazón de la Fase D (ADR-0009): que cada gasto quede una sola vez.
 - **Ensayo con datos reales** (copia del backup, mes 16/9–16/10, solo cantidades): sumó la guarda del corte, los empates entre gastos iguales, los gastos cargados netos y los montos parecidos.
 - **Estado:** ✅ 781 tests en verde, 0 skipped. Sin desplegar. Sigue el 4b (FIMA, efectivo y ajuste).
+
+## 2026-10-20 — Fase D, paso 4b: FIMA, efectivo y el ajuste
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** `saldos.py`: `fima … efectivo …` (fecha opcional) propone el ajuste como un lote; FIMA esperado = último + suscripciones − rescates; efectivo esperado = último + extracciones − lo gastado en efectivo (por el bruto) + lo cobrado; la diferencia va a Rendimiento FIMA o a Ajuste Reconciliación. Con el `ok`, el control del total. Además, el "¿es el mismo?" de WhatsApp y la sugerencia del ingreso manual antes de un depósito.
+- **Estado:** ✅ 794 tests, 0 skipped. Sin desplegar: Franco lo prueba a fin de mes. Sigue el paso 5.

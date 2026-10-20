@@ -300,6 +300,16 @@ def test_un_monto_parecido_se_sugiere(db):
         ("mismo",)]
 
 
+def test_un_deposito_de_haberes_sugiere_el_ingreso_cargado_a_mano(db):
+    """Cobró en efectivo el 20/10 (lo cargó) y lo depositó el 6/11: no son dos ingresos."""
+    haberes = _cargar(db, date(2026, 10, 20), "Haberes SBT", ingresos=300000)
+    r = _mandar(db, _extracto([("06/11/2026", "DEP.EFVO.AUTOSERVICIO TICKET:  12345", 300000)]))
+    assert f"¿será #{haberes} Haberes SBT $300.000 (20/10)?" in r.texto
+    r = _p(db, f"1 es {haberes}, ok")
+    assert r.resultado == "lote"
+    assert [(t["motivo"], t["ingresos"]) for t in _txns(db)] == [("Haberes SBT", 300000.0)]
+
+
 def test_rechazar_un_emparejamiento_lo_pasa_a_faltar(db):
     _cargar(db, date(2026, 10, 24), "Auto", pasivos=50000.01)
     _mandar(db, _extracto([("27/10/2026", PROPIA, -50000)]))

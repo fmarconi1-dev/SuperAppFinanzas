@@ -465,7 +465,7 @@ def procesar(
     pendiente = _leer_pendiente(conn, ahora)
     if pendiente and (clave in SI or clave in NO):
         # La pregunta de un gasto suelto es la más nueva: su sí/no va primero.
-        return _responder_pendiente(conn, pendiente, clave in SI, user_id, hoy)
+        return _responder_pendiente(conn, pendiente, clave in SI, user_id, hoy, ahora)
     if pendiente:
         # Cualquier otra cosa descarta la pregunta y se procesa como nueva.
         _borrar_pendiente(conn)
@@ -513,6 +513,56 @@ def procesar(
         g = parsear_gasto(limpio, hoy)
     except EntradaInvalida as e:
         return Respuesta(f"⚠️ {e}\n\nMandá *ayuda* para ver los formatos.", "rechazado")
+    return _cargar_gasto(conn, g, user_id, ahora, hoy)
+
+
+def _ya_vino_del_banco(conn: sqlite3.Connection, g: Gasto, user_id: int) -> Optional[str]:
+    """«Auto $50.000 del 13/10» si ese gasto ya entró por una conciliación (ADR-0009 §4).
+
+    Misma regla que al emparejar, al revés: el gasto que manda Franco puede ser
+    de hasta 5 días antes de la fila del banco o 2 después, y hasta $1 de
+    diferencia (contra el monto o contra el bruto de la cuenta).
+    """
+    wid = resolve_workspace_id(conn, user_id)
+    columna = "ingresos" if g.es_ingreso else "pasivos"
+    montos = [g.monto] + ([g.bruto] if g.bruto and not g.es_ingreso else [])
+    filas = conn.execute(
+        f"""
+        SELECT t.motivo, t.fecha, t.{columna} AS importe FROM transacciones t
+        JOIN emparejamientos e ON e.transaccion_id = t.id AND e.rol = 'origen'
+        WHERE t.workspace_id = ? AND t.fecha BETWEEN ? AND ? AND t.{columna} > 0
+        ORDER BY t.fecha
+        """,
+        (wid, (g.fecha - timedelta(days=2)).isoformat(),
+         (g.fecha + timedelta(days=5)).isoformat()),
+    ).fetchall()
+    for f in filas:
+        if any(abs(f["importe"] - m) <= 1 for m in montos):
+            return f"{f['motivo']} {pesos(f['importe'])} del {date.fromisoformat(f['fecha']):%d/%m}"
+    return None
+
+
+def _guardar_pendiente(conn: sqlite3.Connection, g: Gasto, ahora: datetime, **extra) -> None:
+    guardar_estado(conn, "pendiente", json.dumps({
+        "fecha": g.fecha.isoformat(),
+        "monto": g.monto,
+        "es_ingreso": g.es_ingreso,
+        "categoria": g.categoria,
+        "comentario": g.comentario,
+        "cuenta": g.cuenta,
+        "creado_en": ahora.isoformat(),
+        **extra,
+    }), ahora)
+
+
+def _cargar_gasto(conn: sqlite3.Connection, g: Gasto, user_id: int, ahora: datetime, hoy: date,
+                  *, chequear_banco: bool = True) -> Respuesta:
+    """Un gasto suelto: si ya vino del banco se pregunta; si la categoría es dudosa, también."""
+    if chequear_banco and (ya := _ya_vino_del_banco(conn, g, user_id)):
+        _guardar_pendiente(conn, g, ahora, tipo="duplicado")
+        return Respuesta(
+            f"Ya tengo {ya} que vino del banco. ¿Es el mismo?\n"
+            "*sí* (no lo cargo de nuevo) · *no* (lo cargo igual)", "pendiente")
 
     tipo, nombre = resolver_categoria(g.categoria, all_motivos(conn, user_id=user_id))
     if tipo == "exacta":
@@ -520,15 +570,7 @@ def procesar(
         return Respuesta(_confirmacion(txn_id, g, nombre, hoy), "cargado", txn_id)
 
     propuesta = nombre if tipo == "parecida" else _capitalizar(g.categoria)
-    guardar_estado(conn, "pendiente", json.dumps({
-        "fecha": g.fecha.isoformat(),
-        "monto": g.monto,
-        "es_ingreso": g.es_ingreso,
-        "categoria": propuesta,
-        "comentario": g.comentario,
-        "cuenta": g.cuenta,
-        "creado_en": ahora.isoformat(),
-    }), ahora)
+    _guardar_pendiente(conn, g, ahora, categoria=propuesta)
     if tipo == "parecida":
         pregunta = f"¿Quisiste decir *{propuesta}*?"
     else:
@@ -835,15 +877,20 @@ def _responder_lote(
 
 
 def _responder_pendiente(
-    conn: sqlite3.Connection, p: dict, acepta: bool, user_id: int, hoy: date
+    conn: sqlite3.Connection, p: dict, acepta: bool, user_id: int, hoy: date, ahora: datetime
 ) -> Respuesta:
     _borrar_pendiente(conn)
-    if not acepta:
-        return Respuesta("Listo, no cargué nada. Mandalo de nuevo con la categoría que va.",
-                         "rechazado")
     g = Gasto(fecha=date.fromisoformat(p["fecha"]), monto=float(p["monto"]),
               es_ingreso=bool(p["es_ingreso"]), categoria=p["categoria"],
               comentario=p.get("comentario"), cuenta=p.get("cuenta"))
+    if p.get("tipo") == "duplicado":
+        # "sí" = es el mismo que vino del banco: no se carga. "no" = es otro.
+        if acepta:
+            return Respuesta("Listo, no lo cargué: ya estaba.", "rechazado")
+        return _cargar_gasto(conn, g, user_id, ahora, hoy, chequear_banco=False)
+    if not acepta:
+        return Respuesta("Listo, no cargué nada. Mandalo de nuevo con la categoría que va.",
+                         "rechazado")
     txn_id = _insertar(conn, g, g.categoria, user_id)
     return Respuesta(_confirmacion(txn_id, g, g.categoria, hoy), "cargado", txn_id)
 

@@ -1,8 +1,8 @@
 # tests/
 
-<!-- huella: d4f08f02316e -->
+<!-- huella: 3ef7eab3dd98 -->
 
-Resumen: La suite completa (781 tests al 19/10/2026, Fase D en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde.
+Resumen: La suite completa (794 tests al 20/10/2026, Fase D en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde.
 
 ## Buscar acá si
 
@@ -15,6 +15,7 @@ Resumen: La suite completa (781 tests al 19/10/2026, Fase D en curso) en carpeta
 - briefings de Gemini y cola de salida (Fase B) → `test_api_briefing.py` (servidor real; ventana abierta/cerrada/vencida, entrega al escribir, dedupe por id, Meta que rechaza, auth)
 - varios gastos en un mensaje, lotes y bruto (Fase D, paso 2) → `test_lotes_whatsapp.py` (propuesta, correcciones, todo o nada, un backup por lote, deshacer del lote y su orden contra un gasto suelto, filas editadas desde la app) + `test_varios_gastos_ok_y_deshacer_de_punta_a_punta` en `test_api_whatsapp.py` (por el servidor real)
 - el extracto de Galicia (Fase D, paso 4) → `test_extracto_galicia.py` (`armar_extracto` arma un Excel sintético como el del banco; lo reusan otros tests) y `test_conciliacion.py` (punto de partida, lo que falta, emparejar, empates, regla del corte, devoluciones contra el bruto, sobrantes, deshacer, y `test_cada_gasto_una_sola_vez`). Los tests contra el archivo real de Franco miran solo cantidades
+- saldos y ajuste, y el "¿es el mismo?" (Fase D, paso 4b) → `test_saldos.py`, `test_ya_vino_del_banco.py` (reusan el fixture `db` de `test_conciliacion.py`)
 - archivos por WhatsApp (Fase D, paso 3) → `test_archivos_whatsapp.py` (webhook, tipo por contenido, la descarga en dos pasos contra un **Meta de mentira** local, topes de tamaño) + los tests de archivos al final de `test_api_whatsapp.py` (servidor real, `descargar` falso por `entorno["estado"]`; verifica que no quede nada en disco)
 - el test de costo cero (que no aparezca la palabra de las plantillas) recorre **todo** `core/api/` y `places/finanzas/core/` desde el 19/10/2026: un módulo nuevo del canal queda vigilado solo
 - WhatsApp (Fase A): `test_comandos_whatsapp.py` (parser y comandos, base sintética) · `test_api_whatsapp.py` (canal de Meta + **servidor HTTP real** en un puerto libre, webhooks firmados, envío falso) · `test_deploy_api.py` (nginx/Dockerfile/entrypoint como texto: no hay Docker local)
@@ -39,6 +40,7 @@ Resumen: La suite completa (781 tests al 19/10/2026, Fase D en curso) en carpeta
 
 ## Estado
 
+- **20/10/2026:** 794 passed, 0 skipped (Fase D, paso 4b).
 - **19/10/2026 (noche):** 781 passed, 0 skipped (Fase D, paso 4a: lector del extracto y conciliación, con las mejoras del ensayo con datos reales).
 - **19/10/2026 (más tarde):** 711 passed, 0 skipped (Fase D, paso 3: recibir archivos).
 - **19/10/2026:** 677 passed, 0 skipped (Fase D, paso 2: lotes y bruto; el test de costo cero ahora recorre las carpetas enteras).

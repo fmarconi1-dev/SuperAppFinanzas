@@ -626,6 +626,14 @@ def proponer_extracto(
         parecidos = [c for c in sueltos
                      if c.es_debito == (f.monto < 0) and _en_ventana(f, c)
                      and TOLERANCIA < abs(abs(f.monto) - c.importe) <= abs(f.monto) * 5 // 100]
+        # Un cobro en efectivo que se deposita días después (los haberes de SBT):
+        # un ingreso cargado a mano en la misma categoría, hasta 30 días antes.
+        if f.monto > 0 and it["motivo"]:
+            parecidos += [c for c in sueltos
+                          if c not in parecidos and not c.es_debito and c.ingresos > 0
+                          and _norm(c.motivo) == _norm(it["motivo"])
+                          and f.fecha - timedelta(days=DIAS_DEVOLUCION) <= c.fecha <= f.fecha
+                          and abs(f.monto - c.importe) <= abs(f.monto) * 5 // 100]
         it["parecidos"] = [c.id for c in parecidos]
         it["parecidos_desc"] = [c.describir() for c in parecidos]
     items.extend(sobran)
