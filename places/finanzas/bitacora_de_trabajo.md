@@ -74,3 +74,8 @@
 - **Qué:** lector de los resúmenes AMEX/VISA (`resumen_tarjeta.py`) y el desarmado del pago (`tarjetas.py`): gastos reales con la fecha del pago, la percepción a la línea neutra con su acumulado, los consumos en dólares como Venta divisa + gasto con el dólar del día, sin duplicar lo ya cargado, y la confirmación con el "SU PAGO" del resumen siguiente.
 - **Por qué:** el pago de la tarjeta es un contenedor (ADR-0009 §3).
 - **Estado:** ✅ 837 tests, 0 skipped. Con los archivos reales los tres ejemplos del diseño dan exacto. Sin desplegar.
+
+## 2026-10-20 (noche) — Fase D, paso 6: fotos con Gemini
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** `fotos.py`: una foto o captura → filas (Gemini, plan gratuito) → validar → no duplicar lo ya cargado → propuesta con `ok`. Con eso la Fase D queda completa en código.
+- **Estado:** ✅ 859 tests, 0 skipped. Sin desplegar; falta que Franco cargue `GEMINI_API_KEY`.

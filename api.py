@@ -11,6 +11,7 @@ import os
 from typing import Optional
 
 from core.api.cotizaciones import oficial_vendedor
+from core.api.gemini import ClienteGemini
 from core.api.google import ClienteAgenda
 from core.api.servidor import ahora_ar, crear_servidor
 from core.db import init_db
@@ -26,8 +27,10 @@ def _procesar(conn, texto: str, user_id: int, id_mensaje: Optional[str] = None):
 
 
 def _procesar_archivo(conn, archivo, user_id: int, id_mensaje: Optional[str] = None):
-    # El dólar de los consumos en USD de las tarjetas (ArgentinaDatos, gratis).
-    return procesar_archivo(conn, archivo, user_id=user_id, cotizador=oficial_vendedor)
+    # El dólar de los consumos en USD de las tarjetas (ArgentinaDatos, gratis) y,
+    # para las fotos, Gemini en el plan gratuito (sin GEMINI_API_KEY no se leen).
+    return procesar_archivo(conn, archivo, user_id=user_id, cotizador=oficial_vendedor,
+                            lector_fotos=ClienteGemini.desde_entorno())
 
 
 def _componer(conn, texto: str, tipo: str, user_id: int) -> str:

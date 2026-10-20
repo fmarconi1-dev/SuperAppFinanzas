@@ -1,6 +1,6 @@
 # core/api/
 
-<!-- huella: f85561b1e920 -->
+<!-- huella: 1b6eb02b67fb -->
 
 Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla).
 
@@ -13,6 +13,7 @@ Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webh
 - configurar el webhook en el panel de Meta (verify token, `hub.challenge`) → `servidor.py` + `docs/WHATSAPP-CANAL.md`
 - un archivo (extracto, resumen, foto) que no llegó, no se bajó o se contestó "no sé leer ese archivo" → `whatsapp_meta.descargar_archivo` (dos pasos: id → URL → contenido; `ArchivoNoDisponible`), `archivos.tipo_de_contenido` (por los primeros bytes) y `servidor._bajar`
 - el dólar de un consumo en USD de la tarjeta salió raro, o "no pude traer el dólar oficial" → `cotizaciones.py` (ArgentinaDatos, gratis, sin clave; un 404 es un feriado y va el día hábil anterior; si no contesta, `CotizacionNoDisponible` y se le pide el dólar a Franco)
+- una foto que no se leyó, "no puedo leer fotos" o "No pude leer la foto" → `gemini.py` (`ClienteGemini.desde_entorno` es None sin `GEMINI_API_KEY`; `GeminiNoDisponible` con el código o el motivo del bloqueo)
 - qué variables de entorno hacen falta → `ConfigWhatsApp.desde_entorno` (y `.env.example`)
 - la interpretación del texto (montos, categorías, `resumen`, `deshacer`) → **no es acá**: `places/finanzas/core/comandos.py`
 
@@ -29,11 +30,14 @@ Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webh
 - **Un archivo se baja antes que nada** (Fase D, paso 3): la URL que da Meta vence en minutos, así que el hilo trabajador lo baja incluso antes de entregar los briefings en cola. Se baja **a memoria** y nunca toca el disco (ni el volumen ni `/tmp`): no hay nada que borrar después, aunque el proceso se caiga a mitad. Tope: 10 MB (`MAX_ARCHIVO`), mirado en lo que dice Meta y en lo que llega.
 - **El tipo se decide por el contenido, no por el nombre ni por el `mime_type` de Meta**: un `.xlsx` es un zip con `xl/workbook.xml`; un zip cualquiera o un `.xls` viejo no se aceptan. De un archivo, en `whatsapp_mensajes.texto` queda solo qué era (`[document] nombre · pie`), nunca el contenido.
 - **Una descarga rota no es "un archivo que no sé leer"** ("no contestó" ≠ "no existe"). Si Meta devuelve una página (`text/html` o `application/json`) en vez del archivo, o si su `mime_type` dice Excel, PDF o foto y los bytes no lo son, es `error` con "mandalo de nuevo", y queda en el log el tipo y el largo (nunca el contenido). "No sé leer ese archivo" es solo para lo que de verdad no es de los tipos aceptados.
+- **Gemini solo extrae filas** (JSON con esquema, temperatura 0). Nada de categorías ni de decidir qué se carga: eso es de `places/finanzas/core/fotos.py`. La clave va en la cabecera `x-goog-api-key`, nunca en la URL (la URL queda en los logs).
+- **Costo cero también acá:** la clave tiene que ser de un proyecto de AI Studio **sin facturación**; el código no puede verificarlo, así que está escrito en `.env.example` y en `ESTADO.md`.
 - `GRAPH_BASE` es una constante del módulo para que los tests apunten a un Meta de mentira local; no la cambies por entorno.
 - Los estados `failed` que manda Meta se loguean con el código: ahí aparecería tarde un 131042 (pago) o un 131047 (ventana cerrada).
 
 ## Estado
 
+- **20/10/2026 (Fase D, paso 6, sin desplegar):** `gemini.py`: `ClienteGemini.extraer_filas` (modelo `gemini-3.5-flash-lite` por defecto, `GEMINI_MODELO` para cambiarlo), inyectado desde `api.py` como `lector_fotos`. Tests: `tests/test_fotos.py` (contra un Gemini de mentira).
 - **20/10/2026 (Fase D, paso 5, sin desplegar):** `cotizaciones.py`: el oficial vendedor de una fecha (`oficial_vendedor`), inyectado desde `api.py` como `cotizador`. Tests: `tests/test_cotizaciones.py` (contra un ArgentinaDatos de mentira).
 - **19/10/2026 (Fase D, paso 3, sin desplegar):** documentos y fotos. `extraer_eventos` arma `ArchivoEntrante` (id, mime, nombre, pie); `descargar_archivo` lo baja de la Graph API; `archivos.py` (nuevo) lo reconoce por el contenido; el servidor lo pasa a `procesar_archivo` (inyectado desde `api.py`). Lo que no es Excel, PDF ni foto se contesta sin leer. Tests: `tests/test_archivos_whatsapp.py` (con un Meta de mentira) y los de archivos en `tests/test_api_whatsapp.py`.
 - **17/10/2026 (Fase C):** `ClienteAgenda.completar_tarea` (el tilde del Inicio).

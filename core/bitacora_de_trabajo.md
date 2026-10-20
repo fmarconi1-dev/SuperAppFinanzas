@@ -51,3 +51,8 @@
 - **Autor:** Claude (Opus 5.5), con Franco.
 - **Qué:** M22 (`resumenes`) en `db.py` y `core/api/cotizaciones.py` (ArgentinaDatos).
 - **Estado:** ✅ suite 837 passed, 0 skipped. Sin desplegar.
+
+## 2026-10-20 (noche) — Cliente de Gemini (Fase D, paso 6)
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** `core/api/gemini.py` (solo extrae filas en JSON) y `GEMINI_API_KEY` / `GEMINI_MODELO` en `.env.example`.
+- **Estado:** ✅ suite 859 passed, 0 skipped. Sin desplegar.

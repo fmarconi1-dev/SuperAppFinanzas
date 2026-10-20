@@ -1,6 +1,6 @@
 # places/finanzas/core/
 
-<!-- huella: 1234af68dec6 -->
+<!-- huella: 3f50f8e87379 -->
 
 Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel.
 
@@ -20,6 +20,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 - el extracto de Galicia no se lee, una columna salió corrida o la cadena de saldos "se corta" → `extracto_galicia.py` (por posición, en centavos, desde la primera fila con fecha)
 - un resumen de tarjeta que no se lee, una línea mal leída o "la cuenta del resumen no cierra" → `resumen_tarjeta.py` (`palabras_del_pdf` es lo único que usa pdfplumber; `leer_resumen` es puro)
 - el desarmado del pago de la tarjeta, la percepción, los consumos en dólares o el dólar usado → `tarjetas.py` (`recibir`, `proponer`, `_cotizacion`, `aplicar`); qué se encadena después de un extracto o un desarmado → `comandos._lo_que_sigue`
+- una foto: qué filas se aceptaron, por qué algo "ya lo tenías", la categoría aprendida → `fotos.py` (`validar`, `proponer`, `responder`)
 - `fima … efectivo …`, el ajuste o el control "saldo de la app = caja + FIMA + efectivo" → `saldos.py` (`parsear`, `proponer`, `_efectivo_a_contar`, `control_total`)
 - un gasto por WhatsApp que preguntó "¿es el mismo?" (o que no preguntó y debía) → `comandos._ya_vino_del_banco` (solo contra lo que **vino del banco**: rol `origen`)
 - la conciliación propuso algo raro: qué tipo es cada fila, por qué emparejó (o no) con un gasto, una devolución, la regla del corte, lo que sobra → `conciliacion.py` (`clasificar`, `emparejar`, `_devoluciones`, `proponer_extracto`, `aplicar`)
@@ -56,6 +57,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 ## Estado
 
 - **Funciona:** en producción.
+- **20/10/2026 (Fase D, paso 6, sin desplegar):** `fotos.py`: las filas que extrae Gemini se validan (fecha real y no futura, monto positivo), lo que ya estaba cargado (±$1, la ventana de siempre) no se carga, y lo demás se propone; con el `ok` queda como un gasto a mano. Aprende la categoría por descripción (regla `FOTO`). Tests: `tests/test_fotos.py`.
 - **20/10/2026 (Fase D, paso 5, sin desplegar):** `resumen_tarjeta.py` (lector) y `tarjetas.py` (guardar el resumen, proponer y aplicar el desarmado, el dólar del día, el acumulado de la percepción y la confirmación con el resumen siguiente). `metrics.gasto_por_categoria` deja afuera `Flujo Capital` (la percepción); producción no tenía filas de ese grupo. Tests: `tests/test_resumen_tarjeta.py`, `tests/test_tarjetas.py`, `tests/test_cotizaciones.py`.
 - **20/10/2026 (Fase D, paso 4b, sin desplegar):** `saldos.py` (FIMA, efectivo, ajuste y control del total), "¿es el mismo?" para un gasto que ya vino del banco (pendiente `duplicado`: *sí* = no se carga), y en la conciliación un depósito sugiere el ingreso cargado a mano de la misma categoría hasta 30 días antes. Tests: `tests/test_saldos.py`, `tests/test_ya_vino_del_banco.py`.
 - **19/10/2026 (Fase D, paso 4a, sin desplegar):** `extracto_galicia.py` (lector) y `conciliacion.py` (clasificar, emparejar, devoluciones, regla del corte, sobrantes, propuesta y aplicar); `lotes.py` ahora aplica operaciones genéricas (insertar y actualizar en las tablas de la conciliación, con referencias entre filas del mismo lote) y `deshacer` las revierte todas. `procesar_archivo` lee el Excel y propone; las respuestas `N categoría`/`N no`/`N es 12`/`N efectivo`/`N tarjeta` van a `conciliacion.responder`. Tests: `tests/test_extracto_galicia.py`, `tests/test_conciliacion.py`.

@@ -460,11 +460,12 @@ def test_un_excel_que_no_es_el_extracto(entorno):
     assert "No pude leer el extracto: No encontré movimientos" in entorno["enviados"][-1][1]
 
 
-def test_una_foto_se_reconoce_por_el_contenido(entorno):
+def test_una_foto_se_reconoce_por_el_contenido(entorno, monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)   # sin Gemini: se reconoce y se dice
     entorno["estado"]["descargar"] = lambda cfg, mid: b"\xff\xd8\xff\xe0" + b"0" * 2000
     _post(entorno["url"], _payload_archivo("w1", "image"))
     entorno["srv"].cola.join()
-    assert "Recibí una foto (2 KB)" in entorno["enviados"][-1][1]
+    assert "Recibí una foto (2 KB), pero no puedo leer fotos" in entorno["enviados"][-1][1]
 
 
 def test_un_pdf_que_no_es_un_resumen(entorno):

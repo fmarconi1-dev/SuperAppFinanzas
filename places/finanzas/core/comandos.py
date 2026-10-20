@@ -500,6 +500,12 @@ def procesar(
             return Respuesta(texto, r.resultado)
         if tipo_lote == "saldos":
             return _responder_saldos(conn, lote, respuesta_lote, user_id, wid, ahora)
+        if tipo_lote == "foto":
+            from places.finanzas.core import fotos  # diferido: fotos usa este módulo
+            r = fotos.responder(
+                conn, lote, aceptar=respuesta_lote.aceptar, cancelar=respuesta_lote.cancelar,
+                correcciones=respuesta_lote.correcciones, user_id=user_id, wid=wid, ahora=ahora)
+            return Respuesta(r.texto, r.resultado)
         return _responder_lote(conn, lote, respuesta_lote, user_id, ahora, hoy)
 
     if not limpio:
@@ -605,8 +611,12 @@ def procesar_archivo(
     user_id: int,
     ahora: Optional[datetime] = None,
     cotizador: Optional[Any] = None,
+    lector_fotos: Optional[Any] = None,
 ) -> Respuesta:
-    """Un archivo que mandó Franco, ya bajado y reconocido (Fase D, pasos 3 a 5).
+    """Un archivo que mandó Franco, ya bajado y reconocido (Fase D, pasos 3 a 6).
+
+    `lector_fotos` es el cliente de Gemini (`core.api.gemini.ClienteGemini`), o
+    None si no está configurado: entonces una foto no se lee y se pide el archivo.
 
     Un Excel es el extracto de la caja de Galicia: se lee y se arma la
     propuesta de conciliación (un lote, que no escribe nada hasta el `ok`).
@@ -656,11 +666,30 @@ def procesar_archivo(
             texto = "(Descarté la propuesta anterior, que no habías confirmado.)\n\n" + texto
         return Respuesta(texto, "pendiente")
 
-    return Respuesta(
-        f"📎 Recibí {archivo.describir()}. Leer fotos es lo próximo que aprendo: "
-        "todavía no la leo. No guardé el archivo.",
-        "archivo",
-    )
+    # Una foto o captura: Gemini solo extrae filas; lo demás es lo de siempre.
+    if lector_fotos is None:
+        return Respuesta(f"📷 Recibí {archivo.describir()}, pero no puedo leer fotos (falta "
+                         "configurar Gemini). Mandame el extracto en Excel o el resumen en PDF, "
+                         "o cargalo por mensaje.", "rechazado")
+    from core.api.gemini import GeminiNoDisponible
+    from places.finanzas.core import fotos
+
+    try:
+        crudas = lector_fotos.extraer_filas(archivo.datos, archivo.tipo)
+    except GeminiNoDisponible as e:
+        return Respuesta(f"⚠️ No pude leer la foto: {e}. Probá de nuevo en un rato, o mandá el "
+                         "archivo.", "error")
+    wid = resolve_workspace_id(conn, user_id)
+    filas, descartadas = fotos.validar(crudas, ahora.astimezone(ZONA).date())
+    prop = fotos.proponer(conn, filas, descartadas, wid=wid)
+    if not prop["numerados"]:
+        return Respuesta(fotos.texto(prop), "archivo")
+    _borrar_pendiente(conn)
+    texto = fotos.texto(prop)
+    if lotes.proponer(conn, workspace_id=wid, user_id=user_id, origen="foto", propuesta=prop,
+                      ahora=ahora):
+        texto = "(Descarté la propuesta anterior, que no habías confirmado.)\n\n" + texto
+    return Respuesta(texto, "pendiente")
 
 
 #: ``dolar 1540`` / ``dólar 1.540,50``: la cotización para los consumos en dólares.
