@@ -1,6 +1,6 @@
 # places/finanzas/core/
 
-<!-- huella: 3f50f8e87379 -->
+<!-- huella: 20f908cb63df -->
 
 Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel.
 
@@ -49,6 +49,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 - ⚠️ **Qué efectivo cuenta en cada declaración** (`saldos._efectivo_a_contar`): lo marcado efectivo con fecha posterior a la declaración anterior (o marcado después de ella), más lo que nadie decidió (se marca efectivo en el mismo lote). Si algo contado como efectivo aparece después en el banco (`era_efectivo = 1`), se devuelve una vez y pasa a 2. Los movimientos del banco cuentan por **fecha**: lo declarado incluye todo lo que se movió hasta ese día. Por eso conviene mandar el extracto del día y recién después los saldos (si el extracto es más viejo que 3 días, avisa).
 - ⚠️ **El resumen trae su propia cuenta y se verifica** (saldo anterior + todo lo del detalle = TOTAL A PAGAR, en pesos y en dólares; y cada subtotal de plástico). Si no cierra, `ResumenInvalido`: nunca se adivina. Pesos o dólares **por la columna** (la x del número), no por el texto. Se lee de CONSOLIDADO a TOTAL A PAGAR: el encabezado (nombre, dirección, CUIT) nunca se lee.
 - **Un pago de la caja cubre un resumen** si cae después del cierre y hasta 5 días después del vencimiento, y es de esa tarjeta (`PAGO TARJETA AMEX` / `VISA`). Con los 9 resúmenes reales esa regla asignó bien los 10 pagos de junio a octubre.
+- ⚠️ **El emparejamiento de los consumos de la tarjeta empieza en el corte** (`tarjetas.proponer`): antes del corte Franco desarmaba los pagos a mano, y sus cargas coincidirían por monto con consumos que no son ellas. Y una cuota que no es la primera (`03/12`) nunca se empareja: su fecha es la de la compra original.
 - **Una sola propuesta a la vez:** después de un extracto o un desarmado, `_lo_que_sigue` propone el próximo desarmado pendiente y recién cuando no queda ninguno pide los saldos (un `fima …` reemplazaría la propuesta).
 - `comandos`, `conciliacion` y `tarjetas` se importan entre sí **de forma diferida** (dentro de las funciones): no subir esos imports al principio del archivo.
 - `comandos.py` corre en un hilo del servidor HTTP: **`user_id` explícito en toda llamada** (los contextvars arrancan vacíos en cada hilo) y "hoy" en Buenos Aires, nunca en la zona del servidor.

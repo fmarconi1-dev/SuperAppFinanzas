@@ -238,3 +238,37 @@ def test_el_resumen_siguiente_confirma_el_pago(db, pdf):
     r = _mandar_pdf(db, cuando=AHORA + timedelta(days=20))
     assert "Este resumen dice que pagaste $70.000 del anterior, y en la caja salieron $72.900" \
         in r.texto
+
+
+def test_un_gasto_de_antes_del_corte_no_se_empareja_con_un_consumo(db, pdf):
+    """Antes del corte Franco desarmaba los pagos a mano: una carga suya del 8/10 con el
+    mismo monto que un consumo del 8/10 no es ese consumo (ya está en el ajuste)."""
+    pdf["resumen"] = _resumen(consumos=[
+        Consumo(date(2026, 10, 8), "CLUB INVENTADO", 2000000, 0, None, "5694"),
+        Consumo(date(2026, 4, 15), "TIENDA INVENTADA", 4000000, 0, "06/06", "3017"),
+        Consumo(date(2026, 10, 20), "AIRBNB * HM5YBSHC9H USD 12,00", 0, 1200, None, "3017"),
+    ])
+    _cargar(db, date(2026, 10, 8), "Salidas", pasivos=20000, creado_en="2026-10-09 12:00:00")
+    r = _hasta_el_desarmado(db)
+    assert "Ya los tenías cargados" not in r.texto and "ajuste inicial" not in r.texto
+    _p(db, "1 salidas, 2 compras, 3 salidas, ok")
+    assert ("2026-11-11", "Salidas", 20000.0, 0.0) in _desarmados(db)
+
+
+def test_una_cuota_posterior_no_se_empareja(db, pdf):
+    """La cuota 06/06 tiene la fecha de la compra original: no se busca un gasto ahí."""
+    _cargar(db, date(2026, 10, 18), "Compras", pasivos=40000)
+    pdf["resumen"] = _resumen(consumos=[
+        Consumo(date(2026, 10, 18), "TIENDA INVENTADA", 4000000, 0, "06/06", "3017"),
+        Consumo(date(2026, 10, 20), "AIRBNB * HM5YBSHC9H USD 12,00", 0, 1200, None, "3017"),
+        Consumo(date(2026, 10, 22), "CLUB INVENTADO", 2000000, 0, None, "5694"),
+    ])
+    r = _hasta_el_desarmado(db)
+    assert "Ya los tenías cargados" not in r.texto
+
+
+def test_un_resumen_de_antes_del_corte_no_se_guarda(db, pdf):
+    pdf["resumen"] = _resumen(cierre=date(2026, 8, 27), vencimiento=date(2026, 9, 4))
+    r = _mandar_pdf(db)
+    assert "es de antes del 17/10" in r.texto and "No lo guardo" in r.texto
+    assert _q(db, "SELECT COUNT(*) FROM resumenes") == [(0,)]

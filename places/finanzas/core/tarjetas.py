@@ -88,6 +88,12 @@ def recibir(conn: sqlite3.Connection, r: Resumen, *, user_id: int, wid: int, aho
     previo = conn.execute("SELECT id, estado FROM resumenes WHERE workspace_id = ? AND tarjeta = ? "
                           "AND cierre = ?", (wid, r.tarjeta, r.cierre.isoformat())).fetchone()
     nombre = f"{r.tarjeta}, cierre {r.cierre:%d/%m}, vence {r.vencimiento:%d/%m}"
+    corte = conc.corte(conn, user_id, wid)
+    if previo is None and r.vencimiento + timedelta(days=DIAS_DESPUES_DEL_VENCIMIENTO) < corte:
+        # Su pago es anterior al corte: ya está en el saldo de partida (y Franco lo
+        # desarmó a mano). Guardarlo lo dejaría esperando un pago para siempre.
+        return (f"💳 El resumen {nombre} es de antes del {corte:%d/%m}, desde cuando concilio: "
+                "su pago ya está en el punto de partida. No lo guardo."), None
     if previo and previo["estado"] == "desarmado":
         return f"💳 Ya tenía el resumen {nombre}, y ya lo desarmé.", None
     if previo is None:
@@ -168,6 +174,11 @@ def _sueltos(conn: sqlite3.Connection, wid: int, desde: date, hasta: date) -> tu
     return cargados, tarjeta
 
 
+def _cuota_posterior(c: Consumo) -> bool:
+    """``03/12`` sí, ``01/03`` no: la primera cuota todavía puede ser algo cargado a mano."""
+    return bool(c.cuota) and int(c.cuota.split("/")[0]) > 1
+
+
 def proponer(conn: sqlite3.Connection, resumen_id: int, *, user_id: int, wid: int,
              ahora: datetime, cotizador: Optional[Cotizador]) -> Optional[dict]:
     """La propuesta de desarmado, o None si el pago todavía no está en la caja."""
@@ -188,11 +199,16 @@ def proponer(conn: sqlite3.Connection, resumen_id: int, *, user_id: int, wid: in
         return x["motivo"] if x else None
 
     # Emparejar los consumos en pesos con lo cargado a mano, por la fecha de la compra.
-    indices_en_pesos = [k for k, c in enumerate(r.consumos) if c.pesos > 0 and not c.dolares]
+    # Solo se buscan gastos cargados **desde el corte** (lo de antes ya está en el
+    # ajuste inicial, y antes del corte Franco desarmaba los pagos a mano: sus
+    # cargas coincidirían por monto con consumos que no son ellas), y nunca para
+    # una cuota que no es la primera (su fecha es la de la compra original).
+    indices_en_pesos = [k for k, c in enumerate(r.consumos)
+                        if c.pesos > 0 and not c.dolares and not _cuota_posterior(c)]
     en_pesos = [r.consumos[k] for k in indices_en_pesos]
     posicion = {k: i for i, k in enumerate(indices_en_pesos)}
-    cargados, tarjeta_id = _sueltos(conn, wid, min([c.fecha for c in en_pesos] + [fecha])
-                                    - timedelta(days=conc.DIAS_ANTES), fecha)
+    desde = max(corte, min([c.fecha for c in en_pesos] + [fecha]) - timedelta(days=conc.DIAS_ANTES))
+    cargados, tarjeta_id = _sueltos(conn, wid, desde, fecha)
     por_id = {c.id: c for c in cargados}
     filas = [FilaBanco(c.fecha, -c.pesos, 0, "CONSUMO") for c in en_pesos]
     asignados, empates = conc.emparejar(filas, cargados)
