@@ -4,7 +4,7 @@
 Ver comparativa y costos en `../PLAN DE TRABAJO - Superapp Finanzas.md` §5. Decisión: consolidar en Fly.io (Mis-Finanzas ya vive ahí como `radar-financiero`).
 
 ## Fase 0 — hola mundo (desplegado 2026-07-10) ✅
-App `superapp-finanzas`, región `gru`. Validó el pipeline.
+App `superapp-finanzas`, región `gru`. Validó el pipeline. **Desde el 20/10/2026 la región es `iad`** (Ashburn): el host de `gru` se quedó sin memoria y la máquina se mudó con su volumen (ver `RUNBOOK.md`, "El host no tiene lugar ni para arrancar").
 
 ## Fase 1 — Lugar A (Finanzas) en el monorepo
 Config heredada del deploy probado de `radar-financiero`: puerto 8501, health check `/_stcore/health`, volumen `finanzas_data` montado en `/app/data` (DB + backups), 1 GB de RAM.
@@ -12,7 +12,7 @@ Config heredada del deploy probado de `radar-financiero`: puerto 8501, health ch
 ### 1. Crear volumen y secrets (una sola vez)
 ```bash
 cd SuperAppFinanzas
-fly volumes create finanzas_data -r gru -s 1 -a superapp-finanzas
+fly volumes create finanzas_data -r iad -s 1 -a superapp-finanzas
 fly secrets set SIGNUP_CODE=<mismo-que-radar> SESSION_SECRET=<mismo-que-radar> -a superapp-finanzas
 ```
 (Usar los mismos valores que `radar-financiero` mantiene válidas las sesiones "recordarme".)

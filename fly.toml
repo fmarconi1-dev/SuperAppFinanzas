@@ -1,7 +1,9 @@
 # Superapp de Finanzas — config Fly.io (Fase 1: Lugar A migrado)
 # Config heredada del fly.toml probado de radar-financiero.
 app = "superapp-finanzas"
-primary_region = "gru"  # São Paulo
+primary_region = "iad"  # Ashburn (EE.UU.). Hasta el 20/10/2026 fue "gru" (São Paulo): ese día
+                        # el host de gru se quedó sin memoria y la app se mudó (ver RUNBOOK).
+                        # Fly ya no tiene otra región en Sudamérica.
 
 [build]
 
@@ -45,5 +47,5 @@ primary_region = "gru"  # São Paulo
   cpus = 1
 
 [mounts]
-  source = "finanzas_data"   # crear con: fly volumes create finanzas_data -r gru -s 1
+  source = "finanzas_data"   # crear con: fly volumes create finanzas_data -r iad -s 1
   destination = "/app/data"  # acá viven la DB y los backups

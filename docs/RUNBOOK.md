@@ -224,6 +224,26 @@ Si aun así corta, el host está saturado de verdad: esperá un rato y reintent�
 **No bajes la memoria de la app** — 1 GB es lo que necesita pandas para las
 valuaciones de la cartera — ni toques el `Dockerfile`.
 
+## 🚚 El host no tiene lugar ni para arrancar: mudar la máquina con su volumen
+
+Pasó el **20/10/2026**: Fly mudó el volumen a otro host de `gru` (el anterior dejó de responder), el deploy falló por memoria y la máquina quedó detenida. Desde ahí, cada arranque respondía
+
+```
+machine can't start at the moment
+```
+
+y `fly volumes fork` dentro de `gru` también fallaba (*machine capacity hold failed*). Esperar no alcanzó: hubo que **copiar el volumen a otra región y clonar la máquina encima**. Así salió:
+
+```powershell
+fly volumes fork <volumen> -a superapp-finanzas --region iad        # devuelve el volumen nuevo
+fly machine clone <maquina-vieja> -a superapp-finanzas --region iad --attach-volume <volumen-nuevo>:/app/data
+fly status -a superapp-finanzas                                     # la nueva tiene que quedar started
+```
+
+Después, **en este orden**: (1) confirmar que la nueva tiene los datos (mandarle `resumen` al Secretario: los gastos de hoy tienen que estar); (2) **destruir la máquina vieja** (`fly machine destroy <maquina-vieja> -a superapp-finanzas --force`): si quedara, el proxy podría arrancarla cuando su host tenga lugar, y habría **dos bases distintas** recibiendo gastos; el volumen viejo no se borra con la máquina, queda de respaldo; (3) `primary_region` en `fly.toml` a la región nueva; (4) recién ahí el deploy pendiente.
+
+Fly no tiene otra región en Sudamérica: la más cercana es `iad` (Ashburn); si no tiene lugar, `ewr`. Antes de cualquier cosa, un backup (`scripts\backup_remoto.ps1`) si la máquina todavía arranca; si no, el último de `backups-remotos/` es el piso.
+
 ---
 
 ## 🔑 Secrets
