@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-20 18:56 UTC · 112 archivos · 22,850 LOC -->
+<!-- 2026-10-20 19:10 UTC · 112 archivos · 22,850 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-20 7bd855d ops: la app se muda a iad tras la caÃ­da de Fly del 20/10 · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-20 3ecd07d docs: Fase D en producciÃ³n (v39 en iad) y la caÃ­da de Fly resuelta · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -197,16 +197,16 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `.mapa/mapa.json` + `MAPA.md` (47 commits)
+- `.mapa/mapa.json` + `MAPA.md` (48 commits)
 - `EN-HUMANO.md` + `ESTADO.md` (40 commits)
 - `BITACORA.md` + `ESTADO.md` (29 commits)
-- `.mapa/mapa.json` + `ESTADO.md` (26 commits)
-- `ESTADO.md` + `MAPA.md` (26 commits)
+- `.mapa/mapa.json` + `ESTADO.md` (27 commits)
+- `ESTADO.md` + `MAPA.md` (27 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)
 - `BITACORA.md` + `EN-HUMANO.md` (24 commits)
 - `ESTADO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (23 commits)
 - `places/inversiones/cartera/bitacora_de_trabajo.md` + `places/inversiones/cartera/view.py` (21 commits)
-- `ESTADO.md` + `ROADMAP.md` (18 commits)
+- `ESTADO.md` + `ROADMAP.md` (19 commits)
 
 ## Fuentes externas
 
