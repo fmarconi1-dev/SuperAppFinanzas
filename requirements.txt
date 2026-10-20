@@ -5,3 +5,5 @@ python-dotenv>=1.0.0
 pytest>=7.4.0
 openpyxl>=3.1.0
 bcrypt>=4.1.0
+# Fase D, paso 5: los resúmenes de tarjeta (PDF). Fijado: no sube Pillow (Streamlit pide <13).
+pdfplumber==0.11.7

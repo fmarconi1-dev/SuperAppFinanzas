@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-20 13:01 UTC · 103 archivos · 20,783 LOC -->
+<!-- 2026-10-20 13:12 UTC · 105 archivos · 21,318 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-19 1031250 feat: FIMA, efectivo y el ajuste por WhatsApp (Fase D, paso 4b, parcial) · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-20 6cd693c feat: "Â¿es el mismo?" por WhatsApp y cierre del paso 4b · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -123,8 +123,8 @@ Rama `main` — ultimo commit: 2026-10-19 1031250 feat: FIMA, efectivo y el ajus
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (794 tests al 20/10/2026, Fase D en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 35 | 7,078 | ok |
-| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 17 | 5,203 | ok |
+| `tests/` | La suite completa (794 tests al 20/10/2026, Fase D en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 36 | 7,304 | **vencida** |
+| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 18 | 5,512 | **vencida** |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | ok |
 | `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M21 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,821 | ok |
 | `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa. | 7 | 1,357 | ok |
@@ -174,7 +174,7 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 ## Flujo interno
 
 - `tests/` → `core/` (43)
-- `tests/` → `places\finanzas\core/` (35)
+- `tests/` → `places\finanzas\core/` (37)
 - `places\finanzas\core/` → `core/` (21)
 - `places\finanzas\views/` → `places\finanzas\helpers/` (13)
 - `places\finanzas\views/` → `places\finanzas\core/` (12)
@@ -190,16 +190,16 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `.mapa/mapa.json` + `MAPA.md` (41 commits)
+- `.mapa/mapa.json` + `MAPA.md` (42 commits)
 - `EN-HUMANO.md` + `ESTADO.md` (39 commits)
-- `BITACORA.md` + `ESTADO.md` (28 commits)
+- `BITACORA.md` + `ESTADO.md` (29 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)
 - `BITACORA.md` + `EN-HUMANO.md` (24 commits)
+- `.mapa/mapa.json` + `ESTADO.md` (23 commits)
+- `ESTADO.md` + `MAPA.md` (23 commits)
 - `ESTADO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (23 commits)
-- `.mapa/mapa.json` + `ESTADO.md` (22 commits)
-- `ESTADO.md` + `MAPA.md` (22 commits)
 - `places/inversiones/cartera/bitacora_de_trabajo.md` + `places/inversiones/cartera/view.py` (21 commits)
-- `ESTADO.md` + `ROADMAP.md` (17 commits)
+- `ESTADO.md` + `ROADMAP.md` (18 commits)
 
 ## Fuentes externas
 
@@ -235,4 +235,4 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
 ## Frescura
 
-- Bitacoras vencidas: `integraciones\google-apps-script/`, `places\finanzas/`
+- Bitacoras vencidas: `integraciones\google-apps-script/`, `places\finanzas/`, `places\finanzas\core/`, `tests/`
