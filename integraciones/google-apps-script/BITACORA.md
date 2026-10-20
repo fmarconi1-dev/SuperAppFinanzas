@@ -5,6 +5,7 @@ Resumen: Puente Google ↔ SuperApp en Apps Script: reenvía el briefing de Gmai
 ## Buscar acá si
 
 - el briefing matutino no llegó o llegó dos veces → `reenviarBriefingAWhatsApp` (etiqueta `WA-Enviado`, solo si la API devolvió `ok: true`)
+- números de mercado mal o viejos, `s/d` en el tablero, el cierre de las 18:30 no salió → `Mercado.gs` (`probarMercado`, `cierrePendiente_`, propiedad `ULTIMO_CIERRE`; ADR-0010)
 - links del briefing sin acortar → `acortarUrls` (TinyURL vía `fetchAll`; si falla, deja el original)
 - el contrato SuperApp → Google (acciones, campos, errores) → `README.md` de esta carpeta
 - eventos con la hora corrida → zona horaria en `appsscript.json`
@@ -33,6 +34,24 @@ Resumen: Puente Google ↔ SuperApp en Apps Script: reenvía el briefing de Gmai
 - **17/10/2026:** la SuperApp ya tiene el cliente de `Codigo.gs` (`core/api/google.py`) y los comandos `evento:` / `tarea:` / `agenda`. **Falta instalar `Codigo.gs`** en el mismo proyecto que `Reenvio.gs`, con el manifiesto `appsscript.json`, y publicarlo como aplicación web (README, pasos 1–7).
 
 - **17/10/2026:** ✅ `Codigo.gs` **instalado y publicado** como aplicación web en el mismo proyecto que `Reenvio.gs`; `evento:` / `tarea:` / `agenda` funcionan punta a punta. Fase B cerrada.
+
+- **19/10/2026 — ADR-0010:** el 19/10 Gemini mandó números de otros días: el matutino, el cierre del jueves; el cierre, el del viernes; un mayorista inventado. Ahora los arma **`Mercado.gs`**, con Yahoo, el Tesoro de EE.UU., BYMA, dolarapi, argentinadatos y data912.
+  - `Reenvio.gs` pone el tablero en el matutino: en el renglón `[TABLERO]`, o en lugar del bloque "TABLERO" de Gemini.
+  - `Reenvio.gs` descarta el "Cierre de Mercado" de Gemini y, desde las 18:30 de lunes a viernes, manda el cierre de `Mercado.gs` (`cierrePendiente_`, `id` `cierre-AAAA-MM-DD`).
+  - El POST quedó en `mandarASuperApp_`.
+  - **Probado fuera de Google** con QuickJS, simulando `UrlFetchApp` y `Utilities`, contra las fuentes reales: sin errores, números iguales a los del día, el reemplazo del tablero anda en los cuatro casos, y si cae una fuente, solo ella sale `s/d`.
+  - **Sin probar en Google:** falta pegarlo y correr `probarMercado`. Riesgo: que Yahoo rechace a los servidores de Google.
+  - Trampas:
+    - El **MSCI MERVAL** arrancó el 19/10 en base 100.000 y reemplaza al S&P Merval. El `^MERV` de Yahoo quedó en el 16/10.
+    - El CSV del Tesoro tarda unos 20 s.
+    - El Python local rechaza la cadena de certificados nueva de Let's Encrypt de data912 (almacén viejo; con curl anda).
+
+- **20/10/2026:** el matutino no llegó. El mail de Gemini llegó a Gmail a las 9:23, ya con `[TABLERO]` y sin cifras en las noticias, pero quedó sin la etiqueta `WA-Enviado`, y Fly no recibió ningún POST.
+  - El código pegado en "Agente - Briefings" es idéntico al del repo.
+  - Corrido acá con el mail real, arma bien el matutino en 13 s. **La falla es del lado de Google:** hay que verla en *Ejecuciones*.
+  - En la misma prueba de la mañana aparecieron dos cosas, ya corregidas:
+    - BYMA `index-price` viene **vacío antes de la apertura**. Ahora se guarda el último MSCI MERVAL (`ULTIMO_MERVAL`) y se usa con su fecha.
+    - A la mañana el `^TNX` de Yahoo es la tasa en plena rueda, no un cierre. El respaldo de Yahoo para el 10 y el 30 años ahora es solo para el cierre (`paraCierre`); a la mañana manda el Tesoro de ayer.
 
 ## Proximo paso
 

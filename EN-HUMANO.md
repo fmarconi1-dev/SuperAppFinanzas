@@ -9,6 +9,28 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 19 de octubre de 2026 (noche) — Los números de mercado ya no los inventa Gemini
+
+**Qué pasó.** El informe de hoy estaba mal: el de la mañana traía los números del jueves, el de la tarde los del viernes, y los dos decían que eran de hoy. La tasa a 10 años figuraba en 4% en uno y en 5% en el otro: la verdadera era 5,15%. Gemini busca las cotizaciones en internet, encuentra notas de días anteriores y las da por nuevas. Decirle "no inventes" no alcanzó.
+
+**Qué se hizo.** Los números los saca ahora un programa, directo de las fuentes: Yahoo, el Tesoro de EE.UU., BYMA y los sitios del dólar y de bonos. Es como pasar de preguntarle a alguien "¿a cuánto cerró el dólar?" a leer el cartel de la casa de cambio. Gemini se queda con lo que hace bien: tu agenda, tus tareas y las noticias.
+
+- **El de la mañana** lo sigue escribiendo Gemini, pero el cuadro de cotizaciones lo pone el programa.
+- **El cierre de la tarde** lo arma entero el programa y te llega a partir de las 18:30, de lunes a viernes.
+- **Si un dato no es de hoy**, lleva la fecha al lado entre corchetes. Por ejemplo, el riesgo país se publica con un día de atraso.
+- **Si una fuente no contesta**, dice "s/d". Nunca un número viejo disfrazado de nuevo.
+
+**Un dato que apareció.** Hoy debutó el **MSCI MERVAL**, que reemplaza al S&P Merval y arrancó desde 100.000 puntos (cerró en 98.214,66, −1,79%). Los dos informes de Gemini mostraban el índice viejo del viernes.
+
+**Para la app no cambia nada:** todo vive en el programita de Google que ya reenviaba los briefings.
+
+**Qué sigue (lo tuyo):**
+1. Pegar los dos archivos en el Apps Script.
+2. Correr la prueba `probarMercado`, que muestra el informe sin mandarlo.
+3. Pasarle a Gemini el pedido que está en `docs/PEDIDO-GEMINI.md`. Ese pedido da de baja su cierre y le prohíbe poner cifras en las noticias.
+
+---
+
 ## 19 de octubre de 2026 (noche) — El Secretario lee el extracto del banco
 
 **Qué se hizo.** Cuando le mandás el extracto de la caja de ahorro, el Secretario lo lee entero y lo compara con lo que ya cargaste. Te contesta cuántos movimientos coinciden, cuáles faltan (con la categoría que propone, o preguntándote), cuáles conviene que revises (un monto que corrige, una devolución, un gasto que ya estaba en el ajuste inicial) y qué cargaste vos que no aparece en el banco (lo da por efectivo, salvo que digas tarjeta). No carga nada hasta tu *ok*, y *deshacer* vuelve todo atrás.

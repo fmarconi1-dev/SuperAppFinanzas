@@ -251,7 +251,9 @@ Los de WhatsApp (`WHATSAPP_*`, `SUPERAPP_DEFAULT_USER`) también: sin ellos el w
    - `código 131042` → Meta pide medio de pago. **No se carga tarjeta** (ADR-0008): plan B, Telegram.
    - nada de nada → Meta no está mandando el webhook: revisá la suscripción a `messages` en el panel, o pasá la app a modo Live (`docs/WHATSAPP-CANAL.md`, paso 13).
 3. **El briefing o el cierre no llegó:**
-   - En el editor del Apps Script → *Ejecuciones*: cada corrida de `reenviarBriefingAWhatsApp` loguea `[briefing|cierre] <asunto> → HTTP <código>`. **401** = `SUPERAPP_TOKEN` no coincide con `SUPERAPP_API_TOKEN`; **503** = falta el secreto en Fly; si no aparece el mail, Gemini no lo mandó o ya tiene la etiqueta `WA-Enviado`.
+   - En el editor del Apps Script → *Ejecuciones*: cada corrida de `reenviarBriefingAWhatsApp` loguea `[briefing] <asunto> → HTTP <código>` o `[cierre] AAAA-MM-DD → HTTP <código>`. **401** = `SUPERAPP_TOKEN` no coincide con `SUPERAPP_API_TOKEN`; **503** = falta el secreto en Fly; si el matutino no aparece, Gemini no lo mandó o ya tiene la etiqueta `WA-Enviado`.
+   - El **cierre** lo arma `Mercado.gs` desde las 18:30, de lunes a viernes, en la primera corrida del disparador (ADR-0010). No sale si: es fin de semana; la propiedad del script `ULTIMO_CIERRE` ya dice hoy (para mandarlo de nuevo, corré `reenviarCierreAhora`: borrar la propiedad no alcanza, porque la SuperApp descarta un `id` repetido); o un mail del matutino quedó trabado, porque el cierre espera a que salga.
+   - **Números con `s/d`:** esa fuente no contestó. El registro dice cuál (`Mercado: <fuente>: <error>`). Corré `probarMercado` para verla sin mandar nada.
    - En `fly logs`: `Ventana de 24 h cerrada: … queda en cola` es **normal** si no le escribiste al bot en las últimas 24 h. Sale apenas le mandes cualquier cosa, con el aviso "📬 Te guardé esto…".
    - `Saliente #N no salió (código …)` = Meta lo rechazó; queda en cola con el error y se reintenta con tu próximo mensaje.
 4. **`evento:` / `tarea:` / `agenda` no funcionan:**

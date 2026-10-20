@@ -4,7 +4,8 @@ Código que corre en **Google Apps Script**, no en Fly. Vive en el repo para ver
 
 | Archivo | Qué es |
 |---|---|
-| `Reenvio.gs` | Reenvío de los briefings de Gemini (Gmail → SuperApp → WhatsApp). **Reemplaza al script de CallMeBot.** Funciona solo. |
+| `Reenvio.gs` | Reenvío del briefing matutino de Gemini (Gmail → SuperApp → WhatsApp), con el tablero de `Mercado.gs`, y envío del cierre de las 18:30. **Reemplaza al script de CallMeBot.** |
+| `Mercado.gs` | Números de mercado armados por código (ADR-0010): el tablero del matutino y el cierre entero. Va en el **mismo proyecto** que `Reenvio.gs` (se necesitan los dos). |
 | `Codigo.gs` | Agenda: webhook SuperApp → Calendar/Tasks, para los comandos `evento:` / `tarea:` / `agenda`. Va en el **mismo proyecto** que `Reenvio.gs` y se publica como aplicación web. |
 | `appsscript.json` | Manifiesto: zona horaria Buenos Aires, servicio avanzado **Tasks**, web app. |
 
@@ -73,7 +74,39 @@ Sin `hora_inicio` el evento es de todo el día. Sin `hora_fin`, dura una hora. `
 
 ## Briefings (`reenviarBriefingAWhatsApp`)
 
-Busca **todos** los mails con asunto `[Briefing-WhatsApp]` de las últimas 24 h sin la etiqueta `WA-Enviado` (los dos de Gemini: "Briefing Matutino y Agenda" y "Cierre de Mercado") y los procesa del más viejo al más nuevo. A cada uno le **acorta los links largos con TinyURL** (en paralelo; si TinyURL falla, el link queda original) y lo manda a `POST /api/briefing` con `Authorization: Bearer <SUPERAPP_TOKEN>` y `tipo`: `cierre` si el asunto dice "Cierre de Mercado", `briefing` si no. Lo etiqueta solo si la SuperApp responde 200 **y** `{"ok": true}` (salió, o quedó en la cola hasta que le escribas al bot). Si uno falla, corta ahí y el próximo disparo reintenta sin saltearse el orden. Un lock evita que dos corridas solapadas manden lo mismo dos veces.
+El disparador de cada 10 minutos hace dos cosas, bajo un lock que evita que dos corridas solapadas manden lo mismo dos veces:
+
+1. **El matutino de Gemini:**
+   - Busca los mails con asunto `[Briefing-WhatsApp]` de las últimas 24 h que todavía no tienen la etiqueta `WA-Enviado`, y los procesa del más viejo al más nuevo.
+   - En cada uno pone el **tablero de `Mercado.gs`**: en el renglón `[TABLERO]` que deja Gemini (`docs/PEDIDO-GEMINI.md`), o en lugar del bloque "TABLERO" que arme Gemini.
+   - Acorta los links largos con TinyURL, en paralelo. Si TinyURL falla, el link queda como estaba.
+   - Lo manda a `POST /api/briefing` con `Authorization: Bearer <SUPERAPP_TOKEN>` y `tipo: "briefing"`.
+   - Lo etiqueta solo si la SuperApp responde 200 **y** `{"ok": true}`: salió, o quedó en la cola hasta que le escribas al bot. Si un mail falla, corta ahí y el próximo disparo reintenta sin saltearse el orden.
+   - Un mail "Cierre de Mercado" de Gemini se **descarta**: lo etiqueta sin mandarlo y lo anota en el registro.
+2. **El cierre de mercado** (`cierrePendiente_`, en `Mercado.gs`):
+   - De lunes a viernes, desde las 18:30 y si el cierre de hoy todavía no salió (propiedad `ULTIMO_CIERRE`), lo arma y lo manda con `tipo: "cierre"` e `id: "cierre-AAAA-MM-DD"`. Con ese `id`, si se reintenta, la SuperApp no lo duplica.
+   - Si la SuperApp no lo toma, la corrida siguiente reintenta.
+
+### Fuentes de `Mercado.gs`
+
+| Dato | Fuente |
+|---|---|
+| S&P 500, Nasdaq, Dow, Brent, oro | Yahoo (`/v8/finance/chart`, con User-Agent de navegador) |
+| UST 2, 10 y 30 años | Tesoro de EE.UU., CSV de la curva diaria (tarda unos 20 s). Si a esa hora no publicó la de hoy y Yahoo sí tiene el día, el 10 y el 30 salen de Yahoo (`^TNX`, `^TYX`) |
+| MSCI MERVAL | BYMA (`index-price`, símbolo `MMSCI`; base 100.000 desde el 19/10/2026) |
+| Dólares | dolarapi (hoy) contra argentinadatos (día hábil anterior) |
+| Riesgo país | argentinadatos (suele venir con un día de atraso: sale con `[fecha]`) |
+| Bonos hard dollar, Lecap, Boncap, CER | data912 (sin fecha: se usa la de la rueda del BYMA) |
+
+Una fuente que falla sale como `s/d` en el texto y queda en el registro (`Mercado: <fuente>: <error>`). Un dato que no es de hoy lleva `[DD/MM]`.
+
+### Instalar o actualizar el reenvío con `Mercado.gs` (19/10/2026)
+
+1. En el proyecto de Apps Script, agregá un archivo **`Mercado.gs`** y pegá el de acá. **Reemplazá `Reenvio.gs`** por el de acá. `Codigo.gs` y `appsscript.json` no cambian.
+2. Corré a mano **`probarMercado`**. Muestra en el registro el tablero y el cierre de hoy, **sin mandar nada**, y al final cuáles fuentes fallaron, si falló alguna. La primera vez Google pide permiso para conexiones externas.
+   - Si **Yahoo** sale con error (429 o 403: Yahoo a veces rechaza a los servidores de Google), avisá: el plan B es leer los índices de una planilla con `GOOGLEFINANCE`.
+3. Corré a mano **`instalarDisparadores`**: deja un único disparador cada 10 minutos. **El que venía del script de CallMeBot corría cada una hora** (visto el 20/10/2026 en *Activadores* y *Ejecuciones*: corridas a las :02). Con ese, el matutino salía hasta una hora después de llegar el mail y el cierre a las 19:02. Para verificar, en *Ejecuciones* las corridas tienen que aparecer cada 10 minutos.
+4. En Gemini: pegá el pedido de `docs/PEDIDO-GEMINI.md`, que da de baja el cierre y rearma el matutino.
 
 ## Mudanza desde CallMeBot (16/10/2026)
 

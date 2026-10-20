@@ -56,6 +56,46 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 - 🟢 💡 **Chatbot de WhatsApp.** Tier gratis de WhatsApp Business Cloud API. **Pre-requisito: M5.**
 - 🟡 💡 **Dictar varios gastos en un solo mensaje** (idea tomada de Kesef, 29/9/2026). "Gasté 4.200 en el súper, 1.800 de café y 12.000 de nafta" → la app **propone** tres gastos y Franco confirma. Entra en el **Paso 4 de la Fase 5** (efectivo por WhatsApp), por texto o audio. Respeta la regla de la fase: el LLM extrae y propone, **nunca escribe ni decide montos**; la confirmación y el guardado son determinísticos.
 - 🟡 💡 **Gastos recurrentes automáticos** (idea tomada de Kesef, 29/9/2026): expensas, servicios, suscripciones que se repiten cada mes se cargan solos (o se proponen para confirmar). **Ojo con la Fase 5:** cuando la caja de ahorro y las tarjetas entren por archivo, un recurrente cargado a mano **duplicaría** el mismo pago; o se hace antes de la Fase 5 y se integra al dedupe (Paso 5), o se hace como "esperado" que el import confirma en vez de como gasto.
+- 🟡 💡 **Balances de la semana por WhatsApp** (idea de Franco, 19/10/2026; **se encara al final, después de la Fase D**). El domingo a la noche el Secretario arma la lista de empresas que presentan balances esa semana y pregunta cuáles agendar. Las elegidas se cargan en Google Calendar.
+   **Lo que ya decidió Franco:**
+   - **Universo:** el S&P 500 y las argentinas que cotizan en EE.UU. (ADRs, MELI, GLOB, VIST). Alguna puntual del mercado local, como TGNO4, se ve caso por caso.
+   - **Lista preseteada** (Franco, 19/10/2026; van primero en el mensaje y se miran aunque no estén en el S&P 500): GGAL, YPF, MELI, NU, VIST, VST, CEG, UNH, NVDA, GOOGL, TSM, UBER, NBIS, SATL, SPCX, MU, MSFT, META, MCD, KO, PEP, WMT, PAM.
+     Sumadas el mismo día, a sugerencia de Claude, como termómetros de las anteriores:
+     - **Argentinas:** BMA, BBAR, SUPV, TGS, CEPU, LOMA, EDN, TEO, IRS, GLOB.
+     - **Chips y centros de datos:** ASML, AVGO, AMD, AMZN, ORCL.
+     - **Energía:** NEE, TLN.
+     - **Seguros de salud:** ELV, CVS.
+     - **Consumo:** COST, PG.
+     - **Bancos:** JPM.
+
+     Notas sobre la lista:
+     - **PAMPA:** en EE.UU. el ticker es **PAM** (el ADR de Pampa Energía). PAMP es el ticker local de BYMA.
+     - **SPCX:** es la acción de SpaceX (confirmado por Franco, 19/10/2026). Ojo: el mismo ticker también aparece como un ETF de SPACs en algunas páginas. Al implementar, verificar que la fuente lo trate como SpaceX.
+     - **Fuera del S&P 500:** GGAL, YPF, MELI, NU, VIST, TSM, NBIS, SATL, SPCX, PAM, ASML, las argentinas sumadas y TLN (a verificar). Igual están en el calendario, porque las fuentes cubren todo lo que cotiza en EE.UU.
+   - **Cuándo:** el domingo a la noche. Va por la cola de salida (`encolar_saliente`), así que llega cuando Franco abre la ventana de 24 h. Costo cero, sin plantillas.
+   - **Evento:** alcanza con el día y si presenta antes de la apertura o después del cierre. No hace falta la hora.
+   - **Lo menos IA posible:** las fechas salen de una fuente de datos, nunca de Gemini ni de otro LLM.
+
+   **Diseño propuesto:**
+   - **Fuente:** una API gratis de calendario de balances: Finnhub o Alpha Vantage (con clave gratis), o el JSON de Nasdaq (sin clave). Hay que verificar que el plan gratis siga incluyendo el calendario. **No** Investing ni Yahoo: no tienen API, bloquean bots y sus términos prohíben leerlos con un programa. La lista del S&P 500 sale de la tabla de Wikipedia, refrescada una vez por mes.
+   - **Volumen:** en temporada presentan entre 100 y 170 empresas del S&P por semana. El mensaje muestra la lista de Franco, las argentinas y las ~15 más grandes del S&P. El resto se ve con `balances todas`.
+   - **Elección:** respuesta numerada como en los lotes (`_proponer_varios` / `_leer_respuesta_lote`): `1 3 7`, tickers (`AAPL MSFT`), `todas` o `ninguna`. `deshacer` borra lo agendado.
+   - **Agendado:** vía `evento:` / `Codigo.gs`, con una clave estable por ticker y fecha para no duplicar. Las fechas estimadas (no confirmadas por la empresa) se marcan como tales.
+   - **Regla de mercado:** es un calendario de fechas, no análisis. No choca con "la SuperApp no genera contenido de mercado", y el script de Gemini no se toca.
+
+   **Agregado (Franco, 19/10/2026): resumen del balance en los briefings.** Cuando presenta una de las que seguimos, el briefing trae un resumen.
+   - **Cuál briefing:** las que presentan antes de la apertura van en el **cierre** de ese día. Las que presentan después del cierre van en el **briefing de la mañana siguiente**, porque a las 18:30 los datos todavía pueden no estar.
+   - **Cuáles empresas:** las que tienen el evento 📊 en el Calendar ese día. El Calendar es la fuente de verdad, así que entra lo que Franco eligió agendar.
+   - **Decidido: lo arma la SuperApp, sin IA, en un mensaje aparte** (Franco, 19/10/2026). No va dentro del briefing de Gemini, que sigue llegando tal cual. Sale junto al cierre o al briefing de la mañana, por la misma cola de salida. Es una **excepción acordada** a la regla de que la SuperApp no genera contenido de mercado: solo cifras y una palabra para la reacción, nada de análisis.
+   - **Formato:** una línea por empresa, como Franco se lo imaginaba.
+     ```
+     📊 Balances
+     MSFT (post-cierre): ganancia 6% por encima de lo esperado, ingresos 2% por encima. Posmercado: positiva (+4,1%).
+     KO (pre-apertura): ganancia 3% por debajo de lo esperado, ingresos en línea. Rueda: negativa (−2,3%).
+     ```
+     - **Contra lo esperado:** la ganancia por acción y los ingresos reales contra el promedio de los analistas, en %. Si la fuente no trae la estimación, va `s/d`. Nunca se calcula una estimación propia.
+     - **Reacción:** las que presentan después del cierre se miden en el **posmercado**: último precio fuera de hora contra el cierre. Las que presentan antes de la apertura salen en el cierre de las 18:30, así que se mide la **rueda** del día. "Neutra" si se movió menos de ±1% (umbral a ajustar con el uso).
+     - **Datos a verificar al implementar:** que la fuente gratis traiga las cifras reales a tiempo (a la mañana siguiente o a las 18:30) y de dónde sale el precio del posmercado. El endpoint `chart` de Yahoo con `includePrePost=true` es candidato. Ya figura como fuente probada en `docs/PEDIDO-GEMINI-CIERRE.md`.
 - 🟡 💡 **Espacio compartido en el Secretario** (idea de Franco, 18/10/2026; **para pensar después de la Fase D**). Que más de una persona cargue gastos a un mismo espacio, como el grupo familiar D2 que ya existe en la app (`workspace_id`, código de invitación, "Firmar como").
    **Lo que ya decidió Franco:**
    - Se carga **desde la app y por WhatsApp**, como hoy.

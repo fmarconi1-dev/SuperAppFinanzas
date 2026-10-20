@@ -1,5 +1,7 @@
 # Pedido para Gemini — cierre de mercado de las 18:30
 
+> ⛔ **Retirado el 19/10/2026 (ADR-0010).** Gemini ya no genera el cierre: lo arma `integraciones/google-apps-script/Mercado.gs`. El pedido vigente, que lo da de baja y rearma el matutino, es `docs/PEDIDO-GEMINI.md`. Lo de abajo queda como historia.
+
 > **Guía opcional.** Gemini ya genera el cierre (mail `[Briefing-WhatsApp] Cierre de Mercado - DD/MM/AAAA`). Esto sirve solo si querés ajustar el formato o las reglas del que ya tenés.
 
 Va en el **Apps Script de Gemini**, el mismo que hoy arma el briefing de la mañana. Se usa igual: un disparador a las **18:30, de lunes a viernes**, que le pasa este pedido a Gemini y manda el resultado por mail.
