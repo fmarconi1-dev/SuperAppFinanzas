@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-20 14:18 UTC · 112 archivos · 22,848 LOC -->
+<!-- 2026-10-20 18:02 UTC · 112 archivos · 22,848 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-20 b55cd23 fix: guardas del desarmado tras el ensayo con datos reales · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-20 07e5731 Mejoras · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -187,8 +187,8 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 - `places\finanzas\views/` → `places\finanzas\helpers/` (13)
 - `places\finanzas\views/` → `places\finanzas\core/` (12)
 - `places\finanzas\views/` → `core/` (8)
-- `./` → `core\api/` (4)
 - `./` → `core/` (4)
+- `./` → `core\api/` (4)
 - `places\finanzas\core/` → `core\api/` (4)
 - `places\inicio\core/` → `places\finanzas\core/` (4)
 - `core\theme/` → `places\finanzas\helpers/` (3)
@@ -197,7 +197,7 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `.mapa/mapa.json` + `MAPA.md` (44 commits)
+- `.mapa/mapa.json` + `MAPA.md` (45 commits)
 - `EN-HUMANO.md` + `ESTADO.md` (39 commits)
 - `BITACORA.md` + `ESTADO.md` (29 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)

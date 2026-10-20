@@ -9,6 +9,24 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 20 de octubre de 2026 — La conciliación, terminada (falta probarla con tus archivos)
+
+**Qué se hizo.** El Secretario ya sabe hacer todo lo que acordamos para la conciliación:
+
+- **El extracto del banco.** Lo lee entero y lo compara con lo que cargaste: qué coincide, qué falta, qué sobra y qué conviene revisar. Reconoce un gasto aunque el banco lo asiente unos días después, con unos centavos de diferencia o cargado neto de lo que te devolvieron. No duplica nada si le mandás el mismo extracto dos veces.
+- **El resumen de la tarjeta.** Lee el PDF y verifica que su propia cuenta cierre. Después reemplaza el pago de la tarjeta por los gastos de verdad, con la fecha del pago. La percepción del 30% va a una línea aparte que no cuenta como gasto. Los gastos en dólares los carga con el dólar del día: el de la caja si compraste ese día, si no el oficial.
+- **Tus saldos.** Le decís cuánto tenés en el FIMA y en efectivo. Te dice cuánto esperaba y, si no coincide, propone el ajuste.
+- **Las fotos.** Una captura o un comprobante los lee Gemini (gratis). Lo que se carga lo decide el mismo código de siempre, con tu *ok*.
+- **"¿Es el mismo?"** Si mandás por WhatsApp algo que ya entró por el banco, te pregunta antes de cargarlo dos veces.
+
+Nada se carga sin tu *ok*, y *deshacer* vuelve atrás lo último entero.
+
+**Cómo sé que anda.** Lo probé con copias de tus archivos reales sin tocar nada tuyo. Los tres ejemplos que me diste dan exacto al centavo, y los 4 pagos de tarjeta de agosto y octubre se desarman sin duplicar nada.
+
+**Qué sigue (lo tuyo, a fin de mes).** Publicarlo y seguir el orden que está en ESTADO. Primero el extracto viejo, después los saldos del 18/10, después los resúmenes. Pasado el 11/11, el extracto nuevo. Y dejar de cargar a mano el "Pago tarjeta", la "Venta divisa" y los gastos con tarjeta.
+
+---
+
 ## 19 de octubre de 2026 (noche) — Los números de mercado ya no los inventa Gemini
 
 **Qué pasó.** El informe de hoy estaba mal: el de la mañana traía los números del jueves, el de la tarde los del viernes, y los dos decían que eran de hoy. La tasa a 10 años figuraba en 4% en uno y en 5% en el otro: la verdadera era 5,15%. Gemini busca las cotizaciones en internet, encuentra notas de días anteriores y las da por nuevas. Decirle "no inventes" no alcanzó.
