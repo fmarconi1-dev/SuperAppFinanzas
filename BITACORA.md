@@ -1,6 +1,6 @@
 # BITÁCORA — changelog narrativo global
 
-<!-- huella: 9428c87c7af2 -->
+<!-- huella: ddd5eeb8cd06 -->
 
 Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías).
 
@@ -28,7 +28,8 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 - **Paso 4a (en código, sin desplegar):** el Secretario lee el extracto de Galicia (por posición, en centavos, verificado contra el archivo real) y concilia: ancla y empalme, clasificación por tipo, emparejamiento uno a uno, empates, devoluciones contra el bruto, regla del corte y sobrantes. Todo como un lote. El paso 4 se partió en 4a y 4b (saldos y ajuste) para poder probarlo antes. Franco decidió tres tipos que no estaban en la tabla.
 - **Ensayo con datos reales** (copia del backup, solo cantidades): de ahí salieron la guarda del corte, los empates entre gastos iguales, los gastos cargados netos y los montos parecidos.
 - **Paso 4b (20/10, en código):** `fima … efectivo …` y el ajuste (`saldos.py`), el control del total, el "¿es el mismo?" de WhatsApp y la sugerencia de un ingreso cargado a mano antes de un depósito.
-- Suite: 794 passed, 0 skipped.
+- **Paso 5 (20/10, en código):** el Secretario lee los resúmenes AMEX/VISA (PDF con texto, por columna, verificando la cuenta del propio resumen) y desarma el pago de la tarjeta en sus gastos reales, con la percepción a la línea neutra y los consumos en dólares como Venta divisa + gasto. Con los archivos reales, los tres ejemplos del diseño dan exacto. `pdfplumber` 0.11.7 fijado en el lock.
+- Suite: 837 passed, 0 skipped.
 
 ## 2026-10-18 — Diseño de la Fase D: conciliación desde el Secretario
 **Autor:** Claude (Opus 5.5), con Franco.

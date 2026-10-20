@@ -182,7 +182,7 @@ La hora de carga de cada gasto y la del ajuste están en la base: no hace falta 
 | M19 (2) | `lotes`, `lote_operaciones` | La propuesta, su estado (propuesta → aplicado → deshecho) y cada operación con su "antes", para deshacer el lote entero |
 | M20 (2) | `gasto_cuentas` | `transaccion_id` (FK, `ON DELETE CASCADE`), la cuenta tal como la escribiste y el bruto |
 | M21 (4) | `banco_filas`, `emparejamientos`, `reglas_tipo`, `reglas_comercio`, `saldos_declarados` | Filas de la caja (`UNIQUE` fecha + monto + saldo), con qué gasto se emparejó cada una (uno a uno; una devolución puede ir a un gasto que ya tiene pareja), lo aprendido, y el ancla de la caja y los saldos de FIMA y efectivo que declares |
-| M22 (5) | `resumenes`, `resumen_lineas` | Resúmenes (`UNIQUE` tarjeta + cierre) y sus líneas (`UNIQUE` resumen + comprobante + monto) |
+| M22 (5) | `resumenes` | Resúmenes (`UNIQUE` tarjeta + cierre) con su detalle en JSON (no hizo falta una tabla de líneas), estado y lo pagado al desarmar |
 
 - Toda FK a `transacciones(id)` lleva `ON DELETE` (con `foreign_keys = ON`, sin eso borrar un gasto desde la app fallaría).
 - **La M16 queda sin usar** (ADR-0009). Ninguna de estas migraciones hace `UPDATE` ni `DELETE` de filas; si alguna lo necesitara, va detrás de `_NIVEL_REPARACIONES`.
@@ -213,7 +213,13 @@ Si el bruto es mayor que el neto, el gasto **espera devoluciones** por la difere
 
 ## Orden de trabajo (un paso a la vez, desplegable, suite en verde)
 
-> **Progreso (19/10/2026):** ✅ 1 · ✅ 2 y ✅ 3 (desplegados y probados por Franco desde el celular) · ✅ **4a** y ✅ **4b** en código (794 passed, 0 skipped), **sin desplegar** (Franco lo prueba todo junto a fin de mes, con el resumen nuevo). El paso 4 se partió en dos: **4a** = leer el extracto, el ancla y el empalme, clasificar, emparejar (con la regla del corte y las devoluciones contra el bruto), la propuesta, aplicar y `deshacer`; **4b** = `fima … efectivo …`, el ajuste, el control del total y el "¿es el mismo?" de un gasto por WhatsApp que ya vino del banco. Sigue el 5.
+> **Progreso (19/10/2026):** ✅ 1 · ✅ 2 y ✅ 3 (desplegados y probados por Franco desde el celular) · ✅ **4a** y ✅ **4b** en código (794 passed, 0 skipped), **sin desplegar** (Franco lo prueba todo junto a fin de mes, con el resumen nuevo). El paso 4 se partió en dos: **4a** = leer el extracto, el ancla y el empalme, clasificar, emparejar (con la regla del corte y las devoluciones contra el bruto), la propuesta, aplicar y `deshacer`; **4b** = `fima … efectivo …`, el ajuste, el control del total y el "¿es el mismo?" de un gasto por WhatsApp que ya vino del banco.
+>
+> **Progreso (20/10/2026):** ✅ **5** en código (837 passed, 0 skipped), sin desplegar. Con los archivos reales: los 9 resúmenes se leen y su propia cuenta cierra; los tres ejemplos dan exacto (VISA 13/07: 0; AMEX 07/08 en dos filas: +$233.852,65; AMEX 09/10: −$250.798,41); la percepción de VISA vuelve a cero (+$8.976, −$8.976); y el "SU PAGO EN PESOS" de cada resumen confirma el pago asignado. Sigue el 6.
+>
+> **Cómo quedó el 5:** el resumen se **guarda apenas llega** (guardarlo no mueve plata). Si su pago ya está en la caja esperando, se propone el desarmado; si no, se propone solo después de aplicar el extracto que trae el pago (y los saldos se piden recién después del desarmado). El desarmado es un lote: `deshacer` deja el pago otra vez esperando. Un pago cubre el resumen si cae después del cierre y hasta 5 días después del vencimiento. El dólar: el de la compra de dólares de ese día en la caja; si no hubo, el oficial vendedor de ArgentinaDatos (el día hábil anterior si es feriado); si no contesta, se le pide a Franco (`dolar 1540`).
+>
+> **Ojo con los tiempos:** los resúmenes nuevos (cierre 29/10) vencen el 11/11. A fin de mes el Secretario solo puede **guardarlos**; el primer desarmado real llega con un extracto bajado después del 11/11.
 >
 > **Decisiones de Franco del 19/10/2026 sobre tipos del banco que no estaban en la tabla:** `DEP.EFVO.AUTOSERVICIO` (depósito de efectivo) son los **haberes de SBT** (ingreso); `TRANSFERENCIA A TERCEROS` es **gasto**, con la categoría aprendida **por destinatario**; `PERCEPCION RG 5617/24` cobrada en la caja va a la **línea neutra** de la percepción. Y del archivo real: los datos arrancan en la fila 7 (la 6 son los títulos) y el saldo a veces viene con un solo decimal (`709269,8`).
 >

@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-20 13:12 UTC · 105 archivos · 21,318 LOC -->
+<!-- 2026-10-20 13:27 UTC · 109 archivos · 22,281 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-20 6cd693c feat: "Â¿es el mismo?" por WhatsApp y cierre del paso 4b · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-20 437c2f8 feat: lector de los resÃºmenes AMEX/VISA de Galicia · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -36,6 +36,7 @@ Rama `main` — ultimo commit: 2026-10-20 6cd693c feat: "Â¿es el mismo?" por W
 | `evento:` / `tarea:` / `agenda` no llegan a Google, o Google contesta raro → `google.py` (`ClienteAgenda`: el 302 de Apps Script, `ok: false` → `AgendaRechazo`, página de login → `AgendaNoDisponible`) | `core\api/` |
 | configurar el webhook en el panel de Meta (verify token, `hub.challenge`) → `servidor.py` + `docs/WHATSAPP-CANAL.md` | `core\api/` |
 | un archivo (extracto, resumen, foto) que no llegó, no se bajó o se contestó "no sé leer ese archivo" → `whatsapp_meta.descargar_archivo` (dos pasos: id → URL → contenido; `ArchivoNoDisponible`), `archivos.tipo_de_contenido` (por los primeros bytes) y `servidor._bajar` | `core\api/` |
+| el dólar de un consumo en USD de la tarjeta salió raro, o "no pude traer el dólar oficial" → `cotizaciones.py` (ArgentinaDatos, gratis, sin clave; un 404 es un feriado y va el día hábil anterior; si no contesta, `CotizacionNoDisponible` y se le pide el dólar a Franco) | `core\api/` |
 | qué variables de entorno hacen falta → `ConfigWhatsApp.desde_entorno` (y `.env.example`) | `core\api/` |
 | la interpretación del texto (montos, categorías, `resumen`, `deshacer`) → **no es acá**: `places/finanzas/core/comandos.py` | `core\api/` |
 | login, signup, contraseñas, código de registro (`SIGNUP_CODE`) | `core\auth/` |
@@ -68,6 +69,8 @@ Rama `main` — ultimo commit: 2026-10-20 6cd693c feat: "Â¿es el mismo?" por W
 | varios gastos en un mensaje, la propuesta numerada, `ok`/correcciones, o un `deshacer` que borra varios juntos → `comandos.py` (`_proponer_varios`, `_leer_respuesta_lote`, `_responder_lote`) + `lotes.py` (aplicar todo o nada y deshacer) | `places\finanzas\core/` |
 | el bruto de un gasto con cuenta (`150000-25000*5` → $150.000) → `comandos.bruto_de_cuenta` y la tabla `gasto_cuentas` | `places\finanzas\core/` |
 | el extracto de Galicia no se lee, una columna salió corrida o la cadena de saldos "se corta" → `extracto_galicia.py` (por posición, en centavos, desde la primera fila con fecha) | `places\finanzas\core/` |
+| un resumen de tarjeta que no se lee, una línea mal leída o "la cuenta del resumen no cierra" → `resumen_tarjeta.py` (`palabras_del_pdf` es lo único que usa pdfplumber; `leer_resumen` es puro) | `places\finanzas\core/` |
+| el desarmado del pago de la tarjeta, la percepción, los consumos en dólares o el dólar usado → `tarjetas.py` (`recibir`, `proponer`, `_cotizacion`, `aplicar`); qué se encadena después de un extracto o un desarmado → `comandos._lo_que_sigue` | `places\finanzas\core/` |
 | `fima … efectivo …`, el ajuste o el control "saldo de la app = caja + FIMA + efectivo" → `saldos.py` (`parsear`, `proponer`, `_efectivo_a_contar`, `control_total`) | `places\finanzas\core/` |
 | un gasto por WhatsApp que preguntó "¿es el mismo?" (o que no preguntó y debía) → `comandos._ya_vino_del_banco` (solo contra lo que **vino del banco**: rol `origen`) | `places\finanzas\core/` |
 | la conciliación propuso algo raro: qué tipo es cada fila, por qué emparejó (o no) con un gasto, una devolución, la regla del corte, lo que sobra → `conciliacion.py` (`clasificar`, `emparejar`, `_devoluciones`, `proponer_extracto`, `aplicar`) | `places\finanzas\core/` |
@@ -107,6 +110,7 @@ Rama `main` — ultimo commit: 2026-10-20 6cd693c feat: "Â¿es el mismo?" por W
 | briefings de Gemini y cola de salida (Fase B) → `test_api_briefing.py` (servidor real; ventana abierta/cerrada/vencida, entrega al escribir, dedupe por id, Meta que rechaza, auth) | `tests/` |
 | varios gastos en un mensaje, lotes y bruto (Fase D, paso 2) → `test_lotes_whatsapp.py` (propuesta, correcciones, todo o nada, un backup por lote, deshacer del lote y su orden contra un gasto suelto, filas editadas desde la app) + `test_varios_gastos_ok_y_deshacer_de_punta_a_punta` en `test_api_whatsapp.py` (por el servidor real) | `tests/` |
 | el extracto de Galicia (Fase D, paso 4) → `test_extracto_galicia.py` (`armar_extracto` arma un Excel sintético como el del banco; lo reusan otros tests) y `test_conciliacion.py` (punto de partida, lo que falta, emparejar, empates, regla del corte, devoluciones contra el bruto, sobrantes, deshacer, y `test_cada_gasto_una_sola_vez`). Los tests contra el archivo real de Franco miran solo cantidades | `tests/` |
+| resúmenes de tarjeta (Fase D, paso 5) → `test_resumen_tarjeta.py` (el lector sobre **palabras armadas a mano**, con la clase `Hoja`; contra los 9 PDF reales: que cierren y los tres ejemplos del diseño), `test_tarjetas.py` (el desarmado; reemplaza el lector por un `Resumen` armado a mano) y `test_cotizaciones.py` (un ArgentinaDatos de mentira) | `tests/` |
 | saldos y ajuste, y el "¿es el mismo?" (Fase D, paso 4b) → `test_saldos.py`, `test_ya_vino_del_banco.py` (reusan el fixture `db` de `test_conciliacion.py`) | `tests/` |
 | archivos por WhatsApp (Fase D, paso 3) → `test_archivos_whatsapp.py` (webhook, tipo por contenido, la descarga en dos pasos contra un **Meta de mentira** local, topes de tamaño) + los tests de archivos al final de `test_api_whatsapp.py` (servidor real, `descargar` falso por `entorno["estado"]`; verifica que no quede nada en disco) | `tests/` |
 | el test de costo cero (que no aparezca la palabra de las plantillas) recorre **todo** `core/api/` y `places/finanzas/core/` desde el 19/10/2026: un módulo nuevo del canal queda vigilado solo | `tests/` |
@@ -123,15 +127,15 @@ Rama `main` — ultimo commit: 2026-10-20 6cd693c feat: "Â¿es el mismo?" por W
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (794 tests al 20/10/2026, Fase D en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 36 | 7,304 | **vencida** |
-| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 18 | 5,512 | **vencida** |
+| `tests/` | La suite completa (837 tests al 20/10/2026, Fase D en curso) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 38 | 7,636 | ok |
+| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 19 | 6,060 | ok |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | ok |
-| `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M21 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,821 | ok |
+| `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M22 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,847 | ok |
 | `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa. | 7 | 1,357 | ok |
-| `core\api/` | API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla). | 5 | 1,100 | ok |
+| `core\api/` | API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla). | 6 | 1,155 | ok |
 | `core\theme/` | Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semántica + template Plotly unificado, ajustes responsive y logo. | 5 | 710 | ok |
 | `core\auth/` | Autenticación compartida: usuarios con bcrypt, pantalla de login/signup y tokens de sesión firmados. (Los contextvars de usuario/workspace viven en `core/context.py`.) | 4 | 422 | ok |
-| `./` | Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías). | 5 | 311 | ok |
+| `./` | Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías). | 5 | 313 | ok |
 | `places\finanzas\helpers/` | Utilidades de las vistas: formateo es-AR de montos, inyección de HTML y el tour guiado de bienvenida. | 4 | 278 | ok |
 | `places\inicio/` | Lugar Inicio — la pantalla principal de Secretario (Fase C, ADR-0008): saludo, **saldo de la cuenta** en grande, gastos/ingresos/movimientos del mes contra el mismo período del anterior, la semana y las tareas de Google (con tilde para completarlas), últimos movimientos y estado del Secretario. | 2 | 255 | ok |
 | `places\inicio\core/` | La lógica del Inicio, **pura y sin Streamlit**: los números del mes y el saldo (`resumen.py`) y la semana y las tareas de Google, listas para mostrar (`semana.py`). La pantalla está en `../home.py`. | 3 | 231 | ok |
@@ -158,39 +162,39 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 | Archivo | LOC | Lo usan | Simbolos |
 |---|---:|---:|---|
-| `core\db.py` | 1349 | 41 | `_migrate`, `es_tabla_faltante`, `get_db_path`, `connect` |
+| `core\db.py` | 1375 | 41 | `_migrate`, `es_tabla_faltante`, `get_db_path`, `connect` |
 | `core\context.py` | 105 | 21 | `set_current_user_id`, `get_current_user_id`, `require_current_user_id`, `set_current_workspace_id` |
-| `places\finanzas\core\metrics.py` | 359 | 15 | `_uid`, `anios_con_datos`, `filtrar_anio`, `load_transactions` |
+| `places\finanzas\core\metrics.py` | 362 | 16 | `_uid`, `anios_con_datos`, `filtrar_anio`, `load_transactions` |
 | `core\workspaces.py` | 261 | 15 | `_hash_code`, `_uid`, `get_personal_workspace_id`, `ensure_personal_workspace` |
+| `places\finanzas\core\comandos.py` | 1127 | 13 | `Respuesta`, `Gasto`, `EntradaInvalida`, `ahora_ar` |
 | `places\finanzas\core\transactions.py` | 265 | 13 | `_uid`, `_es_familiar`, `_asegurar_motivo`, `insert_transaction` |
 | `core\__init__.py` | 5 | 13 | — |
-| `places\finanzas\core\comandos.py` | 1065 | 11 | `Respuesta`, `Gasto`, `EntradaInvalida`, `ahora_ar` |
-| `places\finanzas\core\__init__.py` | 5 | 9 | — |
+| `places\finanzas\core\__init__.py` | 5 | 10 | — |
 | `places\finanzas\helpers\_html.py` | 22 | 7 | `render_html` |
 | `places\finanzas\core\ingest.py` | 381 | 6 | `ImportResult`, `_importe`, `_read_csv_rows`, `import_diario` |
 | `places\finanzas\helpers\_tour.py` | 198 | 6 | `_user_id`, `is_tour_active`, `start_tour`, `finish_tour` |
-| `places\finanzas\core\parsers.py` | 247 | 5 | `parse_currency`, `parse_currency_estricto`, `parse_date`, `normalize_motivo` |
+| `core\api\__init__.py` | 6 | 6 | — |
 
 ## Flujo interno
 
 - `tests/` → `core/` (43)
-- `tests/` → `places\finanzas\core/` (37)
+- `tests/` → `places\finanzas\core/` (40)
 - `places\finanzas\core/` → `core/` (21)
 - `places\finanzas\views/` → `places\finanzas\helpers/` (13)
+- `tests/` → `core\api/` (13)
 - `places\finanzas\views/` → `places\finanzas\core/` (12)
-- `tests/` → `core\api/` (9)
 - `places\finanzas\views/` → `core/` (8)
 - `./` → `core/` (4)
 - `places\inicio\core/` → `places\finanzas\core/` (4)
+- `./` → `core\api/` (3)
 - `core\theme/` → `places\finanzas\helpers/` (3)
 - `places\finanzas/` → `core/` (3)
-- `places\finanzas\views/` → `core\theme/` (3)
 
 ## Se tocan juntos
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `.mapa/mapa.json` + `MAPA.md` (42 commits)
+- `.mapa/mapa.json` + `MAPA.md` (43 commits)
 - `EN-HUMANO.md` + `ESTADO.md` (39 commits)
 - `BITACORA.md` + `ESTADO.md` (29 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)
@@ -204,10 +208,10 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 ## Fuentes externas
 
 - `superapp-finanzas.fly.dev` — `docs\DEPLOY.md`, `docs\RUNBOOK.md`, `docs\WHATSAPP-CANAL.md`
+- `api.argentinadatos.com` — `core\api\cotizaciones.py`, `docs\PEDIDO-GEMINI-CIERRE.md`, `integraciones\google-apps-script\Mercado.gs`
 - `graph.facebook.com` — `core\api\whatsapp_meta.py`, `docs\PLAN-FASE-A.md`, `scripts\probar_whatsapp_texto.py`
 - `query1.finance.yahoo.com` — `docs\PEDIDO-GEMINI-CIERRE.md`, `integraciones\google-apps-script\Mercado.gs`
 - `data912.com` — `docs\PEDIDO-GEMINI-CIERRE.md`, `integraciones\google-apps-script\Mercado.gs`
-- `api.argentinadatos.com` — `docs\PEDIDO-GEMINI-CIERRE.md`, `integraciones\google-apps-script\Mercado.gs`
 - `api.doctacapital.com.ar` — `docs\CRONOGRAMAS-RENTA-FIJA.md`
 - `docs.docta.com.ar` — `docs\CRONOGRAMAS-RENTA-FIJA.md`
 - `app.docta.com.ar` — `docs\CRONOGRAMAS-RENTA-FIJA.md`
@@ -235,4 +239,4 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
 ## Frescura
 
-- Bitacoras vencidas: `integraciones\google-apps-script/`, `places\finanzas/`, `places\finanzas\core/`, `tests/`
+- Bitacoras vencidas: `integraciones\google-apps-script/`, `places\finanzas/`

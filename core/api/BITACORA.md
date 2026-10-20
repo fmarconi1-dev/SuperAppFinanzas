@@ -1,6 +1,6 @@
 # core/api/
 
-<!-- huella: 70e1d4ef1e0a -->
+<!-- huella: f85561b1e920 -->
 
 Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla).
 
@@ -12,6 +12,7 @@ Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webh
 - `evento:` / `tarea:` / `agenda` no llegan a Google, o Google contesta raro → `google.py` (`ClienteAgenda`: el 302 de Apps Script, `ok: false` → `AgendaRechazo`, página de login → `AgendaNoDisponible`)
 - configurar el webhook en el panel de Meta (verify token, `hub.challenge`) → `servidor.py` + `docs/WHATSAPP-CANAL.md`
 - un archivo (extracto, resumen, foto) que no llegó, no se bajó o se contestó "no sé leer ese archivo" → `whatsapp_meta.descargar_archivo` (dos pasos: id → URL → contenido; `ArchivoNoDisponible`), `archivos.tipo_de_contenido` (por los primeros bytes) y `servidor._bajar`
+- el dólar de un consumo en USD de la tarjeta salió raro, o "no pude traer el dólar oficial" → `cotizaciones.py` (ArgentinaDatos, gratis, sin clave; un 404 es un feriado y va el día hábil anterior; si no contesta, `CotizacionNoDisponible` y se le pide el dólar a Franco)
 - qué variables de entorno hacen falta → `ConfigWhatsApp.desde_entorno` (y `.env.example`)
 - la interpretación del texto (montos, categorías, `resumen`, `deshacer`) → **no es acá**: `places/finanzas/core/comandos.py`
 
@@ -33,6 +34,7 @@ Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webh
 
 ## Estado
 
+- **20/10/2026 (Fase D, paso 5, sin desplegar):** `cotizaciones.py`: el oficial vendedor de una fecha (`oficial_vendedor`), inyectado desde `api.py` como `cotizador`. Tests: `tests/test_cotizaciones.py` (contra un ArgentinaDatos de mentira).
 - **19/10/2026 (Fase D, paso 3, sin desplegar):** documentos y fotos. `extraer_eventos` arma `ArchivoEntrante` (id, mime, nombre, pie); `descargar_archivo` lo baja de la Graph API; `archivos.py` (nuevo) lo reconoce por el contenido; el servidor lo pasa a `procesar_archivo` (inyectado desde `api.py`). Lo que no es Excel, PDF ni foto se contesta sin leer. Tests: `tests/test_archivos_whatsapp.py` (con un Meta de mentira) y los de archivos en `tests/test_api_whatsapp.py`.
 - **17/10/2026 (Fase C):** `ClienteAgenda.completar_tarea` (el tilde del Inicio).
 - **17/10/2026 (Fase B, paso 3, desplegado y probado punta a punta por Franco):** `google.py` nuevo: cliente del Apps Script de agenda (`crear_evento`, `crear_tarea`, `resumen_semana`). El servidor ahora le pasa a `procesar` el wamid de cada mensaje, que viaja a Google como `id_solicitud` (un reintento de Meta no crea dos eventos). Se configura con `GOOGLE_WORKSPACE_WEBHOOK_URL` y `GOOGLE_WORKSPACE_SECRET`; sin ellas, la agenda queda apagada y lo demás anda igual.

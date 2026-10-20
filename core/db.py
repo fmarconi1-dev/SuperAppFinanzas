@@ -136,6 +136,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
                     (M16 queda liberada, ADR-0009).
       M21 (D)       conciliación: filas del banco, emparejamientos, reglas
                     aprendidas y saldos declarados.
+      M22 (D)       resúmenes de tarjeta.
 
     "Única" = reparación de datos que corre una sola vez por base, marcada con
     `PRAGMA user_version` (ver `_NIVEL_REPARACIONES`).
@@ -1108,7 +1109,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
             CREATE UNIQUE INDEX IF NOT EXISTS idx_emparejamientos_gasto
                 ON emparejamientos(transaccion_id)
                 WHERE rol IN ('origen', 'mismo', 'arrastre', 'efectivo', 'tarjeta', 'reversion',
-                              'anterior')
+                              'anterior', 'resumen')
         """)
         cur.execute("""
             CREATE UNIQUE INDEX IF NOT EXISTS idx_emparejamientos_fila
@@ -1146,6 +1147,31 @@ def _migrate(conn: sqlite3.Connection) -> None:
                 fecha         TEXT NOT NULL,
                 monto         INTEGER NOT NULL,
                 declarado_en  TEXT NOT NULL
+            )
+        """)
+
+        # ============================================================
+        # M22 (Fase D, paso 5, ADR-0009 §3): resúmenes de tarjeta.
+        # ============================================================
+        # El resumen leído (AMEX o VISA), con su detalle en JSON. Se guarda
+        # apenas llega aunque el pago todavía no esté en la caja (guardarlo no
+        # mueve plata); el desarmado del pago sí va en un lote, con su `ok`.
+        # `pagado` = lo que salió de la caja para este resumen, al desarmarlo:
+        # el "SU PAGO EN PESOS" del resumen siguiente lo tiene que confirmar.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS resumenes (
+                id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id   INTEGER NOT NULL,
+                tarjeta        TEXT NOT NULL,
+                cierre         TEXT NOT NULL,
+                vencimiento    TEXT NOT NULL,
+                total_pesos    INTEGER NOT NULL,
+                total_dolares  INTEGER NOT NULL,
+                detalle        TEXT NOT NULL,
+                estado         TEXT NOT NULL CHECK (estado IN ('esperando_pago', 'desarmado')),
+                pagado         INTEGER,
+                guardado_en    TEXT NOT NULL,
+                UNIQUE (workspace_id, tarjeta, cierre)
             )
         """)
 

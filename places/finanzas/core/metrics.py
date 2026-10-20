@@ -314,7 +314,10 @@ def gasto_por_categoria(
     if mes is not None:
         df = df[df["fecha"].dt.month == mes]
 
-    df = df[df["grupo"] != "Ingreso"]
+    # "Flujo Capital" (la percepción del 30% que se devuelve, Fase D) no es gasto:
+    # mueve el saldo pero no va al gráfico de categorías. Al 20/10/2026 producción
+    # no tenía filas de ese grupo, así que ningún número histórico cambia.
+    df = df[~df["grupo"].isin(["Ingreso", "Flujo Capital"])]
     if df.empty:
         return pd.DataFrame(columns=["motivo", "grupo", "gasto"])
 

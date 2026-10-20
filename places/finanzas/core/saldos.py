@@ -45,7 +45,8 @@ MOTIVO_RENDIMIENTO = "Rendimiento FIMA"
 #: después en el banco todavía no se sabe.
 DIAS_EXTRACTO_VIEJO = 3
 #: Roles con los que un gasto ya no es efectivo "sin decidir".
-_ROLES_NO_EFECTIVO = ("origen", "mismo", "arrastre", "tarjeta", "reversion", "anterior", "ajuste")
+_ROLES_NO_EFECTIVO = ("origen", "mismo", "arrastre", "tarjeta", "reversion", "anterior",
+                      "ajuste", "resumen")
 
 _RE_PARTE = re.compile(r"(fima|efectivo|efvo)\s*[:=]?\s*(\$?\s*[\d.,]+k?)", re.IGNORECASE)
 _RE_RESTO = re.compile(r"^[\s,;y]*$", re.IGNORECASE)

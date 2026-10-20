@@ -125,15 +125,15 @@ class Resumen:
 
 def palabras_del_pdf(datos: bytes) -> list[Palabra]:
     import pdfplumber  # diferido: solo hace falta acá
-    from pdfminer.pdfparser import PDFSyntaxError
+    from pdfminer.psparser import PSException
+    from pdfplumber.utils.exceptions import PdfminerException
 
     try:
-        pdf = pdfplumber.open(io.BytesIO(datos))
-    except (PDFSyntaxError, ValueError, OSError) as e:
+        with pdfplumber.open(io.BytesIO(datos)) as pdf:
+            return [Palabra(n, float(w["top"]), float(w["x0"]), float(w["x1"]), w["text"])
+                    for n, pagina in enumerate(pdf.pages, 1) for w in pagina.extract_words()]
+    except (PdfminerException, PSException, ValueError, OSError) as e:
         raise ResumenInvalido(f"No pude abrir el PDF ({type(e).__name__}).") from None
-    with pdf:
-        return [Palabra(n, float(w["top"]), float(w["x0"]), float(w["x1"]), w["text"])
-                for n, pagina in enumerate(pdf.pages, 1) for w in pagina.extract_words()]
 
 
 # ---------------------------------------------------------------------------

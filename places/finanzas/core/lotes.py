@@ -151,7 +151,7 @@ class Actualizar:
 #: Las tablas que un lote puede tocar. Toda otra se rechaza: el nombre de la
 #: tabla va en el SQL y no puede venir de afuera.
 TABLAS = {"transacciones", "banco_filas", "emparejamientos", "reglas_comercio",
-          "reglas_tipo", "saldos_declarados"}
+          "reglas_tipo", "saldos_declarados", "resumenes"}
 
 
 @dataclass

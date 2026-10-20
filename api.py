@@ -10,6 +10,7 @@ import logging
 import os
 from typing import Optional
 
+from core.api.cotizaciones import oficial_vendedor
 from core.api.google import ClienteAgenda
 from core.api.servidor import ahora_ar, crear_servidor
 from core.db import init_db
@@ -21,11 +22,12 @@ def _procesar(conn, texto: str, user_id: int, id_mensaje: Optional[str] = None):
     # La agenda se lee del entorno en cada mensaje: si faltan sus variables,
     # los comandos de agenda lo dicen y todo lo demás anda igual.
     return procesar(conn, texto, user_id=user_id, agenda=ClienteAgenda.desde_entorno(),
-                    id_mensaje=id_mensaje)
+                    id_mensaje=id_mensaje, cotizador=oficial_vendedor)
 
 
 def _procesar_archivo(conn, archivo, user_id: int, id_mensaje: Optional[str] = None):
-    return procesar_archivo(conn, archivo, user_id=user_id)
+    # El dólar de los consumos en USD de las tarjetas (ArgentinaDatos, gratis).
+    return procesar_archivo(conn, archivo, user_id=user_id, cotizador=oficial_vendedor)
 
 
 def _componer(conn, texto: str, tipo: str, user_id: int) -> str:

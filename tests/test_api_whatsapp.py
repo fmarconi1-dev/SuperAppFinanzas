@@ -467,11 +467,12 @@ def test_una_foto_se_reconoce_por_el_contenido(entorno):
     assert "Recibí una foto (2 KB)" in entorno["enviados"][-1][1]
 
 
-def test_un_pdf_mandado_como_documento(entorno):
+def test_un_pdf_que_no_es_un_resumen(entorno):
+    """Un PDF roto (o que no es un resumen de Galicia) se contesta, no rompe el hilo."""
     entorno["estado"]["descargar"] = lambda cfg, mid: b"%PDF-1.7\n..."
     _post(entorno["url"], _payload_archivo("w1", "document", nombre="RESUMEN.pdf"))
     entorno["srv"].cola.join()
-    assert "Recibí un PDF (RESUMEN.pdf" in entorno["enviados"][-1][1]
+    assert "No pude leer el resumen: No pude abrir el PDF" in entorno["enviados"][-1][1]
 
 
 def test_un_archivo_que_no_es_excel_pdf_ni_foto(entorno):

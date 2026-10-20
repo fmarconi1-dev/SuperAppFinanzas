@@ -450,12 +450,15 @@ def procesar(
     ahora: Optional[datetime] = None,
     agenda: Optional[Any] = None,
     id_mensaje: Optional[str] = None,
+    cotizador: Optional[Any] = None,
 ) -> Respuesta:
     """Interpreta un mensaje de Franco y, si corresponde, escribe en la base.
 
     `agenda` es el cliente del Apps Script (`core.api.google.ClienteAgenda`),
     o None si no está configurado. `id_mensaje` (el wamid) viaja a Google como
     `id_solicitud`, para que un reintento de Meta no cree dos eventos.
+    `cotizador` trae el dólar oficial de una fecha (`core.api.cotizaciones`),
+    para los consumos en dólares de las tarjetas; llega inyectado (sin red acá).
     """
     ahora = ahora or ahora_ar()
     hoy = ahora.astimezone(ZONA).date()
@@ -474,14 +477,28 @@ def procesar(
     # mensaje: solo la tocan `ok`, `no`/`cancelar` o "N algo" con N de la lista.
     wid = resolve_workspace_id(conn, user_id)
     lote = lotes.vigente(conn, workspace_id=wid, ahora=ahora)
+    tipo_lote = lote.propuesta.get("tipo") if lote else None
+    if tipo_lote == "resumen" and (m := _RE_DOLAR.match(limpio)):
+        from places.finanzas.core import tarjetas  # diferido: tarjetas usa este módulo
+        try:
+            valor = _numero(m.group(1))
+        except EntradaInvalida as e:
+            return Respuesta(f"⚠️ {e}", "rechazado")
+        r = tarjetas.responder(conn, lote, aceptar=False, cancelar=False, correcciones=(),
+                               user_id=user_id, wid=wid, ahora=ahora, dolar=valor)
+        return Respuesta(r.texto, r.resultado)
     if lote and (respuesta_lote := _leer_respuesta_lote(limpio, _cantidad(lote.propuesta))):
-        if lote.propuesta.get("tipo") == "extracto":
-            from places.finanzas.core import conciliacion  # diferido: conciliacion usa este módulo
-            r = conciliacion.responder(
+        if tipo_lote in ("extracto", "resumen"):
+            from places.finanzas.core import conciliacion, tarjetas  # diferido (ver arriba)
+            modulo = conciliacion if tipo_lote == "extracto" else tarjetas
+            r = modulo.responder(
                 conn, lote, aceptar=respuesta_lote.aceptar, cancelar=respuesta_lote.cancelar,
                 correcciones=respuesta_lote.correcciones, user_id=user_id, wid=wid, ahora=ahora)
-            return Respuesta(r.texto, r.resultado)
-        if lote.propuesta.get("tipo") == "saldos":
+            texto = r.texto
+            if r.resultado == "lote":
+                texto += "\n\n" + _lo_que_sigue(conn, user_id, wid, ahora, cotizador)
+            return Respuesta(texto, r.resultado)
+        if tipo_lote == "saldos":
             return _responder_saldos(conn, lote, respuesta_lote, user_id, wid, ahora)
         return _responder_lote(conn, lote, respuesta_lote, user_id, ahora, hoy)
 
@@ -587,15 +604,36 @@ def procesar_archivo(
     *,
     user_id: int,
     ahora: Optional[datetime] = None,
+    cotizador: Optional[Any] = None,
 ) -> Respuesta:
-    """Un archivo que mandó Franco, ya bajado y reconocido (Fase D, paso 3).
+    """Un archivo que mandó Franco, ya bajado y reconocido (Fase D, pasos 3 a 5).
 
     Un Excel es el extracto de la caja de Galicia: se lee y se arma la
     propuesta de conciliación (un lote, que no escribe nada hasta el `ok`).
-    Los resúmenes de tarjeta son el paso 5 y las fotos el 6
+    Un PDF es el resumen de una tarjeta: se guarda y, si su pago ya está en la
+    caja, se propone el desarmado. Las fotos son el paso 6
     (`docs/PLAN-FASE-D.md`). El archivo vive en memoria y no se guarda.
     """
     ahora = ahora or ahora_ar()
+    if archivo.tipo == "pdf":
+        from places.finanzas.core import tarjetas  # diferido: tarjetas usa este módulo
+        from places.finanzas.core.resumen_tarjeta import (
+            ResumenInvalido, leer_resumen, palabras_del_pdf)
+
+        try:
+            resumen = leer_resumen(palabras_del_pdf(archivo.datos))
+        except ResumenInvalido as e:
+            return Respuesta(f"⚠️ No pude leer el resumen: {e}", "rechazado")
+        wid = resolve_workspace_id(conn, user_id)
+        texto, prop = tarjetas.recibir(conn, resumen, user_id=user_id, wid=wid, ahora=ahora,
+                                       cotizador=cotizador)
+        if prop is None:
+            return Respuesta(texto, "archivo")
+        _borrar_pendiente(conn)
+        if lotes.proponer(conn, workspace_id=wid, user_id=user_id, origen="resumen",
+                          propuesta=prop, ahora=ahora):
+            texto = "(Descarté la propuesta anterior, que no habías confirmado.)\n\n" + texto
+        return Respuesta(texto, "pendiente")
     if archivo.tipo == "xlsx":
         from places.finanzas.core import conciliacion  # diferido: conciliacion usa este módulo
         from places.finanzas.core.extracto_galicia import ExtractoInvalido, leer_extracto
@@ -618,12 +656,36 @@ def procesar_archivo(
             texto = "(Descarté la propuesta anterior, que no habías confirmado.)\n\n" + texto
         return Respuesta(texto, "pendiente")
 
-    que = {"pdf": "Leer los resúmenes de tarjeta"}.get(archivo.tipo, "Leer fotos")
     return Respuesta(
-        f"📎 Recibí {archivo.describir()}. {que} es lo próximo que aprendo: "
-        "todavía no lo leo. No guardé el archivo.",
+        f"📎 Recibí {archivo.describir()}. Leer fotos es lo próximo que aprendo: "
+        "todavía no la leo. No guardé el archivo.",
         "archivo",
     )
+
+
+#: ``dolar 1540`` / ``dólar 1.540,50``: la cotización para los consumos en dólares.
+_RE_DOLAR = re.compile(r"^\s*d[oó]lar\s*:?\s*\$?\s*([\d.,]+)\s*$", re.IGNORECASE)
+
+
+def _lo_que_sigue(conn: sqlite3.Connection, user_id: int, wid: int, ahora: datetime,
+                  cotizador: Optional[Any]) -> str:
+    """Después de un extracto o un desarmado: el próximo desarmado, o pedir los saldos.
+
+    Hay una sola propuesta a la vez: si un resumen guardado ya tiene su pago en
+    la caja, se propone su desarmado ahora, y los saldos recién después (un
+    `fima …` reemplazaría la propuesta pendiente).
+    """
+    from places.finanzas.core import tarjetas
+
+    for resumen_id in tarjetas.con_pago(conn, wid):
+        prop = tarjetas.proponer(conn, resumen_id, user_id=user_id, wid=wid, ahora=ahora,
+                                 cotizador=cotizador)
+        if prop:
+            lotes.proponer(conn, workspace_id=wid, user_id=user_id, origen="resumen",
+                           propuesta=prop, ahora=ahora)
+            return "Y ahora el resumen que esperaba este pago:\n\n" + tarjetas.texto(prop)
+    return ("Ahora decime cuánto tenés en el FIMA y en efectivo, así cierro la cuenta: "
+            "*fima 512.300 efectivo 98.000*")
 
 
 _RE_COMANDO_AGENDA = re.compile(r"^\s*(evento|tarea|task)\s*:\s*(.*)$", re.IGNORECASE | re.DOTALL)

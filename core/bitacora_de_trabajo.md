@@ -46,3 +46,8 @@
 - **Autor:** Claude (Opus 5.5), con Franco.
 - **Qué:** M21 en `db.py`: filas del banco, emparejamientos, reglas aprendidas y saldos declarados. Aditiva.
 - **Estado:** ✅ suite 781 passed, 0 skipped. Sin desplegar. (El índice único de `emparejamientos` incluye el rol `anterior`, de la guarda del corte.)
+
+## 2026-10-20 — M22 y el dólar oficial (Fase D, paso 5)
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** M22 (`resumenes`) en `db.py` y `core/api/cotizaciones.py` (ArgentinaDatos).
+- **Estado:** ✅ suite 837 passed, 0 skipped. Sin desplegar.

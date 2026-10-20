@@ -129,7 +129,7 @@ _MOTIVOS_DEL_SECRETARIO = {"ajuste reconciliacion", "rendimiento fima", "caja",
 #: "anterior" = un gasto de antes del corte que ya tiene su fila del banco antes
 #: del corte: queda fuera del juego para no confundirlo con una fila nueva igual.
 _ROLES_EXCLUSIVOS = ("origen", "mismo", "arrastre", "efectivo", "tarjeta", "reversion",
-                     "anterior")
+                     "anterior", "resumen")
 
 
 class ConciliacionInvalida(ValueError):
@@ -257,7 +257,7 @@ def _cargados(conn: sqlite3.Connection, wid: int, desde: date, hasta: date) -> l
                   AND e.rol = 'efectivo') AS efectivo_id,
                (SELECT COUNT(*) FROM emparejamientos e WHERE e.transaccion_id = t.id
                   AND e.rol IN ('origen', 'mismo', 'arrastre', 'tarjeta', 'reversion',
-                                'anterior')) AS ocupado
+                                'anterior', 'resumen')) AS ocupado
         FROM transacciones t
         LEFT JOIN gasto_cuentas gc ON gc.transaccion_id = t.id
         LEFT JOIN categorias c ON c.motivo = t.motivo AND c.workspace_id = t.workspace_id
@@ -1005,6 +1005,4 @@ def _texto_aplicado(prop: dict, cargados: int, emparejados: int) -> str:
               f"emparejé {emparejados} con lo que ya tenías" if emparejados else None]
     hecho = " y ".join(p for p in partes if p) or "anoté los movimientos"
     return (f"✅ Listo: {hecho}. La caja quedó en {pesos_c(prop['saldo_final'])} el "
-            f"{date.fromisoformat(prop['hasta']):%d/%m}.\n*deshacer* vuelve todo atrás.\n\n"
-            "Ahora decime cuánto tenés en el FIMA y en efectivo, así cierro la cuenta: "
-            "*fima 512.300 efectivo 98.000*")
+            f"{date.fromisoformat(prop['hasta']):%d/%m}.\n*deshacer* vuelve todo atrás.")

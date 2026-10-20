@@ -68,3 +68,9 @@
 - **Autor:** Claude (Opus 5.5), con Franco.
 - **Qué:** `saldos.py`: `fima … efectivo …` (fecha opcional) propone el ajuste como un lote; FIMA esperado = último + suscripciones − rescates; efectivo esperado = último + extracciones − lo gastado en efectivo (por el bruto) + lo cobrado; la diferencia va a Rendimiento FIMA o a Ajuste Reconciliación. Con el `ok`, el control del total. Además, el "¿es el mismo?" de WhatsApp y la sugerencia del ingreso manual antes de un depósito.
 - **Estado:** ✅ 794 tests, 0 skipped. Sin desplegar: Franco lo prueba a fin de mes. Sigue el paso 5.
+
+## 2026-10-20 (más tarde) — Fase D, paso 5: los resúmenes de tarjeta
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** lector de los resúmenes AMEX/VISA (`resumen_tarjeta.py`) y el desarmado del pago (`tarjetas.py`): gastos reales con la fecha del pago, la percepción a la línea neutra con su acumulado, los consumos en dólares como Venta divisa + gasto con el dólar del día, sin duplicar lo ya cargado, y la confirmación con el "SU PAGO" del resumen siguiente.
+- **Por qué:** el pago de la tarjeta es un contenedor (ADR-0009 §3).
+- **Estado:** ✅ 837 tests, 0 skipped. Con los archivos reales los tres ejemplos del diseño dan exacto. Sin desplegar.
