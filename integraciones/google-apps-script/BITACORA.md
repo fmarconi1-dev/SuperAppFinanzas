@@ -55,6 +55,8 @@ Resumen: Puente Google ↔ SuperApp en Apps Script: reenvía el briefing de Gmai
 
 - **21/10/2026 — `Balances.gs` (ADR-0011, paso 2):** el reloj de la lista de balances. `balancesPendientes_` (lo llama `reenviarBriefingAWhatsApp`) pide el domingo desde las 20:00 la semana que viene (`POST /api/balances`, `id` `balances-AAAA-MM-DD`, propiedad `ULTIMO_BALANCES`). Acá no se trae ningún dato. `pedirBalancesAhora` lo prueba a mano. Sintaxis y lógica del domingo probadas con QuickJS (19:59 no sale; un 503 reintenta; no se repite). **Sin pegar en Google todavía.**
 
+- **21/10/2026 — `Codigo.gs`, balances paso 3:** `agendar_balances` y `borrar_balances`. Evento de día entero en el calendario principal con dos etiquetas (`balance` = `TICKER:AAAA-MM-DD`, `balance_momento`); antes de crear se busca la etiqueta en ese día (no duplica, sin depender del caché de 6 h). Van bajo el lock del `doPost`. Probado con QuickJS y un Calendar simulado: crea, el reintento devuelve el mismo, rechaza claves malas, borra y avisa lo que no estaba. **Hay que publicar una versión nueva de la implementación.**
+
 ## Proximo paso
 
 Instalarlo siguiendo el `README.md` cuando arranque la Fase B (briefing + Calendar/Tasks), y correr `probarLecturas` / `probarAcortador` desde el editor.

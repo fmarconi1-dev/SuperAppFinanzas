@@ -485,12 +485,14 @@ def procesar(
     lote = lotes.vigente(conn, workspace_id=wid, ahora=ahora)
     tipo_lote = lote.propuesta.get("tipo") if lote else None
     if clave == "balances" or clave.startswith("balances "):
-        return _comando_balances(conn, limpio, clave, wid, lote, fuentes_balances, ahora, hoy)
+        return _comando_balances(conn, limpio, clave, wid, fuentes_balances, agenda, ahora, hoy)
     if (prop := balances.vigente(conn, workspace_id=wid, ahora=ahora)) \
             and (eleccion := balances.leer_respuesta(limpio, prop)):
         if lote and _leer_respuesta_lote(limpio, _cantidad(lote.propuesta)):
             return Respuesta(_AMBIGUO_BALANCES.format(texto=limpio), "rechazado")
-        return Respuesta(balances.responder(conn, prop, eleccion, hoy), "consulta")
+        return Respuesta(*balances.responder(conn, prop, eleccion, hoy, workspace_id=wid,
+                                             ahora=ahora, agenda=agenda,
+                                             fuentes=fuentes_balances))
     if tipo_lote == "resumen" and (m := _RE_DOLAR.match(limpio)):
         from places.finanzas.core import tarjetas  # diferido: tarjetas usa este módulo
         try:
@@ -528,7 +530,7 @@ def procesar(
     if clave in {"resumen", "saldo"}:
         return Respuesta(resumen_mes(conn, user_id=user_id, hoy=hoy), "consulta")
     if clave in {"deshacer", "borrar ultimo", "borra ultimo"}:
-        return deshacer(conn, user_id=user_id, ahora=ahora)
+        return deshacer(conn, user_id=user_id, ahora=ahora, agenda=agenda)
     if clave in SI or clave in NO:
         return Respuesta("No tengo nada pendiente de confirmar.", "rechazado")
     if m := _RE_COMANDO_AGENDA.match(limpio):
@@ -768,8 +770,8 @@ _SIN_LISTA_BALANCES = ("No tengo una lista de balances vigente. Mandá *balances
 
 
 def _comando_balances(
-    conn: sqlite3.Connection, limpio: str, clave: str, wid: int, lote: Optional[lotes.Lote],
-    fuentes: Optional[Any], ahora: datetime, hoy: date,
+    conn: sqlite3.Connection, limpio: str, clave: str, wid: int, fuentes: Optional[Any],
+    agenda: Optional[Any], ahora: datetime, hoy: date,
 ) -> Respuesta:
     """`balances` (arma la semana), `balances todas` (el resto) y `balances 1 3 7`."""
     from core.api.balances_fuentes import CalendarioNoDisponible
@@ -793,7 +795,8 @@ def _comando_balances(
     if eleccion is None:
         return Respuesta("No entendí cuáles elegís. Contestá con los números de la lista, los "
                          "tickers, *todas* o *ninguna*.", "rechazado")
-    return Respuesta(balances.responder(conn, prop, eleccion, hoy), "consulta")
+    return Respuesta(*balances.responder(conn, prop, eleccion, hoy, workspace_id=wid, ahora=ahora,
+                                         agenda=agenda, fuentes=fuentes))
 
 
 def _capitalizar(s: str) -> str:
@@ -1036,11 +1039,13 @@ def _responder_pendiente(
     return Respuesta(_confirmacion(txn_id, g, g.categoria, hoy), "cargado", txn_id)
 
 
-def deshacer(conn: sqlite3.Connection, *, user_id: int, ahora: datetime) -> Respuesta:
+def deshacer(conn: sqlite3.Connection, *, user_id: int, ahora: datetime,
+             agenda: Optional[Any] = None) -> Respuesta:
     """Deshace **lo último** cargado por WhatsApp en las últimas 24 h.
 
-    Lo último puede ser un gasto suelto o un lote (varios gastos confirmados
-    juntos): un lote se deshace entero. Se comparan fechas, no textos.
+    Lo último puede ser un gasto suelto, un lote (varios gastos confirmados
+    juntos: se deshace entero) o una tanda de balances agendados en Google (se
+    borran del Calendar; `agenda` es el cliente). Se comparan fechas, no textos.
     """
     desde = ahora - VENTANA_DESHACER
     row = conn.execute(
@@ -1049,8 +1054,12 @@ def deshacer(conn: sqlite3.Connection, *, user_id: int, ahora: datetime) -> Resp
         "ORDER BY recibido_en DESC LIMIT 1",
         (desde.isoformat(),),
     ).fetchone()
-    ultimo_lote = lotes.ultimo_aplicado(
-        conn, workspace_id=resolve_workspace_id(conn, user_id), desde=desde)
+    wid = resolve_workspace_id(conn, user_id)
+    ultimo_lote = lotes.ultimo_aplicado(conn, workspace_id=wid, desde=desde)
+    tanda = balances.ultima_tanda(conn, workspace_id=wid, desde=desde)
+    if tanda and (row is None or tanda[1] >= datetime.fromisoformat(row["recibido_en"])) \
+            and (ultimo_lote is None or tanda[1] >= ultimo_lote[1]):
+        return Respuesta(*balances.deshacer_tanda(conn, tanda[0], agenda=agenda, ahora=ahora))
     if ultimo_lote and (row is None
                         or ultimo_lote[1] >= datetime.fromisoformat(row["recibido_en"])):
         return _deshacer_lote(conn, ultimo_lote[0], ahora)

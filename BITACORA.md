@@ -28,6 +28,8 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
   - **No es un lote:** la lista no descarta un extracto pendiente, y ante un mensaje ambiguo se pide `balances 1 2`.
   - Probado contra las fuentes reales: la semana del 26/10 en 10–15 s.
   - 934 passed, 0 skipped.
+- **Paso 2 en producción** (21/10, Franco: "funciona en secretario"; Nasdaq contesta desde Fly).
+- **Paso 3 (en código, sin desplegar):** lo elegido se agenda en el Calendar por `Codigo.gs` (`agendar_balances` / `borrar_balances`), con la clave `TICKER:AAAA-MM-DD` como etiqueta del evento: un reintento no duplica. La ficha de Nasdaq de cada elegida dice si la fecha es estimada y completa el momento. `deshacer` compara la última tanda con el último gasto y el último lote. "Ya las tenías" se decide por lo agendado de verdad, porque lo elegido en el paso 2 nunca llegó a Google. M24. 952 passed, 0 skipped.
 
 ---
 

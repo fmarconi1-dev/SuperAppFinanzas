@@ -4,7 +4,9 @@ El domingo a la noche el Secretario le manda a Franco las empresas que
 presentan balance esa semana: primero las de su lista (con las argentinas
 adentro), después las 15 más grandes del S&P 500; `balances todas` muestra el
 resto. Franco contesta como en los lotes (`1 3 7`, tickers, `todas`,
-`ninguna`) y lo elegido queda anotado para agendar.
+`ninguna`) y lo elegido se agenda en su Google Calendar (📊, vía `Codigo.gs`),
+con la clave `TICKER:AAAA-MM-DD` como etiqueta del evento para no duplicar.
+`deshacer` lo saca.
 
 **Solo la fecha** (Franco, 21/10/2026): el día y si presenta antes de la
 apertura o después del cierre. Nada de ganancia ni ingresos, y nada de IA:
@@ -34,7 +36,13 @@ from datetime import date, datetime, time, timedelta
 from typing import Any, Optional
 from zoneinfo import ZoneInfo
 
-from core.api.balances_fuentes import FilaCalendario, ListaNoDisponible, ticker_canonico
+from core.api.balances_fuentes import (
+    CalendarioNoDisponible,
+    FilaCalendario,
+    ListaNoDisponible,
+    ticker_canonico,
+)
+from core.api.google import AgendaNoDisponible, AgendaRechazo
 
 log = logging.getLogger("superapp.balances")
 
@@ -315,40 +323,192 @@ def _nombre(it: dict) -> str:
     return f"{it['ticker']} ({_dia(date.fromisoformat(it['fecha']))}, {_MOMENTO[it['momento']]})"
 
 
-def responder(conn: sqlite3.Connection, prop: Propuesta, e: Eleccion, hoy: date) -> str:
-    """Anota lo elegido (se suma a lo de antes). Lo de un día que ya pasó no se toma."""
-    if e.ninguna:
-        if prop.elegidos:
-            return ("Listo, no sumo ninguna más. Lo que ya habías elegido sigue anotado: "
-                    + ", ".join(prop.elegidos) + ".")
-        return "Listo, esta semana no agendo ninguna."
-    por_ticker = {it["ticker"]: it for it in prop.items}
+def _seleccion(prop: Propuesta, e: Eleccion) -> list[dict]:
     if e.todas:
-        seleccion = prop.items[:prop.principales]
-    else:
-        seleccion = []
-        for it in [prop.items[n - 1] for n in e.numeros] + [por_ticker[t] for t in e.tickers]:
-            if it not in seleccion:
-                seleccion.append(it)
-    pasaron = [it for it in seleccion if date.fromisoformat(it["fecha"]) < hoy]
-    ya_estaban = [it for it in seleccion if it not in pasaron and it["ticker"] in prop.elegidos]
-    nuevas = [it for it in seleccion if it not in pasaron and it not in ya_estaban]
+        return [dict(it) for it in prop.items[:prop.principales]]
+    por_ticker = {it["ticker"]: it for it in prop.items}
+    seleccion: list[dict] = []
+    for it in [prop.items[n - 1] for n in e.numeros] + [por_ticker[t] for t in e.tickers]:
+        if all(s["ticker"] != it["ticker"] for s in seleccion):
+            seleccion.append(dict(it))
+    return seleccion
 
-    elegidos = prop.elegidos + [it["ticker"] for it in nuevas]
-    conn.execute("UPDATE balances_propuestas SET elegidos = ? WHERE id = ?",
-                 (json.dumps(elegidos), prop.id))
-    prop.elegidos = elegidos
 
-    partes = []
+def _confirmar_fechas(seleccion: list[dict], fuentes: Any) -> list[str]:
+    """Pregunta a la ficha de Nasdaq de cada elegida si la fecha es estimada.
+
+    Si la ficha dice otra fecha, gana la ficha (es lo más nuevo que hay) y se
+    avisa; si trae el momento y el calendario no, se completa. Si Nasdaq no
+    contesta, la empresa se agenda con lo del calendario y se avisa: nunca se
+    la marca como confirmada sin saberlo. Devuelve los avisos.
+    """
+    avisos: list[str] = []
+    if fuentes is None or not hasattr(fuentes, "fecha_anunciada"):
+        return avisos
+    sin_ficha = []
+    for it in seleccion:
+        try:
+            info = fuentes.fecha_anunciada(it["ticker"])
+        except CalendarioNoDisponible as e:
+            log.warning("Sin la ficha de Nasdaq de %s: %s", it["ticker"], e)
+            sin_ficha.append(it["ticker"])
+            continue
+        if info is None:
+            continue
+        if info.fecha.isoformat() != it["fecha"]:
+            avisos.append(f"{it['ticker']}: Nasdaq ahora dice {_dia(info.fecha)} "
+                          f"(la lista decía {_dia(date.fromisoformat(it['fecha']))}).")
+            it["fecha"] = info.fecha.isoformat()
+            it["momento"] = info.momento
+        elif it["momento"] is None:
+            it["momento"] = info.momento
+        it["estimada"] = info.estimada
+    if sin_ficha:
+        avisos.append("No pude ver en Nasdaq si la fecha es estimada o confirmada: "
+                      + ", ".join(sin_ficha) + ".")
+    return avisos
+
+
+def titulo_evento(it: dict) -> str:
+    """`📊 MSFT balance (post-cierre)`; con `, fecha estimada` si no la confirmó la empresa."""
+    detalle = _MOMENTO[it["momento"]]
+    if it.get("estimada"):
+        detalle += ", fecha estimada"
+    return f"📊 {it['ticker']} balance ({detalle})"
+
+
+def _evento(it: dict) -> dict:
+    origen = {True: "estimada por Nasdaq (algoritmo)", False: "confirmada por la empresa",
+              None: "según el calendario de Nasdaq"}[it.get("estimada")]
+    return {"clave": _clave(it), "fecha": it["fecha"],
+            "titulo": titulo_evento(it), "momento": it["momento"] or "",
+            "descripcion": f"{it['nombre']} presenta su balance. Fecha {origen}. "
+                           "Lo agendó el Secretario."}
+
+
+def _clave(it: dict) -> str:
+    return f"{it['ticker']}:{it['fecha']}"
+
+
+def _claves_agendadas(conn: sqlite3.Connection, workspace_id: int) -> set[str]:
+    """Las claves que el Secretario agendó en Google y nadie deshizo.
+
+    "Ya la tenías" se decide por esto, no por `elegidos`: lo elegido en el
+    paso 2 (antes del agendado) quedó anotado sin llegar nunca al Calendar.
+    """
+    claves: set[str] = set()
+    for row in conn.execute("SELECT eventos FROM balances_agendados WHERE workspace_id = ? "
+                            "AND deshecho_en IS NULL", (workspace_id,)):
+        claves.update(ev["clave"] for ev in json.loads(row["eventos"]))
+    return claves
+
+
+def responder(conn: sqlite3.Connection, prop: Propuesta, e: Eleccion, hoy: date, *,
+              workspace_id: int, ahora: datetime, agenda: Any = None,
+              fuentes: Any = None) -> tuple[str, str]:
+    """Agenda lo elegido en Google Calendar. Devuelve (texto, resultado).
+
+    Lo de un día que ya pasó no se toma, y lo ya agendado no se repite. Si
+    Google no contesta, **no se anota nada**: Franco manda lo mismo de nuevo
+    (el Calendar no duplica, porque cada evento lleva su clave como etiqueta).
+    """
+    agendadas = _claves_agendadas(conn, workspace_id)
+    if e.ninguna:
+        tenias = [it["ticker"] for it in prop.items if _clave(it) in agendadas]
+        if tenias:
+            return ("Listo, no sumo ninguna más. Lo que ya habías agendado sigue: "
+                    + ", ".join(tenias) + ".", "consulta")
+        return "Listo, esta semana no agendo ninguna.", "consulta"
+    seleccion = _seleccion(prop, e)
+    ya_estaban = [it for it in seleccion if _clave(it) in agendadas]
+    candidatas = [it for it in seleccion if it not in ya_estaban]
+    avisos = _confirmar_fechas(
+        [it for it in candidatas if date.fromisoformat(it["fecha"]) >= hoy], fuentes)
+    pasaron = [it for it in candidatas if date.fromisoformat(it["fecha"]) < hoy]
+    nuevas = [it for it in candidatas if it not in pasaron]
+
+    partes: list[str] = []
+    resultado = "consulta"
     if nuevas:
-        partes.append("✅ Anotado: " + ", ".join(_nombre(it) for it in nuevas) + ".")
+        if agenda is None:
+            return "⚠️ La agenda de Google no está conectada: no agendé nada.", "rechazado"
+        try:
+            agenda.agendar_balances(eventos=[_evento(it) for it in nuevas])
+        except (AgendaNoDisponible, AgendaRechazo) as err:
+            log.error("No se agendaron los balances: %s", err)
+            return (f"⚠️ No pude agendar en tu Calendar ({err}). No anoté nada: mandá lo mismo "
+                    "de nuevo en un rato.", "error")
+        elegidos = prop.elegidos + [it["ticker"] for it in nuevas
+                                    if it["ticker"] not in prop.elegidos]
+        conn.execute("UPDATE balances_propuestas SET elegidos = ? WHERE id = ?",
+                     (json.dumps(elegidos), prop.id))
+        prop.elegidos = elegidos
+        conn.execute(
+            "INSERT INTO balances_agendados (workspace_id, propuesta_id, eventos, agendado_en) "
+            "VALUES (?, ?, ?, ?)",
+            (workspace_id, prop.id,
+             json.dumps([{"clave": _clave(it), "ticker": it["ticker"],
+                          "fecha": it["fecha"], "momento": it["momento"]} for it in nuevas]),
+             ahora.isoformat()))
+        partes.append("📅 Agendé en tu Calendar: "
+                      + ", ".join(_nombre(it) + (" — fecha estimada" if it.get("estimada") else "")
+                                  for it in nuevas) + ".")
+        resultado = "agendado"
     if ya_estaban:
         partes.append("Ya las tenías: " + ", ".join(it["ticker"] for it in ya_estaban) + ".")
     if pasaron:
         partes.append("No las agendo porque ya pasaron: "
                       + ", ".join(_nombre(it) for it in pasaron) + ".")
+    partes += avisos
     if nuevas:
-        partes.append("(Por ahora quedan anotadas: el agendado en tu Calendar llega en el "
-                      "próximo paso. Ojo: *deshacer* todavía no las saca; borraría lo último "
-                      "que cargaste de gastos.)")
-    return "\n".join(partes)
+        partes.append("*deshacer* las saca del Calendar.")
+    return "\n".join(partes), resultado
+
+
+# ---------------------------------------------------------------------------
+# Deshacer
+# ---------------------------------------------------------------------------
+
+def ultima_tanda(conn: sqlite3.Connection, *, workspace_id: int, desde: datetime
+                 ) -> Optional[tuple[int, datetime]]:
+    """(id, cuándo) de lo último agendado desde `desde` y todavía no deshecho."""
+    row = conn.execute(
+        "SELECT id, agendado_en FROM balances_agendados WHERE workspace_id = ? "
+        "AND deshecho_en IS NULL AND agendado_en >= ? ORDER BY agendado_en DESC, id DESC LIMIT 1",
+        (workspace_id, desde.isoformat())).fetchone()
+    if row is None:
+        return None
+    return row["id"], datetime.fromisoformat(row["agendado_en"])
+
+
+def deshacer_tanda(conn: sqlite3.Connection, tanda_id: int, *, agenda: Any,
+                   ahora: datetime) -> tuple[str, str]:
+    """Borra del Calendar lo de esa tanda y lo saca de lo elegido. (texto, resultado)."""
+    row = conn.execute("SELECT * FROM balances_agendados WHERE id = ?", (tanda_id,)).fetchone()
+    eventos = json.loads(row["eventos"])
+    if agenda is None:
+        return ("⚠️ La agenda de Google no está conectada: no pude sacar los balances.",
+                "rechazado")
+    try:
+        r = agenda.borrar_balances(claves=[ev["clave"] for ev in eventos])
+    except (AgendaNoDisponible, AgendaRechazo) as err:
+        log.error("No se deshicieron los balances: %s", err)
+        return (f"⚠️ No pude sacar los balances de tu Calendar ({err}). Probá *deshacer* de "
+                "nuevo en un rato.", "error")
+    conn.execute("UPDATE balances_agendados SET deshecho_en = ? WHERE id = ?",
+                 (ahora.isoformat(), tanda_id))
+    sacar = {ev["ticker"] for ev in eventos}
+    prop = conn.execute("SELECT id, elegidos FROM balances_propuestas WHERE id = ?",
+                        (row["propuesta_id"],)).fetchone()
+    if prop is not None:
+        quedan = [t for t in json.loads(prop["elegidos"]) if t not in sacar]
+        conn.execute("UPDATE balances_propuestas SET elegidos = ? WHERE id = ?",
+                     (json.dumps(quedan), prop["id"]))
+    no_estaban = set(r.get("no_estaban") or [])
+    nombres = ", ".join(f"{ev['ticker']} ({_dia(date.fromisoformat(ev['fecha']))})"
+                        for ev in eventos)
+    texto = f"↩️ Saqué de tu Calendar: {nombres}."
+    if no_estaban:
+        texto += ("\nYa no estaban (¿los borraste a mano?): "
+                  + ", ".join(c.split(":")[0] for c in sorted(no_estaban)) + ".")
+    return texto, "deshecho"

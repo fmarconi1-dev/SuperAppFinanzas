@@ -9,6 +9,21 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 21 de octubre de 2026 (más tarde) — Los balances elegidos van a tu Google Calendar
+
+**Qué se hizo.** Cuando contestás la lista (*1 3 7*, tickers o *todas*), el Secretario pone cada empresa en tu Google Calendar como un evento de todo el día: "📊 MSFT balance (post-cierre)". Antes de agendar, mira en Nasdaq si la fecha la anunció la empresa o es una estimación, y si es estimada lo dice en el título. *deshacer* saca del Calendar lo último que agendó.
+
+- **No duplica:** cada evento lleva una etiqueta con la empresa y el día. Si algo se reintenta, o elegís dos veces la misma, no aparece repetido.
+- **Si Google no contesta, no anota nada** y te pide que lo mandes de nuevo.
+- **Si Nasdaq cambió la fecha** desde el domingo, agenda la nueva y te avisa.
+- **Lo que elegiste ayer**, cuando todavía no agendaba, no quedó en el Calendar: elegilo de nuevo.
+
+**Para qué te sirve.** Los balances que te interesan quedan en tu agenda, junto con todo lo demás.
+
+**Qué sigue.** Publicar la app y pegar la versión nueva del código de agenda en Google (con "versión nueva" en la implementación). Después, el último paso: el día del balance te llega cómo reaccionó el precio ("MSFT: posmercado positiva").
+
+---
+
 ## 21 de octubre de 2026 — Los balances de la semana: la lista del domingo
 
 **Qué se hizo.** El domingo a la noche el Secretario te va a mandar quiénes presentan balance esa semana. Primero las de tu lista (con las argentinas), después las 15 más grandes del S&P 500, cada una con el día y si presenta antes de que abra el mercado o después de que cierre. Le contestás como a los gastos: los números (*1 3 7*), los tickers (*KO MSFT*), *todas* o *ninguna*. *balances todas* te muestra el resto, y *balances* a secas te arma la semana cuando quieras.

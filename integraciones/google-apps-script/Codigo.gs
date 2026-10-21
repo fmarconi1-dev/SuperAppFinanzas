@@ -55,6 +55,8 @@ function doPost(e) {
     crear_evento: crearEvento_,
     crear_tarea: crearTarea_,
     completar_tarea: completarTarea_,
+    agendar_balances: agendarBalances_,
+    borrar_balances: borrarBalances_,
     listar_calendarios: listarCalendarios_,
     listar_eventos: listarEventos_,
     listar_tareas: listarTareas_,
@@ -74,7 +76,10 @@ function doPost(e) {
 
   // Con clave, el chequeo de cache y la escritura van bajo lock: dos reintentos
   // simultáneos no pueden pasar los dos el chequeo y crear dos veces.
-  const lock = clave ? LockService.getScriptLock() : null;
+  // Los balances no usan id_solicitud: su clave es la etiqueta del evento.
+  // Igual van bajo lock, para que dos reintentos no creen el mismo evento.
+  const conLock = clave || datos.accion === "agendar_balances" || datos.accion === "borrar_balances";
+  const lock = conLock ? LockService.getScriptLock() : null;
   if (lock && !lock.tryLock(20000)) {
     return respuestaJson_({ ok: false, error: "ocupado", detalle: "otra solicitud en curso; reintentar" });
   }
@@ -166,6 +171,72 @@ function completarTarea_(d) {
   const id = requerirTexto_(d.tarea_id, "tarea_id");
   const t = Tasks.Tasks.patch({ status: "completed" }, lista, id);
   return { id: t.id, lista_id: lista, estado: t.status };
+}
+
+
+// --- Balances de la semana (ADR-0011) ----------------------------------------
+//
+// Un evento 📊 de día entero por balance, en el calendario principal. La
+// clave `TICKER:AAAA-MM-DD` va como etiqueta del evento (`balance`) y el
+// momento (`pre`, `post` o vacío) como otra (`balance_momento`): el resumen
+// del día lee las dos. Antes de crear se busca la clave en ese día, así un
+// reintento no duplica aunque pasen más de 6 h.
+
+const RE_CLAVE_BALANCE = /^([A-Z0-9.]{1,10}):(\d{4}-\d{2}-\d{2})$/;
+const MAX_BALANCES_POR_PEDIDO = 60;
+
+function eventoDeBalance_(cal, clave) {
+  const fecha = RE_CLAVE_BALANCE.exec(clave)[2];
+  const f = parsearFecha_(fecha, "clave");
+  const eventos = cal.getEventsForDay(new Date(f.anio, f.mes - 1, f.dia));
+  for (let i = 0; i < eventos.length; i++) {
+    if (eventos[i].getTag("balance") === clave) return eventos[i];
+  }
+  return null;
+}
+
+function claveDeBalance_(clave) {
+  const c = String(clave || "");
+  if (!RE_CLAVE_BALANCE.test(c)) throw new ParametroInvalido("clave de balance inválida: " + c);
+  return c;
+}
+
+function agendarBalances_(d) {
+  if (!Array.isArray(d.eventos) || !d.eventos.length || d.eventos.length > MAX_BALANCES_POR_PEDIDO) {
+    throw new ParametroInvalido("eventos tiene que ser una lista de 1 a " + MAX_BALANCES_POR_PEDIDO);
+  }
+  // Se valida todo antes de escribir nada.
+  d.eventos.forEach(function (e) {
+    const clave = claveDeBalance_(e.clave);
+    if (RE_CLAVE_BALANCE.exec(clave)[2] !== e.fecha) throw new ParametroInvalido("la fecha no coincide con la clave: " + clave);
+    requerirTexto_(e.titulo, "titulo");
+    if (["pre", "post", "", null, undefined].indexOf(e.momento) < 0) throw new ParametroInvalido("momento inválido: " + e.momento);
+  });
+  const cal = CalendarApp.getDefaultCalendar();
+  const salida = d.eventos.map(function (e) {
+    const previo = eventoDeBalance_(cal, e.clave);
+    if (previo) return { clave: e.clave, id: previo.getId(), creado: false };
+    const f = parsearFecha_(e.fecha, "fecha");
+    const ev = cal.createAllDayEvent(e.titulo, new Date(f.anio, f.mes - 1, f.dia), { description: e.descripcion || "" });
+    ev.setTag("balance", e.clave);
+    ev.setTag("balance_momento", e.momento || "");
+    return { clave: e.clave, id: ev.getId(), creado: true };
+  });
+  return { eventos: salida, calendario_id: cal.getId() };
+}
+
+function borrarBalances_(d) {
+  if (!Array.isArray(d.claves) || !d.claves.length || d.claves.length > MAX_BALANCES_POR_PEDIDO) {
+    throw new ParametroInvalido("claves tiene que ser una lista de 1 a " + MAX_BALANCES_POR_PEDIDO);
+  }
+  const claves = d.claves.map(claveDeBalance_);
+  const cal = CalendarApp.getDefaultCalendar();
+  const borrados = [], noEstaban = [];
+  claves.forEach(function (clave) {
+    const ev = eventoDeBalance_(cal, clave);
+    if (ev) { ev.deleteEvent(); borrados.push(clave); } else { noEstaban.push(clave); }
+  });
+  return { borrados: borrados, no_estaban: noEstaban };
 }
 
 

@@ -1,6 +1,6 @@
 # places/finanzas/core/
 
-<!-- huella: 0d51c5794dc5 -->
+<!-- huella: 02ed7bf70770 -->
 
 Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel.
 
@@ -54,6 +54,8 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 - **Una sola propuesta a la vez:** después de un extracto o un desarmado, `_lo_que_sigue` propone el próximo desarmado pendiente y recién cuando no queda ninguno pide los saldos (un `fima …` reemplazaría la propuesta).
 - ⚠️ **La lista de balances no es un lote** (ADR-0011): `lotes.proponer` descarta la propuesta anterior, y la lista del domingo no puede tirar un extracto pendiente. Vive en `balances_propuestas` y convive con un lote abierto. Si un mensaje sirve para los dos (`1 2` con un lote de gastos abierto), no se adivina: se pide `balances 1 2`. `todas`, `ninguna` y los tickers no chocan con un lote.
 - **`todas` son las del mensaje** (la lista de Franco + las 15 grandes), no las 150 de `balances todas`. Lo elegido se suma (no se reemplaza) mientras la lista esté vigente (hasta el final del viernes). Lo de un día anterior a hoy no se toma (Franco, 21/10/2026).
+- ⚠️ **Si Google no contesta, no se anota nada** (`elegidos` y `balances_agendados` quedan como estaban): Franco manda lo mismo de nuevo y el Calendar no duplica (la clave es la etiqueta del evento). Lo mismo al deshacer: si Google falla, la tanda sigue sin deshacer.
+- **La ficha de Nasdaq gana sobre la lista** si dice otra fecha (es lo más nuevo), y completa el momento si el calendario decía `sin hora`. Si la ficha no contesta, se agenda con lo de la lista y se avisa (nunca se marca "confirmada" sin saberlo).
 - **Rearmar la misma semana conserva lo elegido** (`armar`): si Franco mandó `balances` el domingo antes de las 20 y eligió, la lista del disparador no se lo borra. Se conserva solo lo que sigue en el calendario.
 - **Dos clases de acciones = un balance**: Nasdaq trae GOOGL y GOOG (FOX/FOXA, NWS/NWSA) con el mismo nombre; va una sola, la de la lista de Franco si está.
 - `comandos`, `conciliacion` y `tarjetas` se importan entre sí **de forma diferida** (dentro de las funciones): no subir esos imports al principio del archivo.
@@ -63,6 +65,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 ## Estado
 
 - **Funciona:** en producción.
+- **21/10/2026 (balances, paso 3, sin desplegar):** `balances.responder` **agenda** en Google lo elegido (`📊 MSFT balance (post-cierre)`, `, fecha estimada` si la ficha de Nasdaq lo dice) y guarda la tanda (`balances_agendados`, M24); `deshacer` compara la tanda con el último gasto y el último lote y deshace lo más nuevo (`balances.ultima_tanda` / `deshacer_tanda`). Tests: `tests/test_balances.py` (`AgendaFalsa` se porta como `Codigo.gs`).
 - **21/10/2026 (balances, paso 2, sin desplegar):** `balances.py`: la lista de la semana (la de Franco, `MI_LISTA`, primero; las 15 más grandes del S&P 500 por capitalización; el resto con `balances todas`), la copia del S&P 500 (una vez por mes, la guardada si Wikipedia no contesta, `s/d` si no hay), y la respuesta. Todavía **no agenda**: anota lo elegido (`balances_propuestas.elegidos`, M23). Tests: `tests/test_balances.py`.
 - **20/10/2026 (Fase D, paso 6, sin desplegar):** `fotos.py`: las filas que extrae Gemini se validan (fecha real y no futura, monto positivo), lo que ya estaba cargado (±$1, la ventana de siempre) no se carga, y lo demás se propone; con el `ok` queda como un gasto a mano. Aprende la categoría por descripción (regla `FOTO`). Tests: `tests/test_fotos.py`.
 - **20/10/2026 (Fase D, paso 5, sin desplegar):** `resumen_tarjeta.py` (lector) y `tarjetas.py` (guardar el resumen, proponer y aplicar el desarmado, el dólar del día, el acumulado de la percepción y la confirmación con el resumen siguiente). `metrics.gasto_por_categoria` deja afuera `Flujo Capital` (la percepción); producción no tenía filas de ese grupo. Tests: `tests/test_resumen_tarjeta.py`, `tests/test_tarjetas.py`, `tests/test_cotizaciones.py`.

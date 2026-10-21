@@ -8,6 +8,12 @@ Las fechas salen de una fuente de datos, nunca de un LLM. Verificadas el 20/10/2
   (`time-pre-market` / `time-after-hours` / `time-not-supplied`) y `marketCap`.
   Un fin de semana o un feriado viene con `rows: null`. **Una vez que la fecha
   pasa, pierde el antes/después**: por eso se guarda al agendar.
+* **Nasdaq, la ficha de cada empresa** (`api/analyst/{TICKER}/earnings-date`):
+  dice **en prosa** si la fecha la confirmó la empresa ("is expected* to report
+  earnings on 11/04/2026 before market open") o es una estimación por algoritmo
+  ("is estimated to report earnings on 11/02/2026"). A veces trae el momento
+  aunque el calendario diga `time-not-supplied` (MCD, 21/10/2026). Se consulta
+  al agendar, solo para las elegidas.
 * **Wikipedia** (`List_of_S&P_500_companies`, tabla `constituents`): la lista
   del S&P 500. Se refresca una vez por mes (eso lo decide quien la usa).
 
@@ -62,6 +68,16 @@ class FilaCalendario:
     momento: Optional[str]
     #: Capitalización en dólares, si Nasdaq la trae.
     capitalizacion: Optional[float]
+
+
+@dataclass(frozen=True)
+class FechaAnunciada:
+    """Lo que dice la ficha de Nasdaq de una empresa sobre su próximo balance."""
+
+    fecha: date
+    momento: Optional[str]
+    #: True si la fecha la calculó un algoritmo; False si la anunció la empresa.
+    estimada: bool
 
 
 def ticker_canonico(ticker: str) -> str:
@@ -135,6 +151,37 @@ def calendario(desde: date, hasta: date) -> list[FilaCalendario]:
             filas.extend(calendario_del_dia(dia))
         dia += timedelta(days=1)
     return filas
+
+
+_RE_ANUNCIO = re.compile(
+    r"is (expected\*?|estimated) to report earnings on\s+(\d{1,2})/(\d{1,2})/(\d{4})"
+    r"(?:\s+(before market open|after market close))?", re.IGNORECASE)
+_MOMENTO_TEXTO = {"before market open": "pre", "after market close": "post"}
+
+
+def fecha_anunciada(ticker: str) -> Optional[FechaAnunciada]:
+    """La próxima fecha de balance según la ficha de Nasdaq, o None si no la dice.
+
+    None es "Nasdaq no tiene fecha para esa empresa" (contestó, pero sin el
+    anuncio). Si Nasdaq no contesta: `CalendarioNoDisponible`.
+    """
+    simbolo = urllib.parse.quote(ticker_canonico(ticker), safe="")
+    datos = _pedir(f"{NASDAQ_BASE}/analyst/{simbolo}/earnings-date",
+                   UA_NAVEGADOR, CalendarioNoDisponible, "Nasdaq")
+    cuerpo = datos.get("data") if isinstance(datos, dict) else None
+    texto = cuerpo.get("reportText") if isinstance(cuerpo, dict) else None
+    if not isinstance(texto, str):
+        return None
+    m = _RE_ANUNCIO.search(texto)
+    if m is None:
+        return None
+    tipo, mes, dia, anio, momento = m.groups()
+    try:
+        fecha = date(int(anio), int(mes), int(dia))
+    except ValueError:
+        return None
+    return FechaAnunciada(fecha=fecha, momento=_MOMENTO_TEXTO.get((momento or "").lower()),
+                          estimada=tipo.lower() == "estimated")
 
 
 # ---------------------------------------------------------------------------

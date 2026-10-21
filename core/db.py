@@ -139,6 +139,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
       M22 (D)       resúmenes de tarjeta.
       M23           balances de la semana: lista del S&P 500 y la propuesta
                     del domingo (ADR-0011).
+      M24           balances: lo agendado en Google, para `deshacer`.
 
     "Única" = reparación de datos que corre una sola vez por base, marcada con
     `PRAGMA user_version` (ver `_NIVEL_REPARACIONES`).
@@ -1202,6 +1203,23 @@ def _migrate(conn: sqlite3.Connection) -> None:
                 estado         TEXT NOT NULL CHECK (estado IN ('vigente', 'reemplazada')),
                 creado_en      TEXT NOT NULL,
                 vence_en       TEXT NOT NULL
+            )
+        """)
+
+        # ============================================================
+        # M24 (balances, paso 3, ADR-0011): lo que se agendó en Google.
+        # ============================================================
+        # Una fila por tanda (una respuesta de Franco). `eventos` es JSON con
+        # la clave `TICKER:AAAA-MM-DD` de cada evento: `deshacer` los borra
+        # por esa clave, que es la etiqueta del evento en el Calendar.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS balances_agendados (
+                id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id   INTEGER NOT NULL,
+                propuesta_id   INTEGER NOT NULL,
+                eventos        TEXT NOT NULL,
+                agendado_en    TEXT NOT NULL,
+                deshecho_en    TEXT
             )
         """)
 

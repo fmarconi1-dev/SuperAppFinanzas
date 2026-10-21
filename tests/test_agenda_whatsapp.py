@@ -295,3 +295,19 @@ def test_sin_variables_la_agenda_queda_apagada(monkeypatch):
     monkeypatch.delenv("GOOGLE_WORKSPACE_WEBHOOK_URL", raising=False)
     monkeypatch.setenv("GOOGLE_WORKSPACE_SECRET", "s")
     assert ClienteAgenda.desde_entorno() is None
+
+
+def test_agendar_y_borrar_balances(apps_script):
+    """Balances (ADR-0011): la clave viaja en cada evento; sin id_solicitud (la clave lo es)."""
+    cliente, estado = apps_script
+    evento = {"clave": "MSFT:2026-10-28", "fecha": "2026-10-28",
+              "titulo": "📊 MSFT balance (post-cierre)", "momento": "post", "descripcion": "x"}
+    estado["respuesta"] = {"ok": True, "eventos": [{"clave": "MSFT:2026-10-28", "id": "e1",
+                                                    "creado": True}]}
+    assert cliente.agendar_balances(eventos=[evento])["eventos"][0]["creado"] is True
+    assert estado["recibido"] == {"secreto": "s3", "accion": "agendar_balances",
+                                  "eventos": [evento]}
+    estado["respuesta"] = {"ok": True, "borrados": ["MSFT:2026-10-28"], "no_estaban": []}
+    cliente.borrar_balances(claves=["MSFT:2026-10-28"])
+    assert estado["recibido"] == {"secreto": "s3", "accion": "borrar_balances",
+                                  "claves": ["MSFT:2026-10-28"]}

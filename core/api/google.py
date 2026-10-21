@@ -80,6 +80,20 @@ class ClienteAgenda:
         """Marca la tarea como hecha en Google Tasks (el tilde del Inicio)."""
         return self._pedir("completar_tarea", id_solicitud, lista_id=lista_id, tarea_id=tarea_id)
 
+    def agendar_balances(self, *, eventos: list[dict]) -> dict:
+        """Un evento 📊 de día entero por balance (ADR-0011).
+
+        Cada evento: `clave` (`TICKER:AAAA-MM-DD`), `fecha`, `titulo`,
+        `descripcion` y `momento` (`pre`, `post` o vacío). La clave queda como
+        etiqueta del evento: si ya existe uno con esa clave ese día, no se crea
+        otro (así un reintento no duplica, sin depender de `id_solicitud`).
+        """
+        return self._pedir("agendar_balances", None, eventos=eventos)
+
+    def borrar_balances(self, *, claves: list[str]) -> dict:
+        """Borra los eventos 📊 con esas claves. Los que ya no estaban se informan."""
+        return self._pedir("borrar_balances", None, claves=claves)
+
     # -- transporte ----------------------------------------------------------
 
     def _pedir(self, accion: str, id_solicitud: Optional[str], **campos) -> dict:

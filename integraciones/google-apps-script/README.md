@@ -56,6 +56,10 @@ Fechas `YYYY-MM-DD`, horas `HH:MM`, instantes ISO con offset (`2026-10-15T09:30:
 | `crear_evento` | `fecha`, `titulo`, `hora_inicio?`, `hora_fin?`, `descripcion?`, `calendario?` (id; default el principal) | `id`, `calendario_id`, `todo_el_dia`, `inicio`, `fin` |
 | `crear_tarea` | `titulo`, `fecha?`, `descripcion?`, `lista?` (id; default `@default`) | `id`, `lista_id`, `titulo`, `vence` |
 | `completar_tarea` | `lista_id`, `tarea_id` | `id`, `lista_id`, `estado` |
+| `agendar_balances` | `eventos`: lista (1 a 60) de `{clave, fecha, titulo, momento, descripcion}`. `clave` = `TICKER:AAAA-MM-DD` y su fecha tiene que ser `fecha`; `momento` `pre`, `post` o vacío | `eventos`: `[{clave, id, creado}]`, `calendario_id` |
+| `borrar_balances` | `claves`: lista (1 a 60) | `borrados`, `no_estaban` |
+
+**Balances (ADR-0011):** eventos de todo el día en el calendario principal. La `clave` queda como **etiqueta del evento** (`balance`) y el momento como otra (`balance_momento`). Antes de crear, se busca la clave en ese día: si ya está, devuelve ese evento con `creado: false`. Así un reintento no duplica aunque pasen más de 6 h, sin `id_solicitud`. Todo se valida antes de escribir, y las dos acciones van bajo lock.
 
 Sin `hora_inicio` el evento es de todo el día. Sin `hora_fin`, dura una hora. `hora_fin` ≤ `hora_inicio` es error (no se asume "termina al día siguiente").
 
@@ -114,6 +118,8 @@ Una fuente que falla sale como `s/d` en el texto y queda en el registro (`Mercad
 El domingo desde las 20:00, la primera corrida del disparador de cada 10 minutos le pide a la SuperApp la lista de la semana que viene: `POST /api/balances` con `{"accion": "semana", "lunes": "AAAA-MM-DD", "id": "balances-AAAA-MM-DD"}` y el mismo `SUPERAPP_TOKEN`. La SuperApp trae el calendario de Nasdaq y arma la lista; acá no se trae ningún dato. Si la SuperApp contesta `ok: true`, se guarda la propiedad `ULTIMO_BALANCES`; si no (por ejemplo, un 503 porque Nasdaq no anduvo), la próxima corrida reintenta.
 
 **Instalar:** agregá un archivo **`Balances.gs`** y pegá el de acá, y **reemplazá `Reenvio.gs`** (ahora llama a `balancesPendientes_`). No hace falta un disparador nuevo ni publicar una versión de la aplicación web (eso es solo para `Codigo.gs`). Para probarlo sin esperar al domingo, corré `pedirBalancesAhora` desde el editor: pide la semana del próximo lunes con un `id` nuevo.
+
+**Paso 3 (agendado):** reemplazá **`Codigo.gs`** por el de acá y publicá una **versión nueva** de la implementación: Implementar → Gestionar implementaciones → editar → Versión: nueva → Implementar. **Sin la versión nueva, la URL `/exec` sigue sirviendo el código viejo**, que no conoce `agendar_balances`, y el Secretario contesta "No pude agendar en tu Calendar (accion_invalida…)". La URL no cambia, así que no hay que tocar nada en Fly.
 
 ## Mudanza desde CallMeBot (16/10/2026)
 

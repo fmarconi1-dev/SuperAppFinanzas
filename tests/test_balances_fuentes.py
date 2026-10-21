@@ -18,9 +18,11 @@ from core.api import balances_fuentes as bf
 from core.api.balances_fuentes import (
     CalendarioNoDisponible,
     FilaCalendario,
+    FechaAnunciada,
     ListaNoDisponible,
     calendario,
     calendario_del_dia,
+    fecha_anunciada,
     lista_sp500,
     ticker_canonico,
 )
@@ -47,7 +49,7 @@ def html_wikipedia(tickers):
 @pytest.fixture()
 def fuentes(monkeypatch):
     estado = {"dias": {}, "codigo": None, "crudo": None, "wiki": None, "pedidos": [],
-              "agentes": []}
+              "agentes": [], "fichas": {}}
 
     class Manejador(BaseHTTPRequestHandler):
         def log_message(self, *a):
@@ -76,6 +78,13 @@ def fuentes(monkeypatch):
                 filas = estado["dias"].get(dia)
                 cuerpo = {"data": {"asOf": dia, "headers": {}, "rows": filas},
                           "message": None, "status": {"rCode": 200}}
+                self._mandar(json.dumps(cuerpo).encode())
+            elif partes.path.startswith("/nasdaq/analyst/"):
+                ticker = partes.path.split("/")[3]
+                texto = estado["fichas"].get(ticker)
+                cuerpo = {"data": {"reportText": texto, "heading": f"{ticker} Earnings Date"}
+                          if texto is not None else None,
+                          "status": {"rCode": 200 if texto is not None else 400}}
                 self._mandar(json.dumps(cuerpo).encode())
             elif partes.path == "/w/api.php":
                 cuerpo = {"parse": {"title": "List of S&P 500 companies", "pageid": 2676045,
@@ -191,3 +200,35 @@ def test_wikipedia_caida(fuentes):
 def test_ticker_canonico():
     assert ticker_canonico("brk-b") == ticker_canonico("BRK/B") == ticker_canonico("BRK.B") == "BRK.B"
     assert ticker_canonico(" spcx ") == "SPCX"
+
+
+# ------------------------------------------------------------------ la ficha de cada empresa
+
+#: Los textos de Nasdaq del 21/10/2026, tal cual (con sus dos espacios).
+FICHA_MCD = ("McDonald's Corporation Common Stock is expected* to report earnings on  11/04/2026 "
+             "before market open.  The report will be for the fiscal Quarter ending Sep 2026.")
+FICHA_TGS = ("Transportadora de Gas del Sur SA TGS Common Stock is estimated to report earnings on "
+             " 11/02/2026. The upcoming earnings date is derived from an algorithm based on a "
+             "company's historical reporting dates.")
+FICHA_MSFT = ("Microsoft Corporation Common Stock is expected* to report earnings on  10/28/2026 "
+              "after market close.  The report will be for the fiscal Quarter ending Sep 2026.")
+
+
+def test_la_ficha_dice_si_la_fecha_es_estimada(fuentes):
+    fuentes["fichas"].update({"MCD": FICHA_MCD, "TGS": FICHA_TGS, "MSFT": FICHA_MSFT})
+    assert fecha_anunciada("MCD") == FechaAnunciada(date(2026, 11, 4), "pre", estimada=False)
+    assert fecha_anunciada("tgs") == FechaAnunciada(date(2026, 11, 2), None, estimada=True)
+    assert fecha_anunciada("MSFT") == FechaAnunciada(date(2026, 10, 28), "post", estimada=False)
+    assert fuentes["pedidos"][0] == "/nasdaq/analyst/MCD/earnings-date"
+
+
+def test_una_ficha_sin_anuncio_es_none(fuentes):
+    assert fecha_anunciada("ZZZZQ") is None                      # Nasdaq: data null
+    fuentes["fichas"]["BRK.B"] = "Berkshire Hathaway Inc. has no upcoming earnings date."
+    assert fecha_anunciada("BRK.B") is None
+
+
+def test_la_ficha_caida_no_se_disimula(fuentes):
+    fuentes["codigo"] = 403
+    with pytest.raises(CalendarioNoDisponible, match="403"):
+        fecha_anunciada("MCD")

@@ -1,6 +1,6 @@
 # Plan — Balances de la semana por WhatsApp
 
-**Estado:** ✅ paso 1 aprobado por Franco (21/10/2026). Pasos 2–4 por hacer, uno a la vez.
+**Estado:** ✅ paso 1 aprobado (21/10/2026) · ✅ paso 2 en producción (21/10) · ✅ paso 3 en código (21/10) · ⬜ paso 4.
 **Lo decidido antes:** `MEJORAS.md`, entrada "Balances de la semana por WhatsApp" (universo, lista, formato, cuándo llega).
 **Decisión de arquitectura:** ADR-0011. **Relacionado:** ADR-0008 (canal, costo cero), ADR-0010 (números de mercado por código), `docs/WHATSAPP-CANAL.md`.
 
@@ -10,7 +10,7 @@
 2. **Nasdaq** es la fuente del calendario, aunque sea la API interna de su página.
 3. **Umbrales:** "neutra" si se movió menos de ±1%.
 4. **La lista que llega tarde:** lo que ya pasó no se agenda.
-5. **Sin ganancia ni ingresos por ahora:** el Secretario trae solo **la fecha del balance** (y si es antes de la apertura o después del cierre). Lectura de Claude, a confirmar con Franco en el paso 4: el resumen del día queda con **la reacción del precio** (rueda o posmercado) y sin "contra lo esperado". Se cae la búsqueda de una fuente de ingresos (Finnhub) y la medición de a qué hora publica Nasdaq la ganancia del día.
+5. **Sin ganancia ni ingresos por ahora:** el Secretario trae solo **la fecha del balance** (y si es antes de la apertura o después del cierre). **Confirmado por Franco el 21/10:** el resumen del día queda con **la reacción del precio** ("MSFT: posmercado positiva") y sin "contra lo esperado". Se cae la búsqueda de una fuente de ingresos (Finnhub) y la medición de a qué hora publica Nasdaq la ganancia del día.
 6. **El resumen de la mañana tiene un disparador propio**, que no depende de que llegue el matutino de Gemini.
 
 ---
@@ -86,7 +86,8 @@
   - `agendar_balances`: eventos de día entero `📊 MSFT balance (post-cierre)`, con `estimada` en el título si corresponde, y **`setTag("balance", "MSFT:2026-10-28")`**. Antes de crear busca un evento de ese día con la misma etiqueta: si está, lo devuelve. Esa es la clave estable.
   - `borrar_balances`: recibe las claves.
   - `listar_balances`: recibe un rango y devuelve las claves y el momento.
-- **La fecha estimada** se consulta a Nasdaq al agendar, solo para las elegidas.
+- **La fecha estimada** se consulta a Nasdaq al agendar, solo para las elegidas (`fecha_anunciada`). La ficha también trae el momento cuando el calendario no lo dice (MCD, 21/10), y si dice otra fecha, gana la ficha.
+- **Si Google no contesta, no se anota nada:** Franco manda lo mismo de nuevo y el Calendar no duplica.
 - **`deshacer`:** cada tanda agendada queda en la base. `deshacer` compara la hora de lo último (un gasto, un lote o una tanda de balances) y deshace lo más nuevo.
 - Franco pega `Codigo.gs` y publica una versión nueva de la implementación.
 

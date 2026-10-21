@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-21 12:51 UTC · 116 archivos · 24,220 LOC -->
+<!-- 2026-10-21 13:25 UTC · 116 archivos · 24,731 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-21 9575002 docs: bitÃ¡coras de core y de la raÃ­z con la M23 y la lista de balances · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-21 7ce098c fix: rearmar la lista de la misma semana conserva lo elegido · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -133,11 +133,11 @@ Rama `main` — ultimo commit: 2026-10-21 9575002 docs: bitÃ¡coras de core y d
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 41 | 8,541 | ok |
-| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 21 | 6,690 | ok |
-| `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M23 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,877 | ok |
+| `tests/` | La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 41 | 8,804 | ok |
+| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 21 | 6,859 | ok |
+| `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M24 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,895 | ok |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | ok |
-| `core\api/` | API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla). | 8 | 1,508 | ok |
+| `core\api/` | API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla). | 8 | 1,569 | ok |
 | `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa. | 7 | 1,357 | ok |
 | `core\theme/` | Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semántica + template Plotly unificado, ajustes responsive y logo. | 5 | 710 | ok |
 | `core\auth/` | Autenticación compartida: usuarios con bcrypt, pantalla de login/signup y tokens de sesión firmados. (Los contextvars de usuario/workspace viven en `core/context.py`.) | 4 | 422 | ok |
@@ -168,10 +168,10 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 | Archivo | LOC | Lo usan | Simbolos |
 |---|---:|---:|---|
-| `core\db.py` | 1405 | 42 | `_migrate`, `es_tabla_faltante`, `get_db_path`, `connect` |
+| `core\db.py` | 1423 | 42 | `_migrate`, `es_tabla_faltante`, `get_db_path`, `connect` |
 | `core\context.py` | 105 | 22 | `set_current_user_id`, `get_current_user_id`, `require_current_user_id`, `set_current_workspace_id` |
 | `core\workspaces.py` | 261 | 17 | `_hash_code`, `_uid`, `get_personal_workspace_id`, `ensure_personal_workspace` |
-| `places\finanzas\core\comandos.py` | 1206 | 16 | `Respuesta`, `Gasto`, `EntradaInvalida`, `ahora_ar` |
+| `places\finanzas\core\comandos.py` | 1215 | 16 | `Respuesta`, `Gasto`, `EntradaInvalida`, `ahora_ar` |
 | `places\finanzas\core\metrics.py` | 362 | 16 | `_uid`, `anios_con_datos`, `filtrar_anio`, `load_transactions` |
 | `places\finanzas\core\transactions.py` | 265 | 14 | `_uid`, `_es_familiar`, `_asegurar_motivo`, `insert_transaction` |
 | `core\__init__.py` | 5 | 13 | — |
@@ -186,13 +186,13 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 - `tests/` → `core/` (46)
 - `tests/` → `places\finanzas\core/` (46)
 - `places\finanzas\core/` → `core/` (21)
-- `tests/` → `core\api/` (20)
+- `tests/` → `core\api/` (21)
 - `places\finanzas\views/` → `places\finanzas\helpers/` (13)
 - `places\finanzas\views/` → `places\finanzas\core/` (12)
 - `places\finanzas\views/` → `core/` (8)
-- `places\finanzas\core/` → `core\api/` (6)
-- `./` → `core/` (5)
+- `places\finanzas\core/` → `core\api/` (7)
 - `./` → `core\api/` (5)
+- `./` → `core/` (5)
 - `places\inicio\core/` → `places\finanzas\core/` (4)
 - `core\theme/` → `places\finanzas\helpers/` (3)
 
@@ -200,10 +200,10 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `.mapa/mapa.json` + `MAPA.md` (51 commits)
+- `.mapa/mapa.json` + `MAPA.md` (52 commits)
 - `EN-HUMANO.md` + `ESTADO.md` (40 commits)
-- `.mapa/mapa.json` + `ESTADO.md` (29 commits)
-- `ESTADO.md` + `MAPA.md` (29 commits)
+- `.mapa/mapa.json` + `ESTADO.md` (30 commits)
+- `ESTADO.md` + `MAPA.md` (30 commits)
 - `BITACORA.md` + `ESTADO.md` (29 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)
 - `BITACORA.md` + `EN-HUMANO.md` (24 commits)
