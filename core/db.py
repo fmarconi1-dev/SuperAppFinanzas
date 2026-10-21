@@ -137,6 +137,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
       M21 (D)       conciliación: filas del banco, emparejamientos, reglas
                     aprendidas y saldos declarados.
       M22 (D)       resúmenes de tarjeta.
+      M23           balances de la semana: lista del S&P 500 y la propuesta
+                    del domingo (ADR-0011).
 
     "Única" = reparación de datos que corre una sola vez por base, marcada con
     `PRAGMA user_version` (ver `_NIVEL_REPARACIONES`).
@@ -1172,6 +1174,34 @@ def _migrate(conn: sqlite3.Connection) -> None:
                 pagado         INTEGER,
                 guardado_en    TEXT NOT NULL,
                 UNIQUE (workspace_id, tarjeta, cierre)
+            )
+        """)
+
+        # ============================================================
+        # M23 (balances de la semana, ADR-0011): la lista del S&P 500 y
+        # la propuesta del domingo.
+        # ============================================================
+        # La lista del S&P 500 se refresca una vez por mes desde Wikipedia.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS balances_sp500 (
+                ticker          TEXT PRIMARY KEY,
+                actualizado_en  TEXT NOT NULL
+            )
+        """)
+        # La lista de la semana que se le mandó a Franco, numerada. **No es un
+        # lote**: un lote nuevo descarta al anterior, y la lista del domingo no
+        # puede tirar un extracto pendiente. `items` y `elegidos` son JSON.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS balances_propuestas (
+                id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id   INTEGER NOT NULL,
+                lunes          TEXT NOT NULL,
+                items          TEXT NOT NULL,
+                principales    INTEGER NOT NULL,
+                elegidos       TEXT NOT NULL DEFAULT '[]',
+                estado         TEXT NOT NULL CHECK (estado IN ('vigente', 'reemplazada')),
+                creado_en      TEXT NOT NULL,
+                vence_en       TEXT NOT NULL
             )
         """)
 

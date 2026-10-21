@@ -8,6 +8,7 @@ Escucha en ``127.0.0.1:8000``; nginx le pasa todo lo que empieza con
     POST /api/whatsapp    → mensajes entrantes, firmados por Meta
     GET  /api/privacidad  → política de privacidad (Meta la pide para el modo Live)
     POST /api/briefing    → briefings de Gemini (Fase B), con Bearer SUPERAPP_API_TOKEN
+    POST /api/balances    → la lista de balances del domingo (ADR-0011), mismo Bearer
 
 **Flujo de un mensaje** (el orden importa):
 
@@ -57,6 +58,7 @@ from zoneinfo import ZoneInfo
 
 from core.api import whatsapp_meta as wa
 from core.api.archivos import ArchivoRecibido, tipo_de_contenido
+from core.api.balances_fuentes import CalendarioNoDisponible
 from core.context import set_current_workspace_id
 from core.db import connect
 
@@ -92,6 +94,9 @@ NO_ENTIENDO_ESTE_TIPO = ("Por ahora entiendo texto, archivos (el extracto en Exc
                          "resumen en PDF) y fotos. Mandá *ayuda* para ver cómo cargar.")
 #: (conexión, texto de Gemini, tipo, user_id) → texto final. `ValueError` si no sirve.
 Componer = Callable[[sqlite3.Connection, str, str, int], str]
+#: (conexión, cuerpo del POST, user_id) → texto de la lista de balances (ADR-0011).
+#: `ValueError` si el pedido no sirve; `CalendarioNoDisponible` si Nasdaq no contestó.
+ArmarBalances = Callable[[sqlite3.Connection, dict, int], str]
 
 #: Meta deja mandar texto gratis hasta 24 h después del último mensaje de
 #: Franco. Se deja un margen para no mandar justo en el borde.
@@ -153,6 +158,7 @@ class ServidorAPI(ThreadingHTTPServer):
         db_path: Optional[Path] = None,
         procesar_archivo: Optional[ProcesarArchivo] = None,
         descargar: Descargar = wa.descargar_archivo,
+        balances: Optional[ArmarBalances] = None,
     ):
         super().__init__(direccion, _Manejador)
         self.procesar = procesar
@@ -161,6 +167,7 @@ class ServidorAPI(ThreadingHTTPServer):
         self.enviar = enviar
         self.cargar_config = cargar_config
         self.componer = componer
+        self.balances = balances
         self.cargar_token_api = cargar_token_api
         self.db_path = db_path
         # Un solo envío de la cola a la vez: si el hilo trabajador entrega
@@ -470,6 +477,9 @@ class _Manejador(BaseHTTPRequestHandler):
         if ruta == "/api/briefing":
             self._post_briefing()
             return
+        if ruta == "/api/balances":
+            self._post_balances()
+            return
         if ruta != "/api/whatsapp":
             self._json(404, {"ok": False, "error": "no_existe"})
             return
@@ -506,42 +516,57 @@ class _Manejador(BaseHTTPRequestHandler):
         self._json(200, {"ok": True})
 
 
-    def _post_briefing(self) -> None:
-        """Briefing de Gemini (vía Apps Script) → se arma y sale por la cola."""
+    def _post_autorizado(self, ruta: str, habilitado: bool) -> Optional[tuple]:
+        """Lo común de las rutas del Apps Script: cuerpo, Bearer, config y usuario.
+
+        Devuelve `(cfg, datos, user_id)` o None si ya se contestó el error.
+        """
         largo = int(self.headers.get("Content-Length") or 0)
         if largo <= 0 or largo > MAX_CUERPO:
             self._json(400, {"ok": False, "error": "cuerpo_invalido"})
-            return
+            return None
         cuerpo = self.rfile.read(largo)  # antes de cualquier rechazo (ver do_POST)
 
         token = self.server.cargar_token_api()
-        if token is None or self.server.componer is None:
-            log.error("/api/briefing deshabilitado: falta SUPERAPP_API_TOKEN")
+        if token is None or not habilitado:
+            log.error("%s deshabilitado: falta SUPERAPP_API_TOKEN", ruta)
             self._json(503, {"ok": False, "error": "sin_configurar"})
-            return
+            return None
         recibido = self.headers.get("Authorization", "").removeprefix("Bearer ").strip()
         if not hmac.compare_digest(recibido.encode("utf-8"), token.encode("utf-8")):
-            log.warning("POST /api/briefing con token inválido: descartado")
+            log.warning("POST %s con token inválido: descartado", ruta)
             self._json(401, {"ok": False, "error": "no_autorizado"})
-            return
+            return None
         cfg = self._config()
         if cfg is None:
-            return
+            return None
         try:
             datos = json.loads(cuerpo)
-            texto = datos["texto"]
-            tipo = datos.get("tipo") or "briefing"
-            id_origen = datos.get("id") or None
-            if not isinstance(texto, str) or not isinstance(tipo, str):
-                raise TypeError("texto y tipo tienen que ser texto")
-        except (json.JSONDecodeError, KeyError, TypeError, AttributeError) as e:
+            if not isinstance(datos, dict):
+                raise TypeError("el cuerpo tiene que ser un objeto")
+        except (json.JSONDecodeError, TypeError) as e:
             self._json(400, {"ok": False, "error": "json_invalido", "detalle": str(e)})
-            return
+            return None
         try:
             user_id = self.server.resolver_usuario(cfg)
         except LookupError as e:
-            log.error("/api/briefing deshabilitado: %s", e)
+            log.error("%s deshabilitado: %s", ruta, e)
             self._json(503, {"ok": False, "error": "usuario_invalido"})
+            return None
+        return cfg, datos, user_id
+
+    def _post_briefing(self) -> None:
+        """Briefing de Gemini (vía Apps Script) → se arma y sale por la cola."""
+        leido = self._post_autorizado("/api/briefing", self.server.componer is not None)
+        if leido is None:
+            return
+        cfg, datos, user_id = leido
+        texto = datos.get("texto")
+        tipo = datos.get("tipo") or "briefing"
+        id_origen = datos.get("id") or None
+        if not isinstance(texto, str) or not isinstance(tipo, str):
+            self._json(400, {"ok": False, "error": "json_invalido",
+                             "detalle": "texto y tipo tienen que ser texto"})
             return
 
         set_current_workspace_id(cfg.workspace_id)
@@ -557,6 +582,49 @@ class _Manejador(BaseHTTPRequestHandler):
 
         resultado = self.server.encolar_saliente(
             cfg, tipo, final, str(id_origen) if id_origen else None)
+        self._json(200, {"ok": True, **resultado})
+
+    def _post_balances(self) -> None:
+        """La lista de balances del domingo (ADR-0011): la pide el Apps Script, que pone el reloj.
+
+        `{"accion": "semana", "lunes": "AAAA-MM-DD", "id": "balances-AAAA-MM-DD"}`.
+        Un `id` que ya llegó no rearma nada (si no, la lista guardada cambiaría
+        y los números de la que Franco ya tiene dejarían de coincidir). Si
+        Nasdaq no contesta: 503, y el Apps Script reintenta a los 10 minutos.
+        """
+        leido = self._post_autorizado("/api/balances", self.server.balances is not None)
+        if leido is None:
+            return
+        cfg, datos, user_id = leido
+        id_origen = datos.get("id")
+        if datos.get("accion") != "semana" or not isinstance(id_origen, str) or not id_origen:
+            self._json(400, {"ok": False, "error": "parametros_invalidos",
+                             "detalle": "hacen falta accion 'semana' e id"})
+            return
+
+        set_current_workspace_id(cfg.workspace_id)
+        conn = connect(self.server.db_path)
+        try:
+            previo = conn.execute("SELECT id, enviado_en FROM whatsapp_salientes "
+                                  "WHERE id_origen = ?", (id_origen,)).fetchone()
+            if previo is not None:
+                log.info("Balances repetidos (%s): ya estaban, no se rearman", id_origen)
+                self._json(200, {"ok": True, "estado": "enviado" if previo["enviado_en"]
+                                 else "en_cola", "id": previo["id"], "repetido": True})
+                return
+            texto = self.server.balances(conn, datos, user_id)
+        except ValueError as e:
+            self._json(400, {"ok": False, "error": "parametros_invalidos", "detalle": str(e)})
+            return
+        except CalendarioNoDisponible as e:
+            log.error("Lista de balances sin calendario: %s", e)
+            self._json(503, {"ok": False, "error": "calendario_no_disponible", "detalle": str(e)})
+            return
+        finally:
+            conn.close()
+            set_current_workspace_id(None)
+
+        resultado = self.server.encolar_saliente(cfg, "balances", texto, id_origen)
         self._json(200, {"ok": True, **resultado})
 
 

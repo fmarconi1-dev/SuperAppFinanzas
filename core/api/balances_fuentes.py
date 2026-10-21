@@ -1,0 +1,177 @@
+"""Fuentes de los balances de la semana (ADR-0011): el calendario y el S&P 500.
+
+Las fechas salen de una fuente de datos, nunca de un LLM. Verificadas el 20/10/2026:
+
+* **Nasdaq** (`api.nasdaq.com/api/calendar/earnings?date=AAAA-MM-DD`, sin
+  clave). Es la API que usa su propia página; Franco la aceptó como fuente el
+  21/10/2026. Sin un User-Agent de navegador no contesta. Trae `time`
+  (`time-pre-market` / `time-after-hours` / `time-not-supplied`) y `marketCap`.
+  Un fin de semana o un feriado viene con `rows: null`. **Una vez que la fecha
+  pasa, pierde el antes/después**: por eso se guarda al agendar.
+* **Wikipedia** (`List_of_S&P_500_companies`, tabla `constituents`): la lista
+  del S&P 500. Se refresca una vez por mes (eso lo decide quien la usa).
+
+Si una fuente no contesta: `CalendarioNoDisponible` o `ListaNoDisponible`, con
+el motivo. Nunca una lista vacía en silencio ("No contestó" ≠ "no existe").
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import urllib.error
+import urllib.parse
+import urllib.request
+from dataclasses import dataclass
+from datetime import date, timedelta
+from html import unescape
+from typing import Optional
+
+#: Constantes del módulo (no del entorno) para que los tests apunten a fuentes
+#: de mentira locales.
+NASDAQ_BASE = "https://api.nasdaq.com/api"
+WIKIPEDIA_API = "https://en.wikipedia.org/w/api.php"
+
+TIMEOUT = 20
+#: Nasdaq no contesta sin un User-Agent de navegador.
+UA_NAVEGADOR = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/130.0 Safari/537.36")
+#: Wikipedia pide un User-Agent que diga quién pregunta.
+UA_WIKIPEDIA = "SecretarioFranco/1.0 (uso personal; lista del S&P 500 una vez por mes)"
+
+#: Cuántos tickers tiene que tener la tabla para creerle (el S&P 500 tiene ~503).
+MINIMO_SP500 = 450
+
+_MOMENTOS = {"time-pre-market": "pre", "time-after-hours": "post"}
+
+
+class CalendarioNoDisponible(Exception):
+    """Nasdaq no contestó o contestó algo que no se entiende."""
+
+
+class ListaNoDisponible(Exception):
+    """Wikipedia no contestó o la tabla del S&P 500 no se pudo leer."""
+
+
+@dataclass(frozen=True)
+class FilaCalendario:
+    ticker: str
+    nombre: str
+    fecha: date
+    #: "pre" (antes de la apertura), "post" (después del cierre) o None (sin hora).
+    momento: Optional[str]
+    #: Capitalización en dólares, si Nasdaq la trae.
+    capitalizacion: Optional[float]
+
+
+def ticker_canonico(ticker: str) -> str:
+    """`BRK.B`, `BRK-B` y `BRK/B` son el mismo: se comparan como `BRK.B`."""
+    return re.sub(r"[/\-]", ".", ticker.strip().upper())
+
+
+def _pedir(url: str, ua: str, error: type[Exception], fuente: str) -> object:
+    pedido = urllib.request.Request(url, headers={"User-Agent": ua, "Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(pedido, timeout=TIMEOUT) as r:
+            crudo = r.read()
+    except urllib.error.HTTPError as e:
+        raise error(f"{fuente} respondió HTTP {e.code}") from None
+    except (urllib.error.URLError, TimeoutError) as e:
+        raise error(f"no pude hablar con {fuente} ({e})") from None
+    try:
+        return json.loads(crudo)
+    except json.JSONDecodeError:
+        raise error(f"{fuente} contestó algo que no es JSON") from None
+
+
+# ---------------------------------------------------------------------------
+# Calendario (Nasdaq)
+# ---------------------------------------------------------------------------
+
+def _capitalizacion(crudo: object) -> Optional[float]:
+    """`"$1,797,112,860,000"` → 1.797112860e12. Vacío o `N/A` → None."""
+    if not isinstance(crudo, str):
+        return None
+    limpio = crudo.replace("$", "").replace(",", "").strip()
+    try:
+        return float(limpio)
+    except ValueError:
+        return None
+
+
+def calendario_del_dia(fecha: date) -> list[FilaCalendario]:
+    """Las empresas que presentan balance ese día. Un día sin rueda da `[]`."""
+    datos = _pedir(f"{NASDAQ_BASE}/calendar/earnings?date={fecha.isoformat()}",
+                   UA_NAVEGADOR, CalendarioNoDisponible, "Nasdaq")
+    cuerpo = datos.get("data") if isinstance(datos, dict) else None
+    if not isinstance(cuerpo, dict):
+        raise CalendarioNoDisponible(f"Nasdaq no trajo el calendario del {fecha:%d/%m}")
+    filas = cuerpo.get("rows")
+    if filas is None:
+        return []                      # fin de semana o feriado: no hay nadie
+    if not isinstance(filas, list):
+        raise CalendarioNoDisponible(f"Nasdaq trajo el calendario del {fecha:%d/%m} roto")
+    salida = []
+    for f in filas:
+        ticker = f.get("symbol") if isinstance(f, dict) else None
+        if not isinstance(ticker, str) or not ticker.strip():
+            continue                   # un renglón sin ticker no se puede elegir
+        salida.append(FilaCalendario(
+            ticker=ticker_canonico(ticker),
+            nombre=" ".join(str(f.get("name") or "").split()),
+            fecha=fecha,
+            momento=_MOMENTOS.get(f.get("time")),
+            capitalizacion=_capitalizacion(f.get("marketCap")),
+        ))
+    return salida
+
+
+def calendario(desde: date, hasta: date) -> list[FilaCalendario]:
+    """Del `desde` al `hasta` inclusive, salteando sábados y domingos."""
+    filas: list[FilaCalendario] = []
+    dia = desde
+    while dia <= hasta:
+        if dia.weekday() < 5:
+            filas.extend(calendario_del_dia(dia))
+        dia += timedelta(days=1)
+    return filas
+
+
+# ---------------------------------------------------------------------------
+# S&P 500 (Wikipedia)
+# ---------------------------------------------------------------------------
+
+_RE_FILA = re.compile(r"<tr[^>]*>(.*?)</tr>", re.S)
+_RE_CELDA = re.compile(r"<td[^>]*>(.*?)</td>", re.S)
+_RE_ETIQUETA = re.compile(r"<[^>]+>")
+_RE_TICKER = re.compile(r"^[A-Z][A-Z0-9]*(?:[./\-][A-Z0-9]+)?$")
+
+
+def lista_sp500() -> list[str]:
+    """Los tickers del S&P 500, canónicos (`ticker_canonico`), sin repetir."""
+    consulta = urllib.parse.urlencode({
+        "action": "parse", "page": "List_of_S&P_500_companies", "prop": "text",
+        "format": "json", "formatversion": "2",
+    })
+    datos = _pedir(f"{WIKIPEDIA_API}?{consulta}", UA_WIKIPEDIA, ListaNoDisponible, "Wikipedia")
+    html = (datos.get("parse") or {}).get("text") if isinstance(datos, dict) else None
+    if not isinstance(html, str):
+        raise ListaNoDisponible("Wikipedia no trajo la página del S&P 500")
+    inicio = html.find('id="constituents"')
+    if inicio < 0:
+        raise ListaNoDisponible("la página de Wikipedia ya no tiene la tabla 'constituents'")
+    tabla = html[inicio:html.find("</table>", inicio)]
+    tickers: list[str] = []
+    for fila in _RE_FILA.findall(tabla):
+        celdas = _RE_CELDA.findall(fila)
+        if not celdas:
+            continue                   # el encabezado tiene <th>, no <td>
+        texto = unescape(_RE_ETIQUETA.sub("", celdas[0])).strip()
+        if _RE_TICKER.match(texto):
+            canonico = ticker_canonico(texto)
+            if canonico not in tickers:
+                tickers.append(canonico)
+    if len(tickers) < MINIMO_SP500:
+        raise ListaNoDisponible(
+            f"la tabla de Wikipedia trajo {len(tickers)} tickers (espero unos 500)")
+    return tickers

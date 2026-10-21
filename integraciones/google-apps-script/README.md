@@ -6,6 +6,7 @@ Código que corre en **Google Apps Script**, no en Fly. Vive en el repo para ver
 |---|---|
 | `Reenvio.gs` | Reenvío del briefing matutino de Gemini (Gmail → SuperApp → WhatsApp), con el tablero de `Mercado.gs`, y envío del cierre de las 18:30. **Reemplaza al script de CallMeBot.** |
 | `Mercado.gs` | Números de mercado armados por código (ADR-0010): el tablero del matutino y el cierre entero. Va en el **mismo proyecto** que `Reenvio.gs` (se necesitan los dos). |
+| `Balances.gs` | El reloj de los balances de la semana (ADR-0011): el domingo desde las 20:00 le pide a la SuperApp la lista de la semana que viene (`POST /api/balances`). Va en el **mismo proyecto** que `Reenvio.gs` y `Mercado.gs`; lo llama el mismo disparador. |
 | `Codigo.gs` | Agenda: webhook SuperApp → Calendar/Tasks, para los comandos `evento:` / `tarea:` / `agenda`. Va en el **mismo proyecto** que `Reenvio.gs` y se publica como aplicación web. |
 | `appsscript.json` | Manifiesto: zona horaria Buenos Aires, servicio avanzado **Tasks**, web app. |
 
@@ -107,6 +108,12 @@ Una fuente que falla sale como `s/d` en el texto y queda en el registro (`Mercad
    - Si **Yahoo** sale con error (429 o 403: Yahoo a veces rechaza a los servidores de Google), avisá: el plan B es leer los índices de una planilla con `GOOGLEFINANCE`.
 3. Corré a mano **`instalarDisparadores`**: deja un único disparador cada 10 minutos. **El que venía del script de CallMeBot corría cada una hora** (visto el 20/10/2026 en *Activadores* y *Ejecuciones*: corridas a las :02). Con ese, el matutino salía hasta una hora después de llegar el mail y el cierre a las 19:02. Para verificar, en *Ejecuciones* las corridas tienen que aparecer cada 10 minutos.
 4. En Gemini: pegá el pedido de `docs/PEDIDO-GEMINI.md`, que da de baja el cierre y rearma el matutino.
+
+## Balances de la semana (`Balances.gs`, 21/10/2026)
+
+El domingo desde las 20:00, la primera corrida del disparador de cada 10 minutos le pide a la SuperApp la lista de la semana que viene: `POST /api/balances` con `{"accion": "semana", "lunes": "AAAA-MM-DD", "id": "balances-AAAA-MM-DD"}` y el mismo `SUPERAPP_TOKEN`. La SuperApp trae el calendario de Nasdaq y arma la lista; acá no se trae ningún dato. Si la SuperApp contesta `ok: true`, se guarda la propiedad `ULTIMO_BALANCES`; si no (por ejemplo, un 503 porque Nasdaq no anduvo), la próxima corrida reintenta.
+
+**Instalar:** agregá un archivo **`Balances.gs`** y pegá el de acá, y **reemplazá `Reenvio.gs`** (ahora llama a `balancesPendientes_`). No hace falta un disparador nuevo ni publicar una versión de la aplicación web (eso es solo para `Codigo.gs`). Para probarlo sin esperar al domingo, corré `pedirBalancesAhora` desde el editor: pide la semana del próximo lunes con un `id` nuevo.
 
 ## Mudanza desde CallMeBot (16/10/2026)
 

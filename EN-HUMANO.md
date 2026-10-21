@@ -9,6 +9,23 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 21 de octubre de 2026 — Los balances de la semana: la lista del domingo
+
+**Qué se hizo.** El domingo a la noche el Secretario te va a mandar quiénes presentan balance esa semana. Primero las de tu lista (con las argentinas), después las 15 más grandes del S&P 500, cada una con el día y si presenta antes de que abra el mercado o después de que cierre. Le contestás como a los gastos: los números (*1 3 7*), los tickers (*KO MSFT*), *todas* o *ninguna*. *balances todas* te muestra el resto, y *balances* a secas te arma la semana cuando quieras.
+
+- **Las fechas salen de Nasdaq**, no de una IA: es la misma tabla que se ve en su página.
+- **Si una empresa tiene dos tipos de acciones** (Alphabet con GOOGL y GOOG), aparece una sola vez.
+- **Si la lista te llega tarde** (el WhatsApp gratis solo deja mandarte algo si le escribiste en las últimas 24 horas), lo de un día que ya pasó no se toma.
+- **No pisa nada:** si tenías abierta una propuesta de gastos o del extracto, sigue ahí. Si un mensaje como *1 2* puede ser de las dos, te pregunta en vez de adivinar.
+
+Lo probé con los datos reales de la semana que viene (26 al 30/10): de tu lista salen KO, GOOGL, MSFT, VIST y AMZN.
+
+**Para qué te sirve.** Te enterás el domingo de quién presenta y elegís a cuáles seguir, sin buscar en ninguna página.
+
+**Qué sigue.** Por ahora lo que elegís queda **anotado**. El próximo paso lo pone en tu Google Calendar (📊), sin duplicar, y *deshacer* lo saca. Para que la lista te llegue sola el domingo, hay que publicar la app y pegar en Google dos archivos del Apps Script.
+
+---
+
 ## 20 de octubre de 2026 — La conciliación, terminada (falta probarla con tus archivos)
 
 **Qué se hizo.** El Secretario ya sabe hacer todo lo que acordamos para la conciliación:

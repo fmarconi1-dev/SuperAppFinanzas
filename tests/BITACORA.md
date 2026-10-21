@@ -1,6 +1,6 @@
 # tests/
 
-<!-- huella: 0a3af9412dab -->
+<!-- huella: 3c9c826f576d -->
 
 Resumen: La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde.
 
@@ -19,6 +19,7 @@ Resumen: La suite completa (862 tests al 20/10/2026, Fase D completa en código)
 - resúmenes de tarjeta (Fase D, paso 5) → `test_resumen_tarjeta.py` (el lector sobre **palabras armadas a mano**, con la clase `Hoja`; contra los 9 PDF reales: que cierren y los tres ejemplos del diseño), `test_tarjetas.py` (el desarmado; reemplaza el lector por un `Resumen` armado a mano) y `test_cotizaciones.py` (un ArgentinaDatos de mentira)
 - saldos y ajuste, y el "¿es el mismo?" (Fase D, paso 4b) → `test_saldos.py`, `test_ya_vino_del_banco.py` (reusan el fixture `db` de `test_conciliacion.py`)
 - archivos por WhatsApp (Fase D, paso 3) → `test_archivos_whatsapp.py` (webhook, tipo por contenido, la descarga en dos pasos contra un **Meta de mentira** local, topes de tamaño) + los tests de archivos al final de `test_api_whatsapp.py` (servidor real, `descargar` falso por `entorno["estado"]`; verifica que no quede nada en disco)
+- balances de la semana (ADR-0011, paso 2) → `test_balances_fuentes.py` (un Nasdaq y una Wikipedia de mentira locales) y `test_balances.py` (`FuentesFalsas`: la lista, el S&P una vez por mes, la respuesta, la convivencia con un lote, y `POST /api/balances` contra el servidor real)
 - el test de costo cero (que no aparezca la palabra de las plantillas) recorre **todo** `core/api/` y `places/finanzas/core/` desde el 19/10/2026: un módulo nuevo del canal queda vigilado solo
 - WhatsApp (Fase A): `test_comandos_whatsapp.py` (parser y comandos, base sintética) · `test_api_whatsapp.py` (canal de Meta + **servidor HTTP real** en un puerto libre, webhooks firmados, envío falso) · `test_deploy_api.py` (nginx/Dockerfile/entrypoint como texto: no hay Docker local)
 - los premortem-tests (`test_premortem3/5.py`): regresiones de los riesgos del premortem
@@ -42,6 +43,7 @@ Resumen: La suite completa (862 tests al 20/10/2026, Fase D completa en código)
 
 ## Estado
 
+- **21/10/2026:** 934 passed, 0 skipped (balances de la semana, paso 2: la lista y la respuesta).
 - **20/10/2026 (noche):** 862 passed, 0 skipped (Fase D, paso 6, con las guardas del ensayo del desarmado).
 - **20/10/2026 (más tarde):** 837 passed, 0 skipped (Fase D, paso 5).
 - **20/10/2026:** 794 passed, 0 skipped (Fase D, paso 4b).

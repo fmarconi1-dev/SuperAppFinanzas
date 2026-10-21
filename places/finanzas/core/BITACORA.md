@@ -1,6 +1,6 @@
 # places/finanzas/core/
 
-<!-- huella: 20f908cb63df -->
+<!-- huella: 215d2fc86df1 -->
 
 Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel.
 
@@ -24,6 +24,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 - `fima … efectivo …`, el ajuste o el control "saldo de la app = caja + FIMA + efectivo" → `saldos.py` (`parsear`, `proponer`, `_efectivo_a_contar`, `control_total`)
 - un gasto por WhatsApp que preguntó "¿es el mismo?" (o que no preguntó y debía) → `comandos._ya_vino_del_banco` (solo contra lo que **vino del banco**: rol `origen`)
 - la conciliación propuso algo raro: qué tipo es cada fila, por qué emparejó (o no) con un gasto, una devolución, la regla del corte, lo que sobra → `conciliacion.py` (`clasificar`, `emparejar`, `_devoluciones`, `proponer_extracto`, `aplicar`)
+- la lista de balances de la semana: quién va primero, por qué una empresa no aparece (GOOG al lado de GOOGL), cómo se lee `1 3 7` / tickers / `todas` / `ninguna`, o el aviso "puede ser para la lista de balances o para la propuesta" → `balances.py` (`elegir`, `armar`, `leer_respuesta`, `responder`) + `comandos._comando_balances`
 - exportar todo a Excel → `export.py`
 
 ## Qué hay acá
@@ -51,6 +52,9 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 - **Un pago de la caja cubre un resumen** si cae después del cierre y hasta 5 días después del vencimiento, y es de esa tarjeta (`PAGO TARJETA AMEX` / `VISA`). Con los 9 resúmenes reales esa regla asignó bien los 10 pagos de junio a octubre.
 - ⚠️ **El emparejamiento de los consumos de la tarjeta empieza en el corte** (`tarjetas.proponer`): antes del corte Franco desarmaba los pagos a mano, y sus cargas coincidirían por monto con consumos que no son ellas. Y una cuota que no es la primera (`03/12`) nunca se empareja: su fecha es la de la compra original.
 - **Una sola propuesta a la vez:** después de un extracto o un desarmado, `_lo_que_sigue` propone el próximo desarmado pendiente y recién cuando no queda ninguno pide los saldos (un `fima …` reemplazaría la propuesta).
+- ⚠️ **La lista de balances no es un lote** (ADR-0011): `lotes.proponer` descarta la propuesta anterior, y la lista del domingo no puede tirar un extracto pendiente. Vive en `balances_propuestas` y convive con un lote abierto. Si un mensaje sirve para los dos (`1 2` con un lote de gastos abierto), no se adivina: se pide `balances 1 2`. `todas`, `ninguna` y los tickers no chocan con un lote.
+- **`todas` son las del mensaje** (la lista de Franco + las 15 grandes), no las 150 de `balances todas`. Lo elegido se suma (no se reemplaza) mientras la lista esté vigente (hasta el final del viernes). Lo de un día anterior a hoy no se toma (Franco, 21/10/2026).
+- **Dos clases de acciones = un balance**: Nasdaq trae GOOGL y GOOG (FOX/FOXA, NWS/NWSA) con el mismo nombre; va una sola, la de la lista de Franco si está.
 - `comandos`, `conciliacion` y `tarjetas` se importan entre sí **de forma diferida** (dentro de las funciones): no subir esos imports al principio del archivo.
 - `comandos.py` corre en un hilo del servidor HTTP: **`user_id` explícito en toda llamada** (los contextvars arrancan vacíos en cada hilo) y "hoy" en Buenos Aires, nunca en la zona del servidor.
 - **El CLI de `ingest.py` se corre solo como `python -m places.finanzas.core.ingest` desde la raíz.** Hasta el 22/9 tenía un `sys.path.insert` heredado de Mis-Finanzas-App que hacía resolver `core` a `places/finanzas/core`: el CLI moría y la suite no lo veía porque importa el `core` bueno antes. `tests/test_importes_ilegibles.py` lo corre como subproceso.
@@ -58,6 +62,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 ## Estado
 
 - **Funciona:** en producción.
+- **21/10/2026 (balances, paso 2, sin desplegar):** `balances.py`: la lista de la semana (la de Franco, `MI_LISTA`, primero; las 15 más grandes del S&P 500 por capitalización; el resto con `balances todas`), la copia del S&P 500 (una vez por mes, la guardada si Wikipedia no contesta, `s/d` si no hay), y la respuesta. Todavía **no agenda**: anota lo elegido (`balances_propuestas.elegidos`, M23). Tests: `tests/test_balances.py`.
 - **20/10/2026 (Fase D, paso 6, sin desplegar):** `fotos.py`: las filas que extrae Gemini se validan (fecha real y no futura, monto positivo), lo que ya estaba cargado (±$1, la ventana de siempre) no se carga, y lo demás se propone; con el `ok` queda como un gasto a mano. Aprende la categoría por descripción (regla `FOTO`). Tests: `tests/test_fotos.py`.
 - **20/10/2026 (Fase D, paso 5, sin desplegar):** `resumen_tarjeta.py` (lector) y `tarjetas.py` (guardar el resumen, proponer y aplicar el desarmado, el dólar del día, el acumulado de la percepción y la confirmación con el resumen siguiente). `metrics.gasto_por_categoria` deja afuera `Flujo Capital` (la percepción); producción no tenía filas de ese grupo. Tests: `tests/test_resumen_tarjeta.py`, `tests/test_tarjetas.py`, `tests/test_cotizaciones.py`.
 - **20/10/2026 (Fase D, paso 4b, sin desplegar):** `saldos.py` (FIMA, efectivo, ajuste y control del total), "¿es el mismo?" para un gasto que ya vino del banco (pendiente `duplicado`: *sí* = no se carga), y en la conciliación un depósito sugiere el ingreso cargado a mano de la misma categoría hasta 30 días antes. Tests: `tests/test_saldos.py`, `tests/test_ya_vino_del_banco.py`.

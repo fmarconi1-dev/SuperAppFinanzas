@@ -19,8 +19,8 @@
  *   SUPERAPP_URL      https://superapp-finanzas.fly.dev
  *   SUPERAPP_TOKEN    el mismo valor que SUPERAPP_API_TOKEN en `fly secrets`
  *
- * Necesita `Mercado.gs` en el mismo proyecto. `Codigo.gs` (agenda: Calendar
- * y Tasks) es aparte.
+ * Necesita `Mercado.gs` y `Balances.gs` (la lista de balances del domingo)
+ * en el mismo proyecto. `Codigo.gs` (agenda: Calendar y Tasks) es aparte.
  */
 
 const NOMBRE_ETIQUETA = "WA-Enviado";
@@ -59,9 +59,12 @@ function reenviarBriefingAWhatsApp() {
   }
   try {
     const props = PropertiesService.getScriptProperties();
-    const url = requerirPropiedad_(props, "SUPERAPP_URL").replace(/\/+$/, "") + "/api/briefing";
+    const base = requerirPropiedad_(props, "SUPERAPP_URL").replace(/\/+$/, "");
+    const url = base + "/api/briefing";
     const token = requerirPropiedad_(props, "SUPERAPP_TOKEN");
     if (reenviarMailsPendientes_(url, token)) cierrePendiente_(url, token);
+    // La lista de balances del domingo (Balances.gs, ADR-0011): no depende de los mails.
+    balancesPendientes_(base, token);
   } finally {
     lock.releaseLock();
   }

@@ -1,6 +1,6 @@
 # core/api/
 
-<!-- huella: 1b6eb02b67fb -->
+<!-- huella: aaa16465158b -->
 
 Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla).
 
@@ -14,6 +14,7 @@ Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webh
 - un archivo (extracto, resumen, foto) que no llegó, no se bajó o se contestó "no sé leer ese archivo" → `whatsapp_meta.descargar_archivo` (dos pasos: id → URL → contenido; `ArchivoNoDisponible`), `archivos.tipo_de_contenido` (por los primeros bytes) y `servidor._bajar`
 - el dólar de un consumo en USD de la tarjeta salió raro, o "no pude traer el dólar oficial" → `cotizaciones.py` (ArgentinaDatos, gratis, sin clave; un 404 es un feriado y va el día hábil anterior; si no contesta, `CotizacionNoDisponible` y se le pide el dólar a Franco)
 - una foto que no se leyó, "no puedo leer fotos" o "No pude leer la foto" → `gemini.py` (`ClienteGemini.desde_entorno` es None sin `GEMINI_API_KEY`; `GeminiNoDisponible` con el código o el motivo del bloqueo)
+- la lista de balances del domingo no llegó, llegó dos veces o "no pude traer el calendario" → `servidor._post_balances` (`POST /api/balances`: un `id` repetido no rearma; Nasdaq caído = 503 para que el Apps Script reintente) y `balances_fuentes.py` (Nasdaq y Wikipedia, `CalendarioNoDisponible` / `ListaNoDisponible`)
 - qué variables de entorno hacen falta → `ConfigWhatsApp.desde_entorno` (y `.env.example`)
 - la interpretación del texto (montos, categorías, `resumen`, `deshacer`) → **no es acá**: `places/finanzas/core/comandos.py`
 
@@ -33,10 +34,14 @@ Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webh
 - **Gemini solo extrae filas** (JSON con esquema, temperatura 0). Nada de categorías ni de decidir qué se carga: eso es de `places/finanzas/core/fotos.py`. La clave va en la cabecera `x-goog-api-key`, nunca en la URL (la URL queda en los logs).
 - **Costo cero también acá:** la clave tiene que ser de un proyecto de AI Studio **sin facturación**; el código no puede verificarlo, así que está escrito en `.env.example` y en `ESTADO.md`.
 - `GRAPH_BASE` es una constante del módulo para que los tests apunten a un Meta de mentira local; no la cambies por entorno.
+- **Nasdaq no contesta sin un User-Agent de navegador**, y Wikipedia pide uno que diga quién pregunta (`balances_fuentes.py`). `api.nasdaq.com` es la API interna de su página, no una publicada: Franco la aceptó el 21/10/2026 (ADR-0011). Un fin de semana viene con `rows: null` (= nadie, no un error). Después de la fecha, Nasdaq ya no dice si fue antes o después de la apertura.
+- **El Python local no valida el certificado de Wikipedia** (almacén viejo, igual que data912). En Fly anda. Para probar contra las fuentes reales desde la PC: `SSL_CERT_FILE` = el `cacert.pem` de `certifi` del venv.
+- `/api/briefing` y `/api/balances` comparten `_post_autorizado` (cuerpo, Bearer, config, usuario). nginx corta `/api/` a los 30 s: la lista del domingo hace 5 pedidos a Nasdaq (~10–15 s) y nada más.
 - Los estados `failed` que manda Meta se loguean con el código: ahí aparecería tarde un 131042 (pago) o un 131047 (ventana cerrada).
 
 ## Estado
 
+- **21/10/2026 (balances, paso 2, sin desplegar):** `balances_fuentes.py` (calendario de Nasdaq y S&P 500 de Wikipedia) y `POST /api/balances` (`{"accion": "semana", "lunes", "id"}`, mismo Bearer que los briefings; lo arma `api._balances` y sale por la cola con `tipo='balances'`). Tests: `tests/test_balances_fuentes.py` (fuentes de mentira locales) y los del servidor en `tests/test_balances.py`.
 - **20/10/2026 (Fase D, paso 6, sin desplegar):** `gemini.py`: `ClienteGemini.extraer_filas` (modelo `gemini-3.5-flash-lite` por defecto, `GEMINI_MODELO` para cambiarlo), inyectado desde `api.py` como `lector_fotos`. Tests: `tests/test_fotos.py` (contra un Gemini de mentira).
 - **20/10/2026 (Fase D, paso 5, sin desplegar):** `cotizaciones.py`: el oficial vendedor de una fecha (`oficial_vendedor`), inyectado desde `api.py` como `cotizador`. Tests: `tests/test_cotizaciones.py` (contra un ArgentinaDatos de mentira).
 - **19/10/2026 (Fase D, paso 3, sin desplegar):** documentos y fotos. `extraer_eventos` arma `ArchivoEntrante` (id, mime, nombre, pie); `descargar_archivo` lo baja de la Graph API; `archivos.py` (nuevo) lo reconoce por el contenido; el servidor lo pasa a `procesar_archivo` (inyectado desde `api.py`). Lo que no es Excel, PDF ni foto se contesta sin leer. Tests: `tests/test_archivos_whatsapp.py` (con un Meta de mentira) y los de archivos en `tests/test_api_whatsapp.py`.

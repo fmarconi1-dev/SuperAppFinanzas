@@ -53,6 +53,8 @@ Resumen: Puente Google ↔ SuperApp en Apps Script: reenvía el briefing de Gmai
     - BYMA `index-price` viene **vacío antes de la apertura**. Ahora se guarda el último MSCI MERVAL (`ULTIMO_MERVAL`) y se usa con su fecha.
     - A la mañana el `^TNX` de Yahoo es la tasa en plena rueda, no un cierre. El respaldo de Yahoo para el 10 y el 30 años ahora es solo para el cierre (`paraCierre`); a la mañana manda el Tesoro de ayer.
 
+- **21/10/2026 — `Balances.gs` (ADR-0011, paso 2):** el reloj de la lista de balances. `balancesPendientes_` (lo llama `reenviarBriefingAWhatsApp`) pide el domingo desde las 20:00 la semana que viene (`POST /api/balances`, `id` `balances-AAAA-MM-DD`, propiedad `ULTIMO_BALANCES`). Acá no se trae ningún dato. `pedirBalancesAhora` lo prueba a mano. Sintaxis y lógica del domingo probadas con QuickJS (19:59 no sale; un 503 reintenta; no se repite). **Sin pegar en Google todavía.**
+
 ## Proximo paso
 
 Instalarlo siguiendo el `README.md` cuando arranque la Fase B (briefing + Calendar/Tasks), y correr `probarLecturas` / `probarAcortador` desde el editor.

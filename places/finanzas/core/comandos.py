@@ -39,6 +39,7 @@ from core.api.google import AgendaNoDisponible, AgendaRechazo
 from core.db import backup_db
 from core.workspaces import resolve_workspace_id
 from places.finanzas.core import agenda as ag
+from places.finanzas.core import balances
 from places.finanzas.core import lotes
 from places.finanzas.core import saldos
 
@@ -82,7 +83,9 @@ AYUDA = (
     "  • evento: viernes, 15:00, 16:00, Dentista\n"
     "  • evento: 20/10, Cumple de Juan  (todo el día)\n"
     "  • tarea: 25/10, Pagar seguro  ·  tarea: Llamar al contador\n"
-    "  • agenda — eventos de la semana y tareas pendientes\n\n"
+    "  • agenda — eventos de la semana y tareas pendientes\n"
+    "  • balances — quiénes presentan balance esta semana (el domingo\n"
+    "    a la noche te llega solo); contestás *1 3 7*, tickers o *todas*\n\n"
     "*Comandos*\n"
     "  • resumen — gastos e ingresos del mes\n"
     "  • fima 512.300 efectivo 98.000 — tus saldos, para el ajuste\n"
@@ -451,6 +454,7 @@ def procesar(
     agenda: Optional[Any] = None,
     id_mensaje: Optional[str] = None,
     cotizador: Optional[Any] = None,
+    fuentes_balances: Optional[Any] = None,
 ) -> Respuesta:
     """Interpreta un mensaje de Franco y, si corresponde, escribe en la base.
 
@@ -459,6 +463,8 @@ def procesar(
     `id_solicitud`, para que un reintento de Meta no cree dos eventos.
     `cotizador` trae el dólar oficial de una fecha (`core.api.cotizaciones`),
     para los consumos en dólares de las tarjetas; llega inyectado (sin red acá).
+    `fuentes_balances` trae el calendario de balances y el S&P 500
+    (`core.api.balances_fuentes`), para el comando `balances`.
     """
     ahora = ahora or ahora_ar()
     hoy = ahora.astimezone(ZONA).date()
@@ -478,6 +484,13 @@ def procesar(
     wid = resolve_workspace_id(conn, user_id)
     lote = lotes.vigente(conn, workspace_id=wid, ahora=ahora)
     tipo_lote = lote.propuesta.get("tipo") if lote else None
+    if clave == "balances" or clave.startswith("balances "):
+        return _comando_balances(conn, limpio, clave, wid, lote, fuentes_balances, ahora, hoy)
+    if (prop := balances.vigente(conn, workspace_id=wid, ahora=ahora)) \
+            and (eleccion := balances.leer_respuesta(limpio, prop)):
+        if lote and _leer_respuesta_lote(limpio, _cantidad(lote.propuesta)):
+            return Respuesta(_AMBIGUO_BALANCES.format(texto=limpio), "rechazado")
+        return Respuesta(balances.responder(conn, prop, eleccion, hoy), "consulta")
     if tipo_lote == "resumen" and (m := _RE_DOLAR.match(limpio)):
         from places.finanzas.core import tarjetas  # diferido: tarjetas usa este módulo
         try:
@@ -744,6 +757,43 @@ def _comando_agenda(
     except AgendaNoDisponible as e:
         return Respuesta(f"⚠️ No pude hablar con Google ({e}). No se agendó nada; "
                          "probá de nuevo en un rato.", "error")
+
+
+_AMBIGUO_BALANCES = (
+    "«{texto}» puede ser para la lista de balances o para la propuesta que tenés abierta. "
+    "Para los balances, empezá con *balances* (por ejemplo *balances 1 3 7*). Para la "
+    "propuesta, escribí la corrección con la categoría (*2 transportes*).")
+_SIN_LISTA_BALANCES = ("No tengo una lista de balances vigente. Mandá *balances* y te armo "
+                       "la de esta semana.")
+
+
+def _comando_balances(
+    conn: sqlite3.Connection, limpio: str, clave: str, wid: int, lote: Optional[lotes.Lote],
+    fuentes: Optional[Any], ahora: datetime, hoy: date,
+) -> Respuesta:
+    """`balances` (arma la semana), `balances todas` (el resto) y `balances 1 3 7`."""
+    from core.api.balances_fuentes import CalendarioNoDisponible
+
+    if clave == "balances":
+        if fuentes is None:
+            return Respuesta("Los balances no están conectados.", "rechazado")
+        try:
+            texto = balances.armar(conn, workspace_id=wid, lunes=balances.lunes_de(hoy),
+                                   fuentes=fuentes, ahora=ahora)
+        except CalendarioNoDisponible as e:
+            return Respuesta(f"⚠️ No pude traer el calendario de balances ({e}). "
+                             "Probá en un rato.", "rechazado")
+        return Respuesta(texto, "consulta")
+    prop = balances.vigente(conn, workspace_id=wid, ahora=ahora)
+    if prop is None:
+        return Respuesta(_SIN_LISTA_BALANCES, "rechazado")
+    if clave == "balances todas":
+        return Respuesta(balances.texto_resto(prop), "consulta")
+    eleccion = balances.leer_respuesta(limpio, prop)
+    if eleccion is None:
+        return Respuesta("No entendí cuáles elegís. Contestá con los números de la lista, los "
+                         "tickers, *todas* o *ninguna*.", "rechazado")
+    return Respuesta(balances.responder(conn, prop, eleccion, hoy), "consulta")
 
 
 def _capitalizar(s: str) -> str:

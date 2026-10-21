@@ -19,6 +19,18 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-10-20/21 — Balances de la semana por WhatsApp: pasos 1 y 2 (ADR-0011)
+**Autor:** Claude (Opus 5.5), con Franco.
+
+- **Paso 1:** fuentes verificadas en vivo el 20/10. Nasdaq trae el calendario con antes/después de la apertura y la capitalización. SPCX es SpaceX y PAM es Pampa. Wikipedia trae los 503 del S&P 500. Yahoo trae el posmercado. Ni Nasdaq ni Alpha Vantage traen los ingresos reales.
+  - Decisiones de Franco (21/10): el Apps Script pone el reloj y el Calendar, la SuperApp todo lo demás (**la máquina de Fly se duerme y no tiene reloj**); Nasdaq como fuente; **solo la fecha**, sin ganancia ni ingresos; lo que ya pasó no se agenda; el resumen de la mañana con un disparador propio. ADR-0011 y `docs/PLAN-BALANCES.md`.
+- **Paso 2 (en código, sin desplegar):** `POST /api/balances` arma la lista de la semana y la manda por la cola de salida. `Balances.gs` la pide el domingo desde las 20:00. Franco contesta `1 3 7`, tickers, `todas` o `ninguna`, y por ahora queda anotado.
+  - **No es un lote:** la lista no descarta un extracto pendiente, y ante un mensaje ambiguo se pide `balances 1 2`.
+  - Probado contra las fuentes reales: la semana del 26/10 en 10–15 s.
+  - 934 passed, 0 skipped.
+
+---
+
 ## 2026-10-19 — Fase D, pasos 1 a 3: ADR-0009, lotes y archivos por WhatsApp
 **Autor:** Claude (Opus 5.5), con Franco.
 
