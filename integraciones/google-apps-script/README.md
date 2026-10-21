@@ -120,10 +120,10 @@ Una fuente que falla sale como `s/d` en el texto y queda en el registro (`Mercad
 | Cuándo | Qué hace | `POST /api/balances` | Propiedad |
 |---|---|---|---|
 | Domingo desde las 20:00 | Pide la lista de la semana que viene | `{"accion": "semana", "lunes", "id": "balances-AAAA-MM-DD"}` | `ULTIMO_BALANCES` |
-| Lunes a viernes desde las 18:30 | Lee del Calendar los 📊 de **hoy** marcados pre-apertura y pide el resumen (rueda) | `{"accion": "resumen", "fecha", "tanda": "pre", "empresas": [{"ticker", "momento"}], "id": "resumen-pre-AAAA-MM-DD"}` | `ULTIMO_RESUMEN_PRE` |
-| Todos los días desde las 9:30 | Lee los 📊 de **ayer** marcados post-cierre o sin hora y pide el resumen (posmercado) | ídem con `"tanda": "post"` | `ULTIMO_RESUMEN_POST` |
+| Lunes a viernes desde las 18:30 | Lee del Calendar los 📊 de **hoy** marcados pre-apertura y pide el resumen (rueda) | `{"accion": "resumen", "fecha", "tanda": "pre", "empresas": [{"ticker", "momento"}], "id": "resumen-pre-AAAA-MM-DD-TICKERS"}` | `RESUMEN_PRE` |
+| Todos los días desde las 9:30 | Lee los 📊 de **ayer** marcados post-cierre o sin hora y pide el resumen (posmercado) | ídem con `"tanda": "post"` | `RESUMEN_POST` |
 
-Los 📊 son los eventos con la etiqueta `balance` (la pone `Codigo.gs` al agendar); el momento sale de la etiqueta `balance_momento`. Un día sin 📊 no manda nada. Si la SuperApp no contesta `ok: true`, la propiedad no se marca y la próxima corrida reintenta; la SuperApp no repite un `id` que ya recibió.
+Los 📊 son los eventos con la etiqueta `balance` (la pone `Codigo.gs` al agendar); el momento sale de la etiqueta `balance_momento`. Un día sin 📊 no manda nada. `RESUMEN_PRE` / `RESUMEN_POST` llevan la cuenta **por empresa** (`{"fecha", "enviadas"}`), no por día: una pre-apertura agendada para hoy después de las 18:30 sale en la corrida siguiente, en un mensaje aparte. Si la SuperApp no contesta `ok: true`, la propiedad no se marca y la próxima corrida reintenta; la SuperApp no repite un `id` que ya recibió.
 
 **Instalar (paso 4):**
 1. Reemplazá **`Balances.gs`** por el de acá.

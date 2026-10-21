@@ -6,7 +6,7 @@ Resumen: Puente Google ↔ SuperApp en Apps Script: reenvía el briefing de Gmai
 
 - el briefing matutino no llegó o llegó dos veces → `reenviarBriefingAWhatsApp` (etiqueta `WA-Enviado`, solo si la API devolvió `ok: true`)
 - números de mercado mal o viejos, `s/d` en el tablero, el cierre de las 18:30 no salió → `Mercado.gs` (`probarMercado`, `cierrePendiente_`, propiedad `ULTIMO_CIERRE`; ADR-0010)
-- la lista de balances del domingo o el resumen del día ("📊 Balances del …") no salió → `Balances.gs` (`relojDeBalances`, su propio disparador: ¿está en Activadores?; `resumenesPendientes_`, propiedades `ULTIMO_BALANCES` / `ULTIMO_RESUMEN_PRE` / `ULTIMO_RESUMEN_POST`). Qué 📊 ve el reloj: `probarBalancesDelDia`
+- la lista de balances del domingo o el resumen del día ("📊 Balances del …") no salió → `Balances.gs` (`relojDeBalances`, su propio disparador: ¿está en Activadores?; `resumenesPendientes_`, propiedades `ULTIMO_BALANCES` / `RESUMEN_PRE` / `RESUMEN_POST`). Qué 📊 ve el reloj: `probarBalancesDelDia`
 - links del briefing sin acortar → `acortarUrls` (TinyURL vía `fetchAll`; si falla, deja el original)
 - el contrato SuperApp → Google (acciones, campos, errores) → `README.md` de esta carpeta
 - eventos con la hora corrida → zona horaria en `appsscript.json`
@@ -20,7 +20,7 @@ Resumen: Puente Google ↔ SuperApp en Apps Script: reenvía el briefing de Gmai
 - `new Date(a, m, d, h, mi)` usa la zona del proyecto: si `appsscript.json` no dice Buenos Aires, los eventos se corren de hora.
 - `getAllDayEndDate()` es exclusivo; la respuesta devuelve `fin` inclusive.
 - **El reloj de los balances es otro disparador** (`relojDeBalances`): `Reenvio.gs` ya no los llama. Si se pega `Reenvio.gs` sin instalar `instalarDisparadorBalances`, la lista del domingo deja de salir sin aviso.
-- **Pendiente (no arreglado):** `ULTIMO_RESUMEN_PRE` se marca a las 18:30 aunque ese día no haya 📊. Si Franco agenda una pre-apertura **del mismo día** después de las 18:30, su resumen no sale.
+- **El resumen lleva la cuenta por empresa, no por día** (`RESUMEN_PRE` / `RESUMEN_POST` = `{"fecha", "enviadas"}`). Hasta el 21/10 se marcaba el día entero a las 18:30, aunque no hubiera 📊, y una pre-apertura agendada para hoy más tarde no salía nunca. El `id` lleva los tickers del grupo.
 - Tasks API descarta la hora de `due`, y `Tasks.Tasks.list` devuelve renglones sin título al final de la lista (se filtran).
 
 ## Estado
@@ -61,6 +61,8 @@ Resumen: Puente Google ↔ SuperApp en Apps Script: reenvía el briefing de Gmai
 - **21/10/2026 — `Codigo.gs`, balances paso 3:** `agendar_balances` y `borrar_balances`. Evento de día entero en el calendario principal con dos etiquetas (`balance` = `TICKER:AAAA-MM-DD`, `balance_momento`); antes de crear se busca la etiqueta en ese día (no duplica, sin depender del caché de 6 h). Van bajo el lock del `doPost`. Probado con QuickJS y un Calendar simulado: crea, el reintento devuelve el mismo, rechaza claves malas, borra y avisa lo que no estaba. **Hay que publicar una versión nueva de la implementación.**
 
 - **21/10/2026 — `Balances.gs`, balances paso 4:** disparador propio (`relojDeBalances`, cada 10 minutos, `instalarDisparadorBalances`), separado de los mails de Gemini (Franco: "uno aparte"). Además de la lista del domingo, pide el resumen del día: a las 18:30 los 📊 de hoy pre-apertura; desde las 9:30 los de ayer post-cierre o sin hora (`ULTIMO_RESUMEN_PRE` / `ULTIMO_RESUMEN_POST`). `Reenvio.gs` vuelve a no saber nada de los balances. Cada paso del reloj va en su try/catch: un error de la lista no tapa el resumen. Simulado con QuickJS y un Calendar falso (horarios, 503 que reintenta, eventos ajenos que no cuentan). **Sin pegar en Google todavía.**
+
+- **21/10/2026 (noche) — `Balances.gs`:** el resumen lleva la cuenta por empresa (`RESUMEN_PRE` / `RESUMEN_POST`, en JSON), así sale una pre-apertura agendada para hoy después de las 18:30. Las propiedades viejas `ULTIMO_RESUMEN_*` quedan sin uso (se pueden borrar). Simulado con QuickJS.
 
 ## Proximo paso
 

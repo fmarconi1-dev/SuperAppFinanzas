@@ -49,6 +49,8 @@
 
 ## ⏭️ Próximo paso concreto
 
+-5. 🟡 **Balances, los dos arreglos del 21/10 a la noche (en `main`, sin desplegar). Lo de Franco:** deploy (sin migraciones) y pegar **`Balances.gs`** (no hace falta reinstalar el disparador ni tocar `Codigo.gs`). Desde ahí: "Ya las tenías en el Calendar" lo dice el Calendar (un 📊 borrado a mano se vuelve a crear, y `deshacer` no borra lo que venía de antes), y una pre-apertura agendada para hoy después de las 18:30 sale en la corrida siguiente. Las propiedades viejas `ULTIMO_RESUMEN_PRE` / `ULTIMO_RESUMEN_POST` del script quedan sin uso: se pueden borrar.
+
 -4. 🟡 **Balances de la semana: desplegado entero (21/10). Falta ver el resumen del día en la realidad.** Franco agendó KO, GOOGL, MSFT, VIST, AMZN, V y SNDK. Tienen que llegar:
    - **mar 27/10, desde las 18:30:** KO (pre-apertura), rueda.
    - **mié 28/10, desde las 9:30:** V (post-cierre del 27), posmercado.

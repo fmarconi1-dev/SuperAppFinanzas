@@ -104,32 +104,47 @@ function pedirBalancesAhora() {
 /**
  * Desde las 18:30 de un día hábil, las de hoy que presentaron antes de la
  * apertura. Desde las 9:30, las de ayer que presentaron después del cierre o
- * sin hora. Cada tanda sale una vez (ULTIMO_RESUMEN_PRE / ULTIMO_RESUMEN_POST).
+ * sin hora. Cada empresa sale una sola vez: se lleva la cuenta **por empresa**
+ * (RESUMEN_PRE / RESUMEN_POST), no por día, así una que Franco agenda para hoy
+ * después de las 18:30 sale en la corrida siguiente.
  */
 function resumenesPendientes_(base, token) {
   const hoy = hoyAR_();
   const hora = Utilities.formatDate(new Date(), ZONA_AR, "HH:mm");
   const dia = diaDeSemana_(hoy);
   if (dia !== 0 && dia !== 6 && hora >= HORA_RESUMEN_PRE) {
-    resumenDeTanda_(base, token, hoy, "pre", ["pre"], "ULTIMO_RESUMEN_PRE");
+    resumenDeTanda_(base, token, hoy, "pre", ["pre"], "RESUMEN_PRE");
   }
   if (hora >= HORA_RESUMEN_POST) {
-    resumenDeTanda_(base, token, sumarDias_(hoy, -1), "post", ["post", ""], "ULTIMO_RESUMEN_POST");
+    resumenDeTanda_(base, token, sumarDias_(hoy, -1), "post", ["post", ""], "RESUMEN_POST");
   }
 }
 
+/**
+ * Manda las empresas de esa tanda que todavía no salieron ese día. La
+ * propiedad guarda `{"fecha", "enviadas": [claves]}`; otro día, arranca de cero.
+ * El `id` lleva los tickers: un reintento del mismo grupo no se repite en la
+ * SuperApp, y un grupo nuevo (agendado más tarde) sale aparte.
+ */
 function resumenDeTanda_(base, token, fecha, tanda, momentos, propiedad) {
   const props = PropertiesService.getScriptProperties();
-  if (props.getProperty(propiedad) === fecha) return;
-  const empresas = balancesDelDia_(fecha).filter(function (e) { return momentos.indexOf(e.momento) >= 0; });
-  if (!empresas.length) {
-    props.setProperty(propiedad, fecha);   // nada que contar ese día
-    return;
+  let llevado = null;
+  try {
+    llevado = JSON.parse(props.getProperty(propiedad) || "null");
+  } catch (err) {
+    console.error("Propiedad " + propiedad + " ilegible, arranca de cero: " + err);
   }
+  const enviadas = llevado && llevado.fecha === fecha && Array.isArray(llevado.enviadas) ? llevado.enviadas : [];
+  const empresas = balancesDelDia_(fecha).filter(function (e) {
+    return momentos.indexOf(e.momento) >= 0 && enviadas.indexOf(e.ticker + ":" + fecha) < 0;
+  });
+  if (!empresas.length) return;
+  const tickers = empresas.map(function (e) { return e.ticker; });
   const cuerpo = { accion: "resumen", fecha: fecha, tanda: tanda, empresas: empresas,
-                   id: "resumen-" + tanda + "-" + fecha };
-  if (postearASuperApp_(base + "/api/balances", token, cuerpo, "[balances] resumen " + tanda + " " + fecha)) {
-    props.setProperty(propiedad, fecha);
+                   id: "resumen-" + tanda + "-" + fecha + "-" + tickers.join("-") };
+  if (postearASuperApp_(base + "/api/balances", token, cuerpo, "[balances] resumen " + tanda + " " + fecha + " " + tickers.join(" "))) {
+    const claves = enviadas.concat(tickers.map(function (tk) { return tk + ":" + fecha; }));
+    props.setProperty(propiedad, JSON.stringify({ fecha: fecha, enviadas: claves }));
   }
 }
 

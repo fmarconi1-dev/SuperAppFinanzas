@@ -392,10 +392,11 @@ def _clave(it: dict) -> str:
 
 
 def _claves_agendadas(conn: sqlite3.Connection, workspace_id: int) -> set[str]:
-    """Las claves que el Secretario agendó en Google y nadie deshizo.
+    """Las claves que el Secretario agendó en Google y nadie deshizo (según la base).
 
-    "Ya la tenías" se decide por esto, no por `elegidos`: lo elegido en el
-    paso 2 (antes del agendado) quedó anotado sin llegar nunca al Calendar.
+    Sirve solo para el texto de `ninguna`. Si una ya está o no en el Calendar
+    lo dice el Calendar (`creado` de `Codigo.gs`), no esto: Franco puede
+    borrar un evento a mano.
     """
     claves: set[str] = set()
     for row in conn.execute("SELECT eventos FROM balances_agendados WHERE workspace_id = ? "
@@ -409,41 +410,58 @@ def responder(conn: sqlite3.Connection, prop: Propuesta, e: Eleccion, hoy: date,
               fuentes: Any = None) -> tuple[str, str]:
     """Agenda lo elegido en Google Calendar. Devuelve (texto, resultado).
 
-    Lo de un día que ya pasó no se toma, y lo ya agendado no se repite. Si
-    Google no contesta, **no se anota nada**: Franco manda lo mismo de nuevo
-    (el Calendar no duplica, porque cada evento lleva su clave como etiqueta).
+    Lo de un día que ya pasó no se toma. **Si ya estaba lo dice el Calendar**:
+    se le pide todo a `Codigo.gs`, que no duplica (la clave es la etiqueta del
+    evento) y contesta por cada una si la creó o si ya estaba. Así, un 📊 que
+    Franco borró a mano se vuelve a crear. La tanda guarda solo lo creado, y
+    `deshacer` no toca lo que vino de antes. Si Google no contesta, **no se
+    anota nada**: Franco manda lo mismo de nuevo.
     """
-    agendadas = _claves_agendadas(conn, workspace_id)
     if e.ninguna:
+        agendadas = _claves_agendadas(conn, workspace_id)
         tenias = [it["ticker"] for it in prop.items if _clave(it) in agendadas]
         if tenias:
             return ("Listo, no sumo ninguna más. Lo que ya habías agendado sigue: "
                     + ", ".join(tenias) + ".", "consulta")
         return "Listo, esta semana no agendo ninguna.", "consulta"
     seleccion = _seleccion(prop, e)
-    ya_estaban = [it for it in seleccion if _clave(it) in agendadas]
-    candidatas = [it for it in seleccion if it not in ya_estaban]
     avisos = _confirmar_fechas(
-        [it for it in candidatas if date.fromisoformat(it["fecha"]) >= hoy], fuentes)
-    pasaron = [it for it in candidatas if date.fromisoformat(it["fecha"]) < hoy]
-    nuevas = [it for it in candidatas if it not in pasaron]
+        [it for it in seleccion if date.fromisoformat(it["fecha"]) >= hoy], fuentes)
+    pasaron = [it for it in seleccion if date.fromisoformat(it["fecha"]) < hoy]
+    pedidas = [it for it in seleccion if it not in pasaron]
 
-    partes: list[str] = []
-    resultado = "consulta"
-    if nuevas:
+    nuevas: list[dict] = []
+    ya_estaban: list[dict] = []
+    sin_confirmar: list[dict] = []
+    if pedidas:
         if agenda is None:
             return "⚠️ La agenda de Google no está conectada: no agendé nada.", "rechazado"
         try:
-            agenda.agendar_balances(eventos=[_evento(it) for it in nuevas])
+            r = agenda.agendar_balances(eventos=[_evento(it) for it in pedidas])
         except (AgendaNoDisponible, AgendaRechazo) as err:
             log.error("No se agendaron los balances: %s", err)
             return (f"⚠️ No pude agendar en tu Calendar ({err}). No anoté nada: mandá lo mismo "
                     "de nuevo en un rato.", "error")
-        elegidos = prop.elegidos + [it["ticker"] for it in nuevas
+        creado = {ev.get("clave"): ev.get("creado") for ev in (r.get("eventos") or [])
+                  if isinstance(ev, dict)}
+        for it in pedidas:
+            estado = creado.get(_clave(it))
+            if estado is True:
+                nuevas.append(it)
+            elif estado is False:
+                ya_estaban.append(it)
+            else:
+                log.error("Google no confirmó %s en su respuesta: %s", _clave(it), r)
+                sin_confirmar.append(it)
+
+    en_el_calendar = nuevas + ya_estaban
+    if en_el_calendar:
+        elegidos = prop.elegidos + [it["ticker"] for it in en_el_calendar
                                     if it["ticker"] not in prop.elegidos]
         conn.execute("UPDATE balances_propuestas SET elegidos = ? WHERE id = ?",
                      (json.dumps(elegidos), prop.id))
         prop.elegidos = elegidos
+    if nuevas:
         conn.execute(
             "INSERT INTO balances_agendados (workspace_id, propuesta_id, eventos, agendado_en) "
             "VALUES (?, ?, ?, ?)",
@@ -451,19 +469,26 @@ def responder(conn: sqlite3.Connection, prop: Propuesta, e: Eleccion, hoy: date,
              json.dumps([{"clave": _clave(it), "ticker": it["ticker"],
                           "fecha": it["fecha"], "momento": it["momento"]} for it in nuevas]),
              ahora.isoformat()))
+
+    partes: list[str] = []
+    if nuevas:
         partes.append("📅 Agendé en tu Calendar: "
                       + ", ".join(_nombre(it) + (" — fecha estimada" if it.get("estimada") else "")
                                   for it in nuevas) + ".")
-        resultado = "agendado"
     if ya_estaban:
-        partes.append("Ya las tenías: " + ", ".join(it["ticker"] for it in ya_estaban) + ".")
+        partes.append("Ya las tenías en el Calendar: "
+                      + ", ".join(it["ticker"] for it in ya_estaban) + ".")
+    if sin_confirmar:
+        partes.append("⚠️ Google no me confirmó estas: "
+                      + ", ".join(it["ticker"] for it in sin_confirmar)
+                      + ". Fijate en el Calendar y, si no están, mandalas de nuevo.")
     if pasaron:
         partes.append("No las agendo porque ya pasaron: "
                       + ", ".join(_nombre(it) for it in pasaron) + ".")
     partes += avisos
     if nuevas:
         partes.append("*deshacer* las saca del Calendar.")
-    return "\n".join(partes), resultado
+    return "\n".join(partes), ("agendado" if nuevas else "consulta")
 
 
 # ---------------------------------------------------------------------------

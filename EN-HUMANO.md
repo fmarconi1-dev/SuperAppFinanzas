@@ -9,6 +9,16 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 21 de octubre de 2026 (más tarde a la noche) — Dos arreglos en los balances
+
+**Qué se hizo.**
+- **Si borrás un 📊 a mano en el Calendar** y después volvés a elegir esa empresa, el Secretario lo crea de nuevo. Antes te decía "Ya las tenías" porque se fijaba en su propia anotación y no en tu Calendar. Ahora le pregunta al Calendar. Y *deshacer* borra solo lo que agendó esa vez, nunca algo que ya tenías de antes.
+- **Si agendás para hoy una que presenta antes de la apertura** y ya pasaron las 18:30, el resumen te llega igual, unos minutos después, en un mensaje aparte. Antes se perdía, porque el reloj daba el día por terminado a las 18:30.
+
+**Qué sigue.** Publicar la app y pegar en Google el `Balances.gs` nuevo. Nada más.
+
+---
+
 ## 21 de octubre de 2026 (noche) — El día del balance, cómo reaccionó el precio
 
 **Qué se hizo.** El día que presenta una de las empresas que tenés en el Calendar, te llega un mensaje aparte, sin IA, con una línea por empresa:

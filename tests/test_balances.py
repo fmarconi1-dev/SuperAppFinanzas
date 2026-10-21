@@ -327,8 +327,9 @@ def test_agenda_y_suma(db, prop):
     assert ko["titulo"] == "📊 KO balance (pre-apertura)" and ko["momento"] == "pre"
     assert ko["fecha"] == "2026-10-27" and "Coca-Cola" in ko["descripcion"]
     texto, _ = _responder(db, Eleccion(tickers=("KO", "AMZN")), agenda=agenda)
-    assert "Agendé en tu Calendar: AMZN" in texto and "Ya las tenías: KO." in texto
-    assert agenda.pedidos[-1] == ("agendar", [agenda.calendario["AMZN:2026-10-29"]])
+    assert "Agendé en tu Calendar: AMZN" in texto and "Ya las tenías en el Calendar: KO." in texto
+    # Se le pregunta todo al Calendar: él dice qué ya estaba.
+    assert [e["clave"] for e in agenda.pedidos[-1][1]] == ["KO:2026-10-27", "AMZN:2026-10-29"]
     assert _prop(db).elegidos == ["KO", "MSFT", "AMZN"]
 
 
@@ -339,6 +340,47 @@ def test_lo_anotado_en_el_paso_2_se_agenda_igual(db, prop):
     texto, resultado = _responder(db, Eleccion(numeros=(1,)), agenda=agenda)
     assert resultado == "agendado" and "KO:2026-10-27" in agenda.calendario
     assert "Ya las tenías" not in texto and _prop(db).elegidos == ["KO"]
+
+
+def test_un_evento_borrado_a_mano_se_vuelve_a_crear(db, prop):
+    """El Calendar es la fuente de verdad (Franco): si lo borró, elegirlo de nuevo lo crea."""
+    agenda = AgendaFalsa()
+    _responder(db, Eleccion(numeros=(1,)), agenda=agenda)
+    del agenda.calendario["KO:2026-10-27"]                  # Franco lo borró a mano
+    texto, resultado = _responder(db, Eleccion(numeros=(1,)), agenda=agenda)
+    assert resultado == "agendado" and texto.startswith("📅 Agendé en tu Calendar: KO")
+    assert "KO:2026-10-27" in agenda.calendario and "Ya las tenías" not in texto
+
+
+def test_deshacer_no_borra_lo_que_ya_estaba_de_antes(db):
+    _armar(db)
+    agenda = AgendaFalsa()
+    _p(db, "1", agenda=agenda)                                  # KO
+    r = _p(db, "1 3", DOMINGO + timedelta(minutes=1), agenda=agenda)
+    assert "Ya las tenías en el Calendar: KO." in r.texto       # solo MSFT es nuevo
+    r = _p(db, "deshacer", DOMINGO + timedelta(minutes=2), agenda=agenda)
+    assert r.texto == "↩️ Saqué de tu Calendar: MSFT (mié 28/10)."
+    assert set(agenda.calendario) == {"KO:2026-10-27"}
+
+
+def test_si_ya_estaban_todas_no_hay_tanda_que_deshacer(db, prop):
+    agenda = AgendaFalsa()
+    _responder(db, Eleccion(numeros=(1,)), agenda=agenda)
+    texto, resultado = _responder(db, Eleccion(numeros=(1,)), agenda=agenda)
+    assert resultado == "consulta" and texto == "Ya las tenías en el Calendar: KO."
+    assert db.execute("SELECT COUNT(*) FROM balances_agendados").fetchone()[0] == 1
+
+
+def test_lo_que_google_no_confirma_se_avisa_y_no_se_anota(db, prop):
+    class AgendaMuda(AgendaFalsa):
+        def agendar_balances(self, *, eventos):
+            super().agendar_balances(eventos=eventos)
+            return {"ok": True}                                  # sin "eventos"
+
+    texto, resultado = _responder(db, Eleccion(numeros=(1,)), agenda=AgendaMuda())
+    assert resultado == "consulta" and "Google no me confirmó estas: KO" in texto
+    assert _prop(db).elegidos == []
+    assert db.execute("SELECT COUNT(*) FROM balances_agendados").fetchone()[0] == 0
 
 
 def test_lo_que_ya_paso_no_se_agenda(db, prop):

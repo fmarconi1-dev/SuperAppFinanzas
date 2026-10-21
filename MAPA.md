@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-21 14:40 UTC · 117 archivos · 25,176 LOC -->
+<!-- 2026-10-21 14:51 UTC · 117 archivos · 25,243 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-21 a01e5f7 chore: diagnÃ³stico de las fuentes de los balances desde Fly · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-21 6184285 docs: balances en producciÃ³n; quÃ© resÃºmenes tienen que llegar y cuÃ¡ndo · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -54,7 +54,7 @@ Rama `main` — ultimo commit: 2026-10-21 a01e5f7 chore: diagnÃ³stico de las f
 | el logo → `_logo.py` | `core\theme/` |
 | el briefing matutino no llegó o llegó dos veces → `reenviarBriefingAWhatsApp` (etiqueta `WA-Enviado`, solo si la API devolvió `ok: true`) | `integraciones\google-apps-script/` |
 | números de mercado mal o viejos, `s/d` en el tablero, el cierre de las 18:30 no salió → `Mercado.gs` (`probarMercado`, `cierrePendiente_`, propiedad `ULTIMO_CIERRE`; ADR-0010) | `integraciones\google-apps-script/` |
-| la lista de balances del domingo o el resumen del día ("📊 Balances del …") no salió → `Balances.gs` (`relojDeBalances`, su propio disparador: ¿está en Activadores?; `resumenesPendientes_`, propiedades `ULTIMO_BALANCES` / `ULTIMO_RESUMEN_PRE` / `ULTIMO_RESUMEN_POST`). Qué 📊 ve el reloj: `probarBalancesDelDia` | `integraciones\google-apps-script/` |
+| la lista de balances del domingo o el resumen del día ("📊 Balances del …") no salió → `Balances.gs` (`relojDeBalances`, su propio disparador: ¿está en Activadores?; `resumenesPendientes_`, propiedades `ULTIMO_BALANCES` / `RESUMEN_PRE` / `RESUMEN_POST`). Qué 📊 ve el reloj: `probarBalancesDelDia` | `integraciones\google-apps-script/` |
 | links del briefing sin acortar → `acortarUrls` (TinyURL vía `fetchAll`; si falla, deja el original) | `integraciones\google-apps-script/` |
 | el contrato SuperApp → Google (acciones, campos, errores) → `README.md` de esta carpeta | `integraciones\google-apps-script/` |
 | eventos con la hora corrida → zona horaria en `appsscript.json` | `integraciones\google-apps-script/` |
@@ -138,8 +138,8 @@ Rama `main` — ultimo commit: 2026-10-21 a01e5f7 chore: diagnÃ³stico de las f
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 41 | 9,016 | ok |
-| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 21 | 6,936 | ok |
+| `tests/` | La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 41 | 9,058 | ok |
+| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 21 | 6,961 | ok |
 | `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M24 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,895 | ok |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | ok |
 | `core\api/` | API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla). | 8 | 1,649 | ok |
@@ -197,8 +197,8 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 - `places\finanzas\views/` → `places\finanzas\core/` (12)
 - `places\finanzas\views/` → `core/` (8)
 - `places\finanzas\core/` → `core\api/` (7)
-- `./` → `core/` (5)
 - `./` → `core\api/` (5)
+- `./` → `core/` (5)
 - `places\inicio\core/` → `places\finanzas\core/` (4)
 - `core\theme/` → `places\finanzas\helpers/` (3)
 
@@ -206,16 +206,16 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `.mapa/mapa.json` + `MAPA.md` (53 commits)
+- `.mapa/mapa.json` + `MAPA.md` (54 commits)
 - `EN-HUMANO.md` + `ESTADO.md` (40 commits)
-- `.mapa/mapa.json` + `ESTADO.md` (31 commits)
-- `ESTADO.md` + `MAPA.md` (31 commits)
-- `BITACORA.md` + `ESTADO.md` (29 commits)
+- `.mapa/mapa.json` + `ESTADO.md` (32 commits)
+- `ESTADO.md` + `MAPA.md` (32 commits)
+- `BITACORA.md` + `ESTADO.md` (30 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)
 - `BITACORA.md` + `EN-HUMANO.md` (24 commits)
 - `ESTADO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (23 commits)
+- `ESTADO.md` + `ROADMAP.md` (21 commits)
 - `places/inversiones/cartera/bitacora_de_trabajo.md` + `places/inversiones/cartera/view.py` (21 commits)
-- `ESTADO.md` + `ROADMAP.md` (20 commits)
 
 ## Fuentes externas
 

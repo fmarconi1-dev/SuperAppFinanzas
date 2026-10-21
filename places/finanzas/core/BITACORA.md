@@ -1,6 +1,6 @@
 # places/finanzas/core/
 
-<!-- huella: 7655d14be2e9 -->
+<!-- huella: 70048bfa8d28 -->
 
 Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel.
 
@@ -57,7 +57,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 - **`todas` son las del mensaje** (la lista de Franco + las 15 grandes), no las 150 de `balances todas`. Lo elegido se suma (no se reemplaza) mientras la lista esté vigente (hasta el final del viernes). Lo de un día anterior a hoy no se toma (Franco, 21/10/2026).
 - ⚠️ **Si Google no contesta, no se anota nada** (`elegidos` y `balances_agendados` quedan como estaban): Franco manda lo mismo de nuevo y el Calendar no duplica (la clave es la etiqueta del evento). Lo mismo al deshacer: si Google falla, la tanda sigue sin deshacer.
 - **La ficha de Nasdaq gana sobre la lista** si dice otra fecha (es lo más nuevo), y completa el momento si el calendario decía `sin hora`. Si la ficha no contesta, se agenda con lo de la lista y se avisa (nunca se marca "confirmada" sin saberlo).
-- **Pendiente (no arreglado):** "Ya las tenías" sale de la base (`balances_agendados`), no del Calendar. Si Franco borra un 📊 a mano, elegirlo de nuevo dice "ya las tenías" y no lo vuelve a crear. Arreglo honesto: usar el `creado` que ya devuelve `Codigo.gs` por clave ("ya estaba" si es `false`) y guardar en la tanda solo lo creado, así el Calendar queda como fuente de verdad.
+- **"Ya las tenías" lo dice el Calendar, no la base** (21/10): se le pide todo a `Codigo.gs` y se usa su `creado` por clave. Un 📊 borrado a mano se vuelve a crear; la tanda guarda solo lo creado, así `deshacer` no borra lo que venía de otra tanda. Si Google no confirma una clave, se avisa y no se anota.
 - **La palabra se decide sobre el número que se muestra** (`_reaccion` redondea a un decimal antes de comparar con ±1%): si no, +0,99% salía "neutra (+1,0%)". Lo que Yahoo no da es `s/d` **con el motivo** en el texto, nunca un número viejo; sin el cierre del día, no se pide el posmercado.
 - **Rearmar la misma semana conserva lo elegido** (`armar`): si Franco mandó `balances` el domingo antes de las 20 y eligió, la lista del disparador no se lo borra. Se conserva solo lo que sigue en el calendario.
 - **Dos clases de acciones = un balance**: Nasdaq trae GOOGL y GOOG (FOX/FOXA, NWS/NWSA) con el mismo nombre; va una sola, la de la lista de Franco si está.
@@ -68,6 +68,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 ## Estado
 
 - **Funciona:** en producción.
+- **21/10/2026 (noche):** "ya las tenías" sale del `creado` de `Codigo.gs` (el Calendar), no de `balances_agendados`. Tests nuevos en `tests/test_balances.py`.
 - **21/10/2026 (balances, paso 4, sin desplegar):** `balances.resumen_del_dia`: una línea por empresa del Calendar, solo la reacción (Franco, 21/10: sin ganancia ni ingresos). Pre-apertura → rueda (cierre contra el cierre anterior); post-cierre → posmercado (último del posmercado de ese día contra su cierre); sin hora → las dos. "Neutra" con menos de ±1%. Tests: `tests/test_balances.py` (`PreciosFalsos`).
 - **21/10/2026 (balances, paso 3, sin desplegar):** `balances.responder` **agenda** en Google lo elegido (`📊 MSFT balance (post-cierre)`, `, fecha estimada` si la ficha de Nasdaq lo dice) y guarda la tanda (`balances_agendados`, M24); `deshacer` compara la tanda con el último gasto y el último lote y deshace lo más nuevo (`balances.ultima_tanda` / `deshacer_tanda`). Tests: `tests/test_balances.py` (`AgendaFalsa` se porta como `Codigo.gs`).
 - **21/10/2026 (balances, paso 2, sin desplegar):** `balances.py`: la lista de la semana (la de Franco, `MI_LISTA`, primero; las 15 más grandes del S&P 500 por capitalización; el resto con `balances todas`), la copia del S&P 500 (una vez por mes, la guardada si Wikipedia no contesta, `s/d` si no hay), y la respuesta. Todavía **no agenda**: anota lo elegido (`balances_propuestas.elegidos`, M23). Tests: `tests/test_balances.py`.
