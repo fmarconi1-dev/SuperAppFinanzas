@@ -1,6 +1,6 @@
 # BITÁCORA — changelog narrativo global
 
-<!-- huella: cfa009ce0fc2 -->
+<!-- huella: e6112f12156b -->
 
 Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías).
 
@@ -8,7 +8,7 @@ Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación e
 
 - el arranque de la app, la navegación entre lugares o la restauración de sesión → `app.py`
 - deploy, Docker, Fly.io → `Dockerfile`, `fly.toml`, `docker-entrypoint.sh`, `docs/DEPLOY.md` y `docs/RUNBOOK.md`
-- el arranque de la API de WhatsApp o nginx en el contenedor → `api.py`, `deploy/nginx.conf`, `docker-entrypoint.sh` (código en `core/api/`)
+- el arranque de la API de WhatsApp o nginx en el contenedor → `api.py`, `deploy/nginx.conf`, `docker-entrypoint.sh` (código en `core/api/`). `api.py` conecta lo que vive en `places/` con el servidor: comandos, archivos, briefings y la lista de balances (`_balances`, ADR-0011)
 - cómo se trabaja en este repo → `GUIA-DE-TRABAJO.md`, `claude.md`, `/MAPA.md`
 - qué se hizo y qué sigue → `ESTADO.md` (foto), este archivo (crónica), `EN-HUMANO.md` (en llano)
 - un aviso de Streamlit en `fly logs` que parece error, o la config del servidor → `.streamlit/config.toml`

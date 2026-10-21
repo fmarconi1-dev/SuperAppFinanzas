@@ -1,8 +1,8 @@
 # core/
 
-<!-- huella: 3324e77c0c7a -->
+<!-- huella: 07003e7b2796 -->
 
-Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M22 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias.
+Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M23 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias.
 
 ## Buscar acá si
 
@@ -17,7 +17,7 @@ Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M22 + reparacione
 
 ## Qué hay acá
 
-- `db.py` — conexión, schema completo, las migraciones (M1–M15 y M17–M22; la M16 quedó liberada por ADR-0009), las reparaciones únicas (M3, M7, M8.5), `es_tabla_faltante()` y el backup automático con retención. El hub del repo.
+- `db.py` — conexión, schema completo, las migraciones (M1–M15 y M17–M23; la M16 quedó liberada por ADR-0009), las reparaciones únicas (M3, M7, M8.5), `es_tabla_faltante()` y el backup automático con retención. El hub del repo.
 - `workspaces.py` — lógica del grupo familiar D2 (crear/unirse/salir, código hasheado SHA-256, multi-owner, resolver el activo).
 - `workspaces_ui.py` — badge de modo, switcher del sidebar, activación desde la sesión.
 - `context.py` — los contextvars de usuario y workspace activos. **No importa nada del proyecto**, y esa es su razón de ser.
@@ -37,6 +37,7 @@ Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M22 + reparacione
 
 ## Estado
 
+- **21/10/2026 (balances, paso 2, sin desplegar):** **M23**, aditiva: `balances_sp500` (la copia mensual del S&P 500) y `balances_propuestas` (la lista de la semana, con `elegidos` en JSON; **no** es un lote, ADR-0011).
 - **Funciona:** todo en producción (Fly.io).
 - **20/10/2026 (Fase D, paso 5, sin desplegar):** **M22**, aditiva: `resumenes` (detalle en JSON, estado, lo pagado). El índice único por gasto de `emparejamientos` (M21) suma el rol `resumen`. ⚠️ M21 y M22 todavía no se desplegaron: hasta entonces sus índices se pueden editar en el lugar; **después**, `IF NOT EXISTS` ignora cualquier cambio y un rol nuevo necesita una migración nueva.
 - **19/10/2026 (Fase D, paso 4a, sin desplegar):** **M21**, aditiva: `banco_filas` (en centavos, `UNIQUE` fecha + monto + saldo), `emparejamientos` (FK con `ON DELETE CASCADE` y dos índices únicos parciales: uno a uno por gasto y por fila; el de gasto incluye el rol `anterior` de la guarda del corte), `reglas_comercio`, `reglas_tipo` y `saldos_declarados`.
