@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import json
 import threading
-from datetime import date
+from datetime import date, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -20,11 +21,14 @@ from core.api.balances_fuentes import (
     FilaCalendario,
     FechaAnunciada,
     ListaNoDisponible,
+    PrecioNoDisponible,
     calendario,
     calendario_del_dia,
+    cierres,
     fecha_anunciada,
     lista_sp500,
     ticker_canonico,
+    ultimo_del_posmercado,
 )
 
 
@@ -49,7 +53,7 @@ def html_wikipedia(tickers):
 @pytest.fixture()
 def fuentes(monkeypatch):
     estado = {"dias": {}, "codigo": None, "crudo": None, "wiki": None, "pedidos": [],
-              "agentes": [], "fichas": {}}
+              "agentes": [], "fichas": {}, "yahoo": {}}
 
     class Manejador(BaseHTTPRequestHandler):
         def log_message(self, *a):
@@ -86,6 +90,16 @@ def fuentes(monkeypatch):
                           if texto is not None else None,
                           "status": {"rCode": 200 if texto is not None else 400}}
                 self._mandar(json.dumps(cuerpo).encode())
+            elif partes.path.startswith("/yahoo/"):
+                simbolo = partes.path.split("/")[2]
+                consulta = parse_qs(partes.query)
+                clave = "diario" if consulta.get("interval") == ["1d"] else "intradiario"
+                cuerpo = estado["yahoo"].get((simbolo, clave))
+                if cuerpo is None:
+                    self.send_response(404)
+                    self.end_headers()
+                    return
+                self._mandar(json.dumps(cuerpo).encode())
             elif partes.path == "/w/api.php":
                 cuerpo = {"parse": {"title": "List of S&P 500 companies", "pageid": 2676045,
                                     "text": estado["wiki"]}}
@@ -99,6 +113,7 @@ def fuentes(monkeypatch):
     base = f"http://127.0.0.1:{srv.server_address[1]}"
     monkeypatch.setattr(bf, "NASDAQ_BASE", f"{base}/nasdaq")
     monkeypatch.setattr(bf, "WIKIPEDIA_API", f"{base}/w/api.php")
+    monkeypatch.setattr(bf, "YAHOO_BASE", f"{base}/yahoo")
     yield estado
     srv.shutdown()
     srv.server_close()
@@ -232,3 +247,64 @@ def test_la_ficha_caida_no_se_disimula(fuentes):
     fuentes["codigo"] = 403
     with pytest.raises(CalendarioNoDisponible, match="403"):
         fecha_anunciada("MCD")
+
+
+# ------------------------------------------------------------------ Yahoo
+
+NY = ZoneInfo("America/New_York")
+
+
+def _ts(dia, hora, minuto=0):
+    return int(datetime(2026, 10, dia, hora, minuto, tzinfo=NY).timestamp())
+
+
+def yahoo_diario(cierres_por_dia):
+    return {"chart": {"result": [{
+        "meta": {"symbol": "X"},
+        "timestamp": [_ts(d, 9, 30) for d in cierres_por_dia],
+        "indicators": {"quote": [{"close": list(cierres_por_dia.values())}]}}], "error": None}}
+
+
+def yahoo_intradiario(barras, dias=(19, 20, 21)):
+    """`barras`: [(día, hora, minuto, precio)]. Ventanas de verdad de cada día."""
+    periodos = {k: [[{"start": _ts(d, a), "end": _ts(d, b), "timezone": "EDT"}] for d in dias]
+                for k, (a, b) in {"pre": (4, 9), "regular": (9, 16), "post": (16, 20)}.items()}
+    return {"chart": {"result": [{
+        "meta": {"symbol": "X", "tradingPeriods": periodos},
+        "timestamp": [_ts(d, h, m) for d, h, m, _ in barras],
+        "indicators": {"quote": [{"close": [p for *_, p in barras]}]}}], "error": None}}
+
+
+def test_los_cierres_por_dia_de_nueva_york(fuentes):
+    fuentes["yahoo"][("NFLX", "diario")] = yahoo_diario({19: 69.85, 20: 68.69})
+    assert cierres("NFLX") == {date(2026, 10, 19): 69.85, date(2026, 10, 20): 68.69}
+
+
+def test_el_posmercado_es_el_de_ese_dia(fuentes):
+    """A la mañana siguiente ya corre la pre-apertura: esa barra no cuenta."""
+    fuentes["yahoo"][("NFLX", "intradiario")] = yahoo_intradiario([
+        (20, 15, 55, 68.67), (20, 16, 5, 66.0), (20, 19, 55, 64.718), (20, 20, 0, None),
+        (21, 4, 0, 63.0), (21, 9, 25, 64.3)])
+    assert ultimo_del_posmercado("NFLX", date(2026, 10, 20)) == 64.718
+
+
+def test_un_dia_sin_posmercado(fuentes):
+    fuentes["yahoo"][("NFLX", "intradiario")] = yahoo_intradiario([(20, 15, 55, 68.67)])
+    with pytest.raises(PrecioNoDisponible, match="no operó en el posmercado del 20/10"):
+        ultimo_del_posmercado("NFLX", date(2026, 10, 20))
+    with pytest.raises(PrecioNoDisponible, match="no tiene el posmercado de NFLX del 10/10"):
+        ultimo_del_posmercado("NFLX", date(2026, 10, 10))
+
+
+def test_yahoo_usa_guion_para_las_clases(fuentes):
+    fuentes["yahoo"][("BRK-B", "diario")] = yahoo_diario({20: 480.0})
+    assert cierres("BRK.B") == {date(2026, 10, 20): 480.0}
+    assert fuentes["pedidos"][-1].startswith("/yahoo/BRK-B?range=1mo&interval=1d")
+
+
+def test_yahoo_sin_el_ticker_o_caido(fuentes):
+    with pytest.raises(PrecioNoDisponible, match="404"):
+        cierres("ZZZZQ")
+    fuentes["crudo"] = json.dumps({"chart": {"result": None, "error": {"code": "Not Found"}}}).encode()
+    with pytest.raises(PrecioNoDisponible, match="no tiene ZZZZQ"):
+        cierres("ZZZZQ")

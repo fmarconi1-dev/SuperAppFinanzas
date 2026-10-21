@@ -1,6 +1,6 @@
 # core/api/
 
-<!-- huella: cb92ac1e95a0 -->
+<!-- huella: a98ead57d6ca -->
 
 Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla).
 
@@ -34,6 +34,7 @@ Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webh
 - **Gemini solo extrae filas** (JSON con esquema, temperatura 0). Nada de categorías ni de decidir qué se carga: eso es de `places/finanzas/core/fotos.py`. La clave va en la cabecera `x-goog-api-key`, nunca en la URL (la URL queda en los logs).
 - **Costo cero también acá:** la clave tiene que ser de un proyecto de AI Studio **sin facturación**; el código no puede verificarlo, así que está escrito en `.env.example` y en `ESTADO.md`.
 - `GRAPH_BASE` es una constante del módulo para que los tests apunten a un Meta de mentira local; no la cambies por entorno.
+- **El posmercado se filtra por la ventana de ese día** (`tradingPeriods.post`), nunca "el último precio": a la mañana siguiente ya corre la pre-apertura del otro día. Yahoo usa `BRK-B` donde Nasdaq y Wikipedia usan `BRK.B` (`_simbolo_yahoo`).
 - **La ficha de Nasdaq (`fecha_anunciada`) se lee en prosa** ("is expected\* to report… before market open" contra "is estimated to report…"). Si Nasdaq cambia la redacción, devuelve None: se agenda igual, sin marca de estimada, y el texto dice de dónde salió la fecha.
 - **Nasdaq no contesta sin un User-Agent de navegador**, y Wikipedia pide uno que diga quién pregunta (`balances_fuentes.py`). `api.nasdaq.com` es la API interna de su página, no una publicada: Franco la aceptó el 21/10/2026 (ADR-0011). Un fin de semana viene con `rows: null` (= nadie, no un error). Después de la fecha, Nasdaq ya no dice si fue antes o después de la apertura.
 - **El Python local no valida el certificado de Wikipedia** (almacén viejo, igual que data912). En Fly anda. Para probar contra las fuentes reales desde la PC: `SSL_CERT_FILE` = el `cacert.pem` de `certifi` del venv.
@@ -42,6 +43,7 @@ Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webh
 
 ## Estado
 
+- **21/10/2026 (balances, paso 4, sin desplegar):** `balances_fuentes.cierres` y `ultimo_del_posmercado` (Yahoo `chart`: cierres oficiales con `interval=1d`; el posmercado con `interval=5m&includePrePost=true`, filtrado por la ventana `post` **de ese día** de `meta.tradingPeriods`). `POST /api/balances` acepta `accion: resumen` y lo encola como `balances_resumen`. Tests: `tests/test_balances_fuentes.py` (un Yahoo de mentira) y `tests/test_balances.py`.
 - **21/10/2026 (balances, paso 3, sin desplegar):** `ClienteAgenda.agendar_balances` / `borrar_balances` (acciones nuevas de `Codigo.gs`, sin `id_solicitud`: la clave del evento lo reemplaza) y `balances_fuentes.fecha_anunciada` (la ficha de Nasdaq de cada empresa: estimada o confirmada, y el momento). Tests: `tests/test_agenda_whatsapp.py::test_agendar_y_borrar_balances`, `tests/test_balances_fuentes.py`.
 - **21/10/2026 (balances, paso 2, sin desplegar):** `balances_fuentes.py` (calendario de Nasdaq y S&P 500 de Wikipedia) y `POST /api/balances` (`{"accion": "semana", "lunes", "id"}`, mismo Bearer que los briefings; lo arma `api._balances` y sale por la cola con `tipo='balances'`). Tests: `tests/test_balances_fuentes.py` (fuentes de mentira locales) y los del servidor en `tests/test_balances.py`.
 - **20/10/2026 (Fase D, paso 6, sin desplegar):** `gemini.py`: `ClienteGemini.extraer_filas` (modelo `gemini-3.5-flash-lite` por defecto, `GEMINI_MODELO` para cambiarlo), inyectado desde `api.py` como `lector_fotos`. Tests: `tests/test_fotos.py` (contra un Gemini de mentira).

@@ -1,6 +1,6 @@
 # BITÁCORA — changelog narrativo global
 
-<!-- huella: e6112f12156b -->
+<!-- huella: 09a88edb22a4 -->
 
 Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías).
 
@@ -30,6 +30,7 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
   - 934 passed, 0 skipped.
 - **Paso 2 en producción** (21/10, Franco: "funciona en secretario"; Nasdaq contesta desde Fly).
 - **Paso 3 (en código, sin desplegar):** lo elegido se agenda en el Calendar por `Codigo.gs` (`agendar_balances` / `borrar_balances`), con la clave `TICKER:AAAA-MM-DD` como etiqueta del evento: un reintento no duplica. La ficha de Nasdaq de cada elegida dice si la fecha es estimada y completa el momento. `deshacer` compara la última tanda con el último gasto y el último lote. "Ya las tenías" se decide por lo agendado de verdad, porque lo elegido en el paso 2 nunca llegó a Google. M24. 952 passed, 0 skipped.
+- **Paso 4 (en código, sin desplegar):** el resumen del día, solo la reacción del precio (Franco: "MSFT: posmercado positiva"). `Balances.gs` tiene ahora su propio disparador, `relojDeBalances`: a las 18:30 lee del Calendar los 📊 de hoy pre-apertura y desde las 9:30 los de ayer post-cierre, y se los pasa a `POST /api/balances`. La SuperApp trae de Yahoo el cierre y el posmercado **de la ventana de ese día** (`tradingPeriods`) y encola `📊 Balances del …`. Probado contra Yahoo real (NFLX 20/10: −5,8% en el posmercado). 973 passed, 0 skipped.
 
 ---
 

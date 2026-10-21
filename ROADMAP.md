@@ -73,7 +73,7 @@ La app pasa a ser el secretario personal de Franco: gastos por WhatsApp, agenda 
   - ✅ Paso 1 — ADR-0009 + plan (18/10/2026), aprobados por Franco el 19/10.
   - ✅ Paso 2 — varios gastos en un mensaje (sistema de lotes + bruto), en producción el 19/10 · ✅ 3 — recibir archivos, en producción el 19/10 · ✅ 4a — extracto Galicia y conciliación, en producción el 20/10 · ✅ 4b — FIMA, efectivo y ajuste · ✅ 5 — resúmenes AMEX/VISA · ✅ 6 — fotos con Gemini (falta la clave) · 7 opcional.
 - 🔵 **Balances de la semana por WhatsApp (ADR-0011), en curso desde el 20/10/2026.** El domingo, la lista de empresas que presentan esa semana; contestás cuáles y quedan en tu Calendar; el día del balance, cómo reaccionó el precio. Plan: `docs/PLAN-BALANCES.md`.
-  - ✅ Paso 1 — fuentes verificadas, ADR-0011 y plan, aprobados el 21/10 · ✅ 2 — la lista y la respuesta (en código, 21/10) · ✅ 3 — agendado y `deshacer` (en código, 21/10) · ⬜ 4 — el resumen del día.
+  - ✅ Paso 1 — fuentes verificadas, ADR-0011 y plan, aprobados el 21/10 · ✅ 2 — la lista y la respuesta (en código, 21/10) · ✅ 3 — agendado y `deshacer` (en código, 21/10) · ✅ 4 — el resumen del día (en código, 21/10).
 
 ## ↪️ Fase 5 — Captura *source-first* del Lugar A (ADR-0006) — FUSIONADA en la Fase D (ADR-0009, 18/10/2026)
 

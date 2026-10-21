@@ -40,6 +40,7 @@ from core.api.balances_fuentes import (
     CalendarioNoDisponible,
     FilaCalendario,
     ListaNoDisponible,
+    PrecioNoDisponible,
     ticker_canonico,
 )
 from core.api.google import AgendaNoDisponible, AgendaRechazo
@@ -512,3 +513,79 @@ def deshacer_tanda(conn: sqlite3.Connection, tanda_id: int, *, agenda: Any,
         texto += ("\nYa no estaban (¿los borraste a mano?): "
                   + ", ".join(c.split(":")[0] for c in sorted(no_estaban)) + ".")
     return texto, "deshecho"
+
+
+# ---------------------------------------------------------------------------
+# El resumen del día (paso 4): solo la reacción del precio
+# ---------------------------------------------------------------------------
+#
+# Franco, 21/10/2026: nada de ganancia ni ingresos contra lo esperado; solo
+# cómo reaccionó el precio, con una palabra. Las de antes de la apertura, la
+# **rueda** del día (cierre contra el cierre anterior), a las 18:30. Las de
+# después del cierre, el **posmercado** (el último precio del posmercado de
+# ese día contra su cierre), a la mañana siguiente. Las que no dijeron la hora,
+# las dos. Sin IA: los números son de Yahoo y el texto es fijo.
+
+#: Menos que esto (en %, para los dos lados) es "neutra" (Franco, 21/10/2026).
+UMBRAL_NEUTRA = 1.0
+
+
+def _porcentaje(x: float) -> str:
+    """`4.08` → `+4,1%`; `-2.3` → `−2,3%` (con el signo menos de verdad)."""
+    return f"{'+' if x >= 0 else '−'}{abs(x):.1f}%".replace(".", ",")
+
+
+def _reaccion(nombre: str, pct: Optional[float], motivo: Optional[str]) -> str:
+    if pct is None:
+        return f"{nombre} s/d ({motivo})"
+    pct = round(pct, 1)          # la palabra se decide sobre el número que se muestra
+    if abs(pct) < UMBRAL_NEUTRA:
+        palabra = "neutra"
+    else:
+        palabra = "positiva" if pct > 0 else "negativa"
+    return f"{nombre} {palabra} ({_porcentaje(pct)})"
+
+
+def _linea_resumen(ticker: str, momento: Optional[str], fecha: date, fuentes: Any) -> str:
+    try:
+        cierres = fuentes.cierres(ticker)
+    except PrecioNoDisponible as e:
+        log.error("Sin los cierres de %s: %s", ticker, e)
+        cierres, motivo = None, str(e)
+    else:
+        motivo = None if fecha in cierres else f"Yahoo no tiene el cierre del {fecha:%d/%m}"
+    cierre = cierres.get(fecha) if cierres else None
+
+    partes = []
+    if momento in ("pre", None):
+        anteriores = [d for d in (cierres or {}) if d < fecha]
+        rueda = None
+        if cierre is not None and anteriores:
+            rueda = (cierre / cierres[max(anteriores)] - 1) * 100
+        elif cierre is not None:
+            motivo = "Yahoo no tiene el cierre anterior"
+        partes.append(_reaccion("rueda", rueda, motivo))
+    if momento in ("post", None):
+        post, motivo_post = None, motivo
+        if cierre is not None:
+            try:
+                post = (fuentes.ultimo_del_posmercado(ticker, fecha) / cierre - 1) * 100
+            except PrecioNoDisponible as e:
+                log.error("Sin el posmercado de %s: %s", ticker, e)
+                motivo_post = str(e)
+        partes.append(_reaccion("posmercado", post, motivo_post))
+    return f"{ticker} ({_MOMENTO[momento]}): " + ", ".join(partes) + "."
+
+
+def resumen_del_dia(fecha: date, empresas: list[dict], fuentes: Any) -> str:
+    """El mensaje `📊 Balances` de un día: una línea por empresa. `fuentes` trae los precios.
+
+    `empresas` viene del Calendar (la fuente de verdad: lo que Franco agendó),
+    cada una con `ticker` y `momento` (`pre`, `post` o vacío). Si Yahoo no
+    contesta, esa cifra sale `s/d` con el motivo: nunca un número viejo.
+    """
+    lineas = [f"📊 *Balances del {_dia(fecha)}*"]
+    for e in empresas:
+        lineas.append(_linea_resumen(ticker_canonico(e["ticker"]), e.get("momento") or None,
+                                     fecha, fuentes))
+    return "\n".join(lineas)

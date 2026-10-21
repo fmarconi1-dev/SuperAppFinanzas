@@ -1,4 +1,4 @@
-"""Fuentes de los balances de la semana (ADR-0011): el calendario y el S&P 500.
+"""Fuentes de los balances de la semana (ADR-0011): el calendario, el S&P 500 y los precios.
 
 Las fechas salen de una fuente de datos, nunca de un LLM. Verificadas el 20/10/2026:
 
@@ -16,9 +16,12 @@ Las fechas salen de una fuente de datos, nunca de un LLM. Verificadas el 20/10/2
   al agendar, solo para las elegidas.
 * **Wikipedia** (`List_of_S&P_500_companies`, tabla `constituents`): la lista
   del S&P 500. Se refresca una vez por mes (eso lo decide quien la usa).
+* **Yahoo** (`chart`): el cierre y el posmercado del día del balance, para el
+  resumen del día (la reacción del precio).
 
-Si una fuente no contesta: `CalendarioNoDisponible` o `ListaNoDisponible`, con
-el motivo. Nunca una lista vacía en silencio ("No contestó" ≠ "no existe").
+Si una fuente no contesta: `CalendarioNoDisponible`, `ListaNoDisponible` o
+`PrecioNoDisponible`, con el motivo. Nunca una lista vacía ni un número viejo
+en silencio ("No contestó" ≠ "no existe").
 """
 
 from __future__ import annotations
@@ -29,9 +32,10 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from html import unescape
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 #: Constantes del módulo (no del entorno) para que los tests apunten a fuentes
 #: de mentira locales.
@@ -222,3 +226,74 @@ def lista_sp500() -> list[str]:
         raise ListaNoDisponible(
             f"la tabla de Wikipedia trajo {len(tickers)} tickers (espero unos 500)")
     return tickers
+
+
+# ---------------------------------------------------------------------------
+# Precios (Yahoo): la reacción del día del balance
+# ---------------------------------------------------------------------------
+#
+# El `chart` de Yahoo (ya fuente probada en `Mercado.gs`, ADR-0010). Con
+# `interval=1d` da los cierres oficiales; con `interval=5m&includePrePost=true`
+# da las barras de cinco días con las ventanas `pre`/`regular`/`post` de cada
+# día en `meta.tradingPeriods` (horario de Nueva York, con los feriados y los
+# días de cierre temprano resueltos por Yahoo). Verificado el 21/10/2026: NFLX
+# cerró el 20/10 en 68,69 y terminó el posmercado en 64,72.
+
+YAHOO_BASE = "https://query1.finance.yahoo.com/v8/finance/chart"
+NUEVA_YORK = ZoneInfo("America/New_York")
+
+
+class PrecioNoDisponible(Exception):
+    """Yahoo no contestó, o no tiene el precio de ese día."""
+
+
+def _simbolo_yahoo(ticker: str) -> str:
+    """`BRK.B` → `BRK-B` (Yahoo usa guion para las clases)."""
+    return urllib.parse.quote(ticker_canonico(ticker).replace(".", "-"), safe="-")
+
+
+def _chart(ticker: str, consulta: str) -> dict:
+    datos = _pedir(f"{YAHOO_BASE}/{_simbolo_yahoo(ticker)}?{consulta}", UA_NAVEGADOR,
+                   PrecioNoDisponible, "Yahoo")
+    try:
+        return datos["chart"]["result"][0]
+    except (KeyError, IndexError, TypeError):
+        raise PrecioNoDisponible(f"Yahoo no tiene {ticker}") from None
+
+
+def _dia_ny(segundos: int) -> date:
+    return datetime.fromtimestamp(segundos, NUEVA_YORK).date()
+
+
+def cierres(ticker: str) -> dict[date, float]:
+    """Los cierres oficiales de la rueda del último mes, por día (de Nueva York)."""
+    r = _chart(ticker, "range=1mo&interval=1d")
+    tiempos = r.get("timestamp") or []
+    try:
+        valores = r["indicators"]["quote"][0]["close"]
+    except (KeyError, IndexError, TypeError):
+        raise PrecioNoDisponible(f"Yahoo trajo los cierres de {ticker} rotos") from None
+    return {_dia_ny(t): float(v) for t, v in zip(tiempos, valores) if v is not None}
+
+
+def ultimo_del_posmercado(ticker: str, fecha: date) -> float:
+    """El último precio dentro del posmercado de `fecha` (16:00–20:00 de Nueva York).
+
+    Se filtra por la ventana de **ese** día: a la mañana siguiente ya corre la
+    pre-apertura del otro, y "el último precio" sería otra cosa.
+    """
+    r = _chart(ticker, "range=5d&interval=5m&includePrePost=true")
+    ventanas = ((r.get("meta") or {}).get("tradingPeriods") or {}).get("post") or []
+    ventana = next((v[0] for v in ventanas
+                    if v and isinstance(v[0], dict) and _dia_ny(v[0]["start"]) == fecha), None)
+    if ventana is None:
+        raise PrecioNoDisponible(f"Yahoo no tiene el posmercado de {ticker} del {fecha:%d/%m}")
+    try:
+        valores = r["indicators"]["quote"][0]["close"]
+    except (KeyError, IndexError, TypeError):
+        raise PrecioNoDisponible(f"Yahoo trajo las barras de {ticker} rotas") from None
+    dentro = [v for t, v in zip(r.get("timestamp") or [], valores)
+              if v is not None and ventana["start"] <= t < ventana["end"]]
+    if not dentro:
+        raise PrecioNoDisponible(f"{ticker} no operó en el posmercado del {fecha:%d/%m}")
+    return float(dentro[-1])

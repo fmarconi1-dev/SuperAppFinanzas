@@ -21,6 +21,7 @@ from core.api.balances_fuentes import (
     FechaAnunciada,
     FilaCalendario,
     ListaNoDisponible,
+    PrecioNoDisponible,
 )
 from core.api.google import AgendaNoDisponible, AgendaRechazo
 from core.api.servidor import crear_servidor
@@ -596,6 +597,9 @@ def entorno(tmp_path, monkeypatch):
     enviados: list[tuple[str, str]] = []
 
     def armar(conn, datos, user_id):
+        if datos.get("accion") == "resumen":
+            return balances.resumen_del_dia(date.fromisoformat(datos["fecha"]), datos["empresas"],
+                                            PreciosFalsos())
         if datos.get("lunes") != LUNES.isoformat():
             raise ValueError("lunes equivocado")
         return balances.armar(conn, workspace_id=resolve_workspace_id(conn, user_id),
@@ -682,3 +686,114 @@ def test_el_lunes_de_api_tiene_que_ser_lunes(db):
         api._balances(db, {"lunes": "2026-10-27"}, UID)
     with pytest.raises(ValueError, match="AAAA-MM-DD"):
         api._balances(db, {"lunes": "27/10"}, UID)
+
+
+# ------------------------------------------------------------------ el resumen del día (paso 4)
+
+MIERCOLES = date(2026, 10, 28)
+
+
+class PreciosFalsos:
+    """Cierres y posmercado como los daría Yahoo. Un valor Exception se tira."""
+
+    def __init__(self, cierres=None, post=None):
+        self._cierres = cierres if cierres is not None else {
+            "MSFT": {date(2026, 10, 27): 400.0, MIERCOLES: 410.0},
+            "KO": {date(2026, 10, 27): 70.0, MIERCOLES: 68.39},
+            "CAT": {date(2026, 10, 27): 300.0, MIERCOLES: 302.7},
+        }
+        self._post = post if post is not None else {"MSFT": 426.81, "CAT": 303.0}
+        self.pedidos: list[tuple] = []
+
+    def cierres(self, ticker):
+        self.pedidos.append(("cierres", ticker))
+        r = self._cierres.get(ticker, PrecioNoDisponible("Yahoo respondió HTTP 404"))
+        if isinstance(r, Exception):
+            raise r
+        return r
+
+    def ultimo_del_posmercado(self, ticker, fecha):
+        self.pedidos.append(("post", ticker, fecha))
+        r = self._post.get(ticker, PrecioNoDisponible(f"{ticker} no operó en el posmercado"))
+        if isinstance(r, Exception):
+            raise r
+        return r
+
+
+def test_el_resumen_como_lo_pidio_franco():
+    texto = balances.resumen_del_dia(MIERCOLES, [{"ticker": "MSFT", "momento": "post"},
+                                                 {"ticker": "KO", "momento": "pre"}],
+                                     PreciosFalsos())
+    assert texto == ("📊 *Balances del mié 28/10*\n"
+                     "MSFT (post-cierre): posmercado positiva (+4,1%).\n"
+                     "KO (pre-apertura): rueda negativa (−2,3%).")
+
+
+def test_sin_hora_lleva_la_rueda_y_el_posmercado():
+    texto = balances.resumen_del_dia(MIERCOLES, [{"ticker": "CAT", "momento": ""}], PreciosFalsos())
+    assert texto.endswith("CAT (sin hora): rueda neutra (+0,9%), posmercado neutra (+0,1%).")
+
+
+@pytest.mark.parametrize("cierre, palabra", [(100.94, "neutra (+0,9%)"),
+                                              (100.96, "positiva (+1,0%)"),
+                                              (101.0, "positiva (+1,0%)"),
+                                              (99.06, "neutra (−0,9%)"),
+                                              (99.0, "negativa (−1,0%)"),
+                                              (100.0, "neutra (+0,0%)")])
+def test_neutra_si_se_movio_menos_de_uno_por_ciento(cierre, palabra):
+    precios = PreciosFalsos(cierres={"X": {date(2026, 10, 27): 100.0, MIERCOLES: cierre}})
+    texto = balances.resumen_del_dia(MIERCOLES, [{"ticker": "X", "momento": "pre"}], precios)
+    assert texto.endswith(f"X (pre-apertura): rueda {palabra}.")
+
+
+def test_la_rueda_es_contra_el_cierre_anterior_aunque_haya_un_feriado():
+    precios = PreciosFalsos(cierres={"X": {date(2026, 10, 23): 100.0, date(2026, 10, 26): 90.0,
+                                           MIERCOLES: 99.0}})
+    texto = balances.resumen_del_dia(MIERCOLES, [{"ticker": "X", "momento": "pre"}], precios)
+    assert "rueda positiva (+10,0%)" in texto                 # contra el 26, no contra el 23
+
+
+def test_lo_que_yahoo_no_da_es_sd_con_el_motivo():
+    precios = PreciosFalsos(cierres={"MSFT": {MIERCOLES: 410.0},
+                                     "KO": {date(2026, 10, 27): 70.0}},
+                            post={"MSFT": PrecioNoDisponible("Yahoo respondió HTTP 429")})
+    texto = balances.resumen_del_dia(MIERCOLES, [{"ticker": "MSFT", "momento": "post"},
+                                                 {"ticker": "KO", "momento": "pre"},
+                                                 {"ticker": "ZZZZ", "momento": "pre"}], precios)
+    assert "MSFT (post-cierre): posmercado s/d (Yahoo respondió HTTP 429)." in texto
+    assert "KO (pre-apertura): rueda s/d (Yahoo no tiene el cierre del 28/10)." in texto
+    assert "ZZZZ (pre-apertura): rueda s/d (Yahoo respondió HTTP 404)." in texto
+
+
+def test_sin_cierre_del_dia_no_se_pide_el_posmercado():
+    precios = PreciosFalsos(cierres={"MSFT": {date(2026, 10, 27): 400.0}})
+    texto = balances.resumen_del_dia(MIERCOLES, [{"ticker": "MSFT", "momento": "post"}], precios)
+    assert "posmercado s/d (Yahoo no tiene el cierre del 28/10)" in texto
+    assert ("post", "MSFT", MIERCOLES) not in precios.pedidos
+
+
+RESUMEN_POST = {"accion": "resumen", "fecha": "2026-10-28", "tanda": "post",
+                "empresas": [{"ticker": "MSFT", "momento": "post"}],
+                "id": "resumen-post-2026-10-28"}
+
+
+def test_el_resumen_del_dia_va_a_la_cola_aparte(entorno):
+    codigo, r = _post(entorno["url"], RESUMEN_POST)
+    assert codigo == 200 and r["estado"] == "en_cola"
+    (fila,) = _salientes(entorno["db"])
+    assert fila["tipo"] == "balances_resumen" and fila["id_origen"] == "resumen-post-2026-10-28"
+    assert fila["texto"] == ("📊 *Balances del mié 28/10*\n"
+                             "MSFT (post-cierre): posmercado positiva (+4,1%).")
+    assert _post(entorno["url"], RESUMEN_POST)[1]["repetido"] is True
+    assert len(_salientes(entorno["db"])) == 1
+
+
+@pytest.mark.parametrize("datos", [
+    {"accion": "resumen", "fecha": "2026-10-28", "empresas": []},
+    {"accion": "resumen", "fecha": "2026-10-28", "empresas": [{"ticker": "MSFT", "momento": "x"}]},
+    {"accion": "resumen", "fecha": "2026-10-28", "empresas": [{"ticker": " ", "momento": "pre"}]},
+    {"accion": "resumen", "fecha": "28/10", "empresas": [{"ticker": "MSFT", "momento": "pre"}]},
+])
+def test_el_resumen_de_api_valida_lo_que_llega(db, datos):
+    with pytest.raises(ValueError):
+        api._balances(db, datos, UID)

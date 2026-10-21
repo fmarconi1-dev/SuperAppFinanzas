@@ -9,6 +9,30 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 21 de octubre de 2026 (noche) — El día del balance, cómo reaccionó el precio
+
+**Qué se hizo.** El día que presenta una de las empresas que tenés en el Calendar, te llega un mensaje aparte, sin IA, con una línea por empresa:
+
+```
+📊 Balances del mié 28/10
+MSFT (post-cierre): posmercado positiva (+4,1%).
+KO (pre-apertura): rueda negativa (−2,3%).
+```
+
+- **Las que presentan antes de que abra el mercado** te llegan a partir de las 18:30, con cómo cerró ese día contra el anterior.
+- **Las que presentan después del cierre** te llegan a la mañana siguiente, desde las 9:30, con cuánto se movió después del cierre. Se toma solo ese tramo, no lo que se movió a la mañana siguiente.
+- **"Neutra"** si se movió menos de 1% para cualquier lado.
+- **Si Yahoo no da el precio**, dice "s/d" y por qué. Nunca un número viejo.
+- **Tiene su propio reloj:** no depende de que llegue el informe de la mañana de Gemini.
+
+Lo probé con los precios reales del 20/10: Netflix presentó después del cierre y en el posmercado cayó 5,8%.
+
+**Para qué te sirve.** Te enterás de cómo le fue a cada balance que te interesa, sin buscarlo.
+
+**Qué sigue.** Publicar la app y pegar en Google tres archivos del Apps Script, con un paso extra: instalar el reloj nuevo (un clic en el editor). Con eso, los balances de la semana quedan completos.
+
+---
+
 ## 21 de octubre de 2026 (más tarde) — Los balances elegidos van a tu Google Calendar
 
 **Qué se hizo.** Cuando contestás la lista (*1 3 7*, tickers o *todas*), el Secretario pone cada empresa en tu Google Calendar como un evento de todo el día: "📊 MSFT balance (post-cierre)". Antes de agendar, mira en Nasdaq si la fecha la anunció la empresa o es una estimación, y si es estimada lo dice en el título. *deshacer* saca del Calendar lo último que agendó.

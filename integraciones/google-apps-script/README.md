@@ -6,7 +6,7 @@ Código que corre en **Google Apps Script**, no en Fly. Vive en el repo para ver
 |---|---|
 | `Reenvio.gs` | Reenvío del briefing matutino de Gemini (Gmail → SuperApp → WhatsApp), con el tablero de `Mercado.gs`, y envío del cierre de las 18:30. **Reemplaza al script de CallMeBot.** |
 | `Mercado.gs` | Números de mercado armados por código (ADR-0010): el tablero del matutino y el cierre entero. Va en el **mismo proyecto** que `Reenvio.gs` (se necesitan los dos). |
-| `Balances.gs` | El reloj de los balances de la semana (ADR-0011): el domingo desde las 20:00 le pide a la SuperApp la lista de la semana que viene (`POST /api/balances`). Va en el **mismo proyecto** que `Reenvio.gs` y `Mercado.gs`; lo llama el mismo disparador. |
+| `Balances.gs` | El reloj de los balances de la semana (ADR-0011), con disparador propio: la lista del domingo y el resumen del día (lee los 📊 del Calendar). Va en el **mismo proyecto** que `Reenvio.gs` y `Mercado.gs`. |
 | `Codigo.gs` | Agenda: webhook SuperApp → Calendar/Tasks, para los comandos `evento:` / `tarea:` / `agenda`. Va en el **mismo proyecto** que `Reenvio.gs` y se publica como aplicación web. |
 | `appsscript.json` | Manifiesto: zona horaria Buenos Aires, servicio avanzado **Tasks**, web app. |
 
@@ -113,11 +113,22 @@ Una fuente que falla sale como `s/d` en el texto y queda en el registro (`Mercad
 3. Corré a mano **`instalarDisparadores`**: deja un único disparador cada 10 minutos. **El que venía del script de CallMeBot corría cada una hora** (visto el 20/10/2026 en *Activadores* y *Ejecuciones*: corridas a las :02). Con ese, el matutino salía hasta una hora después de llegar el mail y el cierre a las 19:02. Para verificar, en *Ejecuciones* las corridas tienen que aparecer cada 10 minutos.
 4. En Gemini: pegá el pedido de `docs/PEDIDO-GEMINI.md`, que da de baja el cierre y rearma el matutino.
 
-## Balances de la semana (`Balances.gs`, 21/10/2026)
+## Balances de la semana (`Balances.gs`, ADR-0011)
 
-El domingo desde las 20:00, la primera corrida del disparador de cada 10 minutos le pide a la SuperApp la lista de la semana que viene: `POST /api/balances` con `{"accion": "semana", "lunes": "AAAA-MM-DD", "id": "balances-AAAA-MM-DD"}` y el mismo `SUPERAPP_TOKEN`. La SuperApp trae el calendario de Nasdaq y arma la lista; acá no se trae ningún dato. Si la SuperApp contesta `ok: true`, se guarda la propiedad `ULTIMO_BALANCES`; si no (por ejemplo, un 503 porque Nasdaq no anduvo), la próxima corrida reintenta.
+`Balances.gs` tiene **su propio disparador** de cada 10 minutos (`relojDeBalances`), aparte del de los mails de Gemini: si un día no llega el matutino, los balances salen igual. Acá no se trae ningún dato de mercado; los precios los trae la SuperApp.
 
-**Instalar:** agregá un archivo **`Balances.gs`** y pegá el de acá, y **reemplazá `Reenvio.gs`** (ahora llama a `balancesPendientes_`). No hace falta un disparador nuevo ni publicar una versión de la aplicación web (eso es solo para `Codigo.gs`). Para probarlo sin esperar al domingo, corré `pedirBalancesAhora` desde el editor: pide la semana del próximo lunes con un `id` nuevo.
+| Cuándo | Qué hace | `POST /api/balances` | Propiedad |
+|---|---|---|---|
+| Domingo desde las 20:00 | Pide la lista de la semana que viene | `{"accion": "semana", "lunes", "id": "balances-AAAA-MM-DD"}` | `ULTIMO_BALANCES` |
+| Lunes a viernes desde las 18:30 | Lee del Calendar los 📊 de **hoy** marcados pre-apertura y pide el resumen (rueda) | `{"accion": "resumen", "fecha", "tanda": "pre", "empresas": [{"ticker", "momento"}], "id": "resumen-pre-AAAA-MM-DD"}` | `ULTIMO_RESUMEN_PRE` |
+| Todos los días desde las 9:30 | Lee los 📊 de **ayer** marcados post-cierre o sin hora y pide el resumen (posmercado) | ídem con `"tanda": "post"` | `ULTIMO_RESUMEN_POST` |
+
+Los 📊 son los eventos con la etiqueta `balance` (la pone `Codigo.gs` al agendar); el momento sale de la etiqueta `balance_momento`. Un día sin 📊 no manda nada. Si la SuperApp no contesta `ok: true`, la propiedad no se marca y la próxima corrida reintenta; la SuperApp no repite un `id` que ya recibió.
+
+**Instalar (paso 4):**
+1. Reemplazá **`Balances.gs`** y **`Reenvio.gs`** por los de acá. `Reenvio.gs` ya no llama a los balances: lo hace el disparador propio.
+2. Corré **`instalarDisparadorBalances`** una vez desde el editor. Google puede pedir permiso para Calendar.
+3. Para mirar qué 📊 ve hoy y ayer sin mandar nada: **`probarBalancesDelDia`**. Para pedir la lista ya: `pedirBalancesAhora`.
 
 **Paso 3 (agendado):** reemplazá **`Codigo.gs`** por el de acá y publicá una **versión nueva** de la implementación: Implementar → Gestionar implementaciones → editar → Versión: nueva → Implementar. **Sin la versión nueva, la URL `/exec` sigue sirviendo el código viejo**, que no conoce `agendar_balances`, y el Secretario contesta "No pude agendar en tu Calendar (accion_invalida…)". La URL no cambia, así que no hay que tocar nada en Fly.
 

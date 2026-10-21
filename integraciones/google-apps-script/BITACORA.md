@@ -57,6 +57,8 @@ Resumen: Puente Google ↔ SuperApp en Apps Script: reenvía el briefing de Gmai
 
 - **21/10/2026 — `Codigo.gs`, balances paso 3:** `agendar_balances` y `borrar_balances`. Evento de día entero en el calendario principal con dos etiquetas (`balance` = `TICKER:AAAA-MM-DD`, `balance_momento`); antes de crear se busca la etiqueta en ese día (no duplica, sin depender del caché de 6 h). Van bajo el lock del `doPost`. Probado con QuickJS y un Calendar simulado: crea, el reintento devuelve el mismo, rechaza claves malas, borra y avisa lo que no estaba. **Hay que publicar una versión nueva de la implementación.**
 
+- **21/10/2026 — `Balances.gs`, balances paso 4:** disparador propio (`relojDeBalances`, cada 10 minutos, `instalarDisparadorBalances`), separado de los mails de Gemini (Franco: "uno aparte"). Además de la lista del domingo, pide el resumen del día: a las 18:30 los 📊 de hoy pre-apertura; desde las 9:30 los de ayer post-cierre o sin hora (`ULTIMO_RESUMEN_PRE` / `ULTIMO_RESUMEN_POST`). `Reenvio.gs` vuelve a no saber nada de los balances. Cada paso del reloj va en su try/catch: un error de la lista no tapa el resumen. Simulado con QuickJS y un Calendar falso (horarios, 503 que reintenta, eventos ajenos que no cuentan). **Sin pegar en Google todavía.**
+
 ## Proximo paso
 
 Instalarlo siguiendo el `README.md` cuando arranque la Fase B (briefing + Calendar/Tasks), y correr `probarLecturas` / `probarAcortador` desde el editor.

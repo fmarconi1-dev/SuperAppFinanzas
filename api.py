@@ -41,12 +41,25 @@ def _componer(conn, texto: str, tipo: str, user_id: int) -> str:
     return briefing.componer(conn, texto, tipo, user_id=user_id, hoy=ahora_ar().date())
 
 
-def _balances(conn, datos: dict, user_id: int) -> str:
-    # La lista del domingo (ADR-0011): calendario de Nasdaq y S&P 500 de Wikipedia.
+def _fecha(datos: dict, campo: str) -> date:
     try:
-        lunes = date.fromisoformat(str(datos.get("lunes")))
+        return date.fromisoformat(str(datos.get(campo)))
     except ValueError:
-        raise ValueError("'lunes' tiene que ser una fecha AAAA-MM-DD") from None
+        raise ValueError(f"'{campo}' tiene que ser una fecha AAAA-MM-DD") from None
+
+
+def _balances(conn, datos: dict, user_id: int) -> str:
+    # Balances (ADR-0011). "resumen": el del día, con los 📊 que el Apps Script
+    # leyó del Calendar y los precios de Yahoo. "semana": la lista del domingo,
+    # con el calendario de Nasdaq y el S&P 500 de Wikipedia.
+    if datos.get("accion") == "resumen":
+        empresas = datos.get("empresas")
+        if not isinstance(empresas, list) or not 1 <= len(empresas) <= 60 or not all(
+                isinstance(e, dict) and isinstance(e.get("ticker"), str) and e["ticker"].strip()
+                and e.get("momento", "") in ("pre", "post", "", None) for e in empresas):
+            raise ValueError("'empresas' tiene que ser una lista de 1 a 60 {ticker, momento}")
+        return balances.resumen_del_dia(_fecha(datos, "fecha"), empresas, balances_fuentes)
+    lunes = _fecha(datos, "lunes")
     if lunes.weekday() != 0:
         raise ValueError(f"{lunes} no es lunes")
     return balances.armar(conn, workspace_id=resolve_workspace_id(conn, user_id), lunes=lunes,

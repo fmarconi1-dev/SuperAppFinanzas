@@ -8,7 +8,7 @@ Escucha en ``127.0.0.1:8000``; nginx le pasa todo lo que empieza con
     POST /api/whatsapp    → mensajes entrantes, firmados por Meta
     GET  /api/privacidad  → política de privacidad (Meta la pide para el modo Live)
     POST /api/briefing    → briefings de Gemini (Fase B), con Bearer SUPERAPP_API_TOKEN
-    POST /api/balances    → la lista de balances del domingo (ADR-0011), mismo Bearer
+    POST /api/balances    → balances (ADR-0011): la lista del domingo y el resumen del día, mismo Bearer
 
 **Flujo de un mensaje** (el orden importa):
 
@@ -94,7 +94,7 @@ NO_ENTIENDO_ESTE_TIPO = ("Por ahora entiendo texto, archivos (el extracto en Exc
                          "resumen en PDF) y fotos. Mandá *ayuda* para ver cómo cargar.")
 #: (conexión, texto de Gemini, tipo, user_id) → texto final. `ValueError` si no sirve.
 Componer = Callable[[sqlite3.Connection, str, str, int], str]
-#: (conexión, cuerpo del POST, user_id) → texto de la lista de balances (ADR-0011).
+#: (conexión, cuerpo del POST, user_id) → texto de la lista de balances o del resumen (ADR-0011).
 #: `ValueError` si el pedido no sirve; `CalendarioNoDisponible` si Nasdaq no contestó.
 ArmarBalances = Callable[[sqlite3.Connection, dict, int], str]
 
@@ -585,21 +585,26 @@ class _Manejador(BaseHTTPRequestHandler):
         self._json(200, {"ok": True, **resultado})
 
     def _post_balances(self) -> None:
-        """La lista de balances del domingo (ADR-0011): la pide el Apps Script, que pone el reloj.
+        """Balances (ADR-0011): el Apps Script pone el reloj y la SuperApp arma el mensaje.
 
-        `{"accion": "semana", "lunes": "AAAA-MM-DD", "id": "balances-AAAA-MM-DD"}`.
+        * `{"accion": "semana", "lunes": "AAAA-MM-DD", "id": …}`: la lista del domingo.
+        * `{"accion": "resumen", "fecha": "AAAA-MM-DD", "empresas": [{"ticker",
+          "momento"}], "id": …}`: el resumen del día (los 📊 que leyó del Calendar).
+
         Un `id` que ya llegó no rearma nada (si no, la lista guardada cambiaría
         y los números de la que Franco ya tiene dejarían de coincidir). Si
-        Nasdaq no contesta: 503, y el Apps Script reintenta a los 10 minutos.
+        Nasdaq no contesta la lista: 503, y el Apps Script reintenta a los 10
+        minutos. En el resumen, un precio que Yahoo no da sale `s/d` en el texto.
         """
         leido = self._post_autorizado("/api/balances", self.server.balances is not None)
         if leido is None:
             return
         cfg, datos, user_id = leido
         id_origen = datos.get("id")
-        if datos.get("accion") != "semana" or not isinstance(id_origen, str) or not id_origen:
+        tipo = {"semana": "balances", "resumen": "balances_resumen"}.get(datos.get("accion"))
+        if tipo is None or not isinstance(id_origen, str) or not id_origen:
             self._json(400, {"ok": False, "error": "parametros_invalidos",
-                             "detalle": "hacen falta accion 'semana' e id"})
+                             "detalle": "hacen falta accion ('semana' o 'resumen') e id"})
             return
 
         set_current_workspace_id(cfg.workspace_id)
@@ -624,7 +629,7 @@ class _Manejador(BaseHTTPRequestHandler):
             conn.close()
             set_current_workspace_id(None)
 
-        resultado = self.server.encolar_saliente(cfg, "balances", texto, id_origen)
+        resultado = self.server.encolar_saliente(cfg, tipo, texto, id_origen)
         self._json(200, {"ok": True, **resultado})
 
 

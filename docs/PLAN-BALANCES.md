@@ -1,6 +1,6 @@
 # Plan — Balances de la semana por WhatsApp
 
-**Estado:** ✅ paso 1 aprobado (21/10/2026) · ✅ paso 2 en producción (21/10) · ✅ paso 3 en código (21/10) · ⬜ paso 4.
+**Estado:** ✅ paso 1 aprobado (21/10/2026) · ✅ paso 2 en producción (21/10) · ✅ paso 3 en código (21/10) · ✅ paso 4 en código (21/10).
 **Lo decidido antes:** `MEJORAS.md`, entrada "Balances de la semana por WhatsApp" (universo, lista, formato, cuándo llega).
 **Decisión de arquitectura:** ADR-0011. **Relacionado:** ADR-0008 (canal, costo cero), ADR-0010 (números de mercado por código), `docs/WHATSAPP-CANAL.md`.
 
@@ -93,7 +93,7 @@
 
 ### Paso 4 — El resumen del día (solo la reacción)
 
-- **Disparo propio** en el Apps Script:
+- **Disparo propio** en el Apps Script (`relojDeBalances`, cada 10 minutos; también hace la lista del domingo, que sale de `Reenvio.gs`):
   - Desde las 18:30 de un día hábil: los 📊 de **hoy** marcados pre-apertura.
   - Desde las 9:30: los 📊 de **ayer** marcados post-cierre.
   - Lee el Calendar y manda `POST /api/balances` `{"accion": "resumen", "fecha", "empresas": [{"ticker", "momento"}], "id"}`.
@@ -107,7 +107,9 @@
   - **Posmercado** (post-cierre): el último precio **dentro de la ventana `post` del día del balance** (16:00–20:00 de Nueva York), filtrado por la hora de cada barra, contra el cierre de ese día. A la mañana siguiente ya corre la pre-apertura del otro día.
   - **Neutra:** menos de ±1%.
   - Si Yahoo no contesta: `s/d`, con la excepción en el log.
-- **Antes de codearlo:** probar Yahoo desde Fly y confirmar con Franco la lectura del punto 5.
+- **Sin hora:** la rueda y el posmercado, a la mañana siguiente.
+- La palabra se decide sobre el número redondeado que se muestra.
+- **Confirmado por Franco (21/10):** el formato. **Yahoo desde Fly: sin probar**; la primera corrida real es la prueba (si falla, sale `s/d` con el motivo).
 
 ---
 

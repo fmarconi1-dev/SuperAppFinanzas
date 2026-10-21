@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-21 13:25 UTC · 116 archivos · 24,731 LOC -->
+<!-- 2026-10-21 13:34 UTC · 116 archivos · 25,092 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-21 7ce098c fix: rearmar la lista de la misma semana conserva lo elegido · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-21 f122536 feat: los balances elegidos se agendan en Google Calendar, con deshacer · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -133,15 +133,15 @@ Rama `main` — ultimo commit: 2026-10-21 7ce098c fix: rearmar la lista de la mi
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 41 | 8,804 | ok |
-| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 21 | 6,859 | ok |
+| `tests/` | La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 41 | 8,995 | ok |
+| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 21 | 6,936 | ok |
 | `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M24 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,895 | ok |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | ok |
-| `core\api/` | API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla). | 8 | 1,569 | ok |
+| `core\api/` | API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla). | 8 | 1,649 | ok |
 | `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa. | 7 | 1,357 | ok |
 | `core\theme/` | Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semántica + template Plotly unificado, ajustes responsive y logo. | 5 | 710 | ok |
 | `core\auth/` | Autenticación compartida: usuarios con bcrypt, pantalla de login/signup y tokens de sesión firmados. (Los contextvars de usuario/workspace viven en `core/context.py`.) | 4 | 422 | ok |
-| `./` | Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías). | 5 | 334 | ok |
+| `./` | Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías). | 5 | 347 | ok |
 | `places\finanzas\helpers/` | Utilidades de las vistas: formateo es-AR de montos, inyección de HTML y el tour guiado de bienvenida. | 4 | 278 | ok |
 | `places\inicio/` | Lugar Inicio — la pantalla principal de Secretario (Fase C, ADR-0008): saludo, **saldo de la cuenta** en grande, gastos/ingresos/movimientos del mes contra el mismo período del anterior, la semana y las tareas de Google (con tilde para completarlas), últimos movimientos y estado del Secretario. | 2 | 255 | ok |
 | `places\inicio\core/` | La lógica del Inicio, **pura y sin Streamlit**: los números del mes y el saldo (`resumen.py`) y la semana y las tareas de Google, listas para mostrar (`semana.py`). La pantalla está en `../home.py`. | 3 | 231 | ok |
@@ -214,9 +214,9 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 ## Fuentes externas
 
 - `superapp-finanzas.fly.dev` — `docs\DEPLOY.md`, `docs\RUNBOOK.md`, `docs\WHATSAPP-CANAL.md`
+- `query1.finance.yahoo.com` — `core\api\balances_fuentes.py`, `docs\PEDIDO-GEMINI-CIERRE.md`, `integraciones\google-apps-script\Mercado.gs`
 - `api.argentinadatos.com` — `core\api\cotizaciones.py`, `docs\PEDIDO-GEMINI-CIERRE.md`, `integraciones\google-apps-script\Mercado.gs`
 - `graph.facebook.com` — `core\api\whatsapp_meta.py`, `docs\PLAN-FASE-A.md`, `scripts\probar_whatsapp_texto.py`
-- `query1.finance.yahoo.com` — `docs\PEDIDO-GEMINI-CIERRE.md`, `integraciones\google-apps-script\Mercado.gs`
 - `data912.com` — `docs\PEDIDO-GEMINI-CIERRE.md`, `integraciones\google-apps-script\Mercado.gs`
 - `api.nasdaq.com` — `core\api\balances_fuentes.py`
 - `en.wikipedia.org` — `core\api\balances_fuentes.py`
