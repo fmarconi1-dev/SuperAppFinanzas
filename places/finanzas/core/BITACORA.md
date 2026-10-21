@@ -1,6 +1,6 @@
 # places/finanzas/core/
 
-<!-- huella: 215d2fc86df1 -->
+<!-- huella: 0d51c5794dc5 -->
 
 Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel.
 
@@ -54,6 +54,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 - **Una sola propuesta a la vez:** después de un extracto o un desarmado, `_lo_que_sigue` propone el próximo desarmado pendiente y recién cuando no queda ninguno pide los saldos (un `fima …` reemplazaría la propuesta).
 - ⚠️ **La lista de balances no es un lote** (ADR-0011): `lotes.proponer` descarta la propuesta anterior, y la lista del domingo no puede tirar un extracto pendiente. Vive en `balances_propuestas` y convive con un lote abierto. Si un mensaje sirve para los dos (`1 2` con un lote de gastos abierto), no se adivina: se pide `balances 1 2`. `todas`, `ninguna` y los tickers no chocan con un lote.
 - **`todas` son las del mensaje** (la lista de Franco + las 15 grandes), no las 150 de `balances todas`. Lo elegido se suma (no se reemplaza) mientras la lista esté vigente (hasta el final del viernes). Lo de un día anterior a hoy no se toma (Franco, 21/10/2026).
+- **Rearmar la misma semana conserva lo elegido** (`armar`): si Franco mandó `balances` el domingo antes de las 20 y eligió, la lista del disparador no se lo borra. Se conserva solo lo que sigue en el calendario.
 - **Dos clases de acciones = un balance**: Nasdaq trae GOOGL y GOOG (FOX/FOXA, NWS/NWSA) con el mismo nombre; va una sola, la de la lista de Franco si está.
 - `comandos`, `conciliacion` y `tarjetas` se importan entre sí **de forma diferida** (dentro de las funciones): no subir esos imports al principio del archivo.
 - `comandos.py` corre en un hilo del servidor HTTP: **`user_id` explícito en toda llamada** (los contextvars arrancan vacíos en cada hilo) y "hoy" en Buenos Aires, nunca en la zona del servidor.

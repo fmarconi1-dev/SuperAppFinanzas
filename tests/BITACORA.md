@@ -1,6 +1,6 @@
 # tests/
 
-<!-- huella: 3c9c826f576d -->
+<!-- huella: 610f818ffbba -->
 
 Resumen: La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde.
 
@@ -43,7 +43,7 @@ Resumen: La suite completa (862 tests al 20/10/2026, Fase D completa en código)
 
 ## Estado
 
-- **21/10/2026:** 934 passed, 0 skipped (balances de la semana, paso 2: la lista y la respuesta).
+- **21/10/2026:** 935 passed, 0 skipped (balances de la semana, paso 2: la lista y la respuesta).
 - **20/10/2026 (noche):** 862 passed, 0 skipped (Fase D, paso 6, con las guardas del ensayo del desarmado).
 - **20/10/2026 (más tarde):** 837 passed, 0 skipped (Fase D, paso 5).
 - **20/10/2026:** 794 passed, 0 skipped (Fase D, paso 4b).

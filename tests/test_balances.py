@@ -177,6 +177,19 @@ def test_una_lista_nueva_reemplaza_a_la_anterior(db):
     assert segunda.id != primera.id and [it["ticker"] for it in segunda.items] == ["KO"]
 
 
+def test_rearmar_la_misma_semana_no_pierde_lo_elegido(db):
+    """`balances` el domingo a las 19 y el disparador a las 20: lo elegido sigue."""
+    _armar(db)
+    balances.responder(db, _prop(db), Eleccion(tickers=("KO", "MSFT")), LUNES)
+    _armar(db, FuentesFalsas(filas=[f for f in SEMANA if f.ticker != "MSFT"]),
+           DOMINGO + timedelta(minutes=50))
+    assert _prop(db).elegidos == ["KO"]            # MSFT ya no está en el calendario
+    # Otra semana empieza de cero.
+    balances.armar(db, workspace_id=_wid(db), lunes=LUNES + timedelta(days=7),
+                   fuentes=FuentesFalsas(filas=[]), ahora=DOMINGO)
+    assert _prop(db) is None
+
+
 def test_la_lista_vence_al_terminar_el_viernes(db):
     _armar(db)
     assert _prop(db, datetime(2026, 10, 30, 23, 59, tzinfo=ZONA)) is not None
@@ -253,7 +266,7 @@ def test_anota_y_suma(db, prop):
     texto = balances.responder(db, prop, Eleccion(numeros=(1, 3)), LUNES)
     assert texto.startswith("✅ Anotado: KO (mar 27/10, pre-apertura), MSFT (mié 28/10, "
                             "post-cierre).")
-    assert "próximo paso" in texto
+    assert "próximo paso" in texto and "*deshacer* todavía no las saca" in texto
     texto = balances.responder(db, _prop(db), Eleccion(tickers=("KO", "AMZN")), LUNES)
     assert "Anotado: AMZN" in texto and "Ya las tenías: KO." in texto
     assert _prop(db).elegidos == ["KO", "MSFT", "AMZN"]
@@ -306,6 +319,7 @@ def test_contestar_por_whatsapp(db):
     assert r.resultado == "consulta" and r.texto.startswith("✅ Anotado: KO")
     r = _p(db, "balances todas")
     assert r.texto.startswith("📊 Las otras")
+    assert _p(db, "balances todos").texto == r.texto
 
 
 def test_sin_fuentes_o_con_nasdaq_caido(db):

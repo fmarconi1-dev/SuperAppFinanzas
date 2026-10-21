@@ -227,19 +227,26 @@ def armar(conn: sqlite3.Connection, *, workspace_id: int, lunes: date, fuentes: 
           ahora: datetime) -> str:
     """Trae la semana, guarda la propuesta (reemplaza la lista anterior) y la devuelve en texto.
 
-    `CalendarioNoDisponible` sale tal cual: sin calendario no hay lista.
+    Si la lista anterior era de la misma semana (Franco mandó `balances` el
+    domingo a las 19 y a las 20 llegó la del disparador), lo que ya había
+    elegido pasa a la nueva, si sigue en el calendario. `CalendarioNoDisponible`
+    sale tal cual: sin calendario no hay lista.
     """
     filas = fuentes.calendario(lunes, lunes + timedelta(days=4))
     sp, aviso = sp500(conn, fuentes, ahora)
     items, principales = elegir(filas, sp)
+    anterior = vigente(conn, workspace_id=workspace_id, ahora=ahora)
+    en_la_lista = {it["ticker"] for it in items}
+    elegidos = ([t for t in anterior.elegidos if t in en_la_lista]
+                if anterior and anterior.lunes == lunes else [])
     conn.execute("UPDATE balances_propuestas SET estado = 'reemplazada' "
                  "WHERE workspace_id = ? AND estado = 'vigente'", (workspace_id,))
     if items:
         conn.execute(
-            "INSERT INTO balances_propuestas (workspace_id, lunes, items, principales, estado, "
-            "creado_en, vence_en) VALUES (?, ?, ?, ?, 'vigente', ?, ?)",
+            "INSERT INTO balances_propuestas (workspace_id, lunes, items, principales, elegidos, "
+            "estado, creado_en, vence_en) VALUES (?, ?, ?, ?, ?, 'vigente', ?, ?)",
             (workspace_id, lunes.isoformat(), json.dumps(items), principales,
-             ahora.isoformat(), _vence(lunes).isoformat()))
+             json.dumps(elegidos), ahora.isoformat(), _vence(lunes).isoformat()))
     return texto_lista(items, principales, lunes, aviso)
 
 
@@ -342,5 +349,6 @@ def responder(conn: sqlite3.Connection, prop: Propuesta, e: Eleccion, hoy: date)
                       + ", ".join(_nombre(it) for it in pasaron) + ".")
     if nuevas:
         partes.append("(Por ahora quedan anotadas: el agendado en tu Calendar llega en el "
-                      "próximo paso.)")
+                      "próximo paso. Ojo: *deshacer* todavía no las saca; borraría lo último "
+                      "que cargaste de gastos.)")
     return "\n".join(partes)

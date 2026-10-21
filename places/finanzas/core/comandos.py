@@ -787,7 +787,7 @@ def _comando_balances(
     prop = balances.vigente(conn, workspace_id=wid, ahora=ahora)
     if prop is None:
         return Respuesta(_SIN_LISTA_BALANCES, "rechazado")
-    if clave == "balances todas":
+    if clave in {"balances todas", "balances todos"}:
         return Respuesta(balances.texto_resto(prop), "consulta")
     eleccion = balances.leer_respuesta(limpio, prop)
     if eleccion is None:
