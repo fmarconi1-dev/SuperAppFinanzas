@@ -25,6 +25,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 - un gasto por WhatsApp que preguntó "¿es el mismo?" (o que no preguntó y debía) → `comandos._ya_vino_del_banco` (solo contra lo que **vino del banco**: rol `origen`)
 - la conciliación propuso algo raro: qué tipo es cada fila, por qué emparejó (o no) con un gasto, una devolución, la regla del corte, lo que sobra → `conciliacion.py` (`clasificar`, `emparejar`, `_devoluciones`, `proponer_extracto`, `aplicar`)
 - la lista de balances de la semana: quién va primero, por qué una empresa no aparece (GOOG al lado de GOOGL), cómo se lee `1 3 7` / tickers / `todas` / `ninguna`, o el aviso "puede ser para la lista de balances o para la propuesta" → `balances.py` (`elegir`, `armar`, `leer_respuesta`, `responder`) + `comandos._comando_balances`
+- el resumen del día de los balances ("📊 Balances del …") salió raro, con `s/d` o con la palabra equivocada → `balances.resumen_del_dia` / `_reaccion` (y los precios en `core/api/balances_fuentes.py`); si **no llegó**, es del reloj: `integraciones/google-apps-script/Balances.gs` (`resumenesPendientes_`)
 - exportar todo a Excel → `export.py`
 
 ## Qué hay acá
@@ -56,6 +57,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 - **`todas` son las del mensaje** (la lista de Franco + las 15 grandes), no las 150 de `balances todas`. Lo elegido se suma (no se reemplaza) mientras la lista esté vigente (hasta el final del viernes). Lo de un día anterior a hoy no se toma (Franco, 21/10/2026).
 - ⚠️ **Si Google no contesta, no se anota nada** (`elegidos` y `balances_agendados` quedan como estaban): Franco manda lo mismo de nuevo y el Calendar no duplica (la clave es la etiqueta del evento). Lo mismo al deshacer: si Google falla, la tanda sigue sin deshacer.
 - **La ficha de Nasdaq gana sobre la lista** si dice otra fecha (es lo más nuevo), y completa el momento si el calendario decía `sin hora`. Si la ficha no contesta, se agenda con lo de la lista y se avisa (nunca se marca "confirmada" sin saberlo).
+- **Pendiente (no arreglado):** "Ya las tenías" sale de la base (`balances_agendados`), no del Calendar. Si Franco borra un 📊 a mano, elegirlo de nuevo dice "ya las tenías" y no lo vuelve a crear. Arreglo honesto: usar el `creado` que ya devuelve `Codigo.gs` por clave ("ya estaba" si es `false`) y guardar en la tanda solo lo creado, así el Calendar queda como fuente de verdad.
 - **La palabra se decide sobre el número que se muestra** (`_reaccion` redondea a un decimal antes de comparar con ±1%): si no, +0,99% salía "neutra (+1,0%)". Lo que Yahoo no da es `s/d` **con el motivo** en el texto, nunca un número viejo; sin el cierre del día, no se pide el posmercado.
 - **Rearmar la misma semana conserva lo elegido** (`armar`): si Franco mandó `balances` el domingo antes de las 20 y eligió, la lista del disparador no se lo borra. Se conserva solo lo que sigue en el calendario.
 - **Dos clases de acciones = un balance**: Nasdaq trae GOOGL y GOOG (FOX/FOXA, NWS/NWSA) con el mismo nombre; va una sola, la de la lista de Franco si está.

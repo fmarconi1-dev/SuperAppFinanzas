@@ -15,6 +15,8 @@ Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webh
 - el dólar de un consumo en USD de la tarjeta salió raro, o "no pude traer el dólar oficial" → `cotizaciones.py` (ArgentinaDatos, gratis, sin clave; un 404 es un feriado y va el día hábil anterior; si no contesta, `CotizacionNoDisponible` y se le pide el dólar a Franco)
 - una foto que no se leyó, "no puedo leer fotos" o "No pude leer la foto" → `gemini.py` (`ClienteGemini.desde_entorno` es None sin `GEMINI_API_KEY`; `GeminiNoDisponible` con el código o el motivo del bloqueo)
 - la lista de balances del domingo no llegó, llegó dos veces o "no pude traer el calendario" → `servidor._post_balances` (`POST /api/balances`: un `id` repetido no rearma; Nasdaq caído = 503 para que el Apps Script reintente) y `balances_fuentes.py` (Nasdaq y Wikipedia, `CalendarioNoDisponible` / `ListaNoDisponible`)
+- el resumen del día de los balances con `s/d` en la rueda o el posmercado → `balances_fuentes.cierres` / `ultimo_del_posmercado` (Yahoo; el motivo va en el texto)
+- "¿Nasdaq, Wikipedia y Yahoo contestan desde Fly?" → `scripts/probar_fuentes_balances.py` (`fly ssh console -a superapp-finanzas -C "python /app/scripts/probar_fuentes_balances.py"`; no escribe nada)
 - qué variables de entorno hacen falta → `ConfigWhatsApp.desde_entorno` (y `.env.example`)
 - la interpretación del texto (montos, categorías, `resumen`, `deshacer`) → **no es acá**: `places/finanzas/core/comandos.py`
 

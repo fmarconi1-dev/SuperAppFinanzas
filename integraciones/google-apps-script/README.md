@@ -126,9 +126,10 @@ Una fuente que falla sale como `s/d` en el texto y queda en el registro (`Mercad
 Los 📊 son los eventos con la etiqueta `balance` (la pone `Codigo.gs` al agendar); el momento sale de la etiqueta `balance_momento`. Un día sin 📊 no manda nada. Si la SuperApp no contesta `ok: true`, la propiedad no se marca y la próxima corrida reintenta; la SuperApp no repite un `id` que ya recibió.
 
 **Instalar (paso 4):**
-1. Reemplazá **`Balances.gs`** y **`Reenvio.gs`** por los de acá. `Reenvio.gs` ya no llama a los balances: lo hace el disparador propio.
-2. Corré **`instalarDisparadorBalances`** una vez desde el editor. Google puede pedir permiso para Calendar.
-3. Para mirar qué 📊 ve hoy y ayer sin mandar nada: **`probarBalancesDelDia`**. Para pedir la lista ya: `pedirBalancesAhora`.
+1. Reemplazá **`Balances.gs`** por el de acá.
+2. Corré **`instalarDisparadorBalances`** una vez desde el editor (Google puede pedir permiso para Calendar) y fijate que `relojDeBalances` aparezca en **Activadores**.
+2b. **Recién después**, reemplazá **`Reenvio.gs`**: ya no llama a los balances. Si se pega sin el disparador nuevo, la lista del domingo deja de salir sin aviso.
+3. Para mirar qué 📊 ve el reloj (de ayer a dentro de una semana, con su momento) sin mandar nada: **`probarBalancesDelDia`**. Para pedir la lista ya: `pedirBalancesAhora`.
 
 **Paso 3 (agendado):** reemplazá **`Codigo.gs`** por el de acá y publicá una **versión nueva** de la implementación: Implementar → Gestionar implementaciones → editar → Versión: nueva → Implementar. **Sin la versión nueva, la URL `/exec` sigue sirviendo el código viejo**, que no conoce `agendar_balances`, y el Secretario contesta "No pude agendar en tu Calendar (accion_invalida…)". La URL no cambia, así que no hay que tocar nada en Fly.
 

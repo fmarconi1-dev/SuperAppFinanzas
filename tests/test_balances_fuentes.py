@@ -308,3 +308,24 @@ def test_yahoo_sin_el_ticker_o_caido(fuentes):
     fuentes["crudo"] = json.dumps({"chart": {"result": None, "error": {"code": "Not Found"}}}).encode()
     with pytest.raises(PrecioNoDisponible, match="no tiene ZZZZQ"):
         cierres("ZZZZQ")
+
+
+# ------------------------------------------------------------------ el diagnóstico desde Fly
+
+def test_el_diagnostico_dice_que_fuente_falla(monkeypatch, capsys):
+    from scripts import probar_fuentes_balances as diag
+
+    monkeypatch.setattr(bf, "calendario_del_dia", lambda d: [object()] * 3)
+    monkeypatch.setattr(bf, "fecha_anunciada", lambda t: "ok")
+    monkeypatch.setattr(bf, "lista_sp500", lambda: ["A"] * 503)
+    monkeypatch.setattr(bf, "cierres", lambda t: {date(2026, 10, 20): 93.49})
+
+    def caido(ticker, fecha):
+        raise PrecioNoDisponible("Yahoo respondió HTTP 429")
+
+    monkeypatch.setattr(bf, "ultimo_del_posmercado", caido)
+    assert diag.main(date(2026, 10, 24)) == 1                        # sábado
+    salida = capsys.readouterr().out
+    assert "OK     Nasdaq, calendario del 26/10: 3 empresas" in salida   # el lunes
+    assert "FALLA  Yahoo, posmercado de KO del 23/10: Yahoo respondió HTTP 429" in salida
+    assert "1 fuente(s) no contestaron." in salida

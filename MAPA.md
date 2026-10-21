@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-21 13:34 UTC · 116 archivos · 25,092 LOC -->
+<!-- 2026-10-21 13:42 UTC · 117 archivos · 25,176 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-21 f122536 feat: los balances elegidos se agendan en Google Calendar, con deshacer · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-21 e4749d1 feat: el resumen del dÃ­a de los balances, con la reacciÃ³n del precio · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -39,6 +39,8 @@ Rama `main` — ultimo commit: 2026-10-21 f122536 feat: los balances elegidos se
 | el dólar de un consumo en USD de la tarjeta salió raro, o "no pude traer el dólar oficial" → `cotizaciones.py` (ArgentinaDatos, gratis, sin clave; un 404 es un feriado y va el día hábil anterior; si no contesta, `CotizacionNoDisponible` y se le pide el dólar a Franco) | `core\api/` |
 | una foto que no se leyó, "no puedo leer fotos" o "No pude leer la foto" → `gemini.py` (`ClienteGemini.desde_entorno` es None sin `GEMINI_API_KEY`; `GeminiNoDisponible` con el código o el motivo del bloqueo) | `core\api/` |
 | la lista de balances del domingo no llegó, llegó dos veces o "no pude traer el calendario" → `servidor._post_balances` (`POST /api/balances`: un `id` repetido no rearma; Nasdaq caído = 503 para que el Apps Script reintente) y `balances_fuentes.py` (Nasdaq y Wikipedia, `CalendarioNoDisponible` / `ListaNoDisponible`) | `core\api/` |
+| el resumen del día de los balances con `s/d` en la rueda o el posmercado → `balances_fuentes.cierres` / `ultimo_del_posmercado` (Yahoo; el motivo va en el texto) | `core\api/` |
+| "¿Nasdaq, Wikipedia y Yahoo contestan desde Fly?" → `scripts/probar_fuentes_balances.py` (`fly ssh console -a superapp-finanzas -C "python /app/scripts/probar_fuentes_balances.py"`; no escribe nada) | `core\api/` |
 | qué variables de entorno hacen falta → `ConfigWhatsApp.desde_entorno` (y `.env.example`) | `core\api/` |
 | la interpretación del texto (montos, categorías, `resumen`, `deshacer`) → **no es acá**: `places/finanzas/core/comandos.py` | `core\api/` |
 | login, signup, contraseñas, código de registro (`SIGNUP_CODE`) | `core\auth/` |
@@ -52,6 +54,7 @@ Rama `main` — ultimo commit: 2026-10-21 f122536 feat: los balances elegidos se
 | el logo → `_logo.py` | `core\theme/` |
 | el briefing matutino no llegó o llegó dos veces → `reenviarBriefingAWhatsApp` (etiqueta `WA-Enviado`, solo si la API devolvió `ok: true`) | `integraciones\google-apps-script/` |
 | números de mercado mal o viejos, `s/d` en el tablero, el cierre de las 18:30 no salió → `Mercado.gs` (`probarMercado`, `cierrePendiente_`, propiedad `ULTIMO_CIERRE`; ADR-0010) | `integraciones\google-apps-script/` |
+| la lista de balances del domingo o el resumen del día ("📊 Balances del …") no salió → `Balances.gs` (`relojDeBalances`, su propio disparador: ¿está en Activadores?; `resumenesPendientes_`, propiedades `ULTIMO_BALANCES` / `ULTIMO_RESUMEN_PRE` / `ULTIMO_RESUMEN_POST`). Qué 📊 ve el reloj: `probarBalancesDelDia` | `integraciones\google-apps-script/` |
 | links del briefing sin acortar → `acortarUrls` (TinyURL vía `fetchAll`; si falla, deja el original) | `integraciones\google-apps-script/` |
 | el contrato SuperApp → Google (acciones, campos, errores) → `README.md` de esta carpeta | `integraciones\google-apps-script/` |
 | eventos con la hora corrida → zona horaria en `appsscript.json` | `integraciones\google-apps-script/` |
@@ -78,6 +81,7 @@ Rama `main` — ultimo commit: 2026-10-21 f122536 feat: los balances elegidos se
 | un gasto por WhatsApp que preguntó "¿es el mismo?" (o que no preguntó y debía) → `comandos._ya_vino_del_banco` (solo contra lo que **vino del banco**: rol `origen`) | `places\finanzas\core/` |
 | la conciliación propuso algo raro: qué tipo es cada fila, por qué emparejó (o no) con un gasto, una devolución, la regla del corte, lo que sobra → `conciliacion.py` (`clasificar`, `emparejar`, `_devoluciones`, `proponer_extracto`, `aplicar`) | `places\finanzas\core/` |
 | la lista de balances de la semana: quién va primero, por qué una empresa no aparece (GOOG al lado de GOOGL), cómo se lee `1 3 7` / tickers / `todas` / `ninguna`, o el aviso "puede ser para la lista de balances o para la propuesta" → `balances.py` (`elegir`, `armar`, `leer_respuesta`, `responder`) + `comandos._comando_balances` | `places\finanzas\core/` |
+| el resumen del día de los balances ("📊 Balances del …") salió raro, con `s/d` o con la palabra equivocada → `balances.resumen_del_dia` / `_reaccion` (y los precios en `core/api/balances_fuentes.py`); si **no llegó**, es del reloj: `integraciones/google-apps-script/Balances.gs` (`resumenesPendientes_`) | `places\finanzas\core/` |
 | exportar todo a Excel → `export.py` | `places\finanzas\core/` |
 | "$ mal formateado", separador de miles, un NaN visible en pantalla → `_format.py` | `places\finanzas\helpers/` |
 | HTML que se muestra como texto crudo → `_html.render_html` | `places\finanzas\helpers/` |
@@ -102,6 +106,7 @@ Rama `main` — ultimo commit: 2026-10-21 f122536 feat: los balances elegidos se
 | resetear la contraseña de un usuario → `setup_password.py` | `scripts/` |
 | reindexar el mapa del repo → `indexar.py` (ver `/MAPA.md`) | `scripts/` |
 | el ícono de la pestaña del navegador (el moño) → `generar_favicon.py` (dibuja `assets/favicon.png` con Pillow; correr si cambia `assets/logo.svg`) | `scripts/` |
+| "¿Nasdaq, Wikipedia y Yahoo contestan desde Fly?" (balances, ADR-0011) → `probar_fuentes_balances.py`, corrido con `fly ssh console -a superapp-finanzas -C "python /app/scripts/probar_fuentes_balances.py"`: OK o FALLA por fuente, no escribe nada | `scripts/` |
 | "¿Meta deja mandar texto sin tarjeta?" → `probar_whatsapp_texto.py` (prueba única de costo cero, ADR-0008; manda un texto libre y traduce el código de error de Meta) | `scripts/` |
 | "el backup no corre solo", "la sesión de fly venció", token de Fly → `guardar_token_fly.ps1`, `_fly_comun.ps1` (`Use-TokenFly`) | `scripts/` |
 | un archivo "BACKUP SUPERAPP - FALLO.txt" apareció en el Escritorio → lo deja `backup_remoto.ps1` al fallar; `estado_backup.ps1` dice por qué | `scripts/` |
@@ -133,12 +138,12 @@ Rama `main` — ultimo commit: 2026-10-21 f122536 feat: los balances elegidos se
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 41 | 8,995 | ok |
+| `tests/` | La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 41 | 9,016 | ok |
 | `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 21 | 6,936 | ok |
 | `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M24 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,895 | ok |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | ok |
 | `core\api/` | API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla). | 8 | 1,649 | ok |
-| `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa. | 7 | 1,357 | ok |
+| `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa. | 8 | 1,420 | ok |
 | `core\theme/` | Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semántica + template Plotly unificado, ajustes responsive y logo. | 5 | 710 | ok |
 | `core\auth/` | Autenticación compartida: usuarios con bcrypt, pantalla de login/signup y tokens de sesión firmados. (Los contextvars de usuario/workspace viven en `core/context.py`.) | 4 | 422 | ok |
 | `./` | Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías). | 5 | 347 | ok |
@@ -158,6 +163,7 @@ Rama `main` — ultimo commit: 2026-10-21 f122536 feat: los balances elegidos se
 - `scripts\buscar.py`
 - `scripts\generar_favicon.py`
 - `scripts\indexar.py`
+- `scripts\probar_fuentes_balances.py`
 - `scripts\probar_whatsapp_texto.py`
 - `scripts\setup_password.py`
 - `scripts\verificar_backup.py`
@@ -176,23 +182,23 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 | `places\finanzas\core\transactions.py` | 265 | 14 | `_uid`, `_es_familiar`, `_asegurar_motivo`, `insert_transaction` |
 | `core\__init__.py` | 5 | 13 | — |
 | `places\finanzas\core\__init__.py` | 5 | 12 | — |
-| `core\api\__init__.py` | 6 | 9 | — |
+| `core\api\__init__.py` | 6 | 10 | — |
 | `places\finanzas\helpers\_html.py` | 22 | 7 | `render_html` |
 | `places\finanzas\core\ingest.py` | 381 | 6 | `ImportResult`, `_importe`, `_read_csv_rows`, `import_diario` |
 | `places\finanzas\helpers\_tour.py` | 198 | 6 | `_user_id`, `is_tour_active`, `start_tour`, `finish_tour` |
 
 ## Flujo interno
 
-- `tests/` → `core/` (46)
 - `tests/` → `places\finanzas\core/` (46)
+- `tests/` → `core/` (46)
 - `places\finanzas\core/` → `core/` (21)
 - `tests/` → `core\api/` (21)
 - `places\finanzas\views/` → `places\finanzas\helpers/` (13)
 - `places\finanzas\views/` → `places\finanzas\core/` (12)
 - `places\finanzas\views/` → `core/` (8)
 - `places\finanzas\core/` → `core\api/` (7)
-- `./` → `core\api/` (5)
 - `./` → `core/` (5)
+- `./` → `core\api/` (5)
 - `places\inicio\core/` → `places\finanzas\core/` (4)
 - `core\theme/` → `places\finanzas\helpers/` (3)
 

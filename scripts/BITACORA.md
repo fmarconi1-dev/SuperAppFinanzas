@@ -1,6 +1,6 @@
 # scripts/
 
-<!-- huella: 1f5002dbcc21 -->
+<!-- huella: 92272af8c3af -->
 
 Resumen: Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa.
 
@@ -10,6 +10,7 @@ Resumen: Operación y mantenimiento: backups remotos (PowerShell + verificación
 - resetear la contraseña de un usuario → `setup_password.py`
 - reindexar el mapa del repo → `indexar.py` (ver `/MAPA.md`)
 - el ícono de la pestaña del navegador (el moño) → `generar_favicon.py` (dibuja `assets/favicon.png` con Pillow; correr si cambia `assets/logo.svg`)
+- "¿Nasdaq, Wikipedia y Yahoo contestan desde Fly?" (balances, ADR-0011) → `probar_fuentes_balances.py`, corrido con `fly ssh console -a superapp-finanzas -C "python /app/scripts/probar_fuentes_balances.py"`: OK o FALLA por fuente, no escribe nada
 - "¿Meta deja mandar texto sin tarjeta?" → `probar_whatsapp_texto.py` (prueba única de costo cero, ADR-0008; manda un texto libre y traduce el código de error de Meta)
 - "el backup no corre solo", "la sesión de fly venció", token de Fly → `guardar_token_fly.ps1`, `_fly_comun.ps1` (`Use-TokenFly`)
 - un archivo "BACKUP SUPERAPP - FALLO.txt" apareció en el Escritorio → lo deja `backup_remoto.ps1` al fallar; `estado_backup.ps1` dice por qué
@@ -28,6 +29,7 @@ Resumen: Operación y mantenimiento: backups remotos (PowerShell + verificación
 ## Estado
 
 - **Funciona:** backup remoto programado y verificado.
+- **21/10/2026:** `probar_fuentes_balances.py` nuevo: el diagnóstico de las fuentes de los balances desde la máquina de Fly (las fuentes pueden rechazar servidores aunque desde la PC anden). Test: `tests/test_balances_fuentes.py::test_el_diagnostico_dice_que_fuente_falla`.
 - **14–15/10/2026:** `probar_whatsapp_texto.py` nuevo (stdlib). Solo arma `"type": "text"`, lee el token del portapapeles (pegar en `getpass` no anda en la consola de Windows: Ctrl+V llega como basura y Meta contesta 190) y muestra el `wa_id` al que Meta resolvió el número. Manda **sin el 9** a los celulares argentinos. **Dos formatos, cada uno en su lugar (comprobado en producción el 15/10/2026):** en la **lista del panel** el celular argentino va **con el 9** (`549…`; sin el 9, Meta acepta los envíos y no los entrega); los mensajes entrantes traen el `from` **con el 9**; y para **mandar**, Meta lo quiere **sin el 9** (`54…`): a `549…` responde 131030 aunque la lista esté bien. Resultado real: **el texto llegó sin tarjeta**.
 - **14/10/2026:** `verificar_docta.py` se retiró junto con Inversiones (ADR-0007). `verificar_backup.py` sigue contando `cartera_movimientos`: la tabla quedó en la base.
 

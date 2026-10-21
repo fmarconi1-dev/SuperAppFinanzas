@@ -146,12 +146,19 @@ function balancesDelDia_(fecha) {
   return salida;
 }
 
-/** Manual, desde el editor: muestra qué 📊 hay hoy y ayer, sin mandar nada. */
+/**
+ * Manual, desde el editor: muestra qué 📊 ve el reloj desde ayer hasta dentro
+ * de una semana, con su momento, sin mandar nada. Sirve para comprobar que el
+ * agendado dejó bien las etiquetas apenas se agenda, sin esperar al día.
+ */
 function probarBalancesDelDia() {
   const hoy = hoyAR_();
-  console.log("Hoy (" + hoy + "): " + JSON.stringify(balancesDelDia_(hoy)));
-  const ayer = sumarDias_(hoy, -1);
-  console.log("Ayer (" + ayer + "): " + JSON.stringify(balancesDelDia_(ayer)));
+  for (let i = -1; i <= 7; i++) {
+    const fecha = sumarDias_(hoy, i);
+    const del_dia = balancesDelDia_(fecha);
+    if (del_dia.length) console.log(fecha + ": " + JSON.stringify(del_dia));
+  }
+  console.log("Listo (de " + sumarDias_(hoy, -1) + " a " + sumarDias_(hoy, 7) + ").");
 }
 
 
