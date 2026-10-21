@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-21 13:42 UTC · 117 archivos · 25,176 LOC -->
+<!-- 2026-10-21 14:40 UTC · 117 archivos · 25,176 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-21 e4749d1 feat: el resumen del dÃ­a de los balances, con la reacciÃ³n del precio · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-21 a01e5f7 chore: diagnÃ³stico de las fuentes de los balances desde Fly · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -189,8 +189,8 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 ## Flujo interno
 
-- `tests/` → `places\finanzas\core/` (46)
 - `tests/` → `core/` (46)
+- `tests/` → `places\finanzas\core/` (46)
 - `places\finanzas\core/` → `core/` (21)
 - `tests/` → `core\api/` (21)
 - `places\finanzas\views/` → `places\finanzas\helpers/` (13)
@@ -206,10 +206,10 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `.mapa/mapa.json` + `MAPA.md` (52 commits)
+- `.mapa/mapa.json` + `MAPA.md` (53 commits)
 - `EN-HUMANO.md` + `ESTADO.md` (40 commits)
-- `.mapa/mapa.json` + `ESTADO.md` (30 commits)
-- `ESTADO.md` + `MAPA.md` (30 commits)
+- `.mapa/mapa.json` + `ESTADO.md` (31 commits)
+- `ESTADO.md` + `MAPA.md` (31 commits)
 - `BITACORA.md` + `ESTADO.md` (29 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)
 - `BITACORA.md` + `EN-HUMANO.md` (24 commits)

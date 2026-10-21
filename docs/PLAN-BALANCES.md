@@ -1,6 +1,6 @@
 # Plan — Balances de la semana por WhatsApp
 
-**Estado:** ✅ paso 1 aprobado (21/10/2026) · ✅ paso 2 en producción (21/10) · ✅ paso 3 en código (21/10) · ✅ paso 4 en código (21/10).
+**Estado:** ✅ paso 1 aprobado (21/10/2026) · ✅ paso 2 en producción (21/10) · ✅ paso 3 en producción (21/10) · ✅ paso 4 desplegado (21/10; primera corrida real el 27/10).
 **Lo decidido antes:** `MEJORAS.md`, entrada "Balances de la semana por WhatsApp" (universo, lista, formato, cuándo llega).
 **Decisión de arquitectura:** ADR-0011. **Relacionado:** ADR-0008 (canal, costo cero), ADR-0010 (números de mercado por código), `docs/WHATSAPP-CANAL.md`.
 

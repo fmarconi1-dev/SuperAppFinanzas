@@ -35,7 +35,7 @@
 | **Fase C — tablero "secretario" + rebranding** (ADR-0008). Plan: `docs/PLAN-FASE-C.md` | ✅ **Dada por buena por Franco (18/10/2026)**: marca **Secretario**, logo del moño, Inicio con el saldo de la cuenta, semana y tareas con tilde. Los dos últimos commits (saldo/logo y favicon) **faltan pushear y desplegar** | Claude (Opus 5.5) | 2026-10-17 |
 | **Fase D — conciliación desde el Secretario** (fusiona la D original y la Fase 5; diseño saldado con Franco el 18/10/2026) | 🔵 **EN CURSO.** Paso 1 ✅ (ADR-0009 + `docs/PLAN-FASE-D.md`, aprobados el 19/10). **Paso 2 ✅ en producción** (lotes + bruto, M19–M20, probado por Franco el 19/10). **Paso 3 ✅ en producción** (recibir archivos). **Paso 4a ✅ en código** (extracto + conciliación, M21), commiteado en `main`, **sin desplegar**. Ajuste inicial ya cargado por Franco | Claude (Opus 5.5) | 2026-10-18 |
 | **Números de mercado por código (ADR-0010)**: el 19/10 Gemini mandó cierres de otros días como de hoy. `Mercado.gs` (nuevo) arma el tablero del matutino y el cierre entero; `Reenvio.gs` pone el tablero y descarta el cierre de Gemini. La SuperApp no cambia | 🟡 **Hecho en código, probado con QuickJS contra las fuentes reales, sin commitear.** Falta lo de Franco: pegar `Mercado.gs` y `Reenvio.gs` en el Apps Script, correr `probarMercado` y pasarle a Gemini `docs/PEDIDO-GEMINI.md` | Claude (Opus 5.5) | 2026-10-19 |
-| **Balances de la semana por WhatsApp** (`MEJORAS.md`; plan `docs/PLAN-BALANCES.md`) | 🔵 **EN CURSO.** Paso 1 ✅ (ADR-0011 + plan, aprobados por Franco el 21/10: el Apps Script pone el reloj y el Calendar, la SuperApp todo lo demás; Nasdaq como fuente; **solo la fecha**, sin ganancia ni ingresos). **Paso 2 ✅ en producción** (21/10, probado por Franco). **Pasos 3 y 4 ✅ en código, en `main`, sin desplegar** (agendar en Google Calendar, `deshacer`, y el resumen del día con la reacción del precio; 974 passed, 0 skipped). Falta lo de Franco: deploy + `Codigo.gs` con versión nueva + `Balances.gs`/`Reenvio.gs` + `instalarDisparadorBalances` | Claude (Opus 5.5) | 2026-10-20 |
+| **Balances de la semana por WhatsApp** (`MEJORAS.md`; plan `docs/PLAN-BALANCES.md`) | 🔵 **EN CURSO.** Paso 1 ✅ (ADR-0011 + plan, aprobados por Franco el 21/10: el Apps Script pone el reloj y el Calendar, la SuperApp todo lo demás; Nasdaq como fuente; **solo la fecha**, sin ganancia ni ingresos). **Paso 2 ✅ en producción** (21/10, probado por Franco). **Paso 3 ✅ en producción** (21/10: Franco agendó 7 desde WhatsApp; el primer intento dio `accion_invalida` porque faltaba publicar la versión nueva de `Codigo.gs`). **Paso 4 desplegado, esperando su primera corrida real** (27/10 a las 18:30). 974 passed, 0 skipped | Claude (Opus 5.5) | 2026-10-20 |
 | ~~Fase 5 · Paso 0 — Cuentas y perímetro (M16)~~ | Reemplazada: el modelo de cuentas de ADR-0006 §1 se cambió por "filas del banco que se desarman" (Fase D) | — | — |
 
 ## ✅ Hecho hasta ahora (resumen; detalle en ROADMAP.md y en el archivo)
@@ -49,16 +49,14 @@
 
 ## ⏭️ Próximo paso concreto
 
--4. 🟡 **Balances de la semana, pasos 3 y 4 (en `main`, sin desplegar). Lo de Franco:**
-   1. Push de `main` y `fly deploy` (con backup antes). La base suma la M24 (una tabla nueva, aditiva).
-   2. Desde Fly, que las fuentes contesten: `fly ssh console -a superapp-finanzas -C "python /app/scripts/probar_fuentes_balances.py"` → cinco `OK`. Un `FALLA` de Yahoo (429/403) quiere decir que los resúmenes van a salir `s/d`.
-   3. En el Apps Script, **en este orden**:
-      1. Reemplazar **`Balances.gs`**, correr **`instalarDisparadorBalances`** y fijarse que `relojDeBalances` aparezca en Activadores.
-      2. Recién después, reemplazar **`Reenvio.gs`** (ya no llama a los balances: si se pega sin el disparador nuevo, la lista del domingo deja de salir sin aviso).
-      3. Aparte: reemplazar **`Codigo.gs`** y publicar una **versión nueva** de la implementación (Implementar → Gestionar implementaciones → editar → Versión: nueva). Sin eso, la URL sigue con el código viejo y el Secretario contesta "No pude agendar en tu Calendar (accion_invalida…)".
-   4. Probar el agendado **primero** (el resumen lee las etiquetas que deja el agendado): `balances`, contestar `1` → aparece en el Calendar `📊 KO balance (pre-apertura)` (o la que sea). Correr `probarBalancesDelDia` en el editor → tiene que listarla con su momento. Contestar `1` otra vez → "Ya las tenías". `deshacer` → la saca. Lo que elegiste con el paso 2 no llegó al Calendar: volvé a elegirlo.
-   5. El resumen: el día de un 📊 pre-apertura, desde las 18:30, llega "📊 Balances del …" con la rueda; a la mañana siguiente de uno post-cierre, desde las 9:30, el posmercado.
-   6. El domingo 25/10 a las 20:00 es la primera corrida real del disparador nuevo (la lista de la semana).
+-4. 🟡 **Balances de la semana: desplegado entero (21/10). Falta ver el resumen del día en la realidad.** Franco agendó KO, GOOGL, MSFT, VIST, AMZN, V y SNDK. Tienen que llegar:
+   - **mar 27/10, desde las 18:30:** KO (pre-apertura), rueda.
+   - **mié 28/10, desde las 9:30:** V (post-cierre del 27), posmercado.
+   - **jue 29/10, desde las 9:30:** GOOGL, MSFT y VIST (post-cierre del 28), posmercado.
+   - **vie 30/10, desde las 9:30:** AMZN y SNDK (post-cierre del 29), posmercado.
+   - **dom 25/10, 20:00:** la lista de la semana del 2/11, primera corrida del disparador nuevo.
+
+   Si alguno no llega: *Ejecuciones* del Apps Script (`relojDeBalances`), `probarBalancesDelDia`, y desde Fly `python /app/scripts/probar_fuentes_balances.py`. Si llega con `s/d`, el motivo está en la línea. Si `relojDeBalances` no está en Activadores, falta correr `instalarDisparadorBalances`.
 
 -3. 🟡 **Números de mercado (ADR-0010), lo de Franco:**
    1. En el proyecto de Apps Script del reenvío, agregar `Mercado.gs` y reemplazar `Reenvio.gs`, los dos de `integraciones/google-apps-script/`.
