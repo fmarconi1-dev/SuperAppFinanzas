@@ -1,6 +1,6 @@
 # places/finanzas/core/
 
-<!-- huella: 70048bfa8d28 -->
+<!-- huella: 4bc60c8f0465 -->
 
 Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel.
 
@@ -42,6 +42,8 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 - **Una propuesta (lote) no se descarta con cualquier mensaje** (al revés que el "¿quisiste decir?" de un gasto suelto, que vence a los 10 min): la tocan solo `ok`/sí, `no`/`cancelar` y "N algo" con N entero **dentro de la lista** (`2.500 super` sigue siendo un gasto). Vence a las 48 h. El sí/no de un gasto suelto pendiente va primero, porque es la pregunta más nueva. Una corrección que no es exacta ("1 trnasportes, ok") **no se carga**: se muestra marcada y espera otro `ok`.
 - **El bruto es lo de antes del primer −**, con cada división reemplazada por su dividendo (`1000+500*2-300` → 2.000, no 1.000). Es función pura de la cuenta guardada: el paso 4 la usa también para releer mensajes viejos.
 - ⚠️ **La conciliación trabaja en centavos enteros** (`banco_filas.monto`, la tolerancia de $1 = 100); `transacciones` sigue en pesos. Convertir con `round(x * 100)`, nunca comparar floats.
+- **Nada de `iterrows` para clasificar filas** (21/10/2026, frente 4 de rendimiento): `categorizer.grupos_efectivos(motivos, pasivos, ingresos, cats)` es `efective_grupo` sobre columnas enteras. `iterrows` arma una Series por fila (~33 µs): con 5.300 movimientos eran ~175 ms en cada KPI, tabla del mes o libro diario. La regla de negocio sigue viviendo **solo** en `efective_grupo`. `libro_diario` clasifica solo las filas de la ventana; el saldo (`cumsum`) sí usa toda la historia. Tests: `tests/test_consultas_rapidas.py`.
+- **Imports pesados adentro de la función** (21/10/2026, frente 2 de rendimiento): `openpyxl` en `extracto_galicia.leer_extracto` y `metrics` (pandas) en `comandos.totales_mes`. Fly apaga la máquina y la API los pagaba en cada arranque en frío (1,5 s → 0,3 s). **No subirlos al principio del módulo**: `tests/test_arranque_liviano.py` falla si la API vuelve a arrancar con pandas u openpyxl. Mismo patrón que `saldos.control_total`.
 - **La regla del corte se decide por la hora de carga, no por la fecha** (`creado_en` del gasto contra el del primer "Ajuste Reconciliación"). Si no hay ajuste inicial y algo coincide con un gasto anterior al corte, **no se adivina**: se rechaza la propuesta.
 - **Un empate entre gastos iguales no es un empate** (misma categoría y monto): va el de id más chico. En el ensayo con datos reales eran 8 de 31 sobrantes.
 - **Gastos cargados netos** (`_netos`): un débito menos 1 a 5 créditos posteriores que da justo lo cargado. Es una sugerencia que se muestra en "Revisá"; `N no` deshace el grupo entero.
@@ -68,6 +70,8 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 ## Estado
 
 - **Funciona:** en producción.
+- **21/10/2026 (rendimiento, frente 4):** `grupos_efectivos` reemplaza los `iterrows` de `metrics`, `diario` y `budget`; resultados idénticos (comparados con `assert_frame_equal` exacto). `compute_kpis` −92 %, Diario −80 % (`docs/perf/FRENTE-4-QUERIES.md`).
+- **21/10/2026 (rendimiento, frente 2):** openpyxl y `metrics` se importan adentro de la función que los usa (ver Trampas). Medido en `docs/perf/FRENTE-2-CARGA-DIFERIDA.md`.
 - **21/10/2026 (noche):** "ya las tenías" sale del `creado` de `Codigo.gs` (el Calendar), no de `balances_agendados`. Tests nuevos en `tests/test_balances.py`.
 - **21/10/2026 (balances, paso 4, sin desplegar):** `balances.resumen_del_dia`: una línea por empresa del Calendar, solo la reacción (Franco, 21/10: sin ganancia ni ingresos). Pre-apertura → rueda (cierre contra el cierre anterior); post-cierre → posmercado (último del posmercado de ese día contra su cierre); sin hora → las dos. "Neutra" con menos de ±1%. Tests: `tests/test_balances.py` (`PreciosFalsos`).
 - **21/10/2026 (balances, paso 3, sin desplegar):** `balances.responder` **agenda** en Google lo elegido (`📊 MSFT balance (post-cierre)`, `, fecha estimada` si la ficha de Nasdaq lo dice) y guarda la tanda (`balances_agendados`, M24); `deshacer` compara la tanda con el último gasto y el último lote y deshace lo más nuevo (`balances.ultima_tanda` / `deshacer_tanda`). Tests: `tests/test_balances.py` (`AgendaFalsa` se porta como `Codigo.gs`).

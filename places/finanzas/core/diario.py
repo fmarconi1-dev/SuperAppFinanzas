@@ -8,7 +8,7 @@ from typing import Optional
 
 import pandas as pd
 
-from places.finanzas.core.categorizer import efective_grupo
+from places.finanzas.core.categorizer import grupos_efectivos
 from core.context import require_current_user_id
 from places.finanzas.core.metrics import (
     load_categorias_full,
@@ -38,20 +38,17 @@ def libro_diario(
         + (df_all["ingresos"] - df_all["pasivos"]).cumsum()
     )
 
-    cats_full = load_categorias_full(conn, user_id=uid)
-    grupos, subs = [], []
-    for _, row in df_all.iterrows():
-        g, s = efective_grupo(
-            row["motivo"], float(row["pasivos"]), float(row["ingresos"]), cats_full
-        )
-        grupos.append(g)
-        subs.append(s)
-    df_all["grupo"] = grupos
-    df_all["subcategoria"] = subs
-
     hoy = pd.Timestamp(date.today())
     desde = hoy - pd.Timedelta(days=int(dias) - 1)
     df_filt = df_all[df_all["fecha"] >= desde].copy()
+
+    # El saldo necesita toda la historia (cumsum, arriba); el grupo, solo las
+    # filas que se muestran. Antes se clasificaban todas, fila a fila con
+    # `iterrows`, para mostrar 7 días: ~180 ms (frente 4 de rendimiento).
+    cats_full = load_categorias_full(conn, user_id=uid)
+    df_filt["grupo"], df_filt["subcategoria"] = grupos_efectivos(
+        df_filt["motivo"], df_filt["pasivos"], df_filt["ingresos"], cats_full
+    )
 
     return (
         df_filt.sort_values(["fecha", "id"], ascending=[False, False])

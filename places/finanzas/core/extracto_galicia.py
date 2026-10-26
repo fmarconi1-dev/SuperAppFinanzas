@@ -33,9 +33,6 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Optional
 
-import openpyxl
-from openpyxl.utils.exceptions import InvalidFileException
-
 #: Posición de cada columna (0 = A).
 COL_FECHA, COL_MOVIMIENTO, COL_DEBITO, COL_CREDITO, COL_SALDO = 0, 1, 2, 3, 4
 
@@ -154,6 +151,12 @@ def _cotizacion(lineas: list[str]) -> Optional[float]:
 
 def leer_extracto(datos: bytes) -> Extracto:
     """Lee el `.xlsx` y verifica la cadena de saldos. `ExtractoInvalido` si algo no cierra."""
+    # openpyxl se importa recién acá: cuesta ~0,2–0,3 s y la API y la app lo
+    # pagaban en cada arranque en frío de Fly, llegara o no un extracto
+    # (frente 2 de rendimiento, 21/10/2026).
+    import openpyxl
+    from openpyxl.utils.exceptions import InvalidFileException
+
     try:
         with warnings.catch_warnings():
             # El Excel de Galicia no trae estilos: openpyxl avisa y usa los suyos.

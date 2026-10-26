@@ -16,13 +16,14 @@ tacha recién cuando Google confirma (`ok: true`).
 from __future__ import annotations
 
 import html
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 import streamlit as st
 
 from core.api.google import AgendaNoDisponible, AgendaRechazo, ClienteAgenda
-from core.db import connect
+from core.context import get_current_workspace_id, set_current_user_id, set_current_workspace_id
+from core.db import connect, get_db_path, version_datos
 from places.finanzas import home as finanzas_home
 from places.finanzas.core.comandos import ZONA, pesos
 from places.finanzas.helpers._html import render_html
@@ -89,6 +90,25 @@ def _render_movimientos(filas: list[dict]) -> None:
         )
     render_html('<div role="list" aria-label="Últimos movimientos">' + "".join(renglones) + "</div>")
     st.caption("El detalle completo está en **Finanzas**.")
+
+
+@st.cache_data(max_entries=32, show_spinner=False)
+def _numeros_del_inicio(ruta: str, user_id: int, workspace_id: Optional[int],
+                        version: tuple[int, int], hoy: date
+                        ) -> tuple[float, Optional[rs.ResumenMes], list[dict]]:
+    """Saldo, mes y últimos movimientos, recalculados solo si la base cambió.
+
+    `version` es `core.db.version_datos()`: cambia con cualquier escritura,
+    también las del bot de WhatsApp (otro proceso). Antes cada click del Inicio
+    releía todas las transacciones dos veces (frente 3 de rendimiento,
+    21/10/2026). `hoy` va en la clave porque el mes depende del día.
+    """
+    set_current_user_id(user_id)
+    set_current_workspace_id(workspace_id)
+    with connect(ruta) as conn:
+        return (rs.saldo_cuenta(conn, user_id=user_id),
+                rs.resumen_del_mes(conn, user_id=user_id, hoy=hoy),
+                rs.ultimos_movimientos(conn, user_id=user_id))
 
 
 # ---------------------------------------------------------------------------
@@ -230,10 +250,8 @@ def render() -> None:
     st.title(f"{rs.saludo(ahora.hour)}, {nombre}" if nombre else rs.saludo(ahora.hour))
     st.caption(rs.fecha_larga(hoy).capitalize())
 
-    with connect() as conn:
-        saldo = rs.saldo_cuenta(conn, user_id=user_id)
-        r = rs.resumen_del_mes(conn, user_id=user_id, hoy=hoy)
-        filas = rs.ultimos_movimientos(conn, user_id=user_id)
+    saldo, r, filas = _numeros_del_inicio(str(get_db_path()), user_id, get_current_workspace_id(),
+                                          version_datos(), hoy)
 
     _render_saldo(saldo)
     if r is None or r.actual.movimientos == 0:

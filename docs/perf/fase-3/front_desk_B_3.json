@@ -1,0 +1,264 @@
+{
+ "desktop/inicio": {
+  "ttfb": 22.8,
+  "fcp": 744,
+  "lcp": 860,
+  "cls": 0.177,
+  "tbt": 0,
+  "longtasks": 2,
+  "longtask_max": 77,
+  "contenido_estable": 3129.8,
+  "requests": 22,
+  "red_kb_total": 3929.2,
+  "ws_frames": 36,
+  "ws_kb_recibidos": 21.1,
+  "nodos_dom": 297,
+  "dcl": 555.2,
+  "lcp_elemento": "H1 Buenas tardes, Franco",
+  "js_kb_transfer": 3194.6,
+  "js_kb_decodificado": 3191.1,
+  "css_kb_transfer": 30.9,
+  "fuentes_kb_transfer": 614.4,
+  "externos": [
+   "fonts.googleapis.com"
+  ],
+  "top_recursos": [
+   [
+    "/static/js/index.dkY5s53S.js",
+    2309.4,
+    326
+   ],
+   [
+    "/static/js/embed.B-c_4G7P.js",
+    774.0,
+    2342
+   ],
+   [
+    "/static/media/MaterialSymbols-Rounded.WDh_BksD.woff2",
+    359.6,
+    2159
+   ],
+   [
+    "/static/media/SourceSansVF-Upright.ttf.BsWL4Kly.woff2",
+    166.5,
+    27
+   ],
+   [
+    "/static/media/SourceCodeVF-Upright.ttf.BjWn63N-.woff2",
+    88.3,
+    2080
+   ],
+   [
+    "/static/js/numbro.CldGEqmS.js",
+    38.3,
+    2254
+   ],
+   [
+    "/static/css/index.M0-f_CLq.css",
+    29.6,
+    65
+   ],
+   [
+    "/static/js/Html.oJkhUkEr.js",
+    25.1,
+    2249
+   ]
+  ],
+  "corridas": [
+   {
+    "ttfb": 46,
+    "dcl": 555.2,
+    "load": 555.3,
+    "fcp": 744,
+    "lcp": 860,
+    "lcp_elemento": "H1 Buenas tardes, Franco",
+    "cls": 0.2,
+    "tbt": 0,
+    "longtasks": 2,
+    "longtask_max": 77,
+    "contenido_estable": 3003.7,
+    "mutaciones": 26,
+    "requests": 22,
+    "nodos_dom": 297,
+    "es_inicio": true,
+    "es_finanzas": false,
+    "red_kb_total": 3929.2,
+    "ws_frames": 36,
+    "ws_kb_recibidos": 21.1
+   },
+   {
+    "ttfb": 17.2,
+    "dcl": 576,
+    "load": 576.2,
+    "fcp": 764,
+    "lcp": 984,
+    "lcp_elemento": "H1 Buenas tardes, Franco",
+    "cls": 0.1,
+    "tbt": 2,
+    "longtasks": 3,
+    "longtask_max": 71,
+    "contenido_estable": 3368.5,
+    "mutaciones": 29,
+    "requests": 22,
+    "nodos_dom": 297,
+    "es_inicio": true,
+    "es_finanzas": false,
+    "red_kb_total": 3929.2,
+    "ws_frames": 36,
+    "ws_kb_recibidos": 21.1
+   },
+   {
+    "ttfb": 22.8,
+    "dcl": 483.5,
+    "load": 483.7,
+    "fcp": 672,
+    "lcp": 820,
+    "lcp_elemento": "H1 Buenas tardes, Franco",
+    "cls": 0.2,
+    "tbt": 0,
+    "longtasks": 2,
+    "longtask_max": 101,
+    "contenido_estable": 3129.8,
+    "mutaciones": 27,
+    "requests": 22,
+    "nodos_dom": 297,
+    "es_inicio": true,
+    "es_finanzas": false,
+    "red_kb_total": 3929.2,
+    "ws_frames": 36,
+    "ws_kb_recibidos": 21.1
+   }
+  ]
+ },
+ "desktop/finanzas": {
+  "ttfb": 13.4,
+  "fcp": 800,
+  "lcp": 3056,
+  "cls": 0.167,
+  "tbt": 908,
+  "longtasks": 7,
+  "longtask_max": 544,
+  "contenido_estable": 4882.8,
+  "requests": 35,
+  "red_kb_total": 8452.2,
+  "ws_frames": 74,
+  "ws_kb_recibidos": 202.5,
+  "nodos_dom": 1324,
+  "dcl": 527,
+  "lcp_elemento": "SPAN account_balance_wallet",
+  "js_kb_transfer": 7805.6,
+  "js_kb_decodificado": 7798.5,
+  "css_kb_transfer": 30.9,
+  "fuentes_kb_transfer": 526.1,
+  "externos": [
+   "fonts.googleapis.com"
+  ],
+  "top_recursos": [
+   [
+    "/static/js/PlotlyChart.DE72Bh5O.js",
+    4553.4,
+    386
+   ],
+   [
+    "/static/js/index.dkY5s53S.js",
+    2309.4,
+    390
+   ],
+   [
+    "/static/js/embed.B-c_4G7P.js",
+    774.0,
+    3253
+   ],
+   [
+    "/static/media/MaterialSymbols-Rounded.WDh_BksD.woff2",
+    359.6,
+    3340
+   ],
+   [
+    "/static/media/SourceSansVF-Upright.ttf.BsWL4Kly.woff2",
+    166.5,
+    29
+   ],
+   [
+    "/static/js/numbro.CldGEqmS.js",
+    38.3,
+    3239
+   ],
+   [
+    "/static/css/index.M0-f_CLq.css",
+    29.6,
+    31
+   ],
+   [
+    "/static/js/Html.oJkhUkEr.js",
+    25.1,
+    3235
+   ]
+  ],
+  "corridas": [
+   {
+    "ttfb": 16.9,
+    "dcl": 575.8,
+    "load": 576,
+    "fcp": 824,
+    "lcp": 1108,
+    "lcp_elemento": "H3 Distribución del ingreso — octubre 2026",
+    "cls": 0.1,
+    "tbt": 908,
+    "longtasks": 6,
+    "longtask_max": 546,
+    "contenido_estable": 4882.8,
+    "mutaciones": 38,
+    "requests": 35,
+    "nodos_dom": 1324,
+    "es_inicio": false,
+    "es_finanzas": true,
+    "red_kb_total": 8452.2,
+    "ws_frames": 74,
+    "ws_kb_recibidos": 202.5
+   },
+   {
+    "ttfb": 13.4,
+    "dcl": 520.6,
+    "load": 520.8,
+    "fcp": 792,
+    "lcp": 3056,
+    "lcp_elemento": "H3 Distribución del ingreso — octubre 2026",
+    "cls": 0.3,
+    "tbt": 974,
+    "longtasks": 7,
+    "longtask_max": 544,
+    "contenido_estable": 4482.4,
+    "mutaciones": 37,
+    "requests": 35,
+    "nodos_dom": 1324,
+    "es_inicio": false,
+    "es_finanzas": true,
+    "red_kb_total": 8452.2,
+    "ws_frames": 74,
+    "ws_kb_recibidos": 202.5
+   },
+   {
+    "ttfb": 10.8,
+    "dcl": 527,
+    "load": 527.1,
+    "fcp": 800,
+    "lcp": 3900,
+    "lcp_elemento": "SPAN account_balance_wallet",
+    "cls": 0.2,
+    "tbt": 873,
+    "longtasks": 10,
+    "longtask_max": 521,
+    "contenido_estable": 5586.2,
+    "mutaciones": 41,
+    "requests": 35,
+    "nodos_dom": 1324,
+    "es_inicio": false,
+    "es_finanzas": true,
+    "red_kb_total": 8452.2,
+    "ws_frames": 74,
+    "ws_kb_recibidos": 202.5
+   }
+  ]
+ }
+}

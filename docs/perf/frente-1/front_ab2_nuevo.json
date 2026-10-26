@@ -1,0 +1,127 @@
+{
+ "desktop/finanzas": {
+  "ttfb": 36.8,
+  "fcp": 888,
+  "lcp": 1372,
+  "cls": 0.144,
+  "tbt": 984,
+  "longtasks": 7,
+  "longtask_max": 564,
+  "contenido_estable": 6628.2,
+  "requests": 35,
+  "red_kb_total": 8451.6,
+  "ws_frames": 74,
+  "ws_kb_recibidos": 202.5,
+  "nodos_dom": 1324,
+  "dcl": 619.1,
+  "lcp_elemento": "H3 Distribución del ingreso — octubre 2026",
+  "js_kb_transfer": 7805.6,
+  "js_kb_decodificado": 7798.5,
+  "css_kb_transfer": 30.9,
+  "fuentes_kb_transfer": 526.1,
+  "externos": [
+   "fonts.googleapis.com"
+  ],
+  "top_recursos": [
+   [
+    "/static/js/PlotlyChart.DE72Bh5O.js",
+    4553.4,
+    3203
+   ],
+   [
+    "/static/js/index.dkY5s53S.js",
+    2309.4,
+    448
+   ],
+   [
+    "/static/js/embed.B-c_4G7P.js",
+    774.0,
+    3096
+   ],
+   [
+    "/static/media/MaterialSymbols-Rounded.WDh_BksD.woff2",
+    359.6,
+    64
+   ],
+   [
+    "/static/media/SourceSansVF-Upright.ttf.BsWL4Kly.woff2",
+    166.5,
+    80
+   ],
+   [
+    "/static/js/numbro.CldGEqmS.js",
+    38.3,
+    3031
+   ],
+   [
+    "/static/css/index.M0-f_CLq.css",
+    29.6,
+    55
+   ],
+   [
+    "/static/js/Html.oJkhUkEr.js",
+    25.1,
+    72
+   ]
+  ],
+  "corridas": [
+   {
+    "ttfb": 115.8,
+    "dcl": 772.2,
+    "load": 772.5,
+    "fcp": 1104,
+    "lcp": 6952,
+    "lcp_elemento": "H3 Distribución del ingreso — octubre 2026",
+    "cls": 0.1,
+    "tbt": 1028,
+    "longtasks": 7,
+    "longtask_max": 618,
+    "contenido_estable": 8724.9,
+    "mutaciones": 59,
+    "requests": 35,
+    "nodos_dom": 1324,
+    "red_kb_total": 8451.6,
+    "ws_frames": 74,
+    "ws_kb_recibidos": 202.5
+   },
+   {
+    "ttfb": 21.8,
+    "dcl": 527.5,
+    "load": 527.6,
+    "fcp": 788,
+    "lcp": 1204,
+    "lcp_elemento": "H3 Distribución del ingreso — octubre 2026",
+    "cls": 0.1,
+    "tbt": 857,
+    "longtasks": 7,
+    "longtask_max": 564,
+    "contenido_estable": 6628.2,
+    "mutaciones": 48,
+    "requests": 35,
+    "nodos_dom": 1324,
+    "red_kb_total": 8451.6,
+    "ws_frames": 74,
+    "ws_kb_recibidos": 202.5
+   },
+   {
+    "ttfb": 36.8,
+    "dcl": 619.1,
+    "load": 619.9,
+    "fcp": 888,
+    "lcp": 1372,
+    "lcp_elemento": "H3 Distribución del ingreso — octubre 2026",
+    "cls": 0.1,
+    "tbt": 984,
+    "longtasks": 8,
+    "longtask_max": 563,
+    "contenido_estable": 5732.3,
+    "mutaciones": 44,
+    "requests": 35,
+    "nodos_dom": 1324,
+    "red_kb_total": 8451.6,
+    "ws_frames": 74,
+    "ws_kb_recibidos": 202.5
+   }
+  ]
+ }
+}

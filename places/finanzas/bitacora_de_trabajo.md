@@ -4,7 +4,7 @@
 > Formato de cada entrada: `fecha · autor (Claude+modelo / Franco) · qué se hizo · por qué · estado`.
 > Regla: no cerrar una sesión sin dejar la entrada acá y actualizar `/ESTADO.md` en la raíz.
 
-<!-- ultima_actualizacion: 2026-10-19 -->
+<!-- ultima_actualizacion: 2026-10-21 -->
 
 ## Estado del módulo
 **Fase de implementación:** en producción desde Fase 1 (Fase D en curso, ADR-0009)
@@ -79,3 +79,25 @@
 - **Autor:** Claude (Opus 5.5), con Franco.
 - **Qué:** `fotos.py`: una foto o captura → filas (Gemini, plan gratuito) → validar → no duplicar lo ya cargado → propuesta con `ok`. Con eso la Fase D queda completa en código.
 - **Estado:** ✅ 859 tests, 0 skipped. Sin desplegar; falta que Franco cargue `GEMINI_API_KEY`.
+
+## 2026-10-21 — Rendimiento, frente 1: no dibujar lo que no se mira
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** corre solo la pestaña abierta (`st.tabs(on_change="rerun")` + `.open`, `home.py`); el Excel de Configuración se arma al tocar "Descargar" (callable con el usuario y el workspace, porque Streamlit lo corre en otro hilo); las medias móviles y "Agrupar por" del Dashboard son fragmentos.
+- **Por qué:** línea base del 21/10 (`docs/perf/LINEA-BASE.md`): cada click en Finanzas costaba 1,2 s, ~3/4 en armar el Excel que nadie bajaba.
+- **Estado:** ✅ 986 tests, 0 skipped. Probándolo apareció que los filtros del Dashboard volvían a su default al cambiar de pestaña: arreglado (`FILTROS_QUE_PERSISTEN`). Medido A/B contra el código anterior en el mismo momento: un click baja 86–98 % según la pestaña (Dashboard 2,1 s → 0,21 s con la PC cargada); la primera carga, −18 % (`docs/perf/FRENTE-1-RENDERS.md`). Sin commitear ni desplegar.
+
+## 2026-10-21 (noche) — Rendimiento, frente 2: no importar lo que no se usa
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** openpyxl se importa al leer un extracto, `metrics` (pandas) al calcular totales, y cada vista de Finanzas al abrir su pestaña. Test nuevo `tests/test_arranque_liviano.py` (falla con el código anterior).
+- **Por qué:** Fly apaga la máquina; el primer mensaje y la primera visita pagaban librerías que no usaban. Franco decidió **no** cambiar Plotly por los gráficos nativos (lo que más achicaba el bundle del navegador).
+- **Estado:** ✅ 988 tests, 0 skipped. En frío: la API arranca 79 % más rápido (1,46 s → 0,30 s), el primer gasto por WhatsApp 76 %, el primer Inicio 20 % (`docs/perf/FRENTE-2-CARGA-DIFERIDA.md`). Sin commitear ni desplegar.
+
+## 2026-10-21 (más tarde) — Rendimiento, frente 3: caché que no se queda vieja
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** Inicio, Dashboard y Diario reusan lo calculado mientras la base no cambie (`core.db.version_datos()`, que ve también lo que escribe el bot). Tests nuevos en `tests/test_cache_versionada.py`.
+- **Estado:** ✅ 994 tests, 0 skipped. Click sin cambios: Inicio −80 %, Dashboard −67 %, Diario −90 %; después de una escritura, igual que antes (`docs/perf/FRENTE-3-CACHE.md`). Probado en el runtime real con un gasto escrito desde otro proceso. Sin commitear ni desplegar.
+
+## 2026-10-21 (más tarde todavía) — Rendimiento, frente 4: sin loops por fila
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** `categorizer.grupos_efectivos` en lugar de `iterrows` (metrics, diario, budget); el Diario clasifica solo lo que muestra; M25 en `core/db.py`. Las búsquedas por fila del bot ya tenían índice: no se tocaron.
+- **Estado:** ✅ 999 tests, 0 skipped; resultados idénticos al código anterior. `compute_kpis` −92 %, Diario −80 %, Dashboard −29 % después de una escritura (`docs/perf/FRENTE-4-QUERIES.md`). Sin commitear ni desplegar.

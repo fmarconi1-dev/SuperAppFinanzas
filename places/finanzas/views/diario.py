@@ -2,13 +2,29 @@
 
 from __future__ import annotations
 
+from datetime import date
+from typing import Optional
+
 import pandas as pd
 import streamlit as st
 
-from core.db import connect, get_db_path
+from core.context import get_current_workspace_id, set_current_user_id, set_current_workspace_id
+from core.db import connect, get_db_path, version_datos
 from places.finanzas.core.diario import libro_diario
 from places.finanzas.helpers._format import fmt_ars
 from places.finanzas.helpers._tour import render_tour_panel
+
+
+@st.cache_data(max_entries=16, show_spinner=False)
+def _libro(ruta: str, user_id: int, workspace_id: Optional[int], version: tuple[int, int],
+           dias: int, hoy: date) -> pd.DataFrame:
+    """El libro de los últimos `dias`, recalculado solo si la base cambió
+    (`core.db.version_datos()`, frente 3 de rendimiento, 21/10/2026). `hoy` va
+    en la clave porque `libro_diario` cuenta los días desde hoy."""
+    set_current_user_id(user_id)
+    set_current_workspace_id(workspace_id)
+    with connect(ruta) as conn:
+        return libro_diario(conn, dias=dias)
 
 
 def render() -> None:
@@ -29,8 +45,8 @@ def render() -> None:
             key="diario_dias",
         )
 
-    with connect(db_path) as conn:
-        df = libro_diario(conn, dias=int(dias))
+    df = _libro(str(db_path), st.session_state["current_user_id"], get_current_workspace_id(),
+                version_datos(db_path), int(dias), date.today())
 
     if df.empty:
         with st.container(border=True):

@@ -27,7 +27,7 @@ Inversion/Activos financieros. La lógica vive en `efective_grupo()`.
 
 from __future__ import annotations
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, Iterable, Optional, Tuple
 
 
 # Mapping default {motivo: (grupo, subcategoria)} para uso "directo".
@@ -125,6 +125,28 @@ def efective_grupo(
     if motivo in MOTIVOS_DUAL_DESAHORRO and ingresos > 0 and pasivos == 0:
         return ("Ingreso", "Desahorro")
     return categoria_de(motivo, custom_map)
+
+
+def grupos_efectivos(
+    motivos: Iterable,
+    pasivos: Iterable,
+    ingresos: Iterable,
+    custom_map: Optional[Dict[str, Tuple[str, Optional[str]]]] = None,
+) -> Tuple[list, list]:
+    """`efective_grupo` de cada fila, para columnas enteras: (grupos, subcategorías).
+
+    Es la misma función fila a fila, sin `DataFrame.iterrows`. `iterrows` arma
+    una Series por fila y costaba ~33 µs cada una: con 5.300 movimientos,
+    ~175 ms en cada KPI, tabla del mes o libro diario (frente 4 de rendimiento,
+    21/10/2026). Recorrer las columnas crudas da exactamente lo mismo.
+    """
+    # `float` como hacía cada llamador con `float(row[...])`: mismo resultado.
+    pares = [efective_grupo(m, float(p), float(i), custom_map)
+             for m, p, i in zip(motivos, pasivos, ingresos)]
+    if not pares:
+        return [], []
+    grupos, subs = zip(*pares)
+    return list(grupos), list(subs)
 
 
 def motivos_sin_categorizar(

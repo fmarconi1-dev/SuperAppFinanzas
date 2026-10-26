@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-10-21 14:51 UTC · 117 archivos · 25,243 LOC -->
+<!-- 2026-10-26 18:07 UTC · 129 archivos · 26,909 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-21 6184285 docs: balances en producciÃ³n; quÃ© resÃºmenes tienen que llegar y cuÃ¡ndo · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-10-21 5872a08 fix: los dos casos raros de los balances · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -110,6 +110,14 @@ Rama `main` — ultimo commit: 2026-10-21 6184285 docs: balances en producciÃ³
 | "¿Meta deja mandar texto sin tarjeta?" → `probar_whatsapp_texto.py` (prueba única de costo cero, ADR-0008; manda un texto libre y traduce el código de error de Meta) | `scripts/` |
 | "el backup no corre solo", "la sesión de fly venció", token de Fly → `guardar_token_fly.ps1`, `_fly_comun.ps1` (`Use-TokenFly`) | `scripts/` |
 | un archivo "BACKUP SUPERAPP - FALLO.txt" apareció en el Escritorio → lo deja `backup_remoto.ps1` al fallar; `estado_backup.ps1` dice por qué | `scripts/` |
+| "¿la app está más lenta que antes?" o hay que repetir la medición → `REPORTE-IMPACTO.md` (cómo se midió) y estos scripts, con el código viejo y el nuevo **intercalados** | `scripts\perf/` |
+| una base de prueba del tamaño de la real sin datos de Franco → `generar_base.py` (seed 42, 4 años, ~5.300 movimientos) | `scripts\perf/` |
+| cuánto cuesta cada click, cuántas consultas hace, qué consulta pesa → `medir_backend.py` (AppTest; click sin cambios, click después de una escritura, primer render, SQL reproducido, planes) | `scripts\perf/` |
+| dónde se va el tiempo de un render de Finanzas → `perfil_finanzas.py` (cProfile; solo proporciones: infla ~2,5×) | `scripts\perf/` |
+| FCP, LCP, CLS, TBT, bytes, requests, frames del websocket → `medir_frontend.py` (Chrome headless, caché fría, `desktop` y `movil_lighthouse`) | `scripts\perf/` |
+| cuánto tarda en despertarse la app o el bot después de que Fly apaga la máquina → `medir_arranque.py` (cada escenario en un proceso nuevo, A/B intercalado) | `scripts\perf/` |
+| ¿anda de verdad en Streamlit (no en AppTest)? → `probar_runtime.py` (pestañas, fragmentos, Excel diferido), `probar_cache_runtime.py` (un gasto de otro proceso aparece al recargar) | `scripts\perf/` |
+| qué fuente se baja y con cuál se dibuja cada texto → `probar_fuentes.py`; qué mueve el layout → `probar_cls.py` | `scripts\perf/` |
 | tests que escanean el código fuente: `test_nombres_definidos.py` (AST de names), `test_transacciones_formulario.py` (ramas del form), `test_env_example_sin_secretos.py` | `tests/` |
 | los CSV oráculo de Finanzas → `_oraculos.py` (`DIARIO_CSV`/`MENSUAL_CSV`) | `tests/` |
 | convención de nombres: `test_backup_*`/`test_db_*`/`test_workspaces_*` → core · el resto → Finanzas | `tests/` |
@@ -127,7 +135,10 @@ Rama `main` — ultimo commit: 2026-10-21 6184285 docs: balances en producciÃ³
 | el test de costo cero (que no aparezca la palabra de las plantillas) recorre **todo** `core/api/` y `places/finanzas/core/` desde el 19/10/2026: un módulo nuevo del canal queda vigilado solo | `tests/` |
 | WhatsApp (Fase A): `test_comandos_whatsapp.py` (parser y comandos, base sintética) · `test_api_whatsapp.py` (canal de Meta + **servidor HTTP real** en un puerto libre, webhooks firmados, envío falso) · `test_deploy_api.py` (nginx/Dockerfile/entrypoint como texto: no hay Docker local) | `tests/` |
 | los premortem-tests (`test_premortem3/5.py`): regresiones de los riesgos del premortem | `tests/` |
-| "¿la pantalla abre?" → `test_smoke_pantallas.py` (`AppTest`, base sintética) | `tests/` |
+| "cambié la clasificación de un motivo y el Dashboard y el Diario no coinciden" o "un KPI tarda" → `test_consultas_rapidas.py` (21/10/2026): `grupos_efectivos` igual a `efective_grupo` fila por fila (regla dual de Inversiones incluida), plan de M25 y el Diario con ventana vacía | `tests/` |
+| "un gasto del bot no aparece en la app hasta recargar" o "la app muestra un número viejo" → `test_cache_versionada.py` (21/10/2026): otro proceso escribe y el Inicio, el Dashboard y el Diario lo muestran en el click siguiente; el vigía no frena los checkpoints | `tests/` |
+| "la API o el Inicio volvieron a arrancar lentos" → `test_arranque_liviano.py` (21/10/2026): en un **proceso nuevo**, la API arranca sin pandas ni openpyxl y Finanzas no importa sus vistas hasta abrir la pestaña | `tests/` |
+| "¿la pantalla abre?" → `test_smoke_pantallas.py` (`AppTest`, base sintética). Desde el 21/10/2026 abre cada pestaña de Finanzas por separado (corre solo la abierta), toca los controles de los dos fragmentos del Dashboard y verifica que el Excel diferido exporte el workspace activo desde otro hilo | `tests/` |
 | una función anidada que lee algo que todavía no existe → `test_closures_definidos.py` | `tests/` |
 | migraciones que re-corren al reiniciar → `test_db_reparaciones_unicas.py` · el mapa leyendo carpetas ignoradas → `test_indexar.py` · importes ilegibles y el CLI del ingest → `test_importes_ilegibles.py` | `tests/` |
 | login, contraseñas, rate-limit, alta de cuentas → `test_auth.py` | `tests/` |
@@ -138,20 +149,21 @@ Rama `main` — ultimo commit: 2026-10-21 6184285 docs: balances en producciÃ³
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 41 | 9,058 | ok |
-| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 21 | 6,961 | ok |
-| `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M24 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,895 | ok |
-| `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,860 | ok |
+| `tests/` | La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 44 | 9,458 | ok |
+| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 21 | 6,977 | ok |
+| `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,969 | ok |
+| `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M24 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,945 | ok |
 | `core\api/` | API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla). | 8 | 1,649 | ok |
 | `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa. | 8 | 1,420 | ok |
+| `scripts\perf/` | Herramientas de la auditoría de rendimiento (21–26/10/2026): base sintética, medición de backend (AppTest), del navegador (Chrome por CDP), del arranque en frío, y pruebas en el runtime real. Corren en la PC de Franco, contra la app local: no tocan producción ni la base real. Resultados en `docs/perf/`. | 9 | 1,056 | ok |
 | `core\theme/` | Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semántica + template Plotly unificado, ajustes responsive y logo. | 5 | 710 | ok |
 | `core\auth/` | Autenticación compartida: usuarios con bcrypt, pantalla de login/signup y tokens de sesión firmados. (Los contextvars de usuario/workspace viven en `core/context.py`.) | 4 | 422 | ok |
 | `./` | Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías). | 5 | 347 | ok |
 | `places\finanzas\helpers/` | Utilidades de las vistas: formateo es-AR de montos, inyección de HTML y el tour guiado de bienvenida. | 4 | 278 | ok |
-| `places\inicio/` | Lugar Inicio — la pantalla principal de Secretario (Fase C, ADR-0008): saludo, **saldo de la cuenta** en grande, gastos/ingresos/movimientos del mes contra el mismo período del anterior, la semana y las tareas de Google (con tilde para completarlas), últimos movimientos y estado del Secretario. | 2 | 255 | ok |
+| `places\inicio/` | Lugar Inicio — la pantalla principal de Secretario (Fase C, ADR-0008): saludo, **saldo de la cuenta** en grande, gastos/ingresos/movimientos del mes contra el mismo período del anterior, la semana y las tareas de Google (con tilde para completarlas), últimos movimientos y estado del Secretario. | 2 | 273 | ok |
 | `places\inicio\core/` | La lógica del Inicio, **pura y sin Streamlit**: los números del mes y el saldo (`resumen.py`) y la semana y las tareas de Google, listas para mostrar (`semana.py`). La pantalla está en `../home.py`. | 3 | 231 | ok |
+| `places\finanzas/` | Lugar A — Finanzas Personales (ex Mis-Finanzas-App / Radar Financiero): home con onboarding y las 5 pestañas. La lógica vive en `core/` local, las pantallas en `views/`. | 2 | 90 | ok |
 | `.github\workflows/` | CI: `tests.yml` corre la suite pytest en cada push (el gate de recon se saltea sin el Excel, así CI no depende de datos personales). | 1 | 82 | ok |
-| `places\finanzas/` | Lugar A — Finanzas Personales (ex Mis-Finanzas-App / Radar Financiero): home con onboarding y las 5 pestañas. La lógica vive en `core/` local, las pantallas en `views/`. | 2 | 73 | **vencida** |
 | `places/` | _sin describir_ | 1 | 2 | — |
 | `integraciones\google-apps-script/` | Puente Google ↔ SuperApp en Apps Script: reenvía el briefing de Gmail a la API (con links acortados) y atiende el webhook que crea/lista eventos de Calendar y tareas de Tasks. | 0 | 0 | **vencida** |
 
@@ -163,10 +175,10 @@ Rama `main` — ultimo commit: 2026-10-21 6184285 docs: balances en producciÃ³
 - `scripts\buscar.py`
 - `scripts\generar_favicon.py`
 - `scripts\indexar.py`
+- `scripts\perf\probar_runtime.py`
 - `scripts\probar_fuentes_balances.py`
 - `scripts\probar_whatsapp_texto.py`
 - `scripts\setup_password.py`
-- `scripts\verificar_backup.py`
 
 ## Archivos centrales
 
@@ -174,45 +186,45 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 | Archivo | LOC | Lo usan | Simbolos |
 |---|---:|---:|---|
-| `core\db.py` | 1423 | 42 | `_migrate`, `es_tabla_faltante`, `get_db_path`, `connect` |
-| `core\context.py` | 105 | 22 | `set_current_user_id`, `get_current_user_id`, `require_current_user_id`, `set_current_workspace_id` |
-| `core\workspaces.py` | 261 | 17 | `_hash_code`, `_uid`, `get_personal_workspace_id`, `ensure_personal_workspace` |
-| `places\finanzas\core\comandos.py` | 1215 | 16 | `Respuesta`, `Gasto`, `EntradaInvalida`, `ahora_ar` |
-| `places\finanzas\core\metrics.py` | 362 | 16 | `_uid`, `anios_con_datos`, `filtrar_anio`, `load_transactions` |
-| `places\finanzas\core\transactions.py` | 265 | 14 | `_uid`, `_es_familiar`, `_asegurar_motivo`, `insert_transaction` |
-| `core\__init__.py` | 5 | 13 | — |
-| `places\finanzas\core\__init__.py` | 5 | 12 | — |
+| `core\db.py` | 1473 | 47 | `_migrate`, `es_tabla_faltante`, `get_db_path`, `connect` |
+| `core\context.py` | 105 | 30 | `set_current_user_id`, `get_current_user_id`, `require_current_user_id`, `set_current_workspace_id` |
+| `places\finanzas\core\transactions.py` | 265 | 18 | `_uid`, `_es_familiar`, `_asegurar_motivo`, `insert_transaction` |
+| `core\workspaces.py` | 261 | 18 | `_hash_code`, `_uid`, `get_personal_workspace_id`, `ensure_personal_workspace` |
+| `core\__init__.py` | 5 | 18 | — |
+| `places\finanzas\core\comandos.py` | 1219 | 17 | `Respuesta`, `Gasto`, `EntradaInvalida`, `ahora_ar` |
+| `places\finanzas\core\metrics.py` | 355 | 16 | `_uid`, `anios_con_datos`, `filtrar_anio`, `load_transactions` |
+| `places\finanzas\core\__init__.py` | 5 | 13 | — |
 | `core\api\__init__.py` | 6 | 10 | — |
+| `places\finanzas\core\ingest.py` | 381 | 9 | `ImportResult`, `_importe`, `_read_csv_rows`, `import_diario` |
 | `places\finanzas\helpers\_html.py` | 22 | 7 | `render_html` |
-| `places\finanzas\core\ingest.py` | 381 | 6 | `ImportResult`, `_importe`, `_read_csv_rows`, `import_diario` |
 | `places\finanzas\helpers\_tour.py` | 198 | 6 | `_user_id`, `is_tour_active`, `start_tour`, `finish_tour` |
 
 ## Flujo interno
 
-- `tests/` → `core/` (46)
-- `tests/` → `places\finanzas\core/` (46)
+- `tests/` → `core/` (53)
+- `tests/` → `places\finanzas\core/` (52)
 - `places\finanzas\core/` → `core/` (21)
 - `tests/` → `core\api/` (21)
 - `places\finanzas\views/` → `places\finanzas\helpers/` (13)
 - `places\finanzas\views/` → `places\finanzas\core/` (12)
-- `places\finanzas\views/` → `core/` (8)
+- `places\finanzas\views/` → `core/` (11)
+- `scripts\perf/` → `core/` (8)
 - `places\finanzas\core/` → `core\api/` (7)
 - `./` → `core\api/` (5)
 - `./` → `core/` (5)
-- `places\inicio\core/` → `places\finanzas\core/` (4)
-- `core\theme/` → `places\finanzas\helpers/` (3)
+- `scripts\perf/` → `places\finanzas\core/` (5)
 
 ## Se tocan juntos
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `.mapa/mapa.json` + `MAPA.md` (54 commits)
-- `EN-HUMANO.md` + `ESTADO.md` (40 commits)
-- `.mapa/mapa.json` + `ESTADO.md` (32 commits)
-- `ESTADO.md` + `MAPA.md` (32 commits)
-- `BITACORA.md` + `ESTADO.md` (30 commits)
+- `.mapa/mapa.json` + `MAPA.md` (55 commits)
+- `EN-HUMANO.md` + `ESTADO.md` (41 commits)
+- `.mapa/mapa.json` + `ESTADO.md` (33 commits)
+- `ESTADO.md` + `MAPA.md` (33 commits)
+- `BITACORA.md` + `ESTADO.md` (31 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)
-- `BITACORA.md` + `EN-HUMANO.md` (24 commits)
+- `BITACORA.md` + `EN-HUMANO.md` (25 commits)
 - `ESTADO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (23 commits)
 - `ESTADO.md` + `ROADMAP.md` (21 commits)
 - `places/inversiones/cartera/bitacora_de_trabajo.md` + `places/inversiones/cartera/view.py` (21 commits)
@@ -237,7 +249,7 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 - `API_HOST` — `api.py`
 - `API_PORT` — `api.py`
 - `BACKUP_RETENTION` — `core\db.py`
-- `DB_PATH` — `core\db.py`
+- `DB_PATH` — `core\db.py`, `scripts\perf\generar_base.py`, `scripts\perf\medir_arranque.py`
 - `DIARIO_CSV` — `places\finanzas\core\ingest.py`, `tests\_oraculos.py`
 - `GEMINI_API_KEY` — `core\api\gemini.py`
 - `GEMINI_MODELO` — `core\api\gemini.py`
@@ -252,4 +264,4 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
 ## Frescura
 
-- Bitacoras vencidas: `integraciones\google-apps-script/`, `places\finanzas/`
+- Bitacoras vencidas: `integraciones\google-apps-script/`

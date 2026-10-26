@@ -56,3 +56,15 @@
 - **Autor:** Claude (Opus 5.5), con Franco.
 - **Qué:** `core/api/gemini.py` (solo extrae filas en JSON) y `GEMINI_API_KEY` / `GEMINI_MODELO` en `.env.example`.
 - **Estado:** ✅ suite 859 passed, 0 skipped. Sin desplegar.
+
+## 2026-10-21 (noche) — Rendimiento, frente 3: `version_datos()` para cachear sin números viejos
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** `core.db.version_datos()` (`PRAGMA data_version` sobre una conexión vigía). Las pantallas lo usan de clave de caché.
+- **Por qué:** cada click recalculaba lo mismo; una caché por tiempo mostraría tarde lo que carga el bot desde otro proceso.
+- **Estado:** ✅ 994 passed, 0 skipped. Sin commitear ni desplegar.
+
+## 2026-10-21 (más tarde) — Rendimiento, frente 4: M25
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** M25, índice `(workspace_id, fecha, id)` en `transacciones`.
+- **Por qué:** cada lectura ordenada por fecha armaba un B-tree temporal.
+- **Estado:** ✅ 999 passed, 0 skipped. Sin commitear ni desplegar.

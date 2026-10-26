@@ -19,6 +19,22 @@ Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión 
 
 ---
 
+## 2026-10-21/26 — Auditoría de rendimiento: línea base, cinco frentes y medición final
+**Autor:** Claude (Opus 5.5), con Franco.
+
+- **Por qué:** Franco pidió auditar el rendimiento con método: medir primero, atacar cinco frentes de a uno y medir al final con las mismas herramientas.
+- **Qué se hizo** (todo en `docs/perf/`, herramientas en `scripts/perf/`):
+  - **Línea base** con base sintética (la copia de la real no se usó: datos personales). Un click en Finanzas costaba 1,2 s: armaba las cinco pestañas y el Excel de exportación en cada rerun.
+  - **Frente 1, renders:** solo corre la pestaña abierta, el Excel se arma al descargar, dos fragmentos en el Dashboard, los filtros sobreviven al cambiar de pestaña.
+  - **Frente 2, carga diferida:** openpyxl, el pandas del bot y las vistas de Finanzas se importan cuando hacen falta. **Franco decidió no cambiar Plotly** por los gráficos nativos.
+  - **Frente 3, caché:** `core.db.version_datos()` (`PRAGMA data_version`, ve lo que escribe el bot desde otro proceso) como clave de caché de Inicio, Dashboard y Diario.
+  - **Frente 4, queries:** `grupos_efectivos` en vez de `iterrows` (resultados idénticos) y **M25**, índice `(workspace_id, fecha, id)`.
+  - **Frente 5, assets:** sin cambios. Las fuentes en la config de Streamlit cambiaban cómo se ven títulos y captions; **Franco eligió dejarlas como están**. Hallazgo de diseño: hoy los títulos salen en Source Sans, no en Space Grotesk.
+- **Resultado** (antes y después intercalados el 26/10, `REPORTE-IMPACTO.md`): un click en Finanzas −96 a −99 % (sin cambios) y −92 % en el Dashboard después de cargar algo; el bot arranca −77 %; la primera carga de Finanzas baja 1,6 MB menos y queda estable un 29 % antes. La primera carga del Inicio en un celular lento no cambió (JS de Streamlit).
+- **Estado:** 999 passed, 0 skipped. **Sin commitear ni desplegar.** M25 corre sola al arrancar.
+
+---
+
 ## 2026-10-20/21 — Balances de la semana por WhatsApp: pasos 1 y 2 (ADR-0011)
 **Autor:** Claude (Opus 5.5), con Franco.
 

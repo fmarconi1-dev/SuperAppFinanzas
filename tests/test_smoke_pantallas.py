@@ -25,6 +25,7 @@ from streamlit.testing.v1 import AppTest  # noqa: E402
 
 from core import db as core_db  # noqa: E402
 from core.db import connect, init_db  # noqa: E402
+from places.finanzas.home import CLAVE_PESTANA, PESTANAS  # noqa: E402
 
 TIMEOUT = 60
 
@@ -85,6 +86,104 @@ def test_la_pantalla_de_finanzas_abre_con_sus_cinco_pestanas(base):
     at = _correr(pantalla)
     _sin_errores(at)
     assert len(at.tabs) >= 5
+
+
+@pytest.mark.parametrize("pestana", list(PESTANAS))
+def test_cada_pestana_de_finanzas_abre(base, pestana):
+    """Desde el 21/10/2026 solo corre la pestaña abierta (`on_change="rerun"`):
+    abrir Finanzas ya no recorre las cinco, así que se abre cada una."""
+    def pantalla():
+        import streamlit as st
+        from core.context import set_current_user_id
+        from places.finanzas import home
+        set_current_user_id(st.session_state["current_user_id"])
+        home.render()
+
+    at = AppTest.from_function(pantalla, default_timeout=TIMEOUT)
+    at.session_state["logged_in"] = True
+    at.session_state["current_user_id"] = 1
+    at.session_state["current_username"] = "franco"
+    at.session_state["current_user_fullname"] = "Franco"
+    at.session_state[CLAVE_PESTANA] = pestana
+    at.run()
+    _sin_errores(at)
+    # Lo de Configuración aparece solo con Configuración abierta.
+    es_configuracion = pestana.endswith("Configuración")
+    assert ("Editor de categorías" in [s.value for s in at.subheader]) == es_configuracion
+
+
+def test_los_controles_de_cada_grafico_del_dashboard_andan(base):
+    """Las medias móviles y "Agrupar por" viven en fragmentos (21/10/2026):
+    tocarlos redibuja solo su gráfico. Que sigan andando sin romper nada."""
+    def pantalla():
+        import streamlit as st
+        from core.context import set_current_user_id
+        from places.finanzas import home
+        set_current_user_id(st.session_state["current_user_id"])
+        home.render()
+
+    at = _correr(pantalla)
+    _sin_errores(at)
+    at.multiselect(key="ma_ventanas").set_value([7]).run()
+    _sin_errores(at)
+    at.button_group(key="donut_agrupar_por").set_value(["Subcategoría"]).run()
+    _sin_errores(at)
+
+
+def test_los_filtros_del_dashboard_sobreviven_a_cambiar_de_pestana(base):
+    """Con las pestañas diferidas, Streamlit borraba el estado de los filtros
+    del Dashboard en cuanto se abría otra pestaña: al volver estaba otra vez en
+    "Este mes". `FILTROS_QUE_PERSISTEN` lo evita."""
+    def pantalla():
+        import streamlit as st
+        from core.context import set_current_user_id
+        from places.finanzas import home
+        set_current_user_id(st.session_state["current_user_id"])
+        home.render()
+
+    at = _correr(pantalla)
+    at.button_group(key="dash_periodo").set_value("Año").run()
+    at.multiselect(key="ma_ventanas").set_value([7]).run()
+    etiquetas = list(PESTANAS)
+    at.session_state[CLAVE_PESTANA] = etiquetas[2]  # Diario
+    at.run()
+    at.session_state[CLAVE_PESTANA] = etiquetas[0]  # de vuelta al Dashboard
+    at.run()
+    _sin_errores(at)
+    assert at.button_group(key="dash_periodo").value == "Año"
+    assert at.multiselect(key="ma_ventanas").value == [7]
+    assert not [w.value for w in at.warning if "Session State" in str(w.value)]
+
+
+def test_el_excel_se_arma_al_descargar_con_el_workspace_activo(base):
+    """El Excel de Configuración se arma recién al descargar, en **otro hilo**
+    de Streamlit, sin los contextvars del script: tiene que exportar el
+    workspace que estaba activo (acá, uno familiar), no el personal."""
+    import io
+    import threading
+
+    import pandas as pd
+
+    from core.context import set_current_user_id, set_current_workspace_id
+    from core.workspaces import create_family_workspace
+    from places.finanzas.core.transactions import insertar_sin_backup
+    from places.finanzas.views.configuracion import _generador_excel
+
+    with connect(base) as conn:
+        fam, _ = create_family_workspace(conn, "Casa", user_id=1)
+        set_current_user_id(1)
+        set_current_workspace_id(fam)
+        insertar_sin_backup(conn, date.today(), "Gasto de la casa", pasivos=5_000, user_id=1)
+        set_current_workspace_id(None)
+
+    generar = _generador_excel(base, 1, fam)
+    resultado = {}
+    hilo = threading.Thread(target=lambda: resultado.update(xlsx=generar()))
+    hilo.start()
+    hilo.join()
+
+    diario = pd.read_excel(io.BytesIO(resultado["xlsx"]), sheet_name="Diario")
+    assert list(diario["Motivo"]) == ["Gasto de la casa"]
 
 
 def test_el_shell_completo_abre_logueado(base):

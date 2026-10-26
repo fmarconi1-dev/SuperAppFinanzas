@@ -1,0 +1,264 @@
+{
+ "desktop/inicio": {
+  "ttfb": 13.6,
+  "fcp": 744,
+  "lcp": 856,
+  "cls": 0.163,
+  "tbt": 0,
+  "longtasks": 2,
+  "longtask_max": 75,
+  "contenido_estable": 4125.1,
+  "requests": 21,
+  "red_kb_total": 3840.9,
+  "ws_frames": 36,
+  "ws_kb_recibidos": 21.2,
+  "nodos_dom": 297,
+  "dcl": 570.6,
+  "lcp_elemento": "H1 Buenas tardes, Franco",
+  "js_kb_transfer": 3194.6,
+  "js_kb_decodificado": 3191.1,
+  "css_kb_transfer": 30.9,
+  "fuentes_kb_transfer": 614.4,
+  "externos": [
+   "fonts.googleapis.com"
+  ],
+  "top_recursos": [
+   [
+    "/static/js/index.dkY5s53S.js",
+    2309.4,
+    399
+   ],
+   [
+    "/static/js/embed.B-c_4G7P.js",
+    774.0,
+    3136
+   ],
+   [
+    "/static/media/MaterialSymbols-Rounded.WDh_BksD.woff2",
+    359.6,
+    66
+   ],
+   [
+    "/static/media/SourceSansVF-Upright.ttf.BsWL4Kly.woff2",
+    166.5,
+    60
+   ],
+   [
+    "/static/media/SourceCodeVF-Upright.ttf.BjWn63N-.woff2",
+    88.3,
+    3037
+   ],
+   [
+    "/static/js/numbro.CldGEqmS.js",
+    38.3,
+    3063
+   ],
+   [
+    "/static/css/index.M0-f_CLq.css",
+    29.6,
+    62
+   ],
+   [
+    "/static/js/Html.oJkhUkEr.js",
+    25.1,
+    38
+   ]
+  ],
+  "corridas": [
+   {
+    "ttfb": 12.1,
+    "dcl": 465,
+    "load": 465.2,
+    "fcp": 744,
+    "lcp": 744,
+    "lcp_elemento": "H1 Buenas tardes, Franco",
+    "cls": 0.2,
+    "tbt": 0,
+    "longtasks": 2,
+    "longtask_max": 75,
+    "contenido_estable": 3510,
+    "mutaciones": 31,
+    "requests": 21,
+    "nodos_dom": 297,
+    "es_inicio": true,
+    "es_finanzas": false,
+    "red_kb_total": 3840.9,
+    "ws_frames": 36,
+    "ws_kb_recibidos": 21.2
+   },
+   {
+    "ttfb": 13.6,
+    "dcl": 595.9,
+    "load": 596.1,
+    "fcp": 880,
+    "lcp": 932,
+    "lcp_elemento": "H1 Buenas tardes, Franco",
+    "cls": 0.1,
+    "tbt": 0,
+    "longtasks": 3,
+    "longtask_max": 71,
+    "contenido_estable": 4323.5,
+    "mutaciones": 33,
+    "requests": 21,
+    "nodos_dom": 297,
+    "es_inicio": true,
+    "es_finanzas": false,
+    "red_kb_total": 3840.9,
+    "ws_frames": 36,
+    "ws_kb_recibidos": 21.2
+   },
+   {
+    "ttfb": 17.3,
+    "dcl": 570.6,
+    "load": 570.7,
+    "fcp": 736,
+    "lcp": 856,
+    "lcp_elemento": "H1 Buenas tardes, Franco",
+    "cls": 0.2,
+    "tbt": 0,
+    "longtasks": 2,
+    "longtask_max": 78,
+    "contenido_estable": 4125.1,
+    "mutaciones": 30,
+    "requests": 22,
+    "nodos_dom": 297,
+    "es_inicio": true,
+    "es_finanzas": false,
+    "red_kb_total": 3929.2,
+    "ws_frames": 36,
+    "ws_kb_recibidos": 21.2
+   }
+  ]
+ },
+ "desktop/finanzas": {
+  "ttfb": 50.2,
+  "fcp": 788,
+  "lcp": 1144,
+  "cls": 0.143,
+  "tbt": 1004,
+  "longtasks": 7,
+  "longtask_max": 547,
+  "contenido_estable": 6974.3,
+  "requests": 54,
+  "red_kb_total": 10075.2,
+  "ws_frames": 220,
+  "ws_kb_recibidos": 244.1,
+  "nodos_dom": 2774,
+  "dcl": 535.8,
+  "lcp_elemento": "H3 Distribución del ingreso — octubre 2026",
+  "js_kb_transfer": 9185.3,
+  "js_kb_decodificado": 9173.3,
+  "css_kb_transfer": 43.1,
+  "fuentes_kb_transfer": 526.1,
+  "externos": [
+   "fonts.googleapis.com"
+  ],
+  "top_recursos": [
+   [
+    "/static/js/PlotlyChart.DE72Bh5O.js",
+    4553.4,
+    2980
+   ],
+   [
+    "/static/js/index.dkY5s53S.js",
+    2309.4,
+    511
+   ],
+   [
+    "/static/js/embed.B-c_4G7P.js",
+    774.0,
+    877
+   ],
+   [
+    "/static/js/pandasStylerUtils.C4NWa-JG.js",
+    715.8,
+    1565
+   ],
+   [
+    "/static/js/DataFrame.Dqn1eUs1.js",
+    428.9,
+    1371
+   ],
+   [
+    "/static/media/MaterialSymbols-Rounded.WDh_BksD.woff2",
+    359.6,
+    128
+   ],
+   [
+    "/media/686f27d68321fbf0582961da4290c04d.xlsx",
+    231.0,
+    217
+   ],
+   [
+    "/static/media/SourceSansVF-Upright.ttf.BsWL4Kly.woff2",
+    166.5,
+    170
+   ]
+  ],
+  "corridas": [
+   {
+    "ttfb": 50.2,
+    "dcl": 535.8,
+    "load": 536,
+    "fcp": 776,
+    "lcp": 1144,
+    "lcp_elemento": "H3 Distribución del ingreso — octubre 2026",
+    "cls": 0.1,
+    "tbt": 1120,
+    "longtasks": 14,
+    "longtask_max": 565,
+    "contenido_estable": 7485.7,
+    "mutaciones": 66,
+    "requests": 54,
+    "nodos_dom": 2774,
+    "es_inicio": false,
+    "es_finanzas": true,
+    "red_kb_total": 10075.2,
+    "ws_frames": 220,
+    "ws_kb_recibidos": 244.1
+   },
+   {
+    "ttfb": 15.5,
+    "dcl": 516,
+    "load": 516,
+    "fcp": 788,
+    "lcp": 1120,
+    "lcp_elemento": "H3 Distribución del ingreso — octubre 2026",
+    "cls": 0.1,
+    "tbt": 993,
+    "longtasks": 5,
+    "longtask_max": 540,
+    "contenido_estable": 6974.3,
+    "mutaciones": 112,
+    "requests": 54,
+    "nodos_dom": 2774,
+    "es_inicio": false,
+    "es_finanzas": true,
+    "red_kb_total": 10075.2,
+    "ws_frames": 220,
+    "ws_kb_recibidos": 244.1
+   },
+   {
+    "ttfb": 78.9,
+    "dcl": 718.5,
+    "load": 718.7,
+    "fcp": 1004,
+    "lcp": 1372,
+    "lcp_elemento": "H3 Distribución del ingreso — octubre 2026",
+    "cls": 0.2,
+    "tbt": 1004,
+    "longtasks": 7,
+    "longtask_max": 547,
+    "contenido_estable": 6878.1,
+    "mutaciones": 101,
+    "requests": 54,
+    "nodos_dom": 2774,
+    "es_inicio": false,
+    "es_finanzas": true,
+    "red_kb_total": 10074.6,
+    "ws_frames": 220,
+    "ws_kb_recibidos": 244.1
+   }
+  ]
+ }
+}

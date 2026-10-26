@@ -1,6 +1,6 @@
 # tests/
 
-<!-- huella: e9478e76e88e -->
+<!-- huella: 4e1cdead3125 -->
 
 Resumen: La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde.
 
@@ -23,7 +23,10 @@ Resumen: La suite completa (862 tests al 20/10/2026, Fase D completa en código)
 - el test de costo cero (que no aparezca la palabra de las plantillas) recorre **todo** `core/api/` y `places/finanzas/core/` desde el 19/10/2026: un módulo nuevo del canal queda vigilado solo
 - WhatsApp (Fase A): `test_comandos_whatsapp.py` (parser y comandos, base sintética) · `test_api_whatsapp.py` (canal de Meta + **servidor HTTP real** en un puerto libre, webhooks firmados, envío falso) · `test_deploy_api.py` (nginx/Dockerfile/entrypoint como texto: no hay Docker local)
 - los premortem-tests (`test_premortem3/5.py`): regresiones de los riesgos del premortem
-- "¿la pantalla abre?" → `test_smoke_pantallas.py` (`AppTest`, base sintética)
+- "cambié la clasificación de un motivo y el Dashboard y el Diario no coinciden" o "un KPI tarda" → `test_consultas_rapidas.py` (21/10/2026): `grupos_efectivos` igual a `efective_grupo` fila por fila (regla dual de Inversiones incluida), plan de M25 y el Diario con ventana vacía
+- "un gasto del bot no aparece en la app hasta recargar" o "la app muestra un número viejo" → `test_cache_versionada.py` (21/10/2026): otro proceso escribe y el Inicio, el Dashboard y el Diario lo muestran en el click siguiente; el vigía no frena los checkpoints
+- "la API o el Inicio volvieron a arrancar lentos" → `test_arranque_liviano.py` (21/10/2026): en un **proceso nuevo**, la API arranca sin pandas ni openpyxl y Finanzas no importa sus vistas hasta abrir la pestaña
+- "¿la pantalla abre?" → `test_smoke_pantallas.py` (`AppTest`, base sintética). Desde el 21/10/2026 abre cada pestaña de Finanzas por separado (corre solo la abierta), toca los controles de los dos fragmentos del Dashboard y verifica que el Excel diferido exporte el workspace activo desde otro hilo
 - una función anidada que lee algo que todavía no existe → `test_closures_definidos.py`
 - migraciones que re-corren al reiniciar → `test_db_reparaciones_unicas.py` · el mapa leyendo carpetas ignoradas → `test_indexar.py` · importes ilegibles y el CLI del ingest → `test_importes_ilegibles.py`
 - login, contraseñas, rate-limit, alta de cuentas → `test_auth.py`

@@ -7,7 +7,7 @@ from typing import Optional
 
 import pandas as pd
 
-from places.finanzas.core.categorizer import efective_grupo
+from places.finanzas.core.categorizer import grupos_efectivos
 from core.context import require_current_user_id
 from core.workspaces import resolve_workspace_id
 from core.db import backup_db
@@ -48,14 +48,11 @@ def realidad_mensual_efectiva(
     if txns.empty:
         return pd.DataFrame(columns=["motivo", "grupo", "monto_real"])
 
-    registros: list[tuple[str, str, float]] = []
-    for _, r in txns.iterrows():
-        grupo, _sub = efective_grupo(
-            r["motivo"], float(r["pasivos"]), float(r["ingresos"]), cats_full
-        )
-        monto = float(r["ingresos"]) if grupo == "Ingreso" else float(r["pasivos"])
-        registros.append((r["motivo"], grupo, monto))
-
+    grupos, _subs = grupos_efectivos(txns["motivo"], txns["pasivos"], txns["ingresos"], cats_full)
+    registros = [
+        (motivo, grupo, float(ing) if grupo == "Ingreso" else float(pas))
+        for motivo, grupo, pas, ing in zip(txns["motivo"], grupos, txns["pasivos"], txns["ingresos"])
+    ]
     real = pd.DataFrame(registros, columns=["motivo", "grupo", "monto_real"])
     return real.groupby(["motivo", "grupo"], as_index=False)["monto_real"].sum()
 

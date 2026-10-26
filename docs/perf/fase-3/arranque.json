@@ -1,0 +1,101 @@
+{
+ "api_import": {
+  "A_ms_mediana": 1205.7,
+  "A_ms_todas": [
+   1153,
+   1206,
+   1206,
+   1276,
+   1160
+  ],
+  "B_ms_mediana": 278.9,
+  "B_ms_todas": [
+   260,
+   267,
+   315,
+   324,
+   279
+  ],
+  "delta_pct": -76.9
+ },
+ "bot_primer_gasto": {
+  "A_ms_mediana": 1224.5,
+  "A_solo_mensaje_ms_mediana": 26.5,
+  "A_ms_todas": [
+   1219,
+   1288,
+   1225,
+   1273,
+   1192
+  ],
+  "B_ms_mediana": 314.8,
+  "B_solo_mensaje_ms_mediana": 18.7,
+  "B_ms_todas": [
+   343,
+   325,
+   315,
+   295,
+   300
+  ],
+  "delta_pct": -74.3
+ },
+ "bot_primer_resumen": {
+  "A_ms_mediana": 1225.0,
+  "A_solo_mensaje_ms_mediana": 51.9,
+  "A_ms_todas": [
+   1235,
+   1225,
+   1272,
+   1197,
+   1225
+  ],
+  "B_ms_mediana": 936.9,
+  "B_solo_mensaje_ms_mediana": 683.2,
+  "B_ms_todas": [
+   973,
+   937,
+   981,
+   935,
+   919
+  ],
+  "delta_pct": -23.5
+ },
+ "app_primer_inicio": {
+  "A_ms_mediana": 1857.1,
+  "A_ms_todas": [
+   1857,
+   1782,
+   1887,
+   1864,
+   1783
+  ],
+  "B_ms_mediana": 1470.7,
+  "B_ms_todas": [
+   1512,
+   1475,
+   1456,
+   1471,
+   1465
+  ],
+  "delta_pct": -20.8
+ },
+ "app_primer_finanzas": {
+  "A_ms_mediana": 3655.7,
+  "A_ms_todas": [
+   3557,
+   3400,
+   3762,
+   3736,
+   3656
+  ],
+  "B_ms_mediana": 1456.5,
+  "B_ms_todas": [
+   1420,
+   1487,
+   1456,
+   1451,
+   1462
+  ],
+  "delta_pct": -60.2
+ }
+}

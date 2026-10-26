@@ -1,6 +1,6 @@
 # core/
 
-<!-- huella: 49baab051df0 -->
+<!-- huella: 62988930f806 -->
 
 Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M24 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias.
 
@@ -33,10 +33,13 @@ Resumen: Núcleo compartido: SQLite (schema + migraciones M1–M24 + reparacione
 - `context.py` es la **única** fuente de los contextvars. Las fachadas `core/auth/current_user.py` y `current_workspace.py` se borraron el 22/9/2026 (nadie las usaba en producción); `tests/test_context.py` falla si aparece otro `ContextVar` en `core/` o `places/`.
 - ⚠️ **Una reparación de datos corre una vez, no en cada arranque** (22/9/2026). M3, M7 y M8.5 son `UPDATE`/`DELETE` de filas y corrían en cada deploy y cada vez que Fly despertaba la máquina: M3 volvía a pasar "Compra Divisa" a Inversión aunque el usuario la reclasificara, M7 rellenaba subcategorías vaciadas a propósito y M8.5 **borraba** la fila buena de un espacio si aparecía una huérfana. Ahora van detrás de `PRAGMA user_version` (`_NIVEL_REPARACIONES = 1`), marcado dentro de la misma transacción. **Toda migración nueva que toque filas va detrás de esa marca** (subí el nivel). Tests: `tests/test_db_reparaciones_unicas.py`.
 - M5 tenía el mismo guard incompleto que M4 el 17/7: su rebuild no conoce `workspace_id`. Desde el 22/9 exige además `not _es_post_d2(tabla)`.
+- **`version_datos()` es la clave de las cachés de las pantallas** (21/10/2026, frente 3 de rendimiento): `PRAGMA data_version` sobre una conexión vigía que vive lo que el proceso. Ve los commits de cualquier otra conexión, también del bot (otro proceso). Tres cosas para no romperla: (1) el vigía **nunca escribe** y lee con `fetchall()` (si dejara una lectura abierta frenaría los checkpoints del WAL); (2) **una pantalla no puede escribir en un click sin cambios** (un `set_config` "por las dudas" en cada rerun invalidaría todo, siempre); (3) si alguien **reemplaza el archivo** de la base con la app andando, el vigía sigue mirando el viejo: `restaurar_backup.ps1` reinicia la máquina después del `mv`, y tiene que seguir haciéndolo. Tests: `tests/test_cache_versionada.py`.
 - **`except Exception` está prohibido para "la base no tiene la migración"** (trampa 36): se usa `es_tabla_faltante(exc)` y todo lo demás se relanza. Antes, un error cualquiera sacaba los ajustes de la cartera sin avisar.
 
 ## Estado
 
+- **21/10/2026 (rendimiento, frente 4):** **M25**, aditiva: índice `idx_transacciones_ws_fecha (workspace_id, fecha, id)`. Las lecturas ordenadas por fecha dejan de armar un B-tree temporal (últimos 5 movimientos 2,7 → 0,02 ms). Solo un índice: no toca filas ni necesita `_NIVEL_REPARACIONES`.
+- **21/10/2026 (rendimiento, frente 3):** `version_datos()` en `db.py` (ver Trampas). Sin migración. Medido en `docs/perf/FRENTE-3-CACHE.md`.
 - **21/10/2026 (balances, paso 3, sin desplegar):** **M24**, aditiva: `balances_agendados` (una fila por tanda agendada en Google, con las claves de los eventos, para `deshacer`).
 - **21/10/2026 (balances, paso 2, sin desplegar):** **M23**, aditiva: `balances_sp500` (la copia mensual del S&P 500) y `balances_propuestas` (la lista de la semana, con `elegidos` en JSON; **no** es un lote, ADR-0011).
 - **Funciona:** todo en producción (Fly.io).

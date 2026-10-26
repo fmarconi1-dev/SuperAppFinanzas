@@ -33,7 +33,7 @@ from typing import Optional
 
 import pandas as pd
 
-from places.finanzas.core.categorizer import efective_grupo
+from places.finanzas.core.categorizer import grupos_efectivos
 from core.context import require_current_user_id
 from core.workspaces import resolve_workspace_id
 from core.db import get_config
@@ -185,16 +185,9 @@ def _aplicar_grupo_efectivo(
     Ingreso/Desahorro.
     """
     df = df.copy()
-    grupos = []
-    subs = []
-    for _, row in df.iterrows():
-        g, s = efective_grupo(
-            row["motivo"], float(row["pasivos"]), float(row["ingresos"]), cats_full
-        )
-        grupos.append(g)
-        subs.append(s)
-    df["grupo"] = grupos
-    df["subcategoria"] = subs
+    df["grupo"], df["subcategoria"] = grupos_efectivos(
+        df["motivo"], df["pasivos"], df["ingresos"], cats_full
+    )
     return df
 
 

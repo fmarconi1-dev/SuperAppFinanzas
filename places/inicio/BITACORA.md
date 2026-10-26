@@ -1,6 +1,6 @@
 # places/inicio/
 
-<!-- huella: 45c13f01fd29 -->
+<!-- huella: 027f980434f7 -->
 
 Resumen: Lugar Inicio — la pantalla principal de Secretario (Fase C, ADR-0008): saludo, **saldo de la cuenta** en grande, gastos/ingresos/movimientos del mes contra el mismo período del anterior, la semana y las tareas de Google (con tilde para completarlas), últimos movimientos y estado del Secretario.
 
@@ -18,6 +18,7 @@ Resumen: Lugar Inicio — la pantalla principal de Secretario (Fase C, ADR-0008)
 - Gastos usa `delta_color="inverse"`: gastar más es malo.
 - **El saldo grande es el de la cuenta, no ingresos − gastos del mes** (Franco, 18/10/2026). Tiene que coincidir con "Saldo cuenta corriente" del Dashboard: test `test_el_saldo_es_el_de_la_cuenta_como_en_el_dashboard`.
 - Sin categorías todavía (usuario nuevo), el Inicio muestra la bienvenida de Finanzas, igual que antes.
+- **Los números del Inicio se guardan hasta que cambie la base** (21/10/2026, frente 3 de rendimiento): `_numeros_del_inicio`, con `core.db.version_datos()` y `hoy` en la clave. Un gasto que manda el bot aparece en el click siguiente, sin esperar (test `test_el_inicio_muestra_al_toque_lo_que_cargo_el_bot`). Algo nuevo que se muestre en el Inicio y dependa de otro dato (otro día, otro usuario) va en la clave.
 - **La agenda se guarda 5 minutos** (`st.cache_data`): un evento recién creado por WhatsApp aparece al tocar **Actualizar agenda** o a los 5 minutos. Los errores no se cachean.
 - **Una tarea se tacha solo si Google confirma.** El tilde llama a `completar_tarea` en el callback; si Google rechaza, el callback vuelve a poner el checkbox en `False` y deja el error para mostrarlo. En el callback no se usan contextvars (premortem #5): el cliente viaja en `args`.
 - Un evento que empezó antes de hoy (varios días, o uno que cruzó la medianoche) se muestra **hoy**, con "En curso" en vez de su hora de inicio.
@@ -26,6 +27,7 @@ Resumen: Lugar Inicio — la pantalla principal de Secretario (Fase C, ADR-0008)
 
 ## Estado
 
+- **21/10/2026 (rendimiento, frente 3):** caché por versión de la base para saldo, mes y últimos movimientos. Un click sin cambios: ~80 ms → ~17 ms (`docs/perf/FRENTE-3-CACHE.md`).
 - **18/10/2026 (correcciones de Franco tras verlo publicado):** el número grande es el **saldo de la cuenta** (`rs.saldo_cuenta` = `metrics.saldo_cuenta_corriente`, el mismo del Dashboard), solo en su bloque; debajo, gastos, ingresos y movimientos del mes. Se fue "Ingresos − gastos". Sin marco doble (los contenedores no llevan borde; el acento violeta va en la tarjeta del saldo). Mirado en el navegador local (escritorio y 375 px) con una base de prueba.
 - **17/10/2026 (Fase C, pasos 3–5, sin desplegar):** semana y tareas desde `resumen_semana` (caché 5 min, **Actualizar agenda**, estados de carga, vacío, error con **Reintentar** y sin configurar), tilde para completar en Google Tasks, y renglón de estado del Secretario (mensajes en cola + agenda conectada). Tests: `tests/test_inicio_agenda.py`.
 - **17/10/2026 (Fase C, pasos 1–2, sin desplegar):** creado. Inicio es la página default de `app.py`. Tests: `tests/test_inicio.py` (lógica, igualdad con `resumen`, AppTest con y sin movimientos, la app abre en Inicio, marca "Secretario"). **No se miró en un navegador todavía.**

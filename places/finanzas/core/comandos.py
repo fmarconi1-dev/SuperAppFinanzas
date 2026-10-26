@@ -43,11 +43,6 @@ from places.finanzas.core import balances
 from places.finanzas.core import lotes
 from places.finanzas.core import saldos
 
-from places.finanzas.core.metrics import (
-    ingresos_vs_gastos_mensual,
-    load_categorias_full,
-    load_transactions,
-)
 from places.finanzas.core.transactions import (
     all_motivos,
     delete_transaction,
@@ -1163,6 +1158,15 @@ def totales_mes(
     caen las categorías nuevas creadas desde WhatsApp: por eso va aparte, para
     que ningún peso desaparezca. Lo usan `resumen` y el briefing (Fase B).
     """
+    # `metrics` trae pandas (~0,5 s): se importa recién acá para que la API no
+    # lo pague en cada arranque en frío. Cargar un gasto no lo necesita
+    # (frente 2 de rendimiento, 21/10/2026).
+    from places.finanzas.core.metrics import (
+        ingresos_vs_gastos_mensual,
+        load_categorias_full,
+        load_transactions,
+    )
+
     df = load_transactions(conn, user_id=user_id)
     if df.empty:
         return None

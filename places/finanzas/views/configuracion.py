@@ -13,6 +13,13 @@ import pandas as pd
 import streamlit as st
 
 from datetime import datetime
+from typing import Callable, Optional
+
+from core.context import (
+    get_current_workspace_id,
+    set_current_user_id,
+    set_current_workspace_id,
+)
 
 from places.finanzas.core.categorias import (
     GRUPOS_EDITABLES,
@@ -270,6 +277,23 @@ def _espacio_compartido(db_path) -> None:
                     st.error(str(e))
 
 
+def _generador_excel(db_path, user_id: int, workspace_id: Optional[int]) -> Callable[[], bytes]:
+    """El Excel se arma recién al tocar "Descargar", no en cada rerun.
+
+    Hasta el 21/10/2026 se armaba entero en cada click de Finanzas, aunque nadie
+    lo bajara: ~3/4 del tiempo de cada rerun (`docs/perf/LINEA-BASE.md`).
+    Streamlit corre esta función en **otro hilo**, sin los contextvars del
+    script: por eso lleva el usuario y el workspace consigo. Sin el workspace,
+    en un espacio familiar exportaría el personal.
+    """
+    def generar() -> bytes:
+        set_current_user_id(user_id)
+        set_current_workspace_id(workspace_id)
+        with connect(db_path) as conn:
+            return export_xlsx(conn, user_id=user_id)
+    return generar
+
+
 def render() -> None:
     render_tour_panel("configuracion")
     db_path = get_db_path()
@@ -366,11 +390,10 @@ def render() -> None:
         "Categorías y Resumen). Útil para backup manual, compartir con "
         "contador o comparar con tu Excel original."
     )
-    with connect(db_path) as conn:
-        xlsx_bytes = export_xlsx(conn)
     st.download_button(
         label="📥 Descargar snapshot Excel",
-        data=xlsx_bytes,
+        data=_generador_excel(db_path, st.session_state["current_user_id"],
+                              get_current_workspace_id()),
         file_name=f"mis-finanzas-{datetime.now():%Y%m%d-%H%M}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )

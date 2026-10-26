@@ -9,6 +9,90 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 26 de octubre de 2026 — El antes y el después, medidos lado a lado
+
+**Qué se hizo.** Se volvieron a correr las mismas pruebas del principio, con la versión vieja de la app y la nueva **una al lado de la otra, el mismo día**, para que nada más que los cambios explique la diferencia.
+
+**Lo que ganaste** (en tu PC, con datos inventados del tamaño de los tuyos):
+- **Cada click en Finanzas**: de unos 2 segundos de trabajo de la app a entre 3 y 7 centésimas cuando no cambió nada, y a una décima y media en el Dashboard justo después de cargar algo. En el celular se suma el cuarto de segundo de internet, que no cambia: lo vas a notar varias veces más rápido, no cien.
+- **El Secretario se despierta 4 veces más rápido** después de un rato sin uso: el primer gasto por WhatsApp se procesa en un tercio de segundo en vez de más de uno.
+- **La primera vez que abrís Finanzas** baja 1,6 MB menos y termina de dibujarse un 29 % antes.
+- Todos los números de la app dan **exactamente igual** que antes.
+
+**Lo que no cambió.** La primera vez que abrís el Inicio desde un celular con poca señal tarda lo mismo: lo que pesa ahí es el programa de Streamlit, que no es nuestro. Y los gráficos siguen siendo los de siempre, como elegiste.
+
+**Qué sigue.** Que esto llegue a la app de verdad: guardar los cambios (commit), publicarla (eso lo hacés vos) y medir allá un par de cosas para confirmar.
+
+---
+
+## 22 de octubre de 2026 (mañana) — Fuentes, imágenes y archivos: nada que cambiar
+
+**Qué se hizo.** Se revisó todo lo que baja el navegador además del programa en sí: el logo y el ícono ya son livianos, y no hay archivos propios que demoren la carga. Las letras se probaron cargar de otra manera: llegaban dos segundos antes, pero los títulos y los textos chicos cambiaban de tipo de letra, y preferiste dejarlos como están. Así que esta vez no se tocó la app.
+
+**Algo que apareció de paso.** Hoy los títulos se ven con la letra de Streamlit, no con la que eligió el diseño de la app (Space Grotesk). No es un problema de velocidad; queda anotado por si algún día querés cambiarlo.
+
+**Qué sigue.** La medición final: volver a correr las mismas pruebas del principio y comparar el antes y el después de todo junto.
+
+---
+
+## 22 de octubre de 2026 (madrugada) — Las cuentas salen mucho más rápido
+
+**Qué se hizo.** Para saber a qué grupo pertenece cada movimiento (gasto fijo, variable, ingreso…), la app los revisaba de a uno, con una herramienta lenta para eso, y **todos** los de tu historia, incluso para mostrar solo la última semana en el Diario. Ahora usa la misma regla pero de una manera mucho más rápida, y el Diario revisa solo lo que muestra. Además se agregó un índice a la base (como el índice de un libro) para que encuentre tus movimientos ya ordenados por fecha.
+
+**Para qué te sirve.** Cuando la app tiene que rehacer las cuentas (justo después de que cargás algo), el Diario tarda un 80 % menos y el Dashboard un 30 % menos. Los números son **exactamente los mismos**: lo comparé con la versión anterior, cuenta por cuenta.
+
+**Qué sigue.** El último arreglo, el frente 5 (fuentes y archivos que baja el navegador), y después la medición final de todo junto.
+
+---
+
+## 21 de octubre de 2026 (casi medianoche) — La app recuerda lo que ya calculó
+
+**Qué se hizo.** Antes, cada click en el Inicio, el Dashboard o el Diario volvía a leer todos tus movimientos y a hacer todas las cuentas de nuevo, aunque no hubiera cambiado nada. Ahora la app guarda el resultado y lo reusa hasta que cambie algo en la base. Y "cambie algo" incluye lo que cargás por WhatsApp: la app se da cuenta sola.
+
+**Para qué te sirve.** Volver a una pestaña, recargar la página o tocar un filtro y volverlo atrás ahora es casi instantáneo: la app tarda dos centésimas en el Inicio y en el Diario, y cinco en el Dashboard (a eso el celular le suma el cuarto de segundo de ida y vuelta por internet, que no cambia). Y un gasto que mandás por WhatsApp aparece en el siguiente click, sin esperar ni recargar dos veces (lo probé con la app abierta). Lo único que no mejora es el primer click después de cargar algo, porque ahí sí tiene que rehacer las cuentas.
+
+**Qué sigue.** El frente 4: que esas cuentas, cuando hay que rehacerlas, salgan más rápido.
+
+---
+
+## 21 de octubre de 2026 (más tarde a la noche) — El Secretario se despierta más rápido
+
+**Qué se hizo.** El servidor se apaga solo cuando nadie lo usa, y al despertarse cargaba herramientas que no siempre hacen falta: la que lee Excel (solo sirve cuando mandás un extracto) y la de tablas de números (solo para el `resumen`). Ahora cada una se carga recién cuando la necesita. Lo mismo con las pantallas de Finanzas: si entrás al Inicio, ya no se preparan.
+
+**Para qué te sirve.** Después de un rato sin usarlo, el primer gasto que mandás por WhatsApp se procesa en un cuarto de segundo en vez de más de uno, y el Inicio abre un 20 % más rápido. El primer `resumen` después de despertarse mejora menos, porque ese sí necesita la herramienta de tablas.
+
+**Lo que no se hizo, a propósito.** Cambiar los gráficos por otros más livianos achicaba bastante lo que baja el navegador, pero decidiste dejar los de ahora.
+
+**Qué sigue.** El frente 3: pedirle menos veces lo mismo a la base de datos.
+
+---
+
+## 21 de octubre de 2026 (noche) — Finanzas responde mucho más rápido a cada click
+
+**Qué se hizo.** Tres arreglos para que la app deje de trabajar en lo que no estás mirando:
+- **Solo se arma la pestaña que tenés abierta.** Antes, cada click en Finanzas rehacía las cinco pestañas enteras.
+- **El Excel de exportación se arma recién cuando tocás "Descargar".** Antes se armaba completo en cada click, aunque no lo bajaras.
+- En el Dashboard, **cambiar las medias móviles o el "Agrupar por" redibuja solo ese gráfico**, no la pantalla entera.
+
+**Para qué te sirve.** El trabajo de la app en cada click de Finanzas bajó unas diez veces: en el Dashboard, de más de un segundo a dos décimas; en Transacciones y Configuración, a unas centésimas (medido con la versión vieja y la nueva lado a lado). En el celular lo vas a notar como unas tres o cuatro veces más rápido, porque el viaje de ida y vuelta por internet sigue sumando un cuarto de segundo por click. Lo único que cambia al usarla: pasar de una pestaña a otra ahora tarda un instante (antes era inmediato, pero todo lo demás era lento), y si dejás un gasto escrito a medias en Transacciones sin guardar y te vas a otra pestaña, se borra. Los filtros del Dashboard (el período, las medias móviles) sí quedan como los dejaste.
+
+**Qué sigue.** Publicar la app cuando quieras. El próximo arreglo es que la primera vez que abrís Finanzas baje menos cosas.
+
+---
+
+## 21 de octubre de 2026 (tarde) — Cuánto tarda la app hoy, medido antes de tocar nada
+
+**Qué se hizo.** Se midió con cronómetro cuánto tarda la app en abrir y en responder a cada click, con datos inventados del mismo tamaño que los tuyos (4 años de gastos) y sin cambiar una línea de la app. Lo más importante que apareció:
+- **El Inicio anda rápido**: cada click cuesta menos de una décima de segundo.
+- **Finanzas es lenta**: cada click cuesta más de un segundo, porque arma las cinco pestañas enteras aunque mires una sola. Y la pestaña Configuración **arma el Excel completo de exportación en cada click**, aunque no lo descargues: eso solo se lleva tres cuartos del tiempo.
+- En un celular con señal mediana, Finanzas tarda casi un minuto en terminar de dibujarse.
+
+**Para qué te sirve.** Es la foto del "antes". Cuando se hagan las mejoras, se vuelve a medir exactamente igual y se ve cuánto se ganó, con números y no a ojo.
+
+**Qué sigue.** Elegir por qué mejora empezar (la más rendidora es dejar de armar lo que no estás mirando).
+
+---
+
 ## 21 de octubre de 2026 (más tarde a la noche) — Dos arreglos en los balances
 
 **Qué se hizo.**

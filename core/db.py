@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
+import threading
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
@@ -140,6 +141,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
       M23           balances de la semana: lista del S&P 500 y la propuesta
                     del domingo (ADR-0011).
       M24           balances: lo agendado en Google, para `deshacer`.
+      M25           índice (workspace_id, fecha, id) de transacciones: no
+                    ordenar en un B-tree temporal en cada lectura.
 
     "Única" = reparación de datos que corre una sola vez por base, marcada con
     `PRAGMA user_version` (ver `_NIVEL_REPARACIONES`).
@@ -1223,6 +1226,17 @@ def _migrate(conn: sqlite3.Connection) -> None:
             )
         """)
 
+        # ============================================================
+        # M25 (rendimiento, frente 4, 21/10/2026): índice para ordenar por fecha.
+        # ============================================================
+        # Casi toda lectura de transacciones es "las del workspace, por fecha
+        # e id". Con el índice viejo (solo `workspace_id`) SQLite las ordenaba
+        # en un B-tree temporal cada vez: los últimos 5 movimientos del Inicio
+        # y del bot pasan de 2,7 ms a 0,02 ms, y la lectura entera un 23 %
+        # (`docs/perf/FRENTE-4-QUERIES.md`). Solo un índice: no toca filas.
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_transacciones_ws_fecha "
+                    "ON transacciones(workspace_id, fecha, id)")
+
         if reparaciones_pendientes:
             # Dentro de la transacción: si algo de arriba falla, el ROLLBACK
             # también deshace esta marca y las reparaciones se reintentan.
@@ -1280,6 +1294,42 @@ def connect(db_path: Optional[Path] = None) -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")
     return conn
+
+
+# ---------- Versión de los datos (para cachear sin servir números viejos) ----------
+
+_vigia_lock = threading.Lock()
+_vigia: dict = {"ruta": None, "conn": None, "generacion": 0}
+
+
+def version_datos(db_path: Optional[Path] = None) -> tuple[int, int]:
+    """Cambia cada vez que **cualquier otra conexión** commitea en la base.
+
+    Sirve de clave de caché (frente 3 de rendimiento, 21/10/2026): mientras no
+    cambie, las pantallas pueden reusar lo que ya calcularon. Ve también lo que
+    escribe el bot de WhatsApp, que corre en **otro proceso** sobre la misma
+    base: lo hace `PRAGMA data_version` sobre una conexión "vigía" que vive lo
+    que el proceso y que nunca escribe. Leer no la mueve; un checkpoint del WAL
+    sí (un recálculo de más, nunca un número viejo).
+
+    Devuelve `(generación, data_version)`: si cambia la ruta (los tests) se
+    abre otro vigía, que numera desde cero; la generación evita que su número
+    coincida con uno viejo. Si alguien **reemplaza el archivo** con la app
+    andando, el vigía sigue mirando el viejo: `scripts/restaurar_backup.ps1`
+    reinicia la máquina después del `mv`, y tiene que seguir haciéndolo.
+    """
+    ruta = str(Path(db_path) if db_path is not None else get_db_path())
+    with _vigia_lock:
+        if _vigia["ruta"] != ruta:
+            if _vigia["conn"] is not None:
+                _vigia["conn"].close()
+            # Autocommit y `fetchall`: el vigía no puede quedarse con una
+            # lectura abierta, o frenaría los checkpoints del WAL.
+            _vigia["conn"] = sqlite3.connect(ruta, isolation_level=None, check_same_thread=False)
+            _vigia["ruta"] = ruta
+            _vigia["generacion"] += 1
+        (version,), = _vigia["conn"].execute("PRAGMA data_version").fetchall()
+        return _vigia["generacion"], version
 
 
 def init_db(db_path: Optional[Path] = None) -> None:

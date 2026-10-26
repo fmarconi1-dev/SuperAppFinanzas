@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+from typing import Optional
+
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 
 import pandas as pd
 
-from core.db import connect, get_db_path, set_config
+from core.context import (
+    get_current_workspace_id,
+    set_current_user_id,
+    set_current_workspace_id,
+)
+from core.db import connect, get_db_path, set_config, version_datos
 from places.finanzas.core.metrics import (
     anios_con_datos,
     caja_diaria_con_medias,
@@ -32,6 +39,57 @@ from core.theme._theme import (
     COLORES_MA,
 )
 from places.finanzas.helpers._tour import render_tour_panel
+
+
+# ---------- Caché (frente 3 de rendimiento, 21/10/2026) ----------
+#
+# Antes cada click releía las transacciones (dos veces, con el gráfico de Caja)
+# y recalculaba KPIs y tablas aunque no hubiera cambiado nada. Ahora se
+# recalcula solo si cambió la base: `version` es `core.db.version_datos()`, que
+# ve también lo que escribe el bot de WhatsApp desde otro proceso. Las claves
+# son escalares (nada de DataFrames, que son lentos de hashear), y el período
+# va por sus fechas, que ya dependen del día.
+
+def _con_contexto(user_id: int, workspace_id: Optional[int]) -> None:
+    set_current_user_id(user_id)
+    set_current_workspace_id(workspace_id)
+
+
+@st.cache_data(max_entries=16, show_spinner=False)
+def _datos_base(ruta: str, user_id: int, workspace_id: Optional[int], version: tuple[int, int]):
+    """Transacciones, categorías, saldo y fondo USD del workspace."""
+    _con_contexto(user_id, workspace_id)
+    with connect(ruta) as conn:
+        return (load_transactions(conn), load_categorias_full(conn),
+                saldo_cuenta_corriente(conn), fondo_emergencia_usd(conn))
+
+
+@st.cache_data(max_entries=32, show_spinner=False)
+def _calculos_del_periodo(ruta: str, user_id: int, workspace_id: Optional[int],
+                          version: tuple[int, int], ini, fin, prev_ini, prev_fin,
+                          anio_sel: int) -> dict:
+    """KPIs del período y del anterior, ingresos vs gastos del año y gasto por categoría."""
+    df, cats, saldo, fondo = _datos_base(ruta, user_id, workspace_id, version)
+    df_periodo = df[(df["fecha"] >= ini) & (df["fecha"] <= fin)]
+    df_prev = df[(df["fecha"] >= prev_ini) & (df["fecha"] <= prev_fin)]
+    return {
+        "kpis": compute_kpis(df_periodo, cats, fondo_usd=fondo, saldo_cc=saldo),
+        "kpis_prev": compute_kpis(df_prev, cats, fondo_usd=fondo, saldo_cc=saldo),
+        "df_iva_gtos": ingresos_vs_gastos_mensual(filtrar_anio(df, anio_sel), cats),
+        "df_cat": gasto_por_categoria(df_periodo, cats),
+        "hay_prev": not df_prev.empty,
+        "sin_movs": df_periodo.empty,
+        "n_periodo": len(df_periodo),
+    }
+
+
+@st.cache_data(max_entries=16, show_spinner=False)
+def _caja(ruta: str, user_id: int, workspace_id: Optional[int], version: tuple[int, int],
+          ventanas: tuple[int, ...]):
+    """Serie diaria de Caja con sus medias móviles."""
+    _con_contexto(user_id, workspace_id)
+    with connect(ruta) as conn:
+        return caja_diaria_con_medias(conn, ventanas=ventanas)
 
 
 def _save_fondo_usd_callback():
@@ -61,11 +119,10 @@ def render() -> None:
         primer_nombre = fullname.split()[0]
         st.markdown(f"👋 Hola, **{primer_nombre}**")
 
-    with connect(db_path) as conn:
-        df = load_transactions(conn)
-        cats = load_categorias_full(conn)
-        saldo = saldo_cuenta_corriente(conn)
-        fondo = fondo_emergencia_usd(conn)
+    user_id = st.session_state["current_user_id"]
+    workspace_id = get_current_workspace_id()
+    version = version_datos(db_path)
+    df, cats, saldo, fondo = _datos_base(str(db_path), user_id, workspace_id, version)
 
     # ---------- Empty state amable para usuarios nuevos ----------
 
@@ -142,16 +199,10 @@ def render() -> None:
         periodo_label = str(anio_sel)
         prev_label = str(anio_sel - 1)
 
-    df_periodo = df[(df["fecha"] >= ini) & (df["fecha"] <= fin)]
-    df_prev = df[(df["fecha"] >= prev_ini) & (df["fecha"] <= prev_fin)]
-    df_anio = filtrar_anio(df, anio_sel)
-
-    kpis = compute_kpis(df_periodo, cats, fondo_usd=fondo, saldo_cc=saldo)
-    kpis_prev = compute_kpis(df_prev, cats, fondo_usd=fondo, saldo_cc=saldo)
-    hay_prev = not df_prev.empty
-    sin_movs = df_periodo.empty
-    df_iva_gtos = ingresos_vs_gastos_mensual(df_anio, cats)
-    df_cat = gasto_por_categoria(df_periodo, cats)
+    c = _calculos_del_periodo(str(db_path), user_id, workspace_id, version,
+                              ini, fin, prev_ini, prev_fin, anio_sel)
+    kpis, kpis_prev, df_iva_gtos, df_cat = c["kpis"], c["kpis_prev"], c["df_iva_gtos"], c["df_cat"]
+    hay_prev, sin_movs, n_periodo = c["hay_prev"], c["sin_movs"], c["n_periodo"]
 
     def _delta_pct(actual: float, previo: float) -> str | None:
         """Delta % contra el período anterior; None sin base de comparación."""
@@ -164,7 +215,7 @@ def render() -> None:
     ultima = df["fecha"].max()
     st.caption(
         f"Última transacción cargada: **{ultima.strftime('%d/%m/%Y')}** "
-        f"· **{len(df_periodo)}** movimientos en {periodo_label}"
+        f"· **{n_periodo}** movimientos en {periodo_label}"
     )
 
     # ---------- Hero: resultado del período + liquidez ----------
@@ -313,6 +364,50 @@ def render() -> None:
 
     # ---------- Gráfico 1: Evolución de Caja ----------
 
+    _grafico_caja(db_path, user_id, workspace_id)
+
+    # ---------- Gráfico 2: Ingresos vs Gastos mensual ----------
+
+    with st.container(border=True):
+        st.subheader(f"Ingresos vs Gastos por mes — {anio_sel}")
+        if df_iva_gtos.empty:
+            st.info("No hay datos suficientes.")
+        else:
+            df_plot = df_iva_gtos.copy()
+            df_plot["mes_label"] = df_plot["periodo"].dt.strftime("%b %Y")
+            fig_bars = go.Figure()
+            fig_bars.add_trace(go.Bar(
+                x=df_plot["mes_label"], y=df_plot["ingresos"],
+                name="Ingresos", marker_color=COLOR_INGRESO,
+            ))
+            fig_bars.add_trace(go.Bar(
+                x=df_plot["mes_label"], y=df_plot["gastos"],
+                name="Gastos", marker_color=COLOR_GASTO,
+            ))
+            fig_bars.update_layout(
+                barmode="group", height=340,
+                margin=dict(l=20, r=40, t=10, b=20),
+                yaxis_title="ARS",
+                legend=dict(orientation="h", y=1.1),
+            )
+            st.plotly_chart(fig_bars, width="stretch")
+
+    # ---------- Gráfico 3: Distribución por categoría ----------
+
+    _grafico_categorias(df_cat, cats, periodo_label)
+
+
+@st.fragment
+def _grafico_caja(db_path, user_id: int, workspace_id: Optional[int]) -> None:
+    """Evolución de Caja. Fragmento: cambiar las medias móviles redibuja solo
+    este gráfico, no el Dashboard entero (frente 1 de rendimiento, 21/10/2026).
+
+    Streamlit vuelve a llamar al fragmento con los mismos argumentos de la
+    última corrida completa, pero sin pasar por `app.py`: por eso lleva el
+    usuario y el workspace y los pone en el contexto antes de leer la base.
+    """
+    set_current_user_id(user_id)
+    set_current_workspace_id(workspace_id)
     with st.container(border=True):
         # El gráfico principal SIEMPRE visible (antes vivía en un expander:
         # jerarquía invertida). Ajustes avanzados en popover — progressive
@@ -330,10 +425,8 @@ def render() -> None:
                      "90d muestra la tendencia trimestral.",
             )
 
-        with connect(db_path) as conn:
-            df_caja = caja_diaria_con_medias(
-                conn, ventanas=tuple(ventanas_sel) if ventanas_sel else ()
-            )
+        df_caja = _caja(str(db_path), user_id, workspace_id, version_datos(db_path),
+                        tuple(ventanas_sel) if ventanas_sel else ())
 
         if df_caja.empty:
             st.info("No hay datos para graficar todavía.")
@@ -368,34 +461,11 @@ def render() -> None:
             )
             st.plotly_chart(fig_caja, width="stretch")
 
-    # ---------- Gráfico 2: Ingresos vs Gastos mensual ----------
 
-    with st.container(border=True):
-        st.subheader(f"Ingresos vs Gastos por mes — {anio_sel}")
-        if df_iva_gtos.empty:
-            st.info("No hay datos suficientes.")
-        else:
-            df_plot = df_iva_gtos.copy()
-            df_plot["mes_label"] = df_plot["periodo"].dt.strftime("%b %Y")
-            fig_bars = go.Figure()
-            fig_bars.add_trace(go.Bar(
-                x=df_plot["mes_label"], y=df_plot["ingresos"],
-                name="Ingresos", marker_color=COLOR_INGRESO,
-            ))
-            fig_bars.add_trace(go.Bar(
-                x=df_plot["mes_label"], y=df_plot["gastos"],
-                name="Gastos", marker_color=COLOR_GASTO,
-            ))
-            fig_bars.update_layout(
-                barmode="group", height=340,
-                margin=dict(l=20, r=40, t=10, b=20),
-                yaxis_title="ARS",
-                legend=dict(orientation="h", y=1.1),
-            )
-            st.plotly_chart(fig_bars, width="stretch")
-
-    # ---------- Gráfico 3: Distribución por categoría ----------
-
+@st.fragment
+def _grafico_categorias(df_cat: pd.DataFrame, cats: dict, periodo_label: str) -> None:
+    """Gasto por categoría. Fragmento: "Agrupar por" redibuja solo la dona.
+    Trabaja sobre lo ya calculado: no lee la base."""
     with st.container(border=True):
         st.subheader(f"Gasto por categoría — {periodo_label}")
         if df_cat.empty:

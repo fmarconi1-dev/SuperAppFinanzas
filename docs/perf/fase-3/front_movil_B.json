@@ -1,0 +1,264 @@
+{
+ "movil_lighthouse/inicio": {
+  "ttfb": 11.7,
+  "fcp": 14224,
+  "lcp": 15224,
+  "cls": 0.143,
+  "tbt": 970,
+  "longtasks": 15,
+  "longtask_max": 512,
+  "contenido_estable": 22976.9,
+  "requests": 22,
+  "red_kb_total": 3928.6,
+  "ws_frames": 36,
+  "ws_kb_recibidos": 21.1,
+  "nodos_dom": 297,
+  "dcl": 13376.9,
+  "lcp_elemento": "H1 Buenas tardes, Franco",
+  "js_kb_transfer": 3194.6,
+  "js_kb_decodificado": 3191.1,
+  "css_kb_transfer": 30.9,
+  "fuentes_kb_transfer": 614.4,
+  "externos": [
+   "fonts.googleapis.com"
+  ],
+  "top_recursos": [
+   [
+    "/static/js/index.dkY5s53S.js",
+    2309.4,
+    12773
+   ],
+   [
+    "/static/js/embed.B-c_4G7P.js",
+    774.0,
+    8136
+   ],
+   [
+    "/static/media/MaterialSymbols-Rounded.WDh_BksD.woff2",
+    359.6,
+    5889
+   ],
+   [
+    "/static/media/SourceSansVF-Upright.ttf.BsWL4Kly.woff2",
+    166.5,
+    1926
+   ],
+   [
+    "/static/media/SourceCodeVF-Upright.ttf.BjWn63N-.woff2",
+    88.3,
+    3186
+   ],
+   [
+    "/static/js/numbro.CldGEqmS.js",
+    38.3,
+    3004
+   ],
+   [
+    "/static/css/index.M0-f_CLq.css",
+    29.6,
+    616
+   ],
+   [
+    "/static/js/Html.oJkhUkEr.js",
+    25.1,
+    1901
+   ]
+  ],
+  "corridas": [
+   {
+    "ttfb": 10.2,
+    "dcl": 13674.6,
+    "load": 13675.6,
+    "fcp": 14492,
+    "lcp": 15392,
+    "lcp_elemento": "H1 Buenas tardes, Franco",
+    "cls": 0.1,
+    "tbt": 938,
+    "longtasks": 15,
+    "longtask_max": 512,
+    "contenido_estable": 23120.6,
+    "mutaciones": 16,
+    "requests": 22,
+    "nodos_dom": 297,
+    "es_inicio": true,
+    "es_finanzas": false,
+    "red_kb_total": 3928.6,
+    "ws_frames": 36,
+    "ws_kb_recibidos": 21.1
+   },
+   {
+    "ttfb": 11.7,
+    "dcl": 13356.5,
+    "load": 13356.6,
+    "fcp": 14208,
+    "lcp": 15224,
+    "lcp_elemento": "H1 Buenas tardes, Franco",
+    "cls": 0.1,
+    "tbt": 1097,
+    "longtasks": 15,
+    "longtask_max": 565,
+    "contenido_estable": 22817.3,
+    "mutaciones": 15,
+    "requests": 22,
+    "nodos_dom": 297,
+    "es_inicio": true,
+    "es_finanzas": false,
+    "red_kb_total": 3928.6,
+    "ws_frames": 36,
+    "ws_kb_recibidos": 21.1
+   },
+   {
+    "ttfb": 14.2,
+    "dcl": 13376.9,
+    "load": 13377.7,
+    "fcp": 14224,
+    "lcp": 15040,
+    "lcp_elemento": "H1 Buenas tardes, Franco",
+    "cls": 0.1,
+    "tbt": 970,
+    "longtasks": 16,
+    "longtask_max": 436,
+    "contenido_estable": 22976.9,
+    "mutaciones": 18,
+    "requests": 22,
+    "nodos_dom": 297,
+    "es_inicio": true,
+    "es_finanzas": false,
+    "red_kb_total": 3928.6,
+    "ws_frames": 36,
+    "ws_kb_recibidos": 21.1
+   }
+  ]
+ },
+ "movil_lighthouse/finanzas": {
+  "ttfb": 11.4,
+  "fcp": 14776,
+  "lcp": 18524,
+  "cls": 0.155,
+  "tbt": 4548,
+  "longtasks": 23,
+  "longtask_max": 1762,
+  "contenido_estable": 50317.7,
+  "requests": 35,
+  "red_kb_total": 8451.6,
+  "ws_frames": 74,
+  "ws_kb_recibidos": 202.5,
+  "nodos_dom": 1324,
+  "dcl": 13434.5,
+  "lcp_elemento": "SPAN account_balance_wallet",
+  "js_kb_transfer": 7805.6,
+  "js_kb_decodificado": 7798.5,
+  "css_kb_transfer": 30.9,
+  "fuentes_kb_transfer": 526.1,
+  "externos": [
+   "fonts.googleapis.com"
+  ],
+  "top_recursos": [
+   [
+    "/static/js/PlotlyChart.DE72Bh5O.js",
+    4553.4,
+    26298
+   ],
+   [
+    "/static/js/index.dkY5s53S.js",
+    2309.4,
+    12821
+   ],
+   [
+    "/static/js/embed.B-c_4G7P.js",
+    774.0,
+    11555
+   ],
+   [
+    "/static/media/MaterialSymbols-Rounded.WDh_BksD.woff2",
+    359.6,
+    7292
+   ],
+   [
+    "/static/media/SourceSansVF-Upright.ttf.BsWL4Kly.woff2",
+    166.5,
+    1944
+   ],
+   [
+    "/static/js/numbro.CldGEqmS.js",
+    38.3,
+    2723
+   ],
+   [
+    "/static/css/index.M0-f_CLq.css",
+    29.6,
+    604
+   ],
+   [
+    "/static/js/Html.oJkhUkEr.js",
+    25.1,
+    1674
+   ]
+  ],
+  "corridas": [
+   {
+    "ttfb": 13,
+    "dcl": 13623,
+    "load": 13626.3,
+    "fcp": 14792,
+    "lcp": 18576,
+    "lcp_elemento": "SPAN account_balance_wallet",
+    "cls": 0.2,
+    "tbt": 4613,
+    "longtasks": 24,
+    "longtask_max": 1814,
+    "contenido_estable": 50386.6,
+    "mutaciones": 49,
+    "requests": 35,
+    "nodos_dom": 1324,
+    "es_inicio": false,
+    "es_finanzas": true,
+    "red_kb_total": 8451.6,
+    "ws_frames": 74,
+    "ws_kb_recibidos": 202.5
+   },
+   {
+    "ttfb": 11.4,
+    "dcl": 13235.9,
+    "load": 13237,
+    "fcp": 14308,
+    "lcp": 18092,
+    "lcp_elemento": "SPAN account_balance_wallet",
+    "cls": 0.2,
+    "tbt": 4398,
+    "longtasks": 20,
+    "longtask_max": 1762,
+    "contenido_estable": 49749.1,
+    "mutaciones": 48,
+    "requests": 35,
+    "nodos_dom": 1324,
+    "es_inicio": false,
+    "es_finanzas": true,
+    "red_kb_total": 8451.6,
+    "ws_frames": 74,
+    "ws_kb_recibidos": 202.5
+   },
+   {
+    "ttfb": 10.6,
+    "dcl": 13434.5,
+    "load": 13435.7,
+    "fcp": 14776,
+    "lcp": 18524,
+    "lcp_elemento": "SPAN account_balance_wallet",
+    "cls": 0.2,
+    "tbt": 4548,
+    "longtasks": 23,
+    "longtask_max": 1758,
+    "contenido_estable": 50317.7,
+    "mutaciones": 48,
+    "requests": 35,
+    "nodos_dom": 1324,
+    "es_inicio": false,
+    "es_finanzas": true,
+    "red_kb_total": 8451.6,
+    "ws_frames": 74,
+    "ws_kb_recibidos": 202.5
+   }
+  ]
+ }
+}

@@ -1,0 +1,865 @@
+{
+ "pantallas": {
+  "shell_app_py_inicio": {
+   "rerun_tras_escritura_mediana_ms": 89.0,
+   "primer_render_ms": 1610.5,
+   "rerun_mediana_ms": 19.3,
+   "rerun_min_max_ms": [
+    18.6,
+    24.7
+   ],
+   "elementos_en_arbol": 34,
+   "errores": [],
+   "sql_primer_render": {
+    "conexiones": 7,
+    "sentencias": 114,
+    "pragmas": 43,
+    "sql_ms_reproducido": 32.2,
+    "top_por_tiempo": [
+     {
+      "sql": "SELECT id, fecha, pasivos, ingresos, motivo, comentario FROM transacciones WHERE workspace_id = N ORDER BY fecha, id",
+      "veces": 2,
+      "ms": 19.29
+     },
+     {
+      "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+      "veces": 3,
+      "ms": 2.2
+     },
+     {
+      "sql": "SELECT COALESCE(SUM(ingresos - pasivos), N) AS delta FROM transacciones WHERE workspace_id = N",
+      "veces": 1,
+      "ms": 1.81
+     },
+     {
+      "sql": "SELECT w.id, w.kind, w.nombre, wm.member_label, (SELECT COUNT(*) FROM workspace_members x WHERE x.workspace_id = w.id) AS miembros FROM workspaces w JOIN worksp",
+      "veces": 2,
+      "ms": 1.44
+     },
+     {
+      "sql": "SELECT motivo, grupo, subcategoria FROM categorias WHERE workspace_id = N",
+      "veces": 2,
+      "ms": 1.37
+     },
+     {
+      "sql": "SELECT COUNT(*) AS n FROM categorias WHERE workspace_id = N",
+      "veces": 1,
+      "ms": 0.93
+     },
+     {
+      "sql": "SELECT valor FROM configuracion WHERE clave = 'onboarding_completado' AND workspace_id = N",
+      "veces": 1,
+      "ms": 0.87
+     },
+     {
+      "sql": "SELECT sql FROM sqlite_master WHERE type='table' AND name='configuracion'",
+      "veces": 1,
+      "ms": 0.87
+     }
+    ],
+    "repetidas": [
+     {
+      "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+      "veces": 3
+     },
+     {
+      "sql": "SELECT w.id, w.kind, w.nombre, wm.member_label, (SELECT COUNT(*) FROM workspace_members x WHERE x.workspace_id = w.id) AS miembros FROM workspaces w JOIN worksp",
+      "veces": 2
+     },
+     {
+      "sql": "SELECT id, fecha, pasivos, ingresos, motivo, comentario FROM transacciones WHERE workspace_id = N ORDER BY fecha, id",
+      "veces": 2
+     },
+     {
+      "sql": "SELECT motivo, grupo, subcategoria FROM categorias WHERE workspace_id = N",
+      "veces": 2
+     }
+    ]
+   },
+   "sql_por_rerun": {
+    "conexiones": 4,
+    "sentencias": 21,
+    "pragmas": 13,
+    "sql_ms_reproducido": 5.1
+   },
+   "sql_por_rerun_top": [
+    {
+     "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+     "veces": 3,
+     "ms": 1.89
+    },
+    {
+     "sql": "SELECT w.id, w.kind, w.nombre, wm.member_label, (SELECT COUNT(*) FROM workspace_members x WHERE x.workspace_id = w.id) AS miembros FROM workspaces w JOIN worksp",
+     "veces": 2,
+     "ms": 1.58
+    },
+    {
+     "sql": "SELECT COUNT(*) AS n FROM whatsapp_salientes WHERE enviado_en IS NULL",
+     "veces": 1,
+     "ms": 0.53
+    },
+    {
+     "sql": "SELECT COUNT(*) AS n FROM categorias WHERE workspace_id = N",
+     "veces": 1,
+     "ms": 0.53
+    },
+    {
+     "sql": "SELECT valor FROM configuracion WHERE clave = 'onboarding_completado' AND workspace_id = N",
+     "veces": 1,
+     "ms": 0.52
+    }
+   ]
+  },
+  "finanzas_5_pestanas": {
+   "rerun_tras_escritura_mediana_ms": 157.6,
+   "primer_render_ms": 450.1,
+   "rerun_mediana_ms": 76.1,
+   "rerun_min_max_ms": [
+    64.7,
+    83.8
+   ],
+   "elementos_en_arbol": 66,
+   "errores": [],
+   "sql_primer_render": {
+    "conexiones": 5,
+    "sentencias": 30,
+    "pragmas": 17,
+    "sql_ms_reproducido": 30.6,
+    "top_por_tiempo": [
+     {
+      "sql": "SELECT id, fecha, pasivos, ingresos, motivo, comentario FROM transacciones WHERE workspace_id = N ORDER BY fecha, id",
+      "veces": 2,
+      "ms": 20.77
+     },
+     {
+      "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+      "veces": 2,
+      "ms": 2.12
+     },
+     {
+      "sql": "SELECT valor FROM configuracion WHERE clave = 'saldo_inicial_caja' AND workspace_id = N",
+      "veces": 2,
+      "ms": 1.6
+     },
+     {
+      "sql": "SELECT COALESCE(SUM(ingresos - pasivos), N) AS delta FROM transacciones WHERE workspace_id = N",
+      "veces": 1,
+      "ms": 1.24
+     },
+     {
+      "sql": "SELECT w.id, w.kind, w.nombre, wm.member_label, (SELECT COUNT(*) FROM workspace_members x WHERE x.workspace_id = w.id) AS miembros FROM workspaces w JOIN worksp",
+      "veces": 1,
+      "ms": 1.0
+     },
+     {
+      "sql": "SELECT valor FROM configuracion WHERE clave = 'onboarding_completado' AND workspace_id = N",
+      "veces": 1,
+      "ms": 0.93
+     },
+     {
+      "sql": "SELECT valor FROM configuracion WHERE clave = 'tutorial_completado' AND workspace_id = N",
+      "veces": 1,
+      "ms": 0.92
+     },
+     {
+      "sql": "SELECT COUNT(*) AS n FROM categorias WHERE workspace_id = N",
+      "veces": 1,
+      "ms": 0.89
+     }
+    ],
+    "repetidas": [
+     {
+      "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+      "veces": 2
+     },
+     {
+      "sql": "SELECT id, fecha, pasivos, ingresos, motivo, comentario FROM transacciones WHERE workspace_id = N ORDER BY fecha, id",
+      "veces": 2
+     },
+     {
+      "sql": "SELECT valor FROM configuracion WHERE clave = 'saldo_inicial_caja' AND workspace_id = N",
+      "veces": 2
+     }
+    ]
+   },
+   "sql_por_rerun": {
+    "conexiones": 3,
+    "sentencias": 17,
+    "pragmas": 11,
+    "sql_ms_reproducido": 3.8
+   },
+   "sql_por_rerun_top": [
+    {
+     "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+     "veces": 2,
+     "ms": 1.5
+    },
+    {
+     "sql": "SELECT w.id, w.kind, w.nombre, wm.member_label, (SELECT COUNT(*) FROM workspace_members x WHERE x.workspace_id = w.id) AS miembros FROM workspaces w JOIN worksp",
+     "veces": 1,
+     "ms": 0.63
+    },
+    {
+     "sql": "SELECT COUNT(*) AS n FROM categorias WHERE workspace_id = N",
+     "veces": 1,
+     "ms": 0.6
+    },
+    {
+     "sql": "SELECT valor FROM configuracion WHERE clave = 'tutorial_completado' AND workspace_id = N",
+     "veces": 1,
+     "ms": 0.56
+    },
+    {
+     "sql": "SELECT valor FROM configuracion WHERE clave = 'onboarding_completado' AND workspace_id = N",
+     "veces": 1,
+     "ms": 0.55
+    }
+   ]
+  },
+  "finanzas/Dashboard": {
+   "rerun_tras_escritura_mediana_ms": 153.2,
+   "primer_render_ms": 153.2,
+   "rerun_mediana_ms": 71.9,
+   "rerun_min_max_ms": [
+    65.2,
+    74.7
+   ],
+   "elementos_en_arbol": 66,
+   "errores": [],
+   "sql_primer_render": {
+    "conexiones": 5,
+    "sentencias": 30,
+    "pragmas": 17,
+    "sql_ms_reproducido": 34.3,
+    "top_por_tiempo": [
+     {
+      "sql": "SELECT id, fecha, pasivos, ingresos, motivo, comentario FROM transacciones WHERE workspace_id = N ORDER BY fecha, id",
+      "veces": 2,
+      "ms": 24.55
+     },
+     {
+      "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+      "veces": 2,
+      "ms": 2.08
+     },
+     {
+      "sql": "SELECT valor FROM configuracion WHERE clave = 'saldo_inicial_caja' AND workspace_id = N",
+      "veces": 2,
+      "ms": 1.69
+     },
+     {
+      "sql": "SELECT COALESCE(SUM(ingresos - pasivos), N) AS delta FROM transacciones WHERE workspace_id = N",
+      "veces": 1,
+      "ms": 1.65
+     },
+     {
+      "sql": "SELECT w.id, w.kind, w.nombre, wm.member_label, (SELECT COUNT(*) FROM workspace_members x WHERE x.workspace_id = w.id) AS miembros FROM workspaces w JOIN worksp",
+      "veces": 1,
+      "ms": 1.02
+     },
+     {
+      "sql": "SELECT valor FROM configuracion WHERE clave = 'fondo_emergencia_usd' AND workspace_id = N",
+      "veces": 1,
+      "ms": 0.92
+     },
+     {
+      "sql": "SELECT motivo, grupo, subcategoria FROM categorias WHERE workspace_id = N",
+      "veces": 1,
+      "ms": 0.67
+     },
+     {
+      "sql": "SELECT COUNT(*) AS n FROM categorias WHERE workspace_id = N",
+      "veces": 1,
+      "ms": 0.6
+     }
+    ],
+    "repetidas": [
+     {
+      "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+      "veces": 2
+     },
+     {
+      "sql": "SELECT id, fecha, pasivos, ingresos, motivo, comentario FROM transacciones WHERE workspace_id = N ORDER BY fecha, id",
+      "veces": 2
+     },
+     {
+      "sql": "SELECT valor FROM configuracion WHERE clave = 'saldo_inicial_caja' AND workspace_id = N",
+      "veces": 2
+     }
+    ]
+   },
+   "sql_por_rerun": {
+    "conexiones": 3,
+    "sentencias": 17,
+    "pragmas": 11,
+    "sql_ms_reproducido": 5.7
+   },
+   "sql_por_rerun_top": [
+    {
+     "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+     "veces": 2,
+     "ms": 1.64
+    },
+    {
+     "sql": "SELECT w.id, w.kind, w.nombre, wm.member_label, (SELECT COUNT(*) FROM workspace_members x WHERE x.workspace_id = w.id) AS miembros FROM workspaces w JOIN worksp",
+     "veces": 1,
+     "ms": 1.1
+    },
+    {
+     "sql": "SELECT valor FROM configuracion WHERE clave = 'onboarding_completado' AND workspace_id = N",
+     "veces": 1,
+     "ms": 1.04
+    },
+    {
+     "sql": "SELECT COUNT(*) AS n FROM categorias WHERE workspace_id = N",
+     "veces": 1,
+     "ms": 1.0
+    },
+    {
+     "sql": "SELECT valor FROM configuracion WHERE clave = 'tutorial_completado' AND workspace_id = N",
+     "veces": 1,
+     "ms": 0.94
+    }
+   ]
+  },
+  "finanzas/Transacciones": {
+   "rerun_tras_escritura_mediana_ms": 40.3,
+   "primer_render_ms": 43.5,
+   "rerun_mediana_ms": 30.4,
+   "rerun_min_max_ms": [
+    29.1,
+    38.1
+   ],
+   "elementos_en_arbol": 51,
+   "errores": [],
+   "sql_primer_render": {
+    "conexiones": 7,
+    "sentencias": 32,
+    "pragmas": 21,
+    "sql_ms_reproducido": 14.5,
+    "top_por_tiempo": [
+     {
+      "sql": "SELECT motivo FROM categorias WHERE workspace_id = N UNION SELECT DISTINCT motivo FROM transacciones WHERE workspace_id = N ORDER BY motivo",
+      "veces": 1,
+      "ms": 2.89
+     },
+     {
+      "sql": "SELECT monto, COUNT(*) AS cnt FROM ( SELECT CASE WHEN pasivos > N THEN ROUND(pasivos, N) WHEN ingresos > N THEN ROUND(ingresos, N) ELSE NULL END AS monto FROM t",
+      "veces": 1,
+      "ms": 2.87
+     },
+     {
+      "sql": "SELECT motivo, COUNT(*) AS cnt, MAX(fecha) AS ultimo FROM transacciones WHERE workspace_id = N AND date(fecha) >= date('now', '-N days') AND motivo != 'Caja' GR",
+      "veces": 1,
+      "ms": 2.13
+     },
+     {
+      "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+      "veces": 2,
+      "ms": 1.9
+     },
+     {
+      "sql": "SELECT w.id, w.kind, w.nombre, wm.member_label, (SELECT COUNT(*) FROM workspace_members x WHERE x.workspace_id = w.id) AS miembros FROM workspaces w JOIN worksp",
+      "veces": 1,
+      "ms": 0.99
+     },
+     {
+      "sql": "SELECT valor FROM configuracion WHERE clave = 'tutorial_completado' AND workspace_id = N",
+      "veces": 1,
+      "ms": 0.95
+     },
+     {
+      "sql": "SELECT COUNT(*) AS n FROM categorias WHERE workspace_id = N",
+      "veces": 1,
+      "ms": 0.87
+     },
+     {
+      "sql": "SELECT valor FROM configuracion WHERE clave = 'onboarding_completado' AND workspace_id = N",
+      "veces": 1,
+      "ms": 0.76
+     }
+    ],
+    "repetidas": [
+     {
+      "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+      "veces": 2
+     }
+    ]
+   },
+   "sql_por_rerun": {
+    "conexiones": 7,
+    "sentencias": 32,
+    "pragmas": 21,
+    "sql_ms_reproducido": 17.2
+   },
+   "sql_por_rerun_top": [
+    {
+     "sql": "SELECT motivo, COUNT(*) AS cnt, MAX(fecha) AS ultimo FROM transacciones WHERE workspace_id = N AND date(fecha) >= date('now', '-N days') AND motivo != 'Caja' GR",
+     "veces": 1,
+     "ms": 3.6
+    },
+    {
+     "sql": "SELECT monto, COUNT(*) AS cnt FROM ( SELECT CASE WHEN pasivos > N THEN ROUND(pasivos, N) WHEN ingresos > N THEN ROUND(ingresos, N) ELSE NULL END AS monto FROM t",
+     "veces": 1,
+     "ms": 3.39
+    },
+    {
+     "sql": "SELECT motivo FROM categorias WHERE workspace_id = N UNION SELECT DISTINCT motivo FROM transacciones WHERE workspace_id = N ORDER BY motivo",
+     "veces": 1,
+     "ms": 2.29
+    },
+    {
+     "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+     "veces": 2,
+     "ms": 2.08
+    },
+    {
+     "sql": "SELECT id, fecha, pasivos, ingresos, motivo, comentario, creado_por_member_label FROM transacciones WHERE workspace_id = N ORDER BY fecha DESC, id DESC LIMIT N",
+     "veces": 1,
+     "ms": 1.15
+    }
+   ]
+  },
+  "finanzas/Diario": {
+   "rerun_tras_escritura_mediana_ms": 55.2,
+   "primer_render_ms": 73.2,
+   "rerun_mediana_ms": 27.3,
+   "rerun_min_max_ms": [
+    21.6,
+    28.9
+   ],
+   "elementos_en_arbol": 30,
+   "errores": [],
+   "sql_primer_render": {
+    "conexiones": 4,
+    "sentencias": 22,
+    "pragmas": 13,
+    "sql_ms_reproducido": 22.8,
+    "top_por_tiempo": [
+     {
+      "sql": "SELECT id, fecha, pasivos, ingresos, motivo, comentario FROM transacciones WHERE workspace_id = N ORDER BY fecha, id",
+      "veces": 1,
+      "ms": 15.73
+     },
+     {
+      "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+      "veces": 2,
+      "ms": 1.73
+     },
+     {
+      "sql": "SELECT motivo, grupo, subcategoria FROM categorias WHERE workspace_id = N",
+      "veces": 1,
+      "ms": 0.98
+     },
+     {
+      "sql": "SELECT w.id, w.kind, w.nombre, wm.member_label, (SELECT COUNT(*) FROM workspace_members x WHERE x.workspace_id = w.id) AS miembros FROM workspaces w JOIN worksp",
+      "veces": 1,
+      "ms": 0.96
+     },
+     {
+      "sql": "SELECT valor FROM configuracion WHERE clave = 'tutorial_completado' AND workspace_id = N",
+      "veces": 1,
+      "ms": 0.92
+     },
+     {
+      "sql": "SELECT COUNT(*) AS n FROM categorias WHERE workspace_id = N",
+      "veces": 1,
+      "ms": 0.9
+     },
+     {
+      "sql": "SELECT valor FROM configuracion WHERE clave = 'onboarding_completado' AND workspace_id = N",
+      "veces": 1,
+      "ms": 0.87
+     },
+     {
+      "sql": "SELECT valor FROM configuracion WHERE clave = 'saldo_inicial_caja' AND workspace_id = N",
+      "veces": 1,
+      "ms": 0.67
+     }
+    ],
+    "repetidas": [
+     {
+      "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+      "veces": 2
+     }
+    ]
+   },
+   "sql_por_rerun": {
+    "conexiones": 3,
+    "sentencias": 16,
+    "pragmas": 10,
+    "sql_ms_reproducido": 3.4
+   },
+   "sql_por_rerun_top": [
+    {
+     "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+     "veces": 2,
+     "ms": 1.2
+    },
+    {
+     "sql": "SELECT w.id, w.kind, w.nombre, wm.member_label, (SELECT COUNT(*) FROM workspace_members x WHERE x.workspace_id = w.id) AS miembros FROM workspaces w JOIN worksp",
+     "veces": 1,
+     "ms": 0.56
+    },
+    {
+     "sql": "SELECT COUNT(*) AS n FROM categorias WHERE workspace_id = N",
+     "veces": 1,
+     "ms": 0.56
+    },
+    {
+     "sql": "SELECT valor FROM configuracion WHERE clave = 'tutorial_completado' AND workspace_id = N",
+     "veces": 1,
+     "ms": 0.54
+    },
+    {
+     "sql": "SELECT valor FROM configuracion WHERE clave = 'onboarding_completado' AND workspace_id = N",
+     "veces": 1,
+     "ms": 0.53
+    }
+   ]
+  },
+  "finanzas/Mensual": {
+   "rerun_tras_escritura_mediana_ms": 71.3,
+   "primer_render_ms": 87.1,
+   "rerun_mediana_ms": 75.0,
+   "rerun_min_max_ms": [
+    70.6,
+    82.5
+   ],
+   "elementos_en_arbol": 51,
+   "errores": [],
+   "sql_primer_render": {
+    "conexiones": 6,
+    "sentencias": 32,
+    "pragmas": 18,
+    "sql_ms_reproducido": 13.9,
+    "top_por_tiempo": [
+     {
+      "sql": "SELECT DISTINCT CAST(strftime('%Y', fecha) AS INTEGER) AS anio, CAST(strftime('%m', fecha) AS INTEGER) AS mes FROM transacciones WHERE workspace_id = N ORDER BY",
+      "veces": 1,
+      "ms": 4.08
+     },
+     {
+      "sql": "SELECT motivo, pasivos, ingresos FROM transacciones WHERE strftime('%Y', fecha) = 'N' AND strftime('%m', fecha) = 'N' AND workspace_id = N",
+      "veces": 1,
+      "ms": 2.6
+     },
+     {
+      "sql": "SELECT motivo, grupo, subcategoria FROM categorias WHERE workspace_id = N",
+      "veces": 3,
+      "ms": 2.02
+     },
+     {
+      "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+      "veces": 2,
+      "ms": 1.36
+     },
+     {
+      "sql": "SELECT motivo, monto_previsto FROM presupuesto WHERE anio = N AND mes = N AND workspace_id = N",
+      "veces": 1,
+      "ms": 0.69
+     },
+     {
+      "sql": "SELECT COUNT(*) AS n FROM categorias WHERE workspace_id = N",
+      "veces": 1,
+      "ms": 0.59
+     },
+     {
+      "sql": "SELECT c.motivo, c.grupo, COALESCE(p.monto_previsto, N.N) AS previsto FROM categorias c LEFT JOIN presupuesto p ON p.motivo = c.motivo AND p.workspace_id = c.wo",
+      "veces": 1,
+      "ms": 0.56
+     },
+     {
+      "sql": "SELECT valor FROM configuracion WHERE clave = 'onboarding_completado' AND workspace_id = N",
+      "veces": 1,
+      "ms": 0.55
+     }
+    ],
+    "repetidas": [
+     {
+      "sql": "SELECT motivo, grupo, subcategoria FROM categorias WHERE workspace_id = N",
+      "veces": 3
+     },
+     {
+      "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+      "veces": 2
+     }
+    ]
+   },
+   "sql_por_rerun": {
+    "conexiones": 6,
+    "sentencias": 32,
+    "pragmas": 18,
+    "sql_ms_reproducido": 18.8
+   },
+   "sql_por_rerun_top": [
+    {
+     "sql": "SELECT DISTINCT CAST(strftime('%Y', fecha) AS INTEGER) AS anio, CAST(strftime('%m', fecha) AS INTEGER) AS mes FROM transacciones WHERE workspace_id = N ORDER BY",
+     "veces": 1,
+     "ms": 6.19
+    },
+    {
+     "sql": "SELECT motivo, pasivos, ingresos FROM transacciones WHERE strftime('%Y', fecha) = 'N' AND strftime('%m', fecha) = 'N' AND workspace_id = N",
+     "veces": 1,
+     "ms": 3.83
+    },
+    {
+     "sql": "SELECT motivo, grupo, subcategoria FROM categorias WHERE workspace_id = N",
+     "veces": 3,
+     "ms": 2.11
+    },
+    {
+     "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+     "veces": 2,
+     "ms": 1.56
+    },
+    {
+     "sql": "SELECT valor FROM configuracion WHERE clave = 'tutorial_completado' AND workspace_id = N",
+     "veces": 1,
+     "ms": 0.88
+    }
+   ]
+  },
+  "finanzas/Configuración": {
+   "rerun_tras_escritura_mediana_ms": 35.0,
+   "primer_render_ms": 44.0,
+   "rerun_mediana_ms": 26.6,
+   "rerun_min_max_ms": [
+    25.3,
+    29.8
+   ],
+   "elementos_en_arbol": 60,
+   "errores": [],
+   "sql_primer_render": {
+    "conexiones": 7,
+    "sentencias": 34,
+    "pragmas": 21,
+    "sql_ms_reproducido": 11.4,
+    "top_por_tiempo": [
+     {
+      "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+      "veces": 3,
+      "ms": 2.71
+     },
+     {
+      "sql": "SELECT w.id, w.kind, w.nombre, wm.member_label, (SELECT COUNT(*) FROM workspace_members x WHERE x.workspace_id = w.id) AS miembros FROM workspaces w JOIN worksp",
+      "veces": 2,
+      "ms": 1.85
+     },
+     {
+      "sql": "SELECT motivo, grupo, subcategoria FROM categorias WHERE workspace_id = N",
+      "veces": 2,
+      "ms": 1.79
+     },
+     {
+      "sql": "SELECT c.motivo FROM categorias c WHERE c.workspace_id = N AND NOT EXISTS ( SELECT N FROM transacciones t WHERE t.motivo = c.motivo AND t.workspace_id = c.works",
+      "veces": 1,
+      "ms": 0.92
+     },
+     {
+      "sql": "SELECT COUNT(*) AS n FROM categorias WHERE workspace_id = N",
+      "veces": 1,
+      "ms": 0.88
+     },
+     {
+      "sql": "SELECT valor FROM configuracion WHERE clave = 'saldo_inicial_caja' AND workspace_id = N",
+      "veces": 1,
+      "ms": 0.86
+     },
+     {
+      "sql": "SELECT valor FROM configuracion WHERE clave = 'onboarding_completado' AND workspace_id = N",
+      "veces": 1,
+      "ms": 0.84
+     },
+     {
+      "sql": "SELECT valor FROM configuracion WHERE clave = 'fondo_emergencia_usd' AND workspace_id = N",
+      "veces": 1,
+      "ms": 0.82
+     }
+    ],
+    "repetidas": [
+     {
+      "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+      "veces": 3
+     },
+     {
+      "sql": "SELECT w.id, w.kind, w.nombre, wm.member_label, (SELECT COUNT(*) FROM workspace_members x WHERE x.workspace_id = w.id) AS miembros FROM workspaces w JOIN worksp",
+      "veces": 2
+     },
+     {
+      "sql": "SELECT motivo, grupo, subcategoria FROM categorias WHERE workspace_id = N",
+      "veces": 2
+     }
+    ]
+   },
+   "sql_por_rerun": {
+    "conexiones": 7,
+    "sentencias": 34,
+    "pragmas": 21,
+    "sql_ms_reproducido": 10.6
+   },
+   "sql_por_rerun_top": [
+    {
+     "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+     "veces": 3,
+     "ms": 2.47
+    },
+    {
+     "sql": "SELECT motivo, grupo, subcategoria FROM categorias WHERE workspace_id = N",
+     "veces": 2,
+     "ms": 1.61
+    },
+    {
+     "sql": "SELECT w.id, w.kind, w.nombre, wm.member_label, (SELECT COUNT(*) FROM workspace_members x WHERE x.workspace_id = w.id) AS miembros FROM workspaces w JOIN worksp",
+     "veces": 2,
+     "ms": 1.55
+    },
+    {
+     "sql": "SELECT COUNT(*) AS n FROM categorias WHERE workspace_id = N",
+     "veces": 1,
+     "ms": 0.96
+    },
+    {
+     "sql": "SELECT valor FROM configuracion WHERE clave = 'tutorial_completado' AND workspace_id = N",
+     "veces": 1,
+     "ms": 0.92
+    }
+   ]
+  }
+ },
+ "funciones": {
+  "metrics.load_transactions": {
+   "mediana_ms": 16.2,
+   "min_ms": 14.3,
+   "max_ms": 67.4,
+   "n": 5
+  },
+  "metrics.compute_kpis": {
+   "mediana_ms": 17.6,
+   "min_ms": 12.8,
+   "max_ms": 20.8,
+   "n": 5
+  },
+  "metrics.saldo_cuenta_corriente": {
+   "mediana_ms": 0.9,
+   "min_ms": 0.6,
+   "max_ms": 1.1,
+   "n": 5
+  },
+  "inicio.resumen_del_mes": {
+   "mediana_ms": 68.4,
+   "min_ms": 56.2,
+   "max_ms": 105.3,
+   "n": 5
+  },
+  "bot.procesar('resumen')": {
+   "mediana_ms": 34.6,
+   "min_ms": 25.6,
+   "max_ms": 36.4,
+   "n": 5,
+   "sql": {
+    "conexiones": 0,
+    "sentencias": 10,
+    "pragmas": 0,
+    "sql_ms_reproducido": 17.9,
+    "top_por_tiempo": [
+     {
+      "sql": "SELECT id, fecha, pasivos, ingresos, motivo, comentario FROM transacciones WHERE workspace_id = N ORDER BY fecha, id",
+      "veces": 1,
+      "ms": 11.79
+     },
+     {
+      "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+      "veces": 4,
+      "ms": 2.82
+     },
+     {
+      "sql": "SELECT motivo, grupo, subcategoria FROM categorias WHERE workspace_id = N",
+      "veces": 1,
+      "ms": 0.87
+     }
+    ]
+   }
+  }
+ },
+ "filas_transacciones": 5355,
+ "sql_pesadas_planes": [
+  {
+   "sql": "SELECT id, fecha, pasivos, ingresos, motivo, comentario FROM transacciones WHERE workspace_id = N ORDER BY fecha, id",
+   "ms_en_pantalla": 19.29,
+   "plan": [
+    "SEARCH transacciones USING INDEX idx_transacciones_ws_fecha (workspace_id=?)"
+   ]
+  },
+  {
+   "sql": "SELECT w.id FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id WHERE wm.user_id = N AND w.kind = 'personal'",
+   "ms_en_pantalla": 2.2,
+   "plan": [
+    "SEARCH wm USING INDEX idx_members_user (user_id=?)",
+    "SEARCH w USING INTEGER PRIMARY KEY (rowid=?)"
+   ]
+  },
+  {
+   "sql": "SELECT COALESCE(SUM(ingresos - pasivos), N) AS delta FROM transacciones WHERE workspace_id = N",
+   "ms_en_pantalla": 1.81,
+   "plan": [
+    "SEARCH transacciones USING INDEX idx_transacciones_workspace (workspace_id=?)"
+   ]
+  },
+  {
+   "sql": "SELECT w.id, w.kind, w.nombre, wm.member_label, (SELECT COUNT(*) FROM workspace_members x WHERE x.workspace_id = w.id) AS miembros FROM workspaces w JOIN worksp",
+   "ms_en_pantalla": 1.44,
+   "plan": [
+    "SEARCH wm USING INDEX idx_members_user (user_id=?)",
+    "SEARCH w USING INTEGER PRIMARY KEY (rowid=?)",
+    "CORRELATED SCALAR SUBQUERY 1",
+    "SEARCH x USING COVERING INDEX sqlite_autoindex_workspace_members_1 (workspace_id=?)",
+    "USE TEMP B-TREE FOR ORDER BY"
+   ]
+  },
+  {
+   "sql": "SELECT valor FROM configuracion WHERE clave = 'saldo_inicial_caja' AND workspace_id = N",
+   "ms_en_pantalla": 1.6,
+   "plan": [
+    "SEARCH configuracion USING INDEX sqlite_autoindex_configuracion_1 (clave=? AND workspace_id=?)"
+   ]
+  },
+  {
+   "sql": "SELECT motivo FROM categorias WHERE workspace_id = N UNION SELECT DISTINCT motivo FROM transacciones WHERE workspace_id = N ORDER BY motivo",
+   "ms_en_pantalla": 2.89,
+   "plan": [
+    "MERGE (UNION)",
+    "LEFT",
+    "SEARCH categorias USING INDEX idx_categorias_workspace (workspace_id=?)",
+    "USE TEMP B-TREE FOR ORDER BY",
+    "RIGHT",
+    "SEARCH transacciones USING INDEX idx_transacciones_workspace (workspace_id=?)",
+    "USE TEMP B-TREE FOR DISTINCT",
+    "USE TEMP B-TREE FOR ORDER BY"
+   ]
+  }
+ ],
+ "indices": [
+  "idx_transacciones_fecha ON transacciones",
+  "idx_transacciones_motivo ON transacciones",
+  "idx_transacciones_user ON transacciones",
+  "idx_members_user ON workspace_members",
+  "idx_transacciones_workspace ON transacciones",
+  "idx_categorias_user ON categorias",
+  "idx_categorias_workspace ON categorias",
+  "idx_presupuesto_user ON presupuesto",
+  "idx_presupuesto_workspace ON presupuesto",
+  "idx_configuracion_user ON configuracion",
+  "idx_configuracion_workspace ON configuracion",
+  "idx_cartera_instr_user ON cartera_instrumentos",
+  "idx_cartera_mov_user ON cartera_movimientos",
+  "idx_cartera_mov_ticker ON cartera_movimientos",
+  "idx_cartera_mov_fecha ON cartera_movimientos",
+  "idx_cartera_tenencia_user ON cartera_tenencia",
+  "idx_cartera_ajustes_user ON cartera_ajustes",
+  "idx_lotes_estado ON lotes",
+  "idx_emparejamientos_gasto ON emparejamientos",
+  "idx_emparejamientos_fila ON emparejamientos",
+  "idx_transacciones_ws_fecha ON transacciones"
+ ]
+}
