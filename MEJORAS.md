@@ -153,9 +153,9 @@ Colección pública de skills (estándar SKILL.md, MIT) para consumir datos de m
 - 🟡 💡 **Pendientes de la auditoría del 22/9/2026** (no se hicieron por alcance; ver `/BITACORA.md`):
   - ✅ Tests de login y contraseñas — hecho el 27/9 (`tests/test_auth.py`).
   - ✅ Benchmark sin dividendos silencioso (trampa 27) — hecho el 27/9.
-  - Tests de la **edición de categorías** (35%). (El panel de importar era de la cartera: retirado, ADR-0007.)
+  - ✅ Tests de la **edición de categorías** — hecho el 3/11/2026 (`tests/test_categorias_edicion.py`, 100%). (El panel de importar era de la cartera: retirado, ADR-0007.)
   - ⛔ **Login sin distinguir mayúsculas — DESCARTADO por Franco el 27/9/2026** ("no me parece relevante"). El login distingue mayúsculas ("Franco" ≠ "franco"); queda así a propósito. No volver a proponerlo.
-  - `ajustes.listar` descarta en silencio un ajuste con fecha corrupta (hoy imposible desde la app, que guarda ISO).
+  - ⛔ `ajustes.listar` — ya no existe: era de la Cartera, retirada el 14/10/2026 (ADR-0007).
   - ✅ Ramas viejas borradas en `origin` (Franco, 23/9).
 - 🟢 ✅ **`requirements.lock`** (27/8/2026): builds reproducibles, verificado corriendo la suite en Python 3.11 con los pines exactos. Ojo al regenerarlo con el tope de pandas — ver la cabecera del archivo.
 - 🟢 ✅ **Ciclo core↔core/auth cortado** con `core/context.py` (27/8/2026, propuesta 4 del estudio del repo).

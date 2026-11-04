@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-11-04 01:51 UTC · 129 archivos · 26,941 LOC -->
+<!-- 2026-11-04 02:06 UTC · 130 archivos · 27,118 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-11-03 04cdfa7 fix(secretario): entender la respuesta a la propuesta como lista numerada · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-11-03 6c2bd9a docs(tests): bitÃ¡cora con la respuesta como lista numerada · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -149,7 +149,7 @@ Rama `main` — ultimo commit: 2026-11-03 04cdfa7 fix(secretario): entender la r
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 44 | 9,480 | ok |
+| `tests/` | La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 45 | 9,657 | ok |
 | `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 21 | 6,987 | ok |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,969 | ok |
 | `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M24 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,945 | ok |
@@ -186,10 +186,10 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 | Archivo | LOC | Lo usan | Simbolos |
 |---|---:|---:|---|
-| `core\db.py` | 1473 | 47 | `_migrate`, `es_tabla_faltante`, `get_db_path`, `connect` |
-| `core\context.py` | 105 | 30 | `set_current_user_id`, `get_current_user_id`, `require_current_user_id`, `set_current_workspace_id` |
-| `places\finanzas\core\transactions.py` | 265 | 18 | `_uid`, `_es_familiar`, `_asegurar_motivo`, `insert_transaction` |
-| `core\workspaces.py` | 261 | 18 | `_hash_code`, `_uid`, `get_personal_workspace_id`, `ensure_personal_workspace` |
+| `core\db.py` | 1473 | 48 | `_migrate`, `es_tabla_faltante`, `get_db_path`, `connect` |
+| `core\context.py` | 105 | 31 | `set_current_user_id`, `get_current_user_id`, `require_current_user_id`, `set_current_workspace_id` |
+| `places\finanzas\core\transactions.py` | 265 | 19 | `_uid`, `_es_familiar`, `_asegurar_motivo`, `insert_transaction` |
+| `core\workspaces.py` | 261 | 19 | `_hash_code`, `_uid`, `get_personal_workspace_id`, `ensure_personal_workspace` |
 | `core\__init__.py` | 5 | 18 | — |
 | `places\finanzas\core\comandos.py` | 1229 | 17 | `Respuesta`, `Gasto`, `EntradaInvalida`, `ahora_ar` |
 | `places\finanzas\core\metrics.py` | 355 | 16 | `_uid`, `anios_con_datos`, `filtrar_anio`, `load_transactions` |
@@ -201,8 +201,8 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 ## Flujo interno
 
-- `tests/` → `core/` (53)
-- `tests/` → `places\finanzas\core/` (52)
+- `tests/` → `core/` (56)
+- `tests/` → `places\finanzas\core/` (54)
 - `places\finanzas\core/` → `core/` (21)
 - `tests/` → `core\api/` (21)
 - `places\finanzas\views/` → `places\finanzas\helpers/` (13)
@@ -210,15 +210,15 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 - `places\finanzas\views/` → `core/` (11)
 - `scripts\perf/` → `core/` (8)
 - `places\finanzas\core/` → `core\api/` (7)
-- `./` → `core/` (5)
 - `./` → `core\api/` (5)
+- `./` → `core/` (5)
 - `scripts\perf/` → `places\finanzas\core/` (5)
 
 ## Se tocan juntos
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `.mapa/mapa.json` + `MAPA.md` (57 commits)
+- `.mapa/mapa.json` + `MAPA.md` (58 commits)
 - `EN-HUMANO.md` + `ESTADO.md` (42 commits)
 - `.mapa/mapa.json` + `ESTADO.md` (35 commits)
 - `ESTADO.md` + `MAPA.md` (35 commits)

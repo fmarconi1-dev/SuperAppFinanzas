@@ -1,6 +1,6 @@
 # tests/
 
-<!-- huella: b728a5946c5a -->
+<!-- huella: c0222e0cd2c0 -->
 
 Resumen: La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde.
 
@@ -35,6 +35,7 @@ Resumen: La suite completa (862 tests al 20/10/2026, Fase D completa en código)
 
 ## Trampas
 
+- **Un smoke test no puede depender del día del mes** (3/11/2026): el fixture de `test_smoke_pantallas.py` cargaba los gastos 10 días antes de hoy, y del 1 al 10 de cada mes el Dashboard (que abre en "Este mes") no dibujaba la dona: `KeyError: 'donut_agrupar_por'`. Ahora caen dentro del mes en curso.
 - Correr con el **Python 3.11 del `.venv`** (misma versión que el Dockerfile); con 3.14 la suite ni colecta.
 - `_oraculos.py` lee los CSV de la raíz: no los muevas sin tocar los env vars.
 - En CI los 3 tests-oráculo salen `skipped`; **en la máquina de Franco tiene que dar 0 skipped** antes de un deploy. Si el número de skipped cambia, miralo aunque todo esté verde.
@@ -46,6 +47,7 @@ Resumen: La suite completa (862 tests al 20/10/2026, Fase D completa en código)
 
 ## Estado
 
+- **3/11/2026 (más tarde):** 1018 passed, 0 fallas. Nuevo `test_categorias_edicion.py` (el editor de categorías, de 35% a 100%), arreglado el smoke del dashboard, y `test_un_flyctl_roto_no_se_le_echa_al_token`.
 - **3/11/2026:** 1000 passed, 1 falla ajena (`test_smoke_pantallas::test_los_controles_de_cada_grafico_del_dashboard_andan`, `KeyError: 'donut_agrupar_por'`, ya fallaba antes). Nuevos en `test_conciliacion.py`: la respuesta como lista numerada (`1. Compras` / `2. Ok`, un renglón por número).
 - **21/10/2026 (más tarde a la noche):** 978 passed, 0 skipped (balances: "ya las tenías" desde el Calendar).
 - **21/10/2026 (noche):** 974 passed, 0 skipped (balances, paso 4: el resumen del día y el diagnóstico desde Fly).

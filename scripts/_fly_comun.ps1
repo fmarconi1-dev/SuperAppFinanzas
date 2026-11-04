@@ -43,6 +43,30 @@ function Use-TokenFly {
     return "sesion"
 }
 
+function Test-FlyctlEjecuta {
+    <#
+    .SYNOPSIS
+        $null si flyctl arranca; si no, por que no.
+    .DESCRIPTION
+        Del 13 al 15/10/2026 el backup fallo porque fly.exe habia quedado en
+        0 bytes tras una actualizacion a medias, y el aviso culpaba al token
+        (que estaba bien). Antes de culpar a la autenticacion, esto.
+    #>
+    $cmd = Get-Command fly -CommandType Application -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if (-not $cmd) { return "no encuentro fly en el PATH" }
+    # Lo que decide es si arranca: fly.exe es un symlink a flyctl.exe, y un
+    # symlink "pesa" 0 bytes aunque este sano (falsa alarma del 3/11/2026).
+    $version = cmd /c "fly version < NUL 2>NUL"
+    if ($LASTEXITCODE -eq 0 -and $version) { return $null }
+    $archivo = Get-Item $cmd.Source
+    if ($archivo.LinkType -and $archivo.Target) { $archivo = Get-Item @($archivo.Target)[0] }
+    if ($archivo.Length -eq 0) {
+        return "$($archivo.FullName) pesa 0 bytes (una actualizacion quedo a medias)"
+    }
+    return "$($cmd.Source) no arranca"
+}
+
 function Get-MaquinaFly {
     param([Parameter(Mandatory = $true)][string]$App)
     # `< NUL`: sin una consola que conteste, flyctl no puede pedir login y
@@ -75,7 +99,14 @@ function Start-AppFly {
     if ($null -eq $maquinas) {
         # Antes: "sigo igual" -> y el sftp moria despues con un error que no
         # decia nada ("no started VMs"). Si no podemos ni listar, lo mas
-        # probable es la autenticacion: se dice eso, y se corta aca.
+        # probable es la autenticacion: se dice eso, y se corta aca. Salvo
+        # que flyctl mismo no arranque (15/10/2026): eso no es el token.
+        $roto = Test-FlyctlEjecuta
+        if ($roto) {
+            Write-Error ("flyctl no funciona: $roto. El token no tiene nada que ver. " +
+                "Solucion: reinstalar flyctl (iwr https://fly.io/install.ps1 -useb | iex).")
+            exit 1
+        }
         $causa = if ($env:FLY_API_TOKEN) {
             "el token guardado no sirve (vencido o revocado)"
         } else {

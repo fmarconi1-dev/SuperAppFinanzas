@@ -106,3 +106,8 @@
 - **Autor:** Claude (Opus 5.5), con Franco.
 - **Qué:** el 2/11 Franco contestó la conciliación del extracto renglón por renglón (`1. Compras`, `2. Ok`, … `21. ok`) y el Secretario rechazó los 21 renglones. `comandos._leer_respuesta_lote` solo aceptaba `N algo` separado por comas: el punto después del número y el salto de línea lo hacían caer al parser de varios gastos. Ahora el renglón separa como la coma, `N.`/`N)`/`N-` valen como `N`, y "N ok" deja el renglón como se propuso. `2.500 super` sigue siendo un gasto.
 - **Estado:** ✅ tests nuevos en `tests/test_conciliacion.py`; 1000 passed, 1 falla ajena (`test_smoke_pantallas::test_los_controles_de_cada_grafico_del_dashboard_andan`, `KeyError: 'donut_agrupar_por'`). Sin commitear ni desplegar.
+
+## 2026-11-03 (más tarde) — Pendientes de código cerrados
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** smoke del dashboard (el fixture dependía del día del mes), `tests/test_categorias_edicion.py` (categorías 35% → 100%), y `_fly_comun.Test-FlyctlEjecuta` para que un flyctl roto no se informe como token vencido. `ajustes.listar` ya no existía (Cartera retirada).
+- **Estado:** ✅ 1018 passed, 0 fallas. Sin desplegar.

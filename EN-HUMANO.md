@@ -9,6 +9,19 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 3 de noviembre de 2026 (más tarde) — Los pendientes chicos, cerrados
+
+**Qué se hizo.**
+- **Una prueba que fallaba los primeros días de cada mes.** No era un problema de la app: la prueba armaba gastos de "hace 10 días", que a principio de mes caen en el mes anterior, y el Dashboard abre en "Este mes" vacío. Ahora la prueba usa gastos del mes en curso.
+- **El editor de categorías ahora tiene pruebas** (crear, editar, borrar, lo protegido, lo que está en uso, y que cada espacio toque solo lo suyo). Antes estaba probado en un tercio.
+- **El aviso del backup ya no culpa al token cuando el problema es otro.** En octubre el programa de Fly se había roto y el aviso decía "token vencido"; ahora primero se fija si el programa arranca y, si no, te dice que lo reinstales.
+
+**Para qué te sirve.** Menos falsas alarmas, y si el backup falla, el aviso del Escritorio te dice la causa verdadera.
+
+**Qué sigue.** Nada tuyo por estos arreglos; entran con el próximo deploy.
+
+---
+
 ## 3 de noviembre de 2026 — El Secretario ahora entiende tu respuesta como lista
 
 **Qué se hizo.** El 2/11 le contestaste la conciliación del extracto como una lista, un número por renglón ("1. Compras", "2. Ok"…), y te rechazó los 21 renglones. Solo entendía "1 compras, 2 ok" en una línea, con comas. Ahora entiende las dos formas: renglón por renglón, con o sin punto después del número, y "N ok" quiere decir "ese dejalo como me lo propusiste".

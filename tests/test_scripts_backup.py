@@ -286,6 +286,17 @@ def test_si_no_puede_hablar_con_fly_corta_en_vez_de_seguir():
     assert "guardar_token_fly.ps1" in codigo
 
 
+def test_un_flyctl_roto_no_se_le_echa_al_token():
+    """Del 13 al 15/10/2026 fly.exe pesaba 0 bytes y el aviso culpaba al token."""
+    codigo = _codigo(COMUN)
+    bloque = codigo.split("function Start-AppFly")[1].split("foreach")[0]
+    assert _pos(bloque, "Test-FlyctlEjecuta") < _pos(bloque, "FLY_API_TOKEN")
+    funcion = codigo.split("function Test-FlyctlEjecuta")[1].split("function ")[0]
+    # Primero se prueba que arranque: fly.exe es un symlink y "pesa" 0 bytes sano.
+    assert _pos(funcion, "fly version") < _pos(funcion, "Length -eq 0")
+    assert "< NUL" in funcion and "LinkType" in funcion
+
+
 def test_un_fallo_deja_aviso_en_el_escritorio_y_una_corrida_buena_lo_borra():
     codigo = _codigo(BACKUP)
     assert "Desktop" in codigo and "Avisar-Fallo" in codigo

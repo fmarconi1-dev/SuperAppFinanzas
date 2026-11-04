@@ -45,12 +45,15 @@ def base(tmp_path, monkeypatch):
         conn.execute("UPDATE usuarios SET username = 'franco', fullname = 'Franco' "
                      "WHERE id = 1")
         init_categorias(conn, user_id=1)
+        # Todo dentro del mes en curso: el Dashboard abre en "Este mes" y sin
+        # gastos no dibuja la dona (con "hoy − 10 días" el test fallaba del 1
+        # al 10 de cada mes).
         hoy = date.today()
         for i, (motivo, pasivos, ingresos) in enumerate([
             ("Haberes UCEMA", 0, 900_000), ("Supermercado", 120_000, 0),
             ("Compra Divisa", 200_000, 0), ("Pago tarjeta", 80_000, 0),
         ]):
-            insert_transaction(conn, hoy - timedelta(days=10 - i), motivo,
+            insert_transaction(conn, min(hoy, hoy.replace(day=1) + timedelta(days=i)), motivo,
                                pasivos=pasivos, ingresos=ingresos, user_id=1)
 
         conn.commit()
