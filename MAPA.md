@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-11-04 02:38 UTC · 130 archivos · 27,118 LOC -->
+<!-- 2026-11-04 02:40 UTC · 130 archivos · 27,118 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-11-03 d04df9d docs: ADR-0012 (lenguaje natural) y ESTADO al dÃ­a con producciÃ³n · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-11-03 34504f2 docs: balances cerrados, el resumen del dÃ­a llegÃ³ en producciÃ³n · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -218,15 +218,15 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `.mapa/mapa.json` + `MAPA.md` (60 commits)
+- `.mapa/mapa.json` + `MAPA.md` (61 commits)
 - `EN-HUMANO.md` + `ESTADO.md` (43 commits)
-- `.mapa/mapa.json` + `ESTADO.md` (37 commits)
-- `ESTADO.md` + `MAPA.md` (37 commits)
+- `.mapa/mapa.json` + `ESTADO.md` (38 commits)
+- `ESTADO.md` + `MAPA.md` (38 commits)
 - `BITACORA.md` + `ESTADO.md` (31 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)
 - `BITACORA.md` + `EN-HUMANO.md` (25 commits)
 - `ESTADO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (23 commits)
-- `ESTADO.md` + `ROADMAP.md` (21 commits)
+- `ESTADO.md` + `ROADMAP.md` (22 commits)
 - `places/inversiones/cartera/bitacora_de_trabajo.md` + `places/inversiones/cartera/view.py` (21 commits)
 
 ## Fuentes externas
