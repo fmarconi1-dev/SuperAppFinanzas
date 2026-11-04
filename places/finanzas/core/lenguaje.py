@@ -332,8 +332,13 @@ def entender(
     if orden is None:
         return respaldo
     clase = clasificar(orden, hoy=hoy, cantidad=cantidad)
-    if clase is None or _signo_cruzado(conn, orden, hoy=hoy, wid=wid,
-                                       motivos=all_motivos(conn, user_id=user_id)):
+    if clase is None:
+        return respaldo
+    # El signo se mira solo en gastos: una corrección ("5 Haberes UCEMA, 6 …") también
+    # se lee como un gasto de $5, y se descartaba (cuarta corrida en Fly, 4/11/2026).
+    es_correccion = bool(cantidad) and _leer_respuesta_lote(orden, cantidad) is not None
+    if not es_correccion and _signo_cruzado(conn, orden, hoy=hoy, wid=wid,
+                                            motivos=all_motivos(conn, user_id=user_id)):
         return respaldo
     if clase == "propone" and lote:
         # Varios gastos o saldos arman una propuesta nueva y tirarían la abierta (la

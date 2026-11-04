@@ -113,6 +113,16 @@ def test_el_signo_tiene_que_coincidir_con_la_categoria(db, mensaje, orden, se_of
         assert _p(db, "sí").texto == "No tengo nada pendiente de confirmar."
 
 
+def test_una_correccion_a_una_categoria_de_ingresos_no_es_un_gasto(db):
+    """Cuarta corrida en Fly, 4/11: «5 Haberes UCEMA, 6 …» se leía como un gasto de $5
+    en una categoría de ingresos, y el control del signo la descartaba."""
+    _mandar(db, _extracto([("20/10/2026", COMPRA.format("FERRETERIA INVENTADA"), -41200),
+                           ("21/10/2026", "TRANSFERENCIA DE TERCEROS\nUNIVERSIDAD INVENTADA\n1\nV",
+                            404625)]))
+    r = _p(db, "lo de la universidad es haberes sbt", _orden("2 Haberes SBT"))
+    assert "Entendí:\n2 Haberes SBT\n" in r.texto
+
+
 def test_varios_renglones_traducidos_pasan_por_la_propuesta(db):
     _p(db, "gasté 5 lucas en el chino y 20k de nafta", _orden("5000, compras\n20000, auto"))
     r = _p(db, "sí")

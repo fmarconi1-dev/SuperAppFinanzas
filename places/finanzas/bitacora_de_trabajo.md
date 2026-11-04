@@ -137,3 +137,8 @@
 - **Autor:** Claude (Opus 5.5), con Franco.
 - **Qué:** 43 BIEN · 2 DUDOSA · 1 MAL · 0 FALLA. Las protecciones de antes funcionaron; el MAL nuevo (una compra de dólares traducida como ingreso) se frena con `lenguaje._signo_cruzado`.
 - **Estado:** 🔵 falta la cuarta corrida; con cero MAL se prende `LENGUAJE_NATURAL=1`.
+
+## 2026-11-04 (cierre) — Fase E, paso 2: cero MAL
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** cuarta corrida en Fly: 44 BIEN · 2 DUDOSA · 0 MAL · 0 FALLA. Arreglado el control del signo, que descartaba correcciones a categorías de ingresos.
+- **Estado:** ✅ meta cumplida. Próximo: deploy, `fly secrets set LENGUAJE_NATURAL=1 -a superapp-finanzas` y prueba de Franco desde el celular.
