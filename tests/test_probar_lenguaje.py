@@ -120,9 +120,17 @@ def test_saldos_se_comparan_por_lo_que_valen():
     assert _notas([caso], {caso.mensaje: O("fima 370000 efectivo 60000")}) == ["MAL"]
 
 
-def test_si_gemini_falla_no_corta_la_prueba():
-    caso = pl.Caso("nafta 20k", gastos=[(0, 20000, {"Auto"}, False)])
-    assert _notas([caso], {caso.mensaje: GeminiNoDisponible("429")}) == ["DUDOSA"]
+def test_si_gemini_falla_se_ve_y_no_corta_la_prueba():
+    """El 4/11 en Fly las 44 frases salieron "no consultó a Gemini": era Gemini fallando."""
+    casos = [pl.Caso("nafta 20k", gastos=[(0, 20000, {"Auto"}, False)]),
+             pl.Caso("taxi 7800", gastos=[(0, 7800, {"Transportes"}, False)])]
+    lineas = []
+    resultados = pl.correr(Falso({"nafta 20k": GeminiNoDisponible("Gemini respondió 400: x"),
+                                  "taxi 7800": O("7800, transportes")}),
+                           casos, pausa=0, salida=lineas.append)
+    assert [r.nota for r in resultados] == ["FALLA", "BIEN"]
+    assert "Gemini respondió 400: x" in resultados[0].detalle
+    assert "1 FALLA" in lineas[-1]
 
 
 def test_los_casos_del_script_estan_bien_armados():

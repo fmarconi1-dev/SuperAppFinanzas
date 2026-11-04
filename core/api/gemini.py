@@ -98,6 +98,15 @@ class GeminiNoDisponible(Exception):
     """Gemini no contestó, rechazó el pedido o devolvió algo que no se entiende."""
 
 
+def _motivo(e: urllib.error.HTTPError) -> str:
+    """": <el mensaje de error de Google>" si vino uno; "" si no se puede leer."""
+    try:
+        mensaje = json.loads(e.read())["error"]["message"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return ""
+    return f": {' '.join(str(mensaje).split())[:200]}" if mensaje else ""
+
+
 @dataclass(frozen=True)
 class Traduccion:
     """Lo que Gemini entendió de un mensaje (ver `INSTRUCCIONES_TRADUCCION`)."""
@@ -156,7 +165,9 @@ class ClienteGemini:
             with urllib.request.urlopen(pedido, timeout=60) as r:
                 respuesta = json.loads(r.read())
         except urllib.error.HTTPError as e:
-            raise GeminiNoDisponible(f"Gemini respondió {e.code}") from None
+            # El motivo que da Google ("API key not valid", "model not found",
+            # un campo del esquema que no acepta): sin eso, un 400 no se diagnostica.
+            raise GeminiNoDisponible(f"Gemini respondió {e.code}{_motivo(e)}") from None
         except (urllib.error.URLError, TimeoutError) as e:
             raise GeminiNoDisponible(f"no pude hablar con Gemini ({e})") from None
         except json.JSONDecodeError:

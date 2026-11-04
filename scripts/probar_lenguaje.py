@@ -10,6 +10,8 @@ el del 2/11 (nombres inventados). Por cada frase dice:
   más, se le escapó una corrección, propuso una categoría nueva).
 * **MAL**: con el *sí* cargaría algo distinto de lo que Franco quiso. La meta
   antes de prenderlo (`LENGUAJE_NATURAL=1`) es **cero MAL**.
+* **FALLA**: Gemini no contestó (con el motivo de Google). Antes de las frases
+  va un pedido de prueba: si falla, se dice por qué y no se sigue.
 
 Necesita `GEMINI_API_KEY`. En la PC (PowerShell) o dentro de Fly:
 
@@ -320,14 +322,22 @@ def evaluar(caso: Caso, traduccion: Any, respuesta: Any, *, hoy: date, cantidad:
 # ---------------------------------------------------------------- correr
 
 class Grabador:
-    """Envuelve al traductor real para guardar qué contestó (y respetar el límite)."""
+    """Envuelve al traductor real para guardar qué contestó o en qué falló (y respetar
+    el límite). Sin el error, una frase en la que Gemini falló parecía "no consultó"."""
 
     def __init__(self, real: Any, pausa: float):
-        self.real, self.pausa, self.ultima = real, pausa, None
+        self.real, self.pausa, self.ultima, self.error = real, pausa, None, None
 
     def traducir(self, mensaje: str, contexto: str):
-        self.ultima = self.real.traducir(mensaje, contexto)
-        time.sleep(self.pausa)
+        from core.api.gemini import GeminiNoDisponible
+
+        try:
+            self.ultima = self.real.traducir(mensaje, contexto)
+        except GeminiNoDisponible as e:
+            self.error = str(e)
+            raise
+        finally:
+            time.sleep(self.pausa)
         return self.ultima
 
 
@@ -363,11 +373,14 @@ def correr(traductor: Any, casos: list[Caso] = CASOS, *, pausa: float = 4.5,
                 grabador = Grabador(traductor, pausa)
                 r = procesar(conn, caso.mensaje, user_id=1, ahora=ahora, traductor=grabador)
                 t = grabador.ultima
-                nota, detalle = evaluar(caso, t, r, hoy=hoy, cantidad=cantidad,
-                                        numeros=numeros, motivos=motivos)
-            except Exception as e:  # noqa: BLE001 — una falla de Gemini no corta la prueba
+                if grabador.error:
+                    nota, detalle = "FALLA", f"Gemini: {grabador.error}"
+                else:
+                    nota, detalle = evaluar(caso, t, r, hoy=hoy, cantidad=cantidad,
+                                            numeros=numeros, motivos=motivos)
+            except Exception as e:  # noqa: BLE001 — una falla no corta la prueba: se muestra
                 t, r = None, None
-                nota, detalle = "DUDOSA", f"{type(e).__name__}: {e}"
+                nota, detalle = "FALLA", f"{type(e).__name__}: {e}"
             finally:
                 conn.rollback()
                 conn.close()
@@ -377,21 +390,30 @@ def correr(traductor: Any, casos: list[Caso] = CASOS, *, pausa: float = 4.5,
             resultados.append(res)
             salida(f"{nota:6} {caso.mensaje.splitlines()[0][:48]!r:52} → {gem[:70]}"
                    + (f"  ({detalle})" if detalle else ""))
-    cuenta = {n: sum(r.nota == n for r in resultados) for n in ("BIEN", "DUDOSA", "MAL")}
-    salida(f"\n{cuenta['BIEN']} BIEN · {cuenta['DUDOSA']} DUDOSA · {cuenta['MAL']} MAL "
-           f"de {len(resultados)}")
+    cuenta = {n: sum(r.nota == n for r in resultados)
+              for n in ("BIEN", "DUDOSA", "MAL", "FALLA")}
+    salida(f"\n{cuenta['BIEN']} BIEN · {cuenta['DUDOSA']} DUDOSA · {cuenta['MAL']} MAL · "
+           f"{cuenta['FALLA']} FALLA de {len(resultados)}")
     return resultados
 
 
 def main() -> int:
-    from core.api.gemini import ClienteGemini
+    from core.api.gemini import ClienteGemini, GeminiNoDisponible
 
     cliente = ClienteGemini.desde_entorno()
     if cliente is None:
         print("Falta GEMINI_API_KEY.")
         return 2
+    # Un pedido de prueba antes de las 46: si Gemini no contesta, se dice por qué y se corta.
+    try:
+        prueba = cliente.traducir("nafta 20k", "Hoy: prueba de conexión.")
+    except GeminiNoDisponible as e:
+        print(f"Gemini no contesta (modelo {cliente.modelo}): {e}")
+        return 2
+    print(f"Gemini contesta (modelo {cliente.modelo}): {prueba}\n")
+    time.sleep(4.5)
     resultados = correr(cliente)
-    return 1 if any(r.nota == "MAL" for r in resultados) else 0
+    return 1 if any(r.nota in ("MAL", "FALLA") for r in resultados) else 0
 
 
 if __name__ == "__main__":

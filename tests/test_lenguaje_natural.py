@@ -256,6 +256,17 @@ def test_el_cliente_traduce_con_el_esquema(gemini_falso):  # noqa: F811
     assert textos[1] == "CONTEXTO\nHoy: martes" and textos[2].endswith("ayer 5 lucas en el chino")
 
 
+def test_el_error_trae_el_motivo_de_google(gemini_falso):  # noqa: F811
+    """Sin el motivo, "Gemini respondió 400" no se puede diagnosticar."""
+    gemini_falso["codigo"] = 400
+    gemini_falso["respuesta"] = {"error": {"code": 400, "message": "Invalid JSON payload:\n x"}}
+    with pytest.raises(GeminiNoDisponible, match="400: Invalid JSON payload: x"):
+        ClienteGemini("k").traducir("x", "y")
+    gemini_falso["respuesta"] = "no es el json de siempre"
+    with pytest.raises(GeminiNoDisponible, match=r"^Gemini respondió 400$"):
+        ClienteGemini("k").traducir("x", "y")
+
+
 def test_un_tipo_inventado_es_un_error(gemini_falso):  # noqa: F811
     gemini_falso["respuesta"] = {"candidates": [{"content": {"parts": [
         {"text": json.dumps({"tipo": "ejecutar"})}]}}]}
