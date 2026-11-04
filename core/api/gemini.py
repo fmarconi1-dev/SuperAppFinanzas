@@ -16,6 +16,9 @@ pasa por una propuesta con `ok` o una confirmación con *sí*.
   el archivo.
 * Modelo: `GEMINI_MODELO`, por defecto ``gemini-3.5-flash-lite`` (gratuito y
   con entrada de imagen, verificado en la página de precios el 20/10/2026).
+  Límites del plan gratis, verificados en AI Studio el 4/11/2026: 15 pedidos
+  por minuto, 250 mil tokens por minuto, 500 pedidos por día (fotos y
+  traducciones juntas). Pasado eso Gemini responde 429 y se dice.
 * Un error de la API se nombra (`GeminiNoDisponible`) y le llega a Franco;
   nunca se convierte en "no había nada en la foto".
 """

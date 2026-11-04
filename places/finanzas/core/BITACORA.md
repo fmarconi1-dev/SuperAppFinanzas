@@ -1,6 +1,6 @@
 # places/finanzas/core/
 
-<!-- huella: d59d7a8dc8b9 -->
+<!-- huella: 9c17f07beede -->
 
 Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel.
 

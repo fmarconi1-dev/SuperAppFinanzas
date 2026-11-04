@@ -1,6 +1,6 @@
 # scripts/
 
-<!-- huella: 92272af8c3af -->
+<!-- huella: fcf84eb948e2 -->
 
 Resumen: Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa.
 
@@ -29,6 +29,7 @@ Resumen: Operación y mantenimiento: backups remotos (PowerShell + verificación
 ## Estado
 
 - **Funciona:** backup remoto programado y verificado.
+- **4/11/2026:** `probar_lenguaje.py` (Fase E, paso 2): las frases de Franco contra Gemini de verdad, sobre una base temporal (nunca la real: apunta `DB_PATH` y `BACKUP_DIR` a su carpeta). Se corre en Fly, donde está la clave: `fly ssh console -a superapp-finanzas -C "python /app/scripts/probar_lenguaje.py"`. Va a 4,5 s por pedido (15 RPM del plan gratis). Copia la base de cada caso con la API de backup de SQLite: `shutil.copy` dejaba afuera el WAL.
 - **3/11/2026:** `_fly_comun.Test-FlyctlEjecuta`: si no se puede hablar con Fly, primero se mira si flyctl arranca (del 13 al 15/10 `flyctl.exe` pesaba 0 bytes y el aviso culpaba al token). Ojo: `fly.exe` es un **symlink** a `flyctl.exe` y Windows le informa 0 bytes estando sano; por eso decide `fly version`, y el tamaño se mira sobre el destino del symlink, solo para explicar.
 - **21/10/2026:** `probar_fuentes_balances.py` nuevo: el diagnóstico de las fuentes de los balances desde la máquina de Fly (las fuentes pueden rechazar servidores aunque desde la PC anden). Test: `tests/test_balances_fuentes.py::test_el_diagnostico_dice_que_fuente_falla`.
 - **14–15/10/2026:** `probar_whatsapp_texto.py` nuevo (stdlib). Solo arma `"type": "text"`, lee el token del portapapeles (pegar en `getpass` no anda en la consola de Windows: Ctrl+V llega como basura y Meta contesta 190) y muestra el `wa_id` al que Meta resolvió el número. Manda **sin el 9** a los celulares argentinos. **Dos formatos, cada uno en su lugar (comprobado en producción el 15/10/2026):** en la **lista del panel** el celular argentino va **con el 9** (`549…`; sin el 9, Meta acepta los envíos y no los entrega); los mensajes entrantes traen el `from` **con el 9**; y para **mandar**, Meta lo quiere **sin el 9** (`54…`): a `549…` responde 131030 aunque la lista esté bien. Resultado real: **el texto llegó sin tarjeta**.

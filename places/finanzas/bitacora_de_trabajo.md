@@ -117,3 +117,8 @@
 - **Qué:** `core/api/gemini.py` suma `traducir` (esquema cerrado: orden, pregunta, respuesta, no_entiendo); `places/finanzas/core/lenguaje.py` arma el contexto, valida la orden con los parsers y la deja esperando el *sí*; `comandos.procesar(..., traductor=)` consulta cuando la respuesta trae `entender=True`; `api.py` lo cablea con `ClienteGemini.desde_entorno()`.
 - **Por qué:** ADR-0012; el 2/11 Franco contestó como habla y el Secretario rechazó todo.
 - **Estado:** ✅ 1061 passed, 0 fallas (`tests/test_lenguaje_natural.py`). Sin desplegar.
+
+## 2026-11-04 — Fase E, paso 2: la prueba con frases reales (preparada)
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** `scripts/probar_lenguaje.py` con 46 frases y su evaluador (BIEN / DUDOSA / MAL), con tests. *va* es un *sí* (el 2/11 Franco contestó *va* y se rechazó). Límites de Gemini verificados en AI Studio.
+- **Estado:** 🔵 falta correrlo en Fly (la clave vive ahí) y revisar los MAL antes de prender `LENGUAJE_NATURAL=1`.

@@ -1,6 +1,6 @@
 # core/api/
 
-<!-- huella: 0b85100d45e2 -->
+<!-- huella: 32e525c93354 -->
 
 Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla).
 

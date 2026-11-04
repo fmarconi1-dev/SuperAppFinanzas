@@ -90,7 +90,8 @@ AYUDA = (
     "  • ayuda — este mensaje"
 )
 
-SI = {"si", "sí", "s", "dale", "ok", "okay", "yes", "correcto", "listo"}
+#: "va" (Franco, 2/11/2026: contestó *va* a una propuesta y se rechazó).
+SI = {"si", "sí", "s", "dale", "ok", "okay", "yes", "correcto", "listo", "va"}
 NO = {"no", "n", "nop", "cancelar", "cancela"}
 
 

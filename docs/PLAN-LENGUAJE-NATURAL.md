@@ -15,7 +15,9 @@ Una fase a la vez: el alcance es "todo", pero sale en pasos, cada uno desplegabl
 - `comandos.procesar(..., traductor=None)`: los tres disparadores de la ADR §3, y el `pendiente` de tipo `traduccion` («Entendí: … ¿Va?» → *sí* ejecuta la orden con el mismo `procesar`).
 - Tests con un traductor falso: cada disparador; que nada se escriba sin el *sí*; que un `ok`/`deshacer` traducido pida confirmación; que una traducción absurda la rechace el parser; que `GeminiNoDisponible` llegue a Franco; sin traductor, todo igual que hoy.
 
-## Paso 2 — Gastos y respuestas a propuestas, de verdad
+## Paso 2 — Gastos y respuestas a propuestas, de verdad 🔵 (4/11/2026: el script está; falta correrlo en Fly)
+
+> `scripts/probar_lenguaje.py`: 46 frases (las reales del 2/11, *va*, los saldos con *caja*, jerga, listas, correcciones por nombre) por el mismo `procesar`, con Gemini de verdad, sobre una base temporal con las categorías de Franco y un extracto como el del 2/11. Nota por frase: BIEN / DUDOSA / MAL; la meta es **cero MAL**. El evaluador tiene tests (`tests/test_probar_lenguaje.py`). Límites verificados en AI Studio el 4/11: 15 RPM, 250K TPM, 500 RPD. *va* pasó a ser un *sí* en la gramática (sin IA).
 
 - La `GEMINI_API_KEY` ya está en Fly (Franco, 3/11/2026; la misma de las fotos).
 - Verificar en la página oficial los límites del plan gratis de `gemini-3.5-flash-lite` para texto (anotar la fecha en `gemini.py`).
