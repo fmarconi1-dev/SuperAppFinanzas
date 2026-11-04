@@ -15,7 +15,7 @@ Una fase a la vez: el alcance es "todo", pero sale en pasos, cada uno desplegabl
 
 ## Paso 2 — Gastos y respuestas a propuestas, de verdad
 
-- **Antes:** Franco crea la `GEMINI_API_KEY` (hoy no hay ninguna en Fly; Google AI Studio, proyecto sin facturación) y la carga en `fly secrets`. Sirve también para las fotos de la Fase D.
+- La `GEMINI_API_KEY` ya está en Fly (Franco, 3/11/2026; la misma de las fotos).
 - Verificar en la página oficial los límites del plan gratis de `gemini-3.5-flash-lite` para texto (anotar la fecha en `gemini.py`).
 - Un set de ~50 frases reales de Franco (las del 2/11, jerga: "lucas", "k", "mil"; listas; correcciones) en `scripts/probar_lenguaje.py`, que corre contra Gemini **a mano**, no en la suite. Meta antes de desplegar: ninguna traducción que cargue algo distinto de lo que Franco quiso (las dudosas tienen que salir como pregunta).
 - Deploy y prueba de Franco desde el celular.
