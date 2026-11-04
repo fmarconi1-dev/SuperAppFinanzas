@@ -1,6 +1,6 @@
 # places/finanzas/core/
 
-<!-- huella: 4bc60c8f0465 -->
+<!-- huella: 6e11cbb850cf -->
 
 Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel.
 
@@ -39,7 +39,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 - ⚠️ **Un importe ilegible no es cero** (22/9/2026). `parse_currency` devuelve 0.0 por compatibilidad (no corrompe Caja), pero para importar se usa `parse_currency_estricto` (→ `None`), y el ingest anota cada ilegible en `ImportResult.advertencias` con fila y valor. Antes un `1.5OO` entraba como gasto de $0 sin rastro, y el comentario decía que el ingest avisaba — no avisaba.
 - ⚠️ **Montos tipeados ≠ montos del CSV** (15/10/2026). `comandos.parsear_monto` es propio y estricto: el punto solo vale como miles en grupos de 3, la coma es el decimal, y `2500.50` se **repregunta**. `parse_currency_estricto` borra todos los puntos (`1.5` → 15): sirve para el Excel, no para el celular.
 - ⚠️ **Un lote se escribe todo o nada** (19/10/2026): backup **antes** y después un solo `BEGIN IMMEDIATE`. No usar `insert_transaction` en un bucle: hace un backup por fila y no corre en una transacción. `deshacer` de un lote compara cada fila con su "después": si Franco editó o borró una desde la app, no toca nada y dice cuál.
-- **Una propuesta (lote) no se descarta con cualquier mensaje** (al revés que el "¿quisiste decir?" de un gasto suelto, que vence a los 10 min): la tocan solo `ok`/sí, `no`/`cancelar` y "N algo" con N entero **dentro de la lista** (`2.500 super` sigue siendo un gasto). Vence a las 48 h. El sí/no de un gasto suelto pendiente va primero, porque es la pregunta más nueva. Una corrección que no es exacta ("1 trnasportes, ok") **no se carga**: se muestra marcada y espera otro `ok`.
+- **Una propuesta (lote) no se descarta con cualquier mensaje** (al revés que el "¿quisiste decir?" de un gasto suelto, que vence a los 10 min): la tocan solo `ok`/sí, `no`/`cancelar` y "N algo" con N entero **dentro de la lista** (`2.500 super` sigue siendo un gasto). Vence a las 48 h. El sí/no de un gasto suelto pendiente va primero, porque es la pregunta más nueva. Una corrección que no es exacta ("1 trnasportes, ok") **no se carga**: se muestra marcada y espera otro `ok`. ⚠️ **Franco contesta como lista** (3/11/2026): `1. Compras` / `2. Ok`, un renglón por número. El renglón separa igual que la coma, `N.`/`N)`/`N-` valen como `N`, y "N ok" deja ese renglón como se propuso. Antes todo eso caía al parser de varios gastos y rechazaba los 21 renglones con "No encontré monto y categoría".
 - **El bruto es lo de antes del primer −**, con cada división reemplazada por su dividendo (`1000+500*2-300` → 2.000, no 1.000). Es función pura de la cuenta guardada: el paso 4 la usa también para releer mensajes viejos.
 - ⚠️ **La conciliación trabaja en centavos enteros** (`banco_filas.monto`, la tolerancia de $1 = 100); `transacciones` sigue en pesos. Convertir con `round(x * 100)`, nunca comparar floats.
 - **Nada de `iterrows` para clasificar filas** (21/10/2026, frente 4 de rendimiento): `categorizer.grupos_efectivos(motivos, pasivos, ingresos, cats)` es `efective_grupo` sobre columnas enteras. `iterrows` arma una Series por fila (~33 µs): con 5.300 movimientos eran ~175 ms en cada KPI, tabla del mes o libro diario. La regla de negocio sigue viviendo **solo** en `efective_grupo`. `libro_diario` clasifica solo las filas de la ventana; el saldo (`cumsum`) sí usa toda la historia. Tests: `tests/test_consultas_rapidas.py`.
@@ -70,6 +70,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 ## Estado
 
 - **Funciona:** en producción.
+- **3/11/2026 (arreglo, sin desplegar):** `_leer_respuesta_lote` entiende la respuesta como lista numerada, un renglón por número (`1. Compras`, `2. ok`). Tests: `tests/test_conciliacion.py` (`test_se_contesta_como_lista_numerada_renglon_por_renglon`).
 - **21/10/2026 (rendimiento, frente 4):** `grupos_efectivos` reemplaza los `iterrows` de `metrics`, `diario` y `budget`; resultados idénticos (comparados con `assert_frame_equal` exacto). `compute_kpis` −92 %, Diario −80 % (`docs/perf/FRENTE-4-QUERIES.md`).
 - **21/10/2026 (rendimiento, frente 2):** openpyxl y `metrics` se importan adentro de la función que los usa (ver Trampas). Medido en `docs/perf/FRENTE-2-CARGA-DIFERIDA.md`.
 - **21/10/2026 (noche):** "ya las tenías" sale del `creado` de `Codigo.gs` (el Calendar), no de `balances_agendados`. Tests nuevos en `tests/test_balances.py`.

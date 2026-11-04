@@ -101,3 +101,8 @@
 - **Autor:** Claude (Opus 5.5), con Franco.
 - **Qué:** `categorizer.grupos_efectivos` en lugar de `iterrows` (metrics, diario, budget); el Diario clasifica solo lo que muestra; M25 en `core/db.py`. Las búsquedas por fila del bot ya tenían índice: no se tocaron.
 - **Estado:** ✅ 999 tests, 0 skipped; resultados idénticos al código anterior. `compute_kpis` −92 %, Diario −80 %, Dashboard −29 % después de una escritura (`docs/perf/FRENTE-4-QUERIES.md`). Sin commitear ni desplegar.
+
+## 2026-11-03 — El Secretario no entendía la respuesta como lista numerada
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** el 2/11 Franco contestó la conciliación del extracto renglón por renglón (`1. Compras`, `2. Ok`, … `21. ok`) y el Secretario rechazó los 21 renglones. `comandos._leer_respuesta_lote` solo aceptaba `N algo` separado por comas: el punto después del número y el salto de línea lo hacían caer al parser de varios gastos. Ahora el renglón separa como la coma, `N.`/`N)`/`N-` valen como `N`, y "N ok" deja el renglón como se propuso. `2.500 super` sigue siendo un gasto.
+- **Estado:** ✅ tests nuevos en `tests/test_conciliacion.py`; 1000 passed, 1 falla ajena (`test_smoke_pantallas::test_los_controles_de_cada_grafico_del_dashboard_andan`, `KeyError: 'donut_agrupar_por'`). Sin commitear ni desplegar.

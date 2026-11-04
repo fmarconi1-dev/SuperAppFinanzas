@@ -9,6 +9,16 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 3 de noviembre de 2026 — El Secretario ahora entiende tu respuesta como lista
+
+**Qué se hizo.** El 2/11 le contestaste la conciliación del extracto como una lista, un número por renglón ("1. Compras", "2. Ok"…), y te rechazó los 21 renglones. Solo entendía "1 compras, 2 ok" en una línea, con comas. Ahora entiende las dos formas: renglón por renglón, con o sin punto después del número, y "N ok" quiere decir "ese dejalo como me lo propusiste".
+
+**Para qué te sirve.** Podés contestar como te sale natural. Como en tu lista no había un "ok" suelto al final, el Secretario te va a mostrar cómo quedó todo y espera tu "ok" para cargar. Si mandás la lista con un "ok" en el último renglón, carga directo.
+
+**Qué sigue.** Publicarlo (eso lo hacés vos). Después, volvé a mandar la misma lista que mandaste el 2/11: la propuesta del extracto sigue abierta hasta el 4/11 a las 12:45 (dura 48 horas). Si ya venció, mandá el extracto de nuevo.
+
+---
+
 ## 26 de octubre de 2026 — El antes y el después, medidos lado a lado
 
 **Qué se hizo.** Se volvieron a correr las mismas pruebas del principio, con la versión vieja de la app y la nueva **una al lado de la otra, el mismo día**, para que nada más que los cambios explique la diferencia.

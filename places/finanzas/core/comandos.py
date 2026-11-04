@@ -852,7 +852,11 @@ def _movimiento(item: dict) -> lotes.Movimiento:
 #: un texto cualquiera), se procesa como siempre.
 _RE_EMPIEZA_COMO_GASTO = re.compile(r"^(?:\+|\$|hoy\b|ayer\b|\d)", re.IGNORECASE)
 #: "2 transportes", "3 no": número de renglón de la propuesta y qué hacer.
-_RE_CORRECCION = re.compile(r"^(\d{1,3})\s+(\S.*)$")
+#: También numerado como lista ("2. transportes", "2) no", "2- ok"); el
+#: signo tiene que ir seguido de texto, así "2.500 super" sigue siendo un gasto.
+_RE_CORRECCION = re.compile(r"^(\d{1,3})(?:\s*[.):-]\s*(?=\D)|\s+)(\S.*)$")
+#: Las correcciones van separadas por coma, punto y coma o renglón.
+_RE_SEPARADOR_LOTE = re.compile(r"\s*[,;|\n]\s*")
 
 
 def _cantidad(propuesta: dict) -> int:
@@ -878,26 +882,32 @@ def _leer_respuesta_lote(texto: str, cantidad: int) -> Optional[RespuestaLote]:
     final: ``2 transportes, 3 no, ok``. Así ``2.500 super`` o ``$2 super``
     siguen siendo gastos. Un `no` a secas descarta la propuesta entera, igual
     que el `no` a un gasto suelto.
+
+    También se contesta renglón por renglón, como lista (``1. Compras`` /
+    ``2. ok``): "N ok" deja ese renglón como se propuso.
     """
     clave = normalizar(texto).strip(" .!¡?¿")
     if clave in SI:
         return RespuestaLote(aceptar=True)
     if clave in NO:
         return RespuestaLote(cancelar=True)
-    partes = [p.strip() for p in _RE_SEPARADOR.split(texto.strip()) if p.strip()]
+    partes = [p.strip() for p in _RE_SEPARADOR_LOTE.split(texto.strip()) if p.strip()]
     if not partes:
         return None
     aceptar = normalizar(partes[-1]).strip(" .!¡?¿") in SI
     if aceptar:
         partes = partes[:-1]
+    if not partes:
+        return None
     correcciones = []
     for p in partes:
         m = _RE_CORRECCION.match(p)
         if not m or not 1 <= int(m.group(1)) <= cantidad:
             return None
-        correcciones.append((int(m.group(1)), " ".join(m.group(2).split())))
-    if not correcciones:
-        return None
+        que = " ".join(m.group(2).split())
+        if normalizar(que).strip(" .!¡?¿") in SI:
+            continue    # "2 ok": queda como se propuso
+        correcciones.append((int(m.group(1)), que))
     return RespuestaLote(aceptar=aceptar, correcciones=tuple(correcciones))
 
 

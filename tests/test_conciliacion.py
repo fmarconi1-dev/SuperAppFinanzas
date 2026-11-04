@@ -218,6 +218,28 @@ def test_n_no_no_carga_esa_fila(db):
     assert r.resultado == "lote" and [t["pasivos"] for t in _txns(db)] == [2000.0]
 
 
+def test_se_contesta_como_lista_numerada_renglon_por_renglon(db):
+    """El caso real del 2/11/2026: "1. Compras", "2. Ok"… uno por renglón."""
+    _mandar(db, _extracto([("20/10/2026", COMPRA.format("X"), -1000),
+                           ("21/10/2026", "IVA", -150),
+                           ("22/10/2026", COMPRA.format("Y"), -2000)]))
+    r = _p(db, "1. Compras\n2. Ok\n3) salidas")
+    assert r.resultado == "pendiente"           # sin el ok final, muestra cómo quedó
+    assert "X $1.000 → Compras" in r.texto and "Iva $150 → Impuestos" in r.texto
+    assert "Y $2.000 → Salidas" in r.texto
+    assert _txns(db) == []
+    assert _p(db, "ok").resultado == "lote"
+    assert [(t["motivo"], t["pasivos"]) for t in _txns(db)] == [
+        ("Compras", 1000.0), ("Impuestos", 150.0), ("Salidas", 2000.0)]
+
+
+def test_la_lista_numerada_con_ok_al_final_aplica(db):
+    _mandar(db, _extracto([("20/10/2026", COMPRA.format("X"), -1000),
+                           ("21/10/2026", COMPRA.format("Y"), -2000)]))
+    r = _p(db, "1. compras\n2. no\nok")
+    assert r.resultado == "lote" and [t["pasivos"] for t in _txns(db)] == [1000.0]
+
+
 # ---------------------------------------------------------------- emparejar sin duplicar
 
 def test_un_gasto_ya_cargado_no_se_vuelve_a_cargar_y_manda_el_banco(db):
