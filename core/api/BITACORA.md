@@ -1,6 +1,6 @@
 # core/api/
 
-<!-- huella: a98ead57d6ca -->
+<!-- huella: 0b85100d45e2 -->
 
 Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla).
 
@@ -22,6 +22,7 @@ Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webh
 
 ## Trampas
 
+- **`gemini.py` hace dos cosas con el mismo pedido** (`_generar`): leer fotos (`extraer_filas`) y traducir mensajes (`traducir`, Fase E). La salida siempre es JSON con esquema cerrado; un `tipo` que no está en el esquema es `GeminiNoDisponible`, nunca "no entendí".
 - **`core/` no importa `places/`.** La lógica de los comandos llega inyectada (`procesar`) desde `api.py`. Así el canal es intercambiable (plan B: Telegram) y no se arma un ciclo.
 - **Costo cero (candado 2):** solo se manda `"type": "text"`. Un test falla si la palabra de las plantillas aparece en estos archivos.
 - **Números argentinos:** **Dos formatos, cada uno en su lugar (comprobado en producción el 15/10/2026):** en la **lista del panel** el celular argentino va **con el 9** (`549…`; sin el 9, Meta acepta los envíos y no los entrega); los mensajes entrantes traen el `from` **con el 9**; y para **mandar**, Meta lo quiere **sin el 9** (`54…`): a `549…` responde 131030 aunque la lista esté bien. Por eso `enviar_texto` manda primero en forma canónica (sin el 9) y, solo ante un 131030, reintenta con el 9; el remitente se compara también en forma canónica. Ojo con la tentación de "responder al `from` tal cual": eso fue el 131030 del primer mensaje real.
@@ -60,4 +61,4 @@ Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webh
 
 ## Proximo paso
 
-Fase E (ADR-0012): `ClienteGemini.traducir` para el lenguaje natural (`docs/PLAN-LENGUAJE-NATURAL.md`, paso 1).
+Fase E, paso 2 (`docs/PLAN-LENGUAJE-NATURAL.md`): probar `traducir` contra Gemini de verdad con ~50 frases de Franco.

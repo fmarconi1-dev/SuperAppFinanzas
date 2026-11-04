@@ -111,3 +111,9 @@
 - **Autor:** Claude (Opus 5.5), con Franco.
 - **Qué:** smoke del dashboard (el fixture dependía del día del mes), `tests/test_categorias_edicion.py` (categorías 35% → 100%), y `_fly_comun.Test-FlyctlEjecuta` para que un flyctl roto no se informe como token vencido. `ajustes.listar` ya no existía (Cartera retirada).
 - **Estado:** ✅ 1018 passed, 0 fallas. Sin desplegar.
+
+## 2026-11-03 (noche) — Fase E, paso 1: el traductor
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** `core/api/gemini.py` suma `traducir` (esquema cerrado: orden, pregunta, respuesta, no_entiendo); `places/finanzas/core/lenguaje.py` arma el contexto, valida la orden con los parsers y la deja esperando el *sí*; `comandos.procesar(..., traductor=)` consulta cuando la respuesta trae `entender=True`; `api.py` lo cablea con `ClienteGemini.desde_entorno()`.
+- **Por qué:** ADR-0012; el 2/11 Franco contestó como habla y el Secretario rechazó todo.
+- **Estado:** ✅ 1061 passed, 0 fallas (`tests/test_lenguaje_natural.py`). Sin desplegar.

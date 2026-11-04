@@ -103,6 +103,9 @@ class Respuesta:
     #: deshecho | rechazado | error | agendado | archivo (llegó un archivo)
     resultado: str
     transaccion_id: Optional[int] = None
+    #: El parser no lo entendió (o leyó una categoría nueva): con un traductor
+    #: (Fase E, ADR-0012), `procesar` le pide a Gemini la orden.
+    entender: bool = False
 
 
 @dataclass
@@ -450,6 +453,7 @@ def procesar(
     id_mensaje: Optional[str] = None,
     cotizador: Optional[Any] = None,
     fuentes_balances: Optional[Any] = None,
+    traductor: Optional[Any] = None,
 ) -> Respuesta:
     """Interpreta un mensaje de Franco y, si corresponde, escribe en la base.
 
@@ -460,13 +464,56 @@ def procesar(
     para los consumos en dólares de las tarjetas; llega inyectado (sin red acá).
     `fuentes_balances` trae el calendario de balances y el S&P 500
     (`core.api.balances_fuentes`), para el comando `balances`.
+    `traductor` es el cliente de Gemini (`core.api.gemini.ClienteGemini`), o
+    None: lo que el parser no entiende se le pide traducido a la gramática
+    (`lenguaje.py`, ADR-0012) y corre solo con el *sí* de Franco.
     """
     ahora = ahora or ahora_ar()
+
+    def ejecutar(orden: str) -> Respuesta:
+        # Una orden ya traducida (o confirmada) corre sin traductor: nunca en bucle.
+        return procesar(conn, orden, user_id=user_id, ahora=ahora, agenda=agenda,
+                        id_mensaje=id_mensaje, cotizador=cotizador,
+                        fuentes_balances=fuentes_balances)
+
+    r = _interpretar(conn, texto, user_id=user_id, ahora=ahora, agenda=agenda,
+                     id_mensaje=id_mensaje, cotizador=cotizador,
+                     fuentes_balances=fuentes_balances, ejecutar=ejecutar)
+    clave = normalizar(texto or "").strip(" .!¡?¿")
+    if not (r.entender and traductor is not None) or clave in SI or clave in NO:
+        return r
+    from places.finanzas.core import lenguaje  # diferido: lenguaje usa este módulo
+
+    return lenguaje.entender(conn, (texto or "").strip(), traductor, respaldo=r,
+                             ejecutar=ejecutar, user_id=user_id,
+                             wid=resolve_workspace_id(conn, user_id),
+                             hoy=ahora.astimezone(ZONA).date(), ahora=ahora)
+
+
+def _interpretar(
+    conn: sqlite3.Connection,
+    texto: str,
+    *,
+    user_id: int,
+    ahora: datetime,
+    agenda: Optional[Any],
+    id_mensaje: Optional[str],
+    cotizador: Optional[Any],
+    fuentes_balances: Optional[Any],
+    ejecutar: Any,
+) -> Respuesta:
+    """El parser de siempre. `ejecutar(orden)` corre la orden de una traducción confirmada."""
     hoy = ahora.astimezone(ZONA).date()
     limpio = (texto or "").strip()
     clave = normalizar(limpio).strip(" .!¡?¿")
 
     pendiente = _leer_pendiente(conn, ahora)
+    if pendiente and pendiente.get("tipo") == "traduccion" and (clave in SI or clave in NO):
+        _borrar_pendiente(conn)
+        if clave in NO:
+            return Respuesta("Listo, no hice nada. Escribilo de otra forma, o mirá los formatos "
+                             "con *ayuda*.", "rechazado")
+        return ejecutar(pendiente["orden"])
     if pendiente and (clave in SI or clave in NO):
         # La pregunta de un gasto suelto es la más nueva: su sí/no va primero.
         return _responder_pendiente(conn, pendiente, clave in SI, user_id, hoy, ahora)
@@ -538,14 +585,15 @@ def procesar(
     try:
         declarados = saldos.parsear(limpio, hoy)
     except EntradaInvalida as e:
-        return Respuesta(f"⚠️ {e}", "rechazado")
+        return Respuesta(f"⚠️ {e}", "rechazado", entender=True)
     if declarados:
         return _proponer_saldos(conn, declarados, user_id, wid, ahora)
 
     try:
         g = parsear_gasto(limpio, hoy)
     except EntradaInvalida as e:
-        return Respuesta(f"⚠️ {e}\n\nMandá *ayuda* para ver los formatos.", "rechazado")
+        return Respuesta(f"⚠️ {e}\n\nMandá *ayuda* para ver los formatos.", "rechazado",
+                         entender=True)
     return _cargar_gasto(conn, g, user_id, ahora, hoy)
 
 
@@ -610,7 +658,9 @@ def _cargar_gasto(conn: sqlite3.Connection, g: Gasto, user_id: int, ahora: datet
         pregunta = f"La categoría *{propuesta}* no existe. ¿La creo?"
     return Respuesta(
         f"{pregunta} ({pesos(g.monto)}{' = ' + g.cuenta if g.cuenta else ''}, "
-        f"{_fecha_corta(g.fecha, hoy)})\nRespondé *sí* o *no*.", "pendiente"
+        f"{_fecha_corta(g.fecha, hoy)})\nRespondé *sí* o *no*.", "pendiente",
+        # Una categoría nueva es la señal de que el parser leyó mal («5000 en el chino»).
+        entender=tipo == "nueva",
     )
 
 
@@ -748,7 +798,7 @@ def _comando_agenda(
             return Respuesta(ag.confirmar_tarea(ta, hoy), "agendado")
         return Respuesta(ag.formatear_semana(agenda.resumen_semana(), hoy), "consulta")
     except ag.AgendaInvalida as e:
-        return Respuesta(f"⚠️ {e}", "rechazado")
+        return Respuesta(f"⚠️ {e}", "rechazado", entender=True)
     except AgendaRechazo as e:
         return Respuesta(f"⚠️ Google no lo aceptó ({e}). No se agendó nada.", "error")
     except AgendaNoDisponible as e:
@@ -939,7 +989,8 @@ def _proponer_varios(
     if errores:
         return Respuesta(
             "⚠️ No entendí estos renglones:\n" + "\n".join(errores)
-            + "\n\nNo cargué nada. Corregilos y mandá el mensaje de nuevo.", "rechazado")
+            + "\n\nNo cargué nada. Corregilos y mandá el mensaje de nuevo.", "rechazado",
+            entender=True)
 
     existentes = all_motivos(conn, user_id=user_id)
     propuesta = {"items": [_item_de_gasto(g, existentes) for g in gastos]}

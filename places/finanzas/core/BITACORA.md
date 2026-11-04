@@ -1,6 +1,6 @@
 # places/finanzas/core/
 
-<!-- huella: 6e11cbb850cf -->
+<!-- huella: d59d7a8dc8b9 -->
 
 Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel.
 
@@ -26,6 +26,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 - la conciliación propuso algo raro: qué tipo es cada fila, por qué emparejó (o no) con un gasto, una devolución, la regla del corte, lo que sobra → `conciliacion.py` (`clasificar`, `emparejar`, `_devoluciones`, `proponer_extracto`, `aplicar`)
 - la lista de balances de la semana: quién va primero, por qué una empresa no aparece (GOOG al lado de GOOGL), cómo se lee `1 3 7` / tickers / `todas` / `ninguna`, o el aviso "puede ser para la lista de balances o para la propuesta" → `balances.py` (`elegir`, `armar`, `leer_respuesta`, `responder`) + `comandos._comando_balances`
 - el resumen del día de los balances ("📊 Balances del …") salió raro, con `s/d` o con la palabra equivocada → `balances.resumen_del_dia` / `_reaccion` (y los precios en `core/api/balances_fuentes.py`); si **no llegó**, es del reloj: `integraciones/google-apps-script/Balances.gs` (`resumenesPendientes_`)
+- un mensaje en lenguaje natural: qué le llegó a Gemini, por qué una traducción se descartó o pidió *sí* → `lenguaje.py` (`contexto`, `clasificar`, `entender`); cuándo se consulta → las respuestas con `entender=True` en `comandos.py`
 - exportar todo a Excel → `export.py`
 
 ## Qué hay acá
@@ -34,6 +35,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 
 ## Trampas
 
+- ⚠️ **Lo que traduce Gemini nunca escribe sin el *sí*** (Fase E, 3/11/2026, ADR-0012): `lenguaje.entender` guarda la orden como `pendiente` de tipo `traduccion` y `_interpretar` la corre con `ejecutar` (`procesar` **sin** traductor: nunca en bucle). Solo las consultas (`CONSULTAS`) corren directo. Una orden que el parser no entiende se descarta y Franco recibe la respuesta de siempre. **Un gasto traducido tiene que traer coma** (`5000, compras`): sin coma, `9 salidas` con una propuesta de 2 renglones se leía como un gasto de $9. Y una traducción que **arma otra propuesta** (varios gastos, saldos: `clasificar` → `propone`) con una abierta se rechaza: `lotes.proponer` tiraría la conciliación. En producción **viene apagado** (`api._traductor`, `LENGUAJE_NATURAL=1`).
 - Desde el cutover D2, **todas** las queries del dominio filtran por `workspace_id`; `user_id` quedó solo como autor/firma. Una query nueva sin ese filtro mezcla espacios.
 - `transactions.py` dispara el hook de backup: tocarlo afecta `tests/test_backup_*`.
 - ⚠️ **Un importe ilegible no es cero** (22/9/2026). `parse_currency` devuelve 0.0 por compatibilidad (no corrompe Caja), pero para importar se usa `parse_currency_estricto` (→ `None`), y el ingest anota cada ilegible en `ImportResult.advertencias` con fila y valor. Antes un `1.5OO` entraba como gasto de $0 sin rastro, y el comentario decía que el ingest avisaba — no avisaba.
@@ -70,6 +72,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 ## Estado
 
 - **Funciona:** en producción.
+- **3/11/2026 (Fase E, paso 1, sin desplegar):** `lenguaje.py` y el traductor inyectado en `procesar` (`traductor=`). Se consulta a Gemini cuando la respuesta trae `entender=True`: no se entendió un gasto, varios renglones, los saldos o un `evento:`, o el gasto quedó con una categoría nueva. El contexto lleva hoy, la gramática (`AYUDA` + correcciones), las categorías y la propuesta abierta como la ve Franco. Tests: `tests/test_lenguaje_natural.py`.
 - **3/11/2026 (arreglo, sin desplegar):** `_leer_respuesta_lote` entiende la respuesta como lista numerada, un renglón por número (`1. Compras`, `2. ok`). Tests: `tests/test_conciliacion.py` (`test_se_contesta_como_lista_numerada_renglon_por_renglon`).
 - **21/10/2026 (rendimiento, frente 4):** `grupos_efectivos` reemplaza los `iterrows` de `metrics`, `diario` y `budget`; resultados idénticos (comparados con `assert_frame_equal` exacto). `compute_kpis` −92 %, Diario −80 % (`docs/perf/FRENTE-4-QUERIES.md`).
 - **21/10/2026 (rendimiento, frente 2):** openpyxl y `metrics` se importan adentro de la función que los usa (ver Trampas). Medido en `docs/perf/FRENTE-2-CARGA-DIFERIDA.md`.

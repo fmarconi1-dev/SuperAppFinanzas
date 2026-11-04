@@ -9,6 +9,16 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 3 de noviembre de 2026 (noche) — El Secretario empieza a entender cómo hablás
+
+**Qué se hizo.** Primer paso del lenguaje natural. Cuando el Secretario no entiende un mensaje («ayer gasté 5 lucas en el chino», «la ferretería ponela en compras»), le pregunta a Gemini qué quisiste decir, en el formato de siempre. Antes de hacer nada, te lo muestra: «Entendí: ayer 5000, compras. ¿Va?». Solo con tu *sí* lo carga. También puede repreguntarte si le falta un dato, o contestarte una duda sobre la conciliación que tenés abierta.
+
+**Para qué te sirve.** No tenés que acordarte del formato exacto. La IA nunca carga nada sola: si entendió mal, contestás *no* y no pasa nada.
+
+**Qué sigue.** Aunque lo publiques, viene apagado. Primero lo pruebo con unas 50 frases tuyas contra Gemini de verdad (el paso 2); recién ahí lo prendemos y lo probás desde el celular. Tampoco te va a tirar una conciliación abierta: si lo que entendió armaría otra propuesta, te avisa y no hace nada.
+
+---
+
 ## 3 de noviembre de 2026 (más tarde) — Los pendientes chicos, cerrados
 
 **Qué se hizo.**

@@ -4,7 +4,9 @@
 
 Una fase a la vez: el alcance es "todo", pero sale en pasos, cada uno desplegable y probado por Franco antes del siguiente. El orden va por dolor: primero lo que le pasó el 2/11.
 
-## Paso 1 — El traductor, con tests y sin red
+## Paso 1 — El traductor, con tests y sin red ✅ (3/11/2026, sin desplegar)
+
+> Hecho como dice abajo, con dos ajustes: el disparador de "propuesta abierta" no es aparte (un mensaje que no contesta la propuesta cae en el parser, que falla y consulta con la propuesta en el contexto), y un gasto traducido tiene que traer coma (`5000, compras`), para que `9 salidas` nunca sea un gasto de $9. Varios renglones con categoría nueva no consultan: la propuesta ya los marca y espera el `ok`. Una traducción que armaría otra propuesta (varios gastos, saldos) con una abierta se rechaza: no tira la conciliación. **Viene apagado:** `api._traductor` lo prende solo con `LENGUAJE_NATURAL=1`; el paso 2 termina prendiéndolo en Fly.
 
 - `core/api/gemini.py`: `ClienteGemini.traducir(mensaje, contexto) -> Traduccion`, con esquema JSON cerrado:
   `{"tipo": "orden" | "pregunta" | "respuesta" | "no_entiendo", "orden": str, "explicacion": str}`.

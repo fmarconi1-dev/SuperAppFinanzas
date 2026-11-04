@@ -27,7 +27,15 @@ def _procesar(conn, texto: str, user_id: int, id_mensaje: Optional[str] = None):
     # los comandos de agenda lo dicen y todo lo demás anda igual.
     return procesar(conn, texto, user_id=user_id, agenda=ClienteAgenda.desde_entorno(),
                     id_mensaje=id_mensaje, cotizador=oficial_vendedor,
-                    fuentes_balances=balances_fuentes)
+                    fuentes_balances=balances_fuentes, traductor=_traductor())
+
+
+def _traductor() -> Optional[ClienteGemini]:
+    # Lenguaje natural (ADR-0012): apagado hasta probarlo con frases reales
+    # (paso 2 del plan). Se prende con LENGUAJE_NATURAL=1 y necesita GEMINI_API_KEY.
+    if os.environ.get("LENGUAJE_NATURAL", "").strip() != "1":
+        return None
+    return ClienteGemini.desde_entorno()
 
 
 def _procesar_archivo(conn, archivo, user_id: int, id_mensaje: Optional[str] = None):

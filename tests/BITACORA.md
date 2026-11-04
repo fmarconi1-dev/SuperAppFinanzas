@@ -1,6 +1,6 @@
 # tests/
 
-<!-- huella: c0222e0cd2c0 -->
+<!-- huella: 567cd7e34adc -->
 
 Resumen: La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde.
 
