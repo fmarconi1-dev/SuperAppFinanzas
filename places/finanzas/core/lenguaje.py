@@ -19,6 +19,7 @@ El cliente llega inyectado (`traductor`): acá no hay red.
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from datetime import date, datetime
 from typing import Any, Callable, Optional
@@ -53,6 +54,31 @@ _CORRECCIONES = (
     "N efectivo / N tarjeta (para lo que sobra) · ok (acepta) · cancelar (descarta)."
 )
 
+#: Dónde pone Franco lo que Gemini no puede adivinar (Franco, 4/11/2026, después
+#: de la prueba en Fly: la nafta iba a Transportes y la farmacia a Otros ingresos).
+PISTAS = (
+    "Auto: nafta, peaje, seguro del auto, service, estacionamiento.",
+    "Compras: súper, chino, farmacia, ferretería.",
+    "Impuestos: comisiones y gastos del banco, IVA, percepciones.",
+)
+
+#: Palabras con las que Franco acepta una propuesta en el mismo mensaje. Sin una
+#: de estas, un "ok" que agrega Gemini se saca: con el *sí* a la traducción se
+#: aplicaría la conciliación entera (prueba en Fly del 4/11: «el del mecánico
+#: ponelo en auto» → «4 auto, ok»). "va" no está: «la ferretería va en compras».
+_ACEPTA = {"dale", "ok", "okay", "listo", "confirmo", "acepto", "aceptalo", "aplicalo",
+           "aplica", "cargalo", "cargalos", "correcto", "perfecto"}
+
+
+def _sin_ok_no_pedido(orden: str, texto: str, cantidad: int) -> Optional[str]:
+    """La orden sin el `ok` final si Franco no aceptó en su mensaje (None si no queda nada)."""
+    r = _leer_respuesta_lote(orden, cantidad) if cantidad else None
+    if r is None or not r.aceptar or set(re.findall(r"[a-z]+", normalizar(texto))) & _ACEPTA:
+        return orden
+    if not r.correcciones:
+        return None
+    return ", ".join(f"{n} {que}" for n, que in r.correcciones)
+
 
 def contexto(conn: sqlite3.Connection, *, user_id: int, wid: int, hoy: date,
              ahora: datetime) -> str:
@@ -62,6 +88,7 @@ def contexto(conn: sqlite3.Connection, *, user_id: int, wid: int, hoy: date,
         f"Hoy: {_DIAS[hoy.weekday()]} {hoy:%d/%m/%Y} (Buenos Aires).",
         "GRAMÁTICA DEL BOT\n" + AYUDA + "\n" + _CORRECCIONES,
         "CATEGORÍAS EXISTENTES\n" + ", ".join(sorted(set(all_motivos(conn, user_id=user_id)))),
+        "DÓNDE VA CADA COSA (así categoriza Franco)\n" + "\n".join(PISTAS),
     ]
     lote = lotes.vigente(conn, workspace_id=wid, ahora=ahora)
     if lote:
@@ -176,7 +203,11 @@ def entender(
         return respaldo
 
     lote = lotes.vigente(conn, workspace_id=wid, ahora=ahora)
-    clase = clasificar(t.orden, hoy=hoy, cantidad=_cantidad(lote.propuesta) if lote else 0)
+    cantidad = _cantidad(lote.propuesta) if lote else 0
+    orden = _sin_ok_no_pedido(t.orden, texto, cantidad)
+    if orden is None:
+        return respaldo
+    clase = clasificar(orden, hoy=hoy, cantidad=cantidad)
     if clase is None:
         return respaldo
     if clase == "propone" and lote:
@@ -184,17 +215,17 @@ def entender(
         # conciliación que Franco está revisando). Eso no se hace por una traducción.
         if respaldo.resultado == "pendiente":
             _borrar_pendiente(conn)
-        return Respuesta(f"🤖 Entendí:\n{t.orden}\n\nPero eso reemplazaría la propuesta que "
+        return Respuesta(f"🤖 Entendí:\n{orden}\n\nPero eso reemplazaría la propuesta que "
                          "tenés abierta. Terminala (*ok*) o descartala (*cancelar*) y "
                          "mandalo de nuevo.", "rechazado")
     if clase == "consulta":
         if respaldo.resultado == "pendiente":
             _borrar_pendiente(conn)
-        r = ejecutar(t.orden)
-        return Respuesta(f"🤖 Entendí: *{t.orden}*\n\n{r.texto}", r.resultado, r.transaccion_id)
+        r = ejecutar(orden)
+        return Respuesta(f"🤖 Entendí: *{orden}*\n\n{r.texto}", r.resultado, r.transaccion_id)
 
     guardar_estado(conn, "pendiente", json.dumps({
-        "tipo": "traduccion", "orden": t.orden, "mensaje": texto,
+        "tipo": "traduccion", "orden": orden, "mensaje": texto,
         "creado_en": ahora.isoformat(),
     }), ahora)
-    return Respuesta(f"🤖 Entendí:\n{t.orden}\n\n¿Va? Respondé *sí* o *no*.", "pendiente")
+    return Respuesta(f"🤖 Entendí:\n{orden}\n\n¿Va? Respondé *sí* o *no*.", "pendiente")

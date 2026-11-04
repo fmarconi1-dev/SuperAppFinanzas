@@ -1,6 +1,6 @@
 # scripts/
 
-<!-- huella: 2a44fd2205e2 -->
+<!-- huella: a2667f2bf878 -->
 
 Resumen: Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa.
 

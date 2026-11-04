@@ -103,13 +103,13 @@ CASOS: list[Caso] = [
     Caso("expensas de octubre 185 mil", gastos=[(0, 185000, {"Expensas"}, False)]),
     Caso("taxi 7800", gastos=[(0, 7800, {"Transportes"}, False)]),
     Caso("me cobraron 2 lucas de comisión en el banco",
-         gastos=[(0, 2000, {"Impuestos", "Servicios"}, False)]),
+         gastos=[(0, 2000, {"Impuestos"}, False)]),
     Caso("almuerzo con bobby 32.000", gastos=[(0, 32000, {"Salidas"}, False)]),
     Caso("pagué el seguro del auto 60 mil el lunes",
          gastos=[("lunes", 60000, {"Auto"}, False)]),
     Caso("compré dólares por 1.200.000", gastos=[(0, 1200000, {"Compra Divisa"}, False)]),
     Caso("nafta 20k y peaje 1500",
-         gastos=[(0, 20000, {"Auto"}, False), (0, 1500, {"Auto", "Transportes"}, False)]),
+         gastos=[(0, 20000, {"Auto"}, False), (0, 1500, {"Auto"}, False)]),
     Caso("ayer: super 8500, farmacia 4200",
          gastos=[(1, 8500, {"Compras"}, False), (1, 4200, {"Compras"}, False)]),
     Caso("cobré 1.350.000 de SBT en efectivo", gastos=[(0, 1350000, {"Haberes SBT"}, True)]),
@@ -265,7 +265,8 @@ def evaluar(caso: Caso, traduccion: Any, respuesta: Any, *, hoy: date, cantidad:
                     return "BIEN", ""
             except EntradaInvalida:
                 pass
-            return "MAL", f"esperaba «{caso.orden_exacta}»"
+            # Si el bot no la entiende, la descarta: no cargaría nada.
+            return ("MAL" if escribe else "DUDOSA"), f"esperaba «{caso.orden_exacta}»"
         return ("BIEN", "") if normalizar(orden) == normalizar(caso.orden_exacta) else (
             "MAL" if escribe else "DUDOSA", f"esperaba «{caso.orden_exacta}»")
 
@@ -321,6 +322,15 @@ def evaluar(caso: Caso, traduccion: Any, respuesta: Any, *, hoy: date, cantidad:
 
 # ---------------------------------------------------------------- correr
 
+def _orden_esperando(conn) -> Optional[str]:
+    """La orden traducida que quedó esperando el *sí* (None si no quedó ninguna)."""
+    import json
+
+    fila = conn.execute("SELECT valor FROM whatsapp_estado WHERE clave = 'pendiente'").fetchone()
+    p = json.loads(fila[0]) if fila else {}
+    return p.get("orden") if p.get("tipo") == "traduccion" else None
+
+
 class Grabador:
     """Envuelve al traductor real para guardar qué contestó o en qué falló (y respetar
     el límite). Sin el error, una frase en la que Gemini falló parecía "no consultó"."""
@@ -344,6 +354,7 @@ class Grabador:
 def correr(traductor: Any, casos: list[Caso] = CASOS, *, pausa: float = 4.5,
            salida: Callable[[str], None] = print) -> list[Resultado]:
     import core.db as core_db
+    from core.api.gemini import Traduccion
     from places.finanzas.core.comandos import procesar
     from places.finanzas.core.transactions import all_motivos
 
@@ -376,8 +387,14 @@ def correr(traductor: Any, casos: list[Caso] = CASOS, *, pausa: float = 4.5,
                 if grabador.error:
                     nota, detalle = "FALLA", f"Gemini: {grabador.error}"
                 else:
-                    nota, detalle = evaluar(caso, t, r, hoy=hoy, cantidad=cantidad,
+                    # Se califica lo que Franco confirmaría con el *sí* (la orden que
+                    # quedó esperando), no lo que devolvió Gemini: el código la corrige.
+                    final = _orden_esperando(conn)
+                    t_final = Traduccion("orden", orden=final) if final else t
+                    nota, detalle = evaluar(caso, t_final, r, hoy=hoy, cantidad=cantidad,
                                             numeros=numeros, motivos=motivos)
+                    if final and t and final != t.orden:
+                        detalle = (detalle + "; " if detalle else "") + f"el bot muestra «{final}»"
             except Exception as e:  # noqa: BLE001 — una falla no corta la prueba: se muestra
                 t, r = None, None
                 nota, detalle = "FALLA", f"{type(e).__name__}: {e}"

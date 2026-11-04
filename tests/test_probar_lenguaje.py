@@ -76,13 +76,17 @@ def test_correcciones_de_la_conciliacion():
                                salida=lambda s: None)
         notas.append(resultados[0].nota)
     assert notas[0] == "BIEN"
-    assert notas[1] == "MAL"        # un ok que Franco no dijo
+    assert notas[1] == "BIEN"       # el ok que Franco no dijo lo saca el código
     assert notas[2] == "MAL"        # otra categoría
     assert notas[3] in ("MAL", "BIEN") and notas[3] == (
         "BIEN" if _numero_del_mecanico() == 1 else "MAL")
 
 
 def _numero_del_mecanico():
+    return _numero_de("MECANICO INVENTADO")
+
+
+def _numero_de(comercio):
     import tempfile
     from datetime import datetime
 
@@ -90,7 +94,7 @@ def _numero_del_mecanico():
         ruta = pl._base(Path(tmp), "extracto", datetime.now(pl._zona()))
         conn = core_db.connect(ruta)
         try:
-            return pl._numeros_por_comercio(conn)["MECANICO INVENTADO"]
+            return pl._numeros_por_comercio(conn)[comercio]
         finally:
             conn.close()
 
@@ -118,6 +122,18 @@ def test_saldos_se_comparan_por_lo_que_valen():
                    orden_exacta="fima 3700000 efectivo 60000")
     assert _notas([caso], {caso.mensaje: O("fima 3.700.000 efectivo 60.000")}) == ["BIEN"]
     assert _notas([caso], {caso.mensaje: O("fima 370000 efectivo 60000")}) == ["MAL"]
+    # Fly, 4/11: con "caja" el bot no la entiende y la descarta: no cargaría nada.
+    assert _notas([caso], {caso.mensaje: O("fima 3700000 efectivo 60000 caja 207287,49")}) == [
+        "DUDOSA"]
+
+
+def test_se_califica_lo_que_el_bot_muestra_sin_el_ok_agregado():
+    caso = pl.Caso("la ferretería es compras", "extracto",
+                   correcciones={"FERRETERIA INVENTADA": {"Compras"}})
+    n = _numero_de("FERRETERIA INVENTADA")
+    resultados = pl.correr(Falso({caso.mensaje: O(f"{n} compras, ok")}), [caso], pausa=0,
+                           salida=lambda s: None)
+    assert resultados[0].nota == "BIEN" and f"el bot muestra «{n} compras»" in resultados[0].detalle
 
 
 def test_si_gemini_falla_se_ve_y_no_corta_la_prueba():

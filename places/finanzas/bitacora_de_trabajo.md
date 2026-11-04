@@ -122,3 +122,8 @@
 - **Autor:** Claude (Opus 5.5), con Franco.
 - **Qué:** `scripts/probar_lenguaje.py` con 46 frases y su evaluador (BIEN / DUDOSA / MAL), con tests. *va* es un *sí* (el 2/11 Franco contestó *va* y se rechazó). Límites de Gemini verificados en AI Studio.
 - **Estado:** 🔵 falta correrlo en Fly (la clave vive ahí) y revisar los MAL antes de prender `LENGUAJE_NATURAL=1`.
+
+## 2026-11-04 (más tarde) — Fase E, paso 2: primera corrida real y arreglos
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** la corrida en Fly dio 34 BIEN · 6 DUDOSA · 5 MAL · 1 FALLA. Arreglos: el `ok` que agrega Gemini sin que Franco acepte se saca en código; el script califica la orden que el bot muestra (no la cruda de Gemini) y no marca MAL lo que el bot descarta; pistas de categorías de Franco en el contexto; instrucciones de saldos (sin la caja).
+- **Estado:** 🔵 falta la segunda corrida en Fly (con redeploy). Antes: la primera clave era de un proyecto con facturación prepaga agotada (402).

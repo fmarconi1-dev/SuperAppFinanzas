@@ -175,6 +175,30 @@ def test_un_ok_traducido_no_aplica_la_conciliacion_sin_el_si(db):
     assert sorted(x["motivo"] for x in _txns(db)) == ["Compras", "Salidas"]
 
 
+def test_un_ok_que_franco_no_dijo_se_saca(db):
+    """Prueba en Fly del 4/11: «el del mecánico ponelo en auto» → «4 auto, ok». Con el
+    sí se aplicaba la conciliación entera; corregir un renglón no es aceptar."""
+    _con_extracto(db)
+    r = _p(db, "la ferretería es compras", _orden("1 compras, ok"))
+    assert "Entendí:\n1 compras\n" in r.texto
+    r = _p(db, "sí")
+    assert r.resultado == "pendiente" and _txns(db) == []     # corrigió y sigue abierta
+    assert "FERRETERIA INVENTADA $41.200 → Compras" in r.texto
+
+
+def test_un_ok_solo_sin_aceptar_no_es_nada(db):
+    _con_extracto(db)
+    r = _p(db, "mirá la ferretería", _orden("ok"))
+    assert "Entendí" not in r.texto
+    assert _p(db, "sí").texto.startswith("Me falta la categoría")      # el sí es para la propuesta
+
+
+def test_gemini_recibe_las_pistas_de_franco(db):
+    t = _orden("20000, auto")
+    _p(db, "nafta 20k", t)
+    assert "Auto: nafta, peaje" in t.pedidos[0][1] and "farmacia" in t.pedidos[0][1]
+
+
 def test_una_duda_sobre_la_propuesta_se_contesta(db):
     _con_extracto(db)
     t = TraductorFalso(Traduccion("respuesta", texto="El 1 es la ferretería del 20/10."))
