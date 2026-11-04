@@ -132,3 +132,8 @@
 - **Autor:** Claude (Opus 5.5), con Franco.
 - **Qué:** 44 BIEN · 1 DUDOSA · 1 MAL · 0 FALLA. El MAL (correcciones a renglones no nombrados) se arregló con `lenguaje._solo_lo_nombrado`; el script ahora califica como "descartada" la orden que el bot no deja esperando.
 - **Estado:** 🔵 falta la tercera corrida; con cero MAL se prende `LENGUAJE_NATURAL=1`.
+
+## 2026-11-04 (noche, más tarde) — Fase E, paso 2: tercera corrida real
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** 43 BIEN · 2 DUDOSA · 1 MAL · 0 FALLA. Las protecciones de antes funcionaron; el MAL nuevo (una compra de dólares traducida como ingreso) se frena con `lenguaje._signo_cruzado`.
+- **Estado:** 🔵 falta la cuarta corrida; con cero MAL se prende `LENGUAJE_NATURAL=1`.

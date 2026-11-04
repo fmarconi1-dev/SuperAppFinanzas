@@ -170,6 +170,37 @@ def _solo_lo_nombrado(orden: str, texto: str, texto_propuesta: str, cantidad: in
     return ", ".join([f"{n} {que}" for n, que in quedan] + (["ok"] if r.aceptar else []))
 
 
+def _signo_cruzado(conn: sqlite3.Connection, orden: str, *, hoy: date, wid: int,
+                   motivos: list[str]) -> bool:
+    """¿Algún gasto traducido tiene el signo al revés de su categoría?
+
+    Tercera corrida en Fly (4/11/2026): «compré dólares por 1.200.000» →
+    «+1200000, Compra Divisa». Un ingreso en una categoría que no es de ingresos
+    (o un gasto en una que sí) se descarta: escrito a mano puede ser una
+    devolución, pero traducido es un error de Gemini. "Inversiones" va en los dos
+    sentidos (un ingreso es un rescate).
+    """
+    from places.finanzas.core.categorizer import MOTIVOS_DUAL_DESAHORRO
+    from places.finanzas.core.comandos import resolver_categoria
+
+    renglones = [r for r in orden.splitlines() if r.strip()]
+    if not renglones or any("," not in r for r in renglones):
+        return False
+    for renglon in renglones:
+        try:
+            g = parsear_gasto(renglon, hoy)
+        except EntradaInvalida:
+            return False
+        tipo, nombre = resolver_categoria(g.categoria, motivos)
+        if tipo == "nueva" or nombre in MOTIVOS_DUAL_DESAHORRO:
+            continue
+        fila = conn.execute("SELECT grupo FROM categorias WHERE motivo = ? AND workspace_id = ?",
+                            (nombre, wid)).fetchone()
+        if fila and fila["grupo"] and g.es_ingreso != (fila["grupo"] == "Ingreso"):
+            return True
+    return False
+
+
 def contexto(conn: sqlite3.Connection, *, user_id: int, wid: int, hoy: date,
              ahora: datetime) -> str:
     """Lo que Gemini necesita para traducir: hoy, la gramática, las categorías y la
@@ -301,7 +332,8 @@ def entender(
     if orden is None:
         return respaldo
     clase = clasificar(orden, hoy=hoy, cantidad=cantidad)
-    if clase is None:
+    if clase is None or _signo_cruzado(conn, orden, hoy=hoy, wid=wid,
+                                       motivos=all_motivos(conn, user_id=user_id)):
         return respaldo
     if clase == "propone" and lote:
         # Varios gastos o saldos arman una propuesta nueva y tirarían la abierta (la

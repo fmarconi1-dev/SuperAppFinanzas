@@ -23,6 +23,8 @@ Una fase a la vez: el alcance es "todo", pero sale en pasos, cada uno desplegabl
 
 > **Segunda corrida en Fly (4/11/2026):** 44 BIEN · 1 DUDOSA · 1 MAL · 0 FALLA. El MAL: «el profe es salidas, el mecánico auto y el resto como dijiste, dale» → Gemini les inventó categoría a los renglones que Franco no nombró. Arreglado en código: `lenguaje._solo_lo_nombrado` deja solo las correcciones a renglones que el mensaje nombra (por número, por una palabra del comercio o la persona, por el monto o por la fecha). La DUDOSA («nafta 20k» → repreguntó el monto) no carga nada mal. Falta la tercera corrida para prenderlo.
 
+> **Tercera corrida en Fly (4/11/2026):** 43 BIEN · 2 DUDOSA · 1 MAL · 0 FALLA. La protección de los renglones no nombrados funcionó (Gemini volvió a inventar categorías y el bot mostró solo «3 Salidas, 4 Auto, ok»). El MAL nuevo: «compré dólares por 1.200.000» → «+1200000, Compra Divisa» (en la corrida anterior había salido bien: Gemini no contesta siempre igual). Arreglado en código: `lenguaje._signo_cruzado` descarta un ingreso en una categoría que no es de ingresos o un gasto en una que sí (salvo Inversiones). Falta la cuarta corrida.
+
 - La `GEMINI_API_KEY` ya está en Fly (Franco, 3/11/2026; la misma de las fotos).
 - Verificar en la página oficial los límites del plan gratis de `gemini-3.5-flash-lite` para texto (anotar la fecha en `gemini.py`).
 - Un set de ~50 frases reales de Franco (las del 2/11, jerga: "lucas", "k", "mil"; listas; correcciones) en `scripts/probar_lenguaje.py`, que corre contra Gemini **a mano**, no en la suite. Meta antes de desplegar: ninguna traducción que cargue algo distinto de lo que Franco quiso (las dudosas tienen que salir como pregunta).

@@ -97,6 +97,22 @@ def test_si_gemini_no_ayuda_con_la_categoria_queda_la_pregunta_de_siempre(db):
     assert [x["motivo"] for x in _txns(db)] == ["Chino"]
 
 
+@pytest.mark.parametrize("mensaje,orden,se_ofrece", [
+    # Tercera corrida en Fly, 4/11: Gemini puso la compra de dólares como ingreso.
+    ("compré dólares por 1.200.000", "+1200000, compra divisa", False),
+    ("compré dólares por 1.200.000", "1200000, compra divisa", True),
+    ("cobré 300 lucas de sbt", "300000, haberes sbt", False),       # un sueldo no es gasto
+    ("cobré 300 lucas de sbt", "+300000, haberes sbt", True),
+    ("rescaté 50 lucas de inversiones", "+50000, inversiones", True),  # va en los dos sentidos
+    ("gasté 5 lucas en algo nuevo", "+5000, algo nuevo", True),    # categoría nueva: se pregunta
+])
+def test_el_signo_tiene_que_coincidir_con_la_categoria(db, mensaje, orden, se_ofrece):
+    r = _p(db, mensaje, _orden(orden))
+    assert ("Entendí" in r.texto) == se_ofrece
+    if not se_ofrece:
+        assert _p(db, "sí").texto == "No tengo nada pendiente de confirmar."
+
+
 def test_varios_renglones_traducidos_pasan_por_la_propuesta(db):
     _p(db, "gasté 5 lucas en el chino y 20k de nafta", _orden("5000, compras\n20000, auto"))
     r = _p(db, "sí")

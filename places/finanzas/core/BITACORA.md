@@ -1,6 +1,6 @@
 # places/finanzas/core/
 
-<!-- huella: e9032c0cdfb9 -->
+<!-- huella: a40a7f62157d -->
 
 Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel.
 
@@ -35,6 +35,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 
 ## Trampas
 
+- ⚠️ **Gemini no contesta siempre igual** (temperatura 0 y todo): la misma frase salió bien en una corrida y mal en la siguiente (la compra de dólares como ingreso). Por eso cada error que aparece en `scripts/probar_lenguaje.py` se frena con **código** en `lenguaje.py` (`_sin_ok_no_pedido`, `_solo_lo_nombrado`, `_signo_cruzado`), no con más instrucciones. El signo cruzado con la categoría se descarta en una traducción; escrito a mano sigue valiendo (puede ser una devolución).
 - ⚠️ **Gemini corrige renglones que Franco no nombró** (segunda corrida en Fly, 4/11/2026: «…y el resto como dijiste, dale» → categorías inventadas para los renglones sin categoría). `lenguaje._nombrados` decide qué renglones nombra el mensaje: el número, una palabra **propia** del renglón (que no está en otro; en el tipo de movimiento se ignoran las palabras de las categorías: «compras» no nombra a «Compra Debito», ni «auto» a «Autoservicio»; en el comercio o la persona sí cuentan), un monto de $100 o más a menos del 3%, o la fecha. Lo demás se descarta.
 - ⚠️ **Gemini agrega `ok` aunque Franco no acepte** (prueba en Fly, 4/11/2026: «el del mecánico ponelo en auto» → «4 auto, ok»). Con el *sí* a la traducción eso aplicaba la conciliación entera. `lenguaje._sin_ok_no_pedido` lo saca salvo que el mensaje traiga una palabra de `_ACEPTA` (*va* no está: «va en compras»). Pedírselo a Gemini en las instrucciones no alcanzó.
 - ⚠️ **Lo que traduce Gemini nunca escribe sin el *sí*** (Fase E, 3/11/2026, ADR-0012): `lenguaje.entender` guarda la orden como `pendiente` de tipo `traduccion` y `_interpretar` la corre con `ejecutar` (`procesar` **sin** traductor: nunca en bucle). Solo las consultas (`CONSULTAS`) corren directo. Una orden que el parser no entiende se descarta y Franco recibe la respuesta de siempre. **Un gasto traducido tiene que traer coma** (`5000, compras`): sin coma, `9 salidas` con una propuesta de 2 renglones se leía como un gasto de $9. Y una traducción que **arma otra propuesta** (varios gastos, saldos: `clasificar` → `propone`) con una abierta se rechaza: `lotes.proponer` tiraría la conciliación. En producción **viene apagado** (`api._traductor`, `LENGUAJE_NATURAL=1`).
