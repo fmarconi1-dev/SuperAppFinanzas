@@ -127,3 +127,8 @@
 - **Autor:** Claude (Opus 5.5), con Franco.
 - **Qué:** la corrida en Fly dio 34 BIEN · 6 DUDOSA · 5 MAL · 1 FALLA. Arreglos: el `ok` que agrega Gemini sin que Franco acepte se saca en código; el script califica la orden que el bot muestra (no la cruda de Gemini) y no marca MAL lo que el bot descarta; pistas de categorías de Franco en el contexto; instrucciones de saldos (sin la caja).
 - **Estado:** 🔵 falta la segunda corrida en Fly (con redeploy). Antes: la primera clave era de un proyecto con facturación prepaga agotada (402).
+
+## 2026-11-04 (noche) — Fase E, paso 2: segunda corrida real
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** 44 BIEN · 1 DUDOSA · 1 MAL · 0 FALLA. El MAL (correcciones a renglones no nombrados) se arregló con `lenguaje._solo_lo_nombrado`; el script ahora califica como "descartada" la orden que el bot no deja esperando.
+- **Estado:** 🔵 falta la tercera corrida; con cero MAL se prende `LENGUAJE_NATURAL=1`.

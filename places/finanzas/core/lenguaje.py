@@ -80,6 +80,96 @@ def _sin_ok_no_pedido(orden: str, texto: str, cantidad: int) -> Optional[str]:
     return ", ".join(f"{n} {que}" for n, que in r.correcciones)
 
 
+# -- ¿Qué renglones nombró Franco? (segunda corrida en Fly, 4/11/2026: «el profe es
+# salidas, el mecánico auto y el resto como dijiste, dale» → Gemini les inventó
+# categoría a los renglones que no nombró). Una corrección solo vale para un renglón
+# que el mensaje nombra: por número, por una palabra que solo está en ese renglón
+# (el comercio o la persona), por el monto o por la fecha.
+
+_RE_RENGLON = re.compile(r"^\s*(\d{1,3})\.\s+(.*)$")
+_RE_MONTO_RENGLON = re.compile(r"\$([\d.]+(?:,\d+)?)")
+_RE_MONTO_MENSAJE = re.compile(
+    r"(\d+(?:[.,]\d+)*)\s*(mil|k|lucas?|palos?|millon(?:es)?)?(?![\w/])")
+_MULTIPLICADOR = {"mil": 1_000, "k": 1_000, "luca": 1_000, "lucas": 1_000, "palo": 1_000_000,
+                  "palos": 1_000_000, "millon": 1_000_000, "millones": 1_000_000}
+
+
+def _monto(crudo: str, unidad: Optional[str] = None) -> Optional[float]:
+    """"81.070" → 81070 · "2,4" + "palos" → 2.400.000 · "23.800,50" → 23800,5."""
+    if re.fullmatch(r"\d{1,3}(?:\.\d{3})+(?:,\d+)?", crudo) or "," in crudo:
+        crudo = crudo.replace(".", "").replace(",", ".")
+    try:
+        valor = float(crudo)
+    except ValueError:
+        return None
+    return valor * _MULTIPLICADOR.get(unidad or "", 1)
+
+
+def _renglones(texto_propuesta: str) -> dict[int, str]:
+    """{número: lo que dice el renglón, sin la categoría propuesta (lo de después de →)}."""
+    salida = {}
+    for linea in texto_propuesta.splitlines():
+        if m := _RE_RENGLON.match(linea):
+            salida[int(m.group(1))] = m.group(2).split("→")[0]
+    return salida
+
+
+def _nombrados(texto: str, texto_propuesta: str, categorias: list[str]) -> set[int]:
+    """Los renglones de la propuesta que nombra el mensaje de Franco."""
+    renglones = _renglones(texto_propuesta)
+    mensaje = normalizar(texto)
+    palabras_msj = {w for w in re.findall(r"[a-z]+", mensaje) if len(w) >= 4}
+    numeros_msj = {int(n) for n in re.findall(r"(?<![\d.,/])(\d{1,3})(?![\d.,/])", mensaje)}
+    # Un monto de menos de $100 es un número de renglón ("el 4"), no un monto.
+    montos_msj = [v for c, u in _RE_MONTO_MENSAJE.findall(mensaje)
+                  if (v := _monto(c, u)) and v >= 100]
+    # En el tipo de movimiento (lo de antes de "·"), las palabras de las categorías no
+    # distinguen renglones: "compras" no nombra al de "Compra Debito", ni "auto" al de
+    # "Autoservicio". En el comercio o la persona sí ("FUNDACION …").
+    de_categorias = {w for c in categorias for w in re.findall(r"[a-z]+", normalizar(c))}
+
+    def del_tipo(w: str) -> bool:
+        return not any(c.startswith(w) or w.startswith(c) for c in de_categorias if len(c) >= 4)
+
+    def palabras_de(linea: str) -> set[str]:
+        tipo, _, comercio = normalizar(linea).partition("·")
+        return ({w for w in re.findall(r"[a-z]+", tipo) if len(w) >= 4 and del_tipo(w)}
+                | {w for w in re.findall(r"[a-z]+", comercio) if len(w) >= 4})
+
+    palabras = {n: palabras_de(t) for n, t in renglones.items()}
+    # Solo las palabras que distinguen un renglón: "transferencia" está en varios.
+    cuantas: dict[str, int] = {}
+    for ws in palabras.values():
+        for w in ws:
+            cuantas[w] = cuantas.get(w, 0) + 1
+    nombrados = set()
+    for n, linea in renglones.items():
+        propias = {w for w in palabras[n] if cuantas[w] == 1}
+        por_palabra = any(p == m or (len(m) >= 5 and (p.startswith(m) or m.startswith(p)))
+                          for p in propias for m in palabras_msj)
+        montos = [v for c in _RE_MONTO_RENGLON.findall(linea) if (v := _monto(c))]
+        por_monto = any(abs(a - b) <= a * 0.03 for a in montos for b in montos_msj)
+        por_fecha = any(f in mensaje for f in re.findall(r"\b\d{2}/\d{2}\b", linea))
+        if n in numeros_msj or por_palabra or por_monto or por_fecha:
+            nombrados.add(n)
+    return nombrados
+
+
+def _solo_lo_nombrado(orden: str, texto: str, texto_propuesta: str, cantidad: int,
+                      categorias: list[str]) -> Optional[str]:
+    """La orden sin las correcciones a renglones que Franco no nombró (None si no queda nada)."""
+    r = _leer_respuesta_lote(orden, cantidad) if cantidad else None
+    if r is None or not r.correcciones:
+        return orden
+    nombrados = _nombrados(texto, texto_propuesta, categorias)
+    quedan = [(n, que) for n, que in r.correcciones if n in nombrados]
+    if len(quedan) == len(r.correcciones):
+        return orden
+    if not quedan and not r.aceptar:
+        return None
+    return ", ".join([f"{n} {que}" for n, que in quedan] + (["ok"] if r.aceptar else []))
+
+
 def contexto(conn: sqlite3.Connection, *, user_id: int, wid: int, hoy: date,
              ahora: datetime) -> str:
     """Lo que Gemini necesita para traducir: hoy, la gramática, las categorías y la
@@ -205,6 +295,9 @@ def entender(
     lote = lotes.vigente(conn, workspace_id=wid, ahora=ahora)
     cantidad = _cantidad(lote.propuesta) if lote else 0
     orden = _sin_ok_no_pedido(t.orden, texto, cantidad)
+    if orden is not None and lote:
+        orden = _solo_lo_nombrado(orden, texto, _texto_de_propuesta(lote.propuesta, hoy),
+                                  cantidad, all_motivos(conn, user_id=user_id))
     if orden is None:
         return respaldo
     clase = clasificar(orden, hoy=hoy, cantidad=cantidad)

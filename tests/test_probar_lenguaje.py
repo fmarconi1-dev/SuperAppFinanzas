@@ -78,8 +78,8 @@ def test_correcciones_de_la_conciliacion():
     assert notas[0] == "BIEN"
     assert notas[1] == "BIEN"       # el ok que Franco no dijo lo saca el código
     assert notas[2] == "MAL"        # otra categoría
-    assert notas[3] in ("MAL", "BIEN") and notas[3] == (
-        "BIEN" if _numero_del_mecanico() == 1 else "MAL")
+    # Un renglón que el mensaje no nombra: el bot descarta la orden (no carga nada).
+    assert notas[3] == ("BIEN" if _numero_del_mecanico() == 1 else "DUDOSA")
 
 
 def _numero_del_mecanico():

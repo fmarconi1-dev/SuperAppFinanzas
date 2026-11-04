@@ -391,6 +391,11 @@ def correr(traductor: Any, casos: list[Caso] = CASOS, *, pausa: float = 4.5,
                     # quedó esperando), no lo que devolvió Gemini: el código la corrige.
                     final = _orden_esperando(conn)
                     t_final = Traduccion("orden", orden=final) if final else t
+                    # Una orden que no quedó esperando ni corrió como consulta, el bot
+                    # la descartó: no cargaría nada.
+                    if not final and t and t.tipo == "orden" and not (
+                            r and r.texto.startswith("🤖 Entendí: *")):
+                        t_final = Traduccion("no_entiendo", texto="el bot la descartó")
                     nota, detalle = evaluar(caso, t_final, r, hoy=hoy, cantidad=cantidad,
                                             numeros=numeros, motivos=motivos)
                     if final and t and final != t.orden:

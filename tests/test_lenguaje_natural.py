@@ -193,6 +193,52 @@ def test_un_ok_solo_sin_aceptar_no_es_nada(db):
     assert _p(db, "sí").texto.startswith("Me falta la categoría")      # el sí es para la propuesta
 
 
+def test_no_se_corrigen_renglones_que_franco_no_nombro(db):
+    """Segunda corrida en Fly, 4/11: «el profe es salidas, el mecánico auto y el resto
+    como dijiste, dale» → Gemini les inventó categoría a los renglones que no nombró."""
+    _con_extracto(db)
+    r = _p(db, "la ferretería es compras y el resto como dijiste, dale",
+           _orden("1 compras, 2 salidas, ok"))
+    assert "Entendí:\n1 compras, ok\n" in r.texto
+
+
+def test_si_no_nombro_ninguno_no_queda_orden(db):
+    _con_extracto(db)
+    r = _p(db, "poné todo en salidas", _orden("1 salidas, 2 salidas"))
+    assert "Entendí" not in r.texto
+
+
+PROPUESTA_FLY = """*Faltan* (te propongo):
+1. 21/10 Transferencia De Terceros · AMIGO INVENTADO +$10.000 → ¿categoría?
+2. 22/10 Interes Capitalizado +$3,47 → Otros ingresos
+3. 26/10 Transferencia A Terceros · PROFE INVENTADO $23.800 → ¿categoría?
+4. 28/10 Transferencia A Terceros · MECANICO INVENTADO $81.070 → ¿categoría?
+5. 28/10 Transferencias Cash Sueldos · UNIVERSIDAD INVENTADA +$404.625 → ¿categoría?
+6. 30/10 Transferencia De Terceros · FUNDACION INVENTADA +$2.410.000 → ¿categoría?
+7. 30/10 Dep.Efvo.Autoservicio Ticket: +$1.350.000 → Haberes SBT
+8. 31/10 Compra Debito · FERRETERIA INVENTADA $41.200 → ¿categoría?
+"""
+CATEGORIAS_FRANCO = ["Auto", "Compras", "Haberes Fundación", "Haberes SBT", "Haberes UCEMA",
+                     "Impuestos", "Otros ingresos", "Salidas", "Servicios", "Transportes"]
+
+
+@pytest.mark.parametrize("mensaje,renglones", [
+    ("el profe es salidas, el mecánico auto y el resto como dijiste, dale", {3, 4}),
+    ("el del mecánico ponelo en auto", {4}),                 # "auto" no es "Autoservicio"
+    ("la ferretería es compras y el profe salidas", {3, 8}),
+    ("lo de la universidad es haberes ucema y lo de la fundación haberes fundación", {5, 6}),
+    ("el de 81 mil es un service del auto", {4}),            # por el monto
+    ("lo de amigo inventado no lo cargues", {1}),
+    ("la ferretería no era compras, era auto", {8}),         # "compras" no es "Compra Debito"
+    ("el 4 compras", {4}),                                   # "4" no es un monto de $4
+    ("lo del 30/10 es haberes sbt", {6, 7}),                 # por la fecha
+    ("el de 1.350.000 es haberes sbt", {7}),
+])
+def test_que_renglones_nombra_el_mensaje(mensaje, renglones):
+    from places.finanzas.core.lenguaje import _nombrados
+    assert _nombrados(mensaje, PROPUESTA_FLY, CATEGORIAS_FRANCO) == renglones
+
+
 def test_gemini_recibe_las_pistas_de_franco(db):
     t = _orden("20000, auto")
     _p(db, "nafta 20k", t)
