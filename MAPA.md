@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-11-04 01:50 UTC · 129 archivos · 26,941 LOC -->
+<!-- 2026-11-04 01:51 UTC · 129 archivos · 26,941 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-10-26 d654a2c docs: ESTADO, la auditorÃ­a de rendimiento ya estÃ¡ commiteada · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-11-03 04cdfa7 fix(secretario): entender la respuesta a la propuesta como lista numerada · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -149,7 +149,7 @@ Rama `main` — ultimo commit: 2026-10-26 d654a2c docs: ESTADO, la auditorÃ­a 
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 44 | 9,480 | **vencida** |
+| `tests/` | La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 44 | 9,480 | ok |
 | `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 21 | 6,987 | ok |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,969 | ok |
 | `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M24 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,945 | ok |
@@ -218,10 +218,10 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `.mapa/mapa.json` + `MAPA.md` (56 commits)
-- `EN-HUMANO.md` + `ESTADO.md` (41 commits)
-- `.mapa/mapa.json` + `ESTADO.md` (34 commits)
-- `ESTADO.md` + `MAPA.md` (34 commits)
+- `.mapa/mapa.json` + `MAPA.md` (57 commits)
+- `EN-HUMANO.md` + `ESTADO.md` (42 commits)
+- `.mapa/mapa.json` + `ESTADO.md` (35 commits)
+- `ESTADO.md` + `MAPA.md` (35 commits)
 - `BITACORA.md` + `ESTADO.md` (31 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)
 - `BITACORA.md` + `EN-HUMANO.md` (25 commits)
@@ -264,4 +264,4 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
 ## Frescura
 
-- Bitacoras vencidas: `integraciones\google-apps-script/`, `tests/`
+- Bitacoras vencidas: `integraciones\google-apps-script/`
