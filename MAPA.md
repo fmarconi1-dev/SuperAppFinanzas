@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-11-04 02:06 UTC · 130 archivos · 27,118 LOC -->
+<!-- 2026-11-04 02:31 UTC · 130 archivos · 27,118 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-11-03 6c2bd9a docs(tests): bitÃ¡cora con la respuesta como lista numerada · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-11-03 9409084 fix: pendientes de cÃ³digo (smoke del dashboard, categorÃ­as, aviso del backup) · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -165,7 +165,7 @@ Rama `main` — ultimo commit: 2026-11-03 6c2bd9a docs(tests): bitÃ¡cora con l
 | `places\finanzas/` | Lugar A — Finanzas Personales (ex Mis-Finanzas-App / Radar Financiero): home con onboarding y las 5 pestañas. La lógica vive en `core/` local, las pantallas en `views/`. | 2 | 90 | ok |
 | `.github\workflows/` | CI: `tests.yml` corre la suite pytest en cada push (el gate de recon se saltea sin el Excel, así CI no depende de datos personales). | 1 | 82 | ok |
 | `places/` | _sin describir_ | 1 | 2 | — |
-| `integraciones\google-apps-script/` | Puente Google ↔ SuperApp en Apps Script: reenvía el briefing de Gmail a la API (con links acortados) y atiende el webhook que crea/lista eventos de Calendar y tareas de Tasks. | 0 | 0 | **vencida** |
+| `integraciones\google-apps-script/` | Puente Google ↔ SuperApp en Apps Script: reenvía el briefing de Gmail a la API (con links acortados) y atiende el webhook que crea/lista eventos de Calendar y tareas de Tasks. | 0 | 0 | ok |
 
 ## Puntos de entrada
 
@@ -210,18 +210,18 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 - `places\finanzas\views/` → `core/` (11)
 - `scripts\perf/` → `core/` (8)
 - `places\finanzas\core/` → `core\api/` (7)
-- `./` → `core\api/` (5)
 - `./` → `core/` (5)
+- `./` → `core\api/` (5)
 - `scripts\perf/` → `places\finanzas\core/` (5)
 
 ## Se tocan juntos
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `.mapa/mapa.json` + `MAPA.md` (58 commits)
-- `EN-HUMANO.md` + `ESTADO.md` (42 commits)
-- `.mapa/mapa.json` + `ESTADO.md` (35 commits)
-- `ESTADO.md` + `MAPA.md` (35 commits)
+- `.mapa/mapa.json` + `MAPA.md` (59 commits)
+- `EN-HUMANO.md` + `ESTADO.md` (43 commits)
+- `.mapa/mapa.json` + `ESTADO.md` (36 commits)
+- `ESTADO.md` + `MAPA.md` (36 commits)
 - `BITACORA.md` + `ESTADO.md` (31 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)
 - `BITACORA.md` + `EN-HUMANO.md` (25 commits)
@@ -261,7 +261,3 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 - `SUPERAPP_API_TOKEN` — `core\api\servidor.py`
 - `SUPERAPP_DEFAULT_WORKSPACE` — `core\api\whatsapp_meta.py`
 - `WHATSAPP_GRAPH_VERSION` — `core\api\whatsapp_meta.py`, `scripts\probar_whatsapp_texto.py`
-
-## Frescura
-
-- Bitacoras vencidas: `integraciones\google-apps-script/`

@@ -60,4 +60,4 @@ Resumen: API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webh
 
 ## Proximo paso
 
-Fase D, paso 6: el cliente de Gemini para leer fotos (`docs/PLAN-FASE-D.md`). Los pasos 4 y 5 (leer el extracto y los resúmenes) son de `places/finanzas/core/`.
+Fase E (ADR-0012): `ClienteGemini.traducir` para el lenguaje natural (`docs/PLAN-LENGUAJE-NATURAL.md`, paso 1).

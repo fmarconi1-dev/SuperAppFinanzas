@@ -1,5 +1,7 @@
 # integraciones/google-apps-script/
 
+<!-- huella: e3b0c44298fc -->
+
 Resumen: Puente Google ↔ SuperApp en Apps Script: reenvía el briefing de Gmail a la API (con links acortados) y atiende el webhook que crea/lista eventos de Calendar y tareas de Tasks.
 
 ## Buscar acá si
@@ -14,6 +16,7 @@ Resumen: Puente Google ↔ SuperApp en Apps Script: reenvía el briefing de Gmai
 
 ## Trampas
 
+- ⚠️ **Lo que está en Google puede no ser lo de `main`** (3/11/2026): el resumen diario de balances no salió nunca porque `Balances.gs` y `Reenvio.gs` seguían en la versión del 21/10 a la mañana y `Mercado.gs` en la del 19/10. Después de pegar un `.gs`, comparar (hash del texto) y mirar *Activadores*: un activador apuntado a `instalarDisparadores` corría cada 10 min sin hacer falta. Y al usar "Ejecutar" en el editor, confirmar la función: una vez corrió la anterior del desplegable (`pedirBalancesAhora`) y mandó una lista.
 - **No corre en Fly ni en el contenedor**: se pega a mano en script.google.com. Cambiar el código acá no cambia nada hasta pegarlo y publicar una **versión nueva** de la implementación (la URL `/exec` sirve la versión fijada).
 - Apps Script **no expone los headers** del request: el secreto del webhook viaja en el cuerpo (`secreto`). Y siempre responde HTTP 200: el resultado es `ok`.
 - El POST a la web app vuelve con un 302 a `script.googleusercontent.com` que hay que seguir con GET.
@@ -66,4 +69,4 @@ Resumen: Puente Google ↔ SuperApp en Apps Script: reenvía el briefing de Gmai
 
 ## Proximo paso
 
-Instalarlo siguiendo el `README.md` cuando arranque la Fase B (briefing + Calendar/Tasks), y correr `probarLecturas` / `probarAcortador` desde el editor.
+— (3/11/2026: los cuatro `.gs` de Google son iguales a `main`; activadores: `reenviarBriefingAWhatsApp` y `relojDeBalances`, cada 10 min. Al cambiar un `.gs` acá, pegarlo en Google y compararlo.)
