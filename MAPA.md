@@ -8,7 +8,7 @@
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-11-03 2d81de6 docs: la clave de Gemini ya estÃ¡ en Fly · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-11-04 7a638c4 feat: lenguaje natural en el Secretario, paso 1 (ADR-0012) · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -16,7 +16,7 @@ Rama `main` — ultimo commit: 2026-11-03 2d81de6 docs: la clave de Gemini ya es
 |---|---|
 | el arranque de la app, la navegación entre lugares o la restauración de sesión → `app.py` | `./` |
 | deploy, Docker, Fly.io → `Dockerfile`, `fly.toml`, `docker-entrypoint.sh`, `docs/DEPLOY.md` y `docs/RUNBOOK.md` | `./` |
-| el arranque de la API de WhatsApp o nginx en el contenedor → `api.py`, `deploy/nginx.conf`, `docker-entrypoint.sh` (código en `core/api/`). `api.py` conecta lo que vive en `places/` con el servidor: comandos, archivos, briefings y la lista de balances (`_balances`, ADR-0011) | `./` |
+| el arranque de la API de WhatsApp o nginx en el contenedor → `api.py`, `deploy/nginx.conf`, `docker-entrypoint.sh` (código en `core/api/`). `api.py` conecta lo que vive en `places/` con el servidor: comandos, archivos, briefings y la lista de balances (`_balances`, ADR-0011). El lenguaje natural se prende acá (`_traductor`, `LENGUAJE_NATURAL=1`, ADR-0012) | `./` |
 | cómo se trabaja en este repo → `GUIA-DE-TRABAJO.md`, `claude.md`, `/MAPA.md` | `./` |
 | qué se hizo y qué sigue → `ESTADO.md` (foto), este archivo (crónica), `EN-HUMANO.md` (en llano) | `./` |
 | un aviso de Streamlit en `fly logs` que parece error, o la config del servidor → `.streamlit/config.toml` | `./` |
@@ -159,7 +159,7 @@ Rama `main` — ultimo commit: 2026-11-03 2d81de6 docs: la clave de Gemini ya es
 | `scripts\perf/` | Herramientas de la auditoría de rendimiento (21–26/10/2026): base sintética, medición de backend (AppTest), del navegador (Chrome por CDP), del arranque en frío, y pruebas en el runtime real. Corren en la PC de Franco, contra la app local: no tocan producción ni la base real. Resultados en `docs/perf/`. | 9 | 1,056 | ok |
 | `core\theme/` | Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semántica + template Plotly unificado, ajustes responsive y logo. | 5 | 710 | ok |
 | `core\auth/` | Autenticación compartida: usuarios con bcrypt, pantalla de login/signup y tokens de sesión firmados. (Los contextvars de usuario/workspace viven en `core/context.py`.) | 4 | 422 | ok |
-| `./` | Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías). | 5 | 355 | **vencida** |
+| `./` | Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías). | 5 | 355 | ok |
 | `places\finanzas\helpers/` | Utilidades de las vistas: formateo es-AR de montos, inyección de HTML y el tour guiado de bienvenida. | 4 | 278 | ok |
 | `places\inicio/` | Lugar Inicio — la pantalla principal de Secretario (Fase C, ADR-0008): saludo, **saldo de la cuenta** en grande, gastos/ingresos/movimientos del mes contra el mismo período del anterior, la semana y las tareas de Google (con tilde para completarlas), últimos movimientos y estado del Secretario. | 2 | 273 | ok |
 | `places\inicio\core/` | La lógica del Inicio, **pura y sin Streamlit**: los números del mes y el saldo (`resumen.py`) y la semana y las tareas de Google, listas para mostrar (`semana.py`). La pantalla está en `../home.py`. | 3 | 231 | ok |
@@ -202,8 +202,8 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 ## Flujo interno
 
-- `tests/` → `core/` (56)
 - `tests/` → `places\finanzas\core/` (56)
+- `tests/` → `core/` (56)
 - `tests/` → `core\api/` (22)
 - `places\finanzas\core/` → `core/` (21)
 - `places\finanzas\views/` → `places\finanzas\helpers/` (13)
@@ -219,10 +219,10 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `.mapa/mapa.json` + `MAPA.md` (63 commits)
-- `EN-HUMANO.md` + `ESTADO.md` (43 commits)
-- `.mapa/mapa.json` + `ESTADO.md` (40 commits)
-- `ESTADO.md` + `MAPA.md` (40 commits)
+- `.mapa/mapa.json` + `MAPA.md` (64 commits)
+- `EN-HUMANO.md` + `ESTADO.md` (44 commits)
+- `.mapa/mapa.json` + `ESTADO.md` (41 commits)
+- `ESTADO.md` + `MAPA.md` (41 commits)
 - `BITACORA.md` + `ESTADO.md` (31 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)
 - `BITACORA.md` + `EN-HUMANO.md` (25 commits)
@@ -262,7 +262,3 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 - `SIGNUP_CODE` — `core\auth\login.py`
 - `SUPERAPP_API_TOKEN` — `core\api\servidor.py`
 - `SUPERAPP_DEFAULT_WORKSPACE` — `core\api\whatsapp_meta.py`
-
-## Frescura
-
-- Bitacoras vencidas: `./`

@@ -1,6 +1,6 @@
 # BITÁCORA — changelog narrativo global
 
-<!-- huella: 09a88edb22a4 -->
+<!-- huella: 902599ef998c -->
 
 Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación entre lugares), deploy (Dockerfile/fly.toml) y toda la gobernanza (ESTADO, ROADMAP, MEJORAS, guías).
 
@@ -8,7 +8,7 @@ Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación e
 
 - el arranque de la app, la navegación entre lugares o la restauración de sesión → `app.py`
 - deploy, Docker, Fly.io → `Dockerfile`, `fly.toml`, `docker-entrypoint.sh`, `docs/DEPLOY.md` y `docs/RUNBOOK.md`
-- el arranque de la API de WhatsApp o nginx en el contenedor → `api.py`, `deploy/nginx.conf`, `docker-entrypoint.sh` (código en `core/api/`). `api.py` conecta lo que vive en `places/` con el servidor: comandos, archivos, briefings y la lista de balances (`_balances`, ADR-0011)
+- el arranque de la API de WhatsApp o nginx en el contenedor → `api.py`, `deploy/nginx.conf`, `docker-entrypoint.sh` (código en `core/api/`). `api.py` conecta lo que vive en `places/` con el servidor: comandos, archivos, briefings y la lista de balances (`_balances`, ADR-0011). El lenguaje natural se prende acá (`_traductor`, `LENGUAJE_NATURAL=1`, ADR-0012)
 - cómo se trabaja en este repo → `GUIA-DE-TRABAJO.md`, `claude.md`, `/MAPA.md`
 - qué se hizo y qué sigue → `ESTADO.md` (foto), este archivo (crónica), `EN-HUMANO.md` (en llano)
 - un aviso de Streamlit en `fly logs` que parece error, o la config del servidor → `.streamlit/config.toml`
@@ -16,6 +16,15 @@ Resumen: Raíz del monorepo: entry point (`app.py`: login único + navegación e
 ## Crónica
 
 Qué se hizo, cuándo y **por qué**, a nivel proyecto. Una entrada por sesión relevante. Lo fino de cada módulo va en su `bitacora_de_trabajo.md`.
+
+---
+
+## 2026-11-03 — Cierres (Fase D, balances) y Fase E paso 1: lenguaje natural (ADR-0012)
+
+- **Fase D cerrada:** Franco hizo la prueba real de punta a punta. El 2/11 su respuesta a la conciliación como lista numerada (`1. Compras`) se rechazó entera; se arregló en la gramática (`04cdfa7`).
+- **Balances cerrados:** el resumen diario nunca había salido porque en el Apps Script seguían los `.gs` viejos. Se pegaron los del repo con Chrome (hashes iguales a `main`) y el activador sobrante pasó a ser `relojDeBalances`; el primer resumen (AAPL y PAM del 2/11) llegó esa noche.
+- **Pendientes de código:** el smoke del dashboard (fallaba del 1 al 10 de cada mes), tests de categorías (35% → 100%), el aviso del backup que culpaba al token cuando flyctl no arrancaba.
+- **Fase E (ADR-0012, aceptada por Franco):** Gemini (plan gratis) traduce a la gramática de siempre y el código decide; todo lo que escribe espera el *sí*. Paso 1 en `main`, **apagado** hasta `LENGUAJE_NATURAL=1` (paso 2: probarlo con frases reales). 1061 passed.
 
 ---
 
