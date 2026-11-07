@@ -147,3 +147,8 @@
 - **Autor:** Claude (Opus 5.5), con Franco.
 - **Qué:** a pedido de Franco (dos casos reales: los haberes de UCEMA del 28/10 que son de noviembre, y un café de 20.400 = 19.400 con tarjeta + 1.000 de propina): órdenes `#N fecha DD/MM` y `partir #N …` (`ediciones.py`, se deshacen); regla automática de fecha para Haberes UCEMA desde el 25; modo «hola gemini» / «chau gemini» con memoria de la charla; Gemini ve lo cargado de 60 días. `scripts/probar_lenguaje.py` suma 4 frases de estos casos.
 - **Estado:** 🔵 en código, sin commitear; falta la corrida en Fly. El #505 de producción (UCEMA del 28/10) se corrige con `#505 fecha 02/11` después del deploy: la regla vale para lo que entre de ahora en más.
+
+## 2026-11-07 — Fase E, paso 3: probado en Fly
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** corrida de `scripts/probar_lenguaje.py` con las 4 frases nuevas: 48 BIEN · 2 DUDOSA · 0 MAL · 0 FALLA de 50.
+- **Estado:** ✅ en main (`ff68f1a`). Falta la prueba de Franco desde el celular.

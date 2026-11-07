@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-11-07 13:29 UTC · 136 archivos · 29,300 LOC -->
+<!-- 2026-11-07 13:43 UTC · 136 archivos · 29,300 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-11-04 43190e9 Terminar Gemini · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-11-07 ff68f1a feat: corregir lo cargado por chat y modo Gemini (Fase E, paso 3) · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -203,8 +203,8 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 ## Flujo interno
 
-- `tests/` → `places\finanzas\core/` (57)
 - `tests/` → `core/` (57)
+- `tests/` → `places\finanzas\core/` (57)
 - `tests/` → `core\api/` (23)
 - `places\finanzas\core/` → `core/` (21)
 - `places\finanzas\views/` → `places\finanzas\helpers/` (13)
