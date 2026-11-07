@@ -151,7 +151,10 @@ class Actualizar:
 #: Las tablas que un lote puede tocar. Toda otra se rechaza: el nombre de la
 #: tabla va en el SQL y no puede venir de afuera.
 TABLAS = {"transacciones", "banco_filas", "emparejamientos", "reglas_comercio",
-          "reglas_tipo", "saldos_declarados", "resumenes"}
+          "reglas_tipo", "saldos_declarados", "resumenes", "gasto_cuentas"}
+
+#: La clave de cada tabla que no usa `id` (`gasto_cuentas` cuelga del gasto).
+_CLAVES = {"gasto_cuentas": "transaccion_id"}
 
 
 @dataclass
@@ -181,9 +184,38 @@ def _tabla(tabla: str) -> str:
     return tabla
 
 
+def _clave(tabla: str) -> str:
+    return _CLAVES.get(tabla, "id")
+
+
 def _fila(conn: sqlite3.Connection, tabla: str, fila_id: int) -> Optional[dict]:
-    row = conn.execute(f"SELECT * FROM {_tabla(tabla)} WHERE id = ?", (fila_id,)).fetchone()
+    row = conn.execute(f"SELECT * FROM {_tabla(tabla)} WHERE {_clave(tabla)} = ?",
+                       (fila_id,)).fetchone()
     return dict(row) if row else None
+
+
+def aplicar_edicion(
+    conn: sqlite3.Connection, *, workspace_id: int, user_id: int, propuesta: dict,
+    operaciones: list, ahora: datetime,
+) -> int:
+    """Un cambio pedido por chat (`#505 fecha 02/11`, `partir #511 …`) como un lote propio.
+
+    Se aplica en el acto (la orden ya es la confirmación) y **no** descarta la
+    propuesta abierta: se puede corregir un gasto en medio de una conciliación.
+    Queda en `lotes` con origen "edicion", así `deshacer` lo revierte.
+    """
+    cur = conn.execute(
+        "INSERT INTO lotes (workspace_id, user_id, origen, estado, propuesta, creado_en) "
+        "VALUES (?, ?, 'edicion', 'propuesto', ?, ?)",
+        (workspace_id, user_id, json.dumps(propuesta), ahora.isoformat()),
+    )
+    lote_id = cur.lastrowid
+    try:
+        aplicar_operaciones(conn, lote_id, operaciones, user_id=user_id, ahora=ahora)
+    except BaseException:
+        descartar(conn, lote_id)       # que no quede como "la propuesta abierta"
+        raise
+    return lote_id
 
 
 def aplicar(
@@ -253,7 +285,8 @@ def aplicar_operaciones(
                 cambios = {k: resolver(v) for k, v in op.cambios.items()}
                 antes = {k: previa[k] for k in cambios}
                 conn.execute(
-                    f"UPDATE {tabla} SET {', '.join(f'{c} = ?' for c in cambios)} WHERE id = ?",
+                    f"UPDATE {tabla} SET {', '.join(f'{c} = ?' for c in cambios)} "
+                    f"WHERE {_clave(tabla)} = ?",
                     (*cambios.values(), fila_id),
                 )
                 despues = (_foto(conn, fila_id) if tabla == "transacciones"
@@ -330,13 +363,13 @@ def deshacer(conn: sqlite3.Connection, lote_id: int, *, ahora: datetime) -> Desh
             tabla = _tabla(op["tabla"])
             if op["accion"] == "insert":
                 # `gasto_cuentas` y los vínculos de un gasto se van solos (ON DELETE CASCADE).
-                conn.execute(f"DELETE FROM {tabla} WHERE id = ?", (op["fila_id"],))
+                conn.execute(f"DELETE FROM {tabla} WHERE {_clave(tabla)} = ?", (op["fila_id"],))
                 if tabla == "transacciones":
                     borradas.append({"id": op["fila_id"], **json.loads(op["despues"])})
             else:
                 antes = json.loads(op["antes"])
                 conn.execute(f"UPDATE {tabla} SET {', '.join(f'{c} = ?' for c in antes)} "
-                             "WHERE id = ?", (*antes.values(), op["fila_id"]))
+                             f"WHERE {_clave(tabla)} = ?", (*antes.values(), op["fila_id"]))
                 restauradas += tabla == "transacciones"
         conn.execute(
             "UPDATE lotes SET estado = 'deshecho', deshecho_en = ? WHERE id = ?",

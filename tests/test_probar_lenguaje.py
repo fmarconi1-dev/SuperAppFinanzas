@@ -136,6 +136,23 @@ def test_se_califica_lo_que_el_bot_muestra_sin_el_ok_agregado():
     assert resultados[0].nota == "BIEN" and f"el bot muestra «{n} compras»" in resultados[0].detalle
 
 
+def test_las_ediciones_se_comparan_por_lo_que_hacen():
+    import tempfile
+    from datetime import datetime
+
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
+        conn = core_db.connect(pl._base(Path(tmp), "suelto", datetime.now(pl._zona())))
+        ids = pl._ids(conn)
+        conn.close()
+    cafe = pl.Caso("el café de 20.400…", orden_exacta="partir #{CAFE} 19400 + 1000")
+    ucema = pl.Caso("los haberes del cema…", orden_exacta="#{UCEMA} fecha 02/11")
+    assert _notas([cafe], {cafe.mensaje: O(f"partir #{ids['CAFE']} 19400 tarjeta + 1000 propina")}
+                  ) == ["BIEN"]
+    assert _notas([cafe], {cafe.mensaje: O(f"partir #{ids['CAFE']} 19000 + 1400")}) == ["MAL"]
+    assert _notas([ucema], {ucema.mensaje: O(f"#{ids['UCEMA']} fecha 2/11")}) == ["BIEN"]
+    assert _notas([ucema], {ucema.mensaje: O(f"#{ids['UCEMA']} fecha 01/11")}) == ["MAL"]
+
+
 def test_si_gemini_falla_se_ve_y_no_corta_la_prueba():
     """El 4/11 en Fly las 44 frases salieron "no consultó a Gemini": era Gemini fallando."""
     casos = [pl.Caso("nafta 20k", gastos=[(0, 20000, {"Auto"}, False)]),

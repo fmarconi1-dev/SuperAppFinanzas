@@ -81,6 +81,12 @@ AYUDA = (
     "  • agenda — eventos de la semana y tareas pendientes\n"
     "  • balances — quiénes presentan balance esta semana (el domingo\n"
     "    a la noche te llega solo); contestás *1 3 7*, tickers o *todas*\n\n"
+    "*Corregir lo cargado* (el número sale en la confirmación: #505)\n"
+    "  • #505 fecha 02/11 — le cambia la fecha\n"
+    "  • partir #511 19400 + 1000 propina — lo parte en gastos que suman lo mismo\n\n"
+    "*Gemini*\n"
+    "  • hola gemini — me escribís como te salga y me acuerdo de la charla\n"
+    "  • chau gemini — vuelvo al formato de siempre (se apaga solo a los 30 min)\n\n"
     "*Comandos*\n"
     "  • resumen — gastos e ingresos del mes\n"
     "  • fima 512.300 efectivo 98.000 — tus saldos, para el ajuste\n"
@@ -477,18 +483,92 @@ def procesar(
                         id_mensaje=id_mensaje, cotizador=cotizador,
                         fuentes_balances=fuentes_balances)
 
-    r = _interpretar(conn, texto, user_id=user_id, ahora=ahora, agenda=agenda,
-                     id_mensaje=id_mensaje, cotizador=cotizador,
-                     fuentes_balances=fuentes_balances, ejecutar=ejecutar)
+    def interpretar() -> Respuesta:
+        return _interpretar(conn, texto, user_id=user_id, ahora=ahora, agenda=agenda,
+                            id_mensaje=id_mensaje, cotizador=cotizador,
+                            fuentes_balances=fuentes_balances, ejecutar=ejecutar)
+
     clave = normalizar(texto or "").strip(" .!¡?¿")
-    if not (r.entender and traductor is not None) or clave in SI or clave in NO:
-        return r
+    if clave in ACTIVAR_GEMINI or clave in APAGAR_GEMINI:
+        return _modo_gemini(conn, prender=clave in ACTIVAR_GEMINI, disponible=traductor is not None,
+                            ahora=ahora)
+    modo = _leer_modo_gemini(conn, ahora) if traductor is not None else None
     from places.finanzas.core import lenguaje  # diferido: lenguaje usa este módulo
 
-    return lenguaje.entender(conn, (texto or "").strip(), traductor, respaldo=r,
-                             ejecutar=ejecutar, user_id=user_id,
-                             wid=resolve_workspace_id(conn, user_id),
-                             hoy=ahora.astimezone(ZONA).date(), ahora=ahora)
+    def entender(respaldo: Any) -> Respuesta:
+        return lenguaje.entender(conn, (texto or "").strip(), traductor, respaldo=respaldo,
+                                 ejecutar=ejecutar, user_id=user_id,
+                                 wid=resolve_workspace_id(conn, user_id),
+                                 hoy=ahora.astimezone(ZONA).date(), ahora=ahora,
+                                 charla=modo["charla"] if modo else None)
+
+    hoy = ahora.astimezone(ZONA).date()
+    if modo and clave not in SI and clave not in NO and not lenguaje.lo_entiende_el_parser(
+            conn, (texto or "").strip(), user_id=user_id,
+            wid=resolve_workspace_id(conn, user_id), hoy=hoy, ahora=ahora):
+        # Modo Gemini prendido: primero Gemini; el parser, si Gemini no ayuda. Lo que
+        # ya está en la gramática va directo al parser (Gemini no contesta siempre igual).
+        r = entender(interpretar)
+    else:
+        r = interpretar()
+        if r.entender and traductor is not None and clave not in SI and clave not in NO:
+            r = entender(r)
+    if modo:
+        _recordar_charla(conn, modo, texto or "", r.texto, ahora)
+    return r
+
+
+# ---------------------------------------------------------------------------
+# Modo Gemini (Fase E, paso 3): "hola gemini" lo prende, "chau gemini" lo apaga
+# ---------------------------------------------------------------------------
+
+ACTIVAR_GEMINI = {"hola gemini", "activa gemini", "activar gemini", "prende gemini",
+                  "prender gemini", "gemini on", "modo gemini", "encende gemini"}
+APAGAR_GEMINI = {"chau gemini", "apaga gemini", "apagar gemini", "gemini off",
+                 "basta gemini", "listo gemini"}
+#: Sin mensajes por este tiempo, el modo se apaga solo (Franco no tiene que acordarse).
+VIGENCIA_MODO_GEMINI = timedelta(minutes=30)
+#: Cuántos ida y vuelta recuerda Gemini mientras el modo está prendido.
+MEMORIA_CHARLA = 6
+
+
+def _leer_modo_gemini(conn: sqlite3.Connection, ahora: datetime) -> Optional[dict]:
+    crudo = _leer_estado(conn, "modo_gemini")
+    if not crudo:
+        return None
+    modo = json.loads(crudo)
+    if ahora - datetime.fromisoformat(modo["ultimo"]) > VIGENCIA_MODO_GEMINI:
+        conn.execute("DELETE FROM whatsapp_estado WHERE clave = 'modo_gemini'")
+        return None
+    return modo
+
+
+def _recordar_charla(conn: sqlite3.Connection, modo: dict, mensaje: str, respuesta: str,
+                     ahora: datetime) -> None:
+    charla = (modo.get("charla") or []) + [{"franco": mensaje[:500],
+                                            "secretario": respuesta[:800]}]
+    guardar_estado(conn, "modo_gemini", json.dumps({
+        **modo, "ultimo": ahora.isoformat(), "charla": charla[-MEMORIA_CHARLA:]}), ahora)
+
+
+def _modo_gemini(conn: sqlite3.Connection, *, prender: bool, disponible: bool,
+                 ahora: datetime) -> Respuesta:
+    if not prender:
+        conn.execute("DELETE FROM whatsapp_estado WHERE clave = 'modo_gemini'")
+        return Respuesta("🤖 Listo, apagué Gemini. Sigo con el formato de siempre (y si no "
+                         "entiendo algo, le pregunto solo).", "consulta")
+    if not disponible:
+        return Respuesta("No puedo prender Gemini: no está configurado en el servidor.",
+                         "rechazado")
+    guardar_estado(conn, "modo_gemini", json.dumps({
+        "desde": ahora.isoformat(), "ultimo": ahora.isoformat(), "charla": []}), ahora)
+    return Respuesta(
+        "🤖 Gemini prendido: escribime como te salga y me acuerdo de la charla. Por ejemplo:\n"
+        "  • «los haberes del cema ponelos el 2/11»\n"
+        "  • «el café de 20.400 fueron 19.400 con tarjeta y 1.000 de propina»\n"
+        "  • «el de la ferretería es compras»\n"
+        "Todo lo que cambie algo te lo muestro antes y espero tu *sí*. "
+        "*chau gemini* lo apaga (o solo, a los 30 minutos sin mensajes).", "consulta")
 
 
 def _interpretar(
@@ -580,6 +660,15 @@ def _interpretar(
         return _comando_agenda(m.group(1).lower(), m.group(2), agenda, id_mensaje, hoy)
     if clave in {"agenda", "semana"}:
         return _comando_agenda("agenda", "", agenda, id_mensaje, hoy)
+    from places.finanzas.core import ediciones  # diferido: ediciones usa este módulo
+
+    try:
+        edicion = ediciones.parsear(limpio, hoy)
+    except EntradaInvalida as e:
+        return Respuesta(f"⚠️ {e}", "rechazado", entender=True)
+    if edicion is not None:
+        return ediciones.aplicar(conn, edicion, user_id=user_id,
+                                 wid=resolve_workspace_id(conn, user_id), hoy=hoy, ahora=ahora)
     renglones = [r.strip() for r in limpio.splitlines() if r.strip()]
     if len(renglones) >= 2 and _RE_EMPIEZA_COMO_GASTO.match(renglones[0]):
         return _proponer_varios(conn, renglones, user_id, wid, ahora, hoy)
@@ -1193,8 +1282,8 @@ def _deshacer_lote(conn: sqlite3.Connection, lote_id: int, ahora: datetime) -> R
         lineas.append(f"  #{b['id']}: {pesos(monto)} en {b['motivo']} "
                       f"({date.fromisoformat(b['fecha']):%d/%m})")
     if d.restauradas:
-        lineas.append(f"Y volví a como estaban {d.restauradas} gasto(s) que había corregido "
-                      "con el monto del banco.")
+        lineas.append(f"Y volví a como estaban {d.restauradas} gasto(s) que había cambiado "
+                      "(con el monto del banco o una corrección tuya).")
     return Respuesta("\n".join(lineas), "deshecho")
 
 

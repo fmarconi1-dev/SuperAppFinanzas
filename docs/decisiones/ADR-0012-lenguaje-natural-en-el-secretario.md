@@ -40,6 +40,12 @@ O sea: además de lo que falla, hay frases que **parecen** entendidas y no lo es
 2. **Confirmar siempre:** todo lo traducido que escriba se ejecuta solo con un *sí* (§2).
 3. **Preguntas libres al final** (paso 4 del plan), después de gastos, propuestas y la conciliación.
 
+**Ampliación (Franco, 6/11/2026, paso 3):**
+
+4. **Gemini también ve lo cargado de los últimos 60 días** (fecha, monto, categoría, comentario y número), para poder corregir hablando («los haberes del cema ponelos el 2/11»).
+5. **Modo Gemini on/off:** además de entrar solo cuando el parser no entiende, «hola gemini» lo prende para todos los mensajes (con memoria de la charla) hasta «chau gemini» o 30 minutos sin mensajes. Sigue valiendo §2: lo que escribe espera el *sí*.
+6. **Corregir lo cargado:** órdenes deterministas `#N fecha DD/MM` y `partir #N monto + monto`, que se deshacen. La fecha contable de los Haberes UCEMA de fin de mes (primer día hábil del mes siguiente) es una regla automática de la conciliación, no de la IA.
+
 ## Alternativas descartadas
 
 - **Modelo local (`ollama`, como preveía `docs/HERRAMIENTAS-EVALUADAS.md`):** la máquina de Fly tiene 1 GB (no entra ni un modelo chico con la app), la regla del repo prohíbe cómputo pesado en el servidor, y la PC de Franco no está siempre prendida.

@@ -32,7 +32,14 @@ Una fase a la vez: el alcance es "todo", pero sale en pasos, cada uno desplegabl
 - Un set de ~50 frases reales de Franco (las del 2/11, jerga: "lucas", "k", "mil"; listas; correcciones) en `scripts/probar_lenguaje.py`, que corre contra Gemini **a mano**, no en la suite. Meta antes de desplegar: ninguna traducción que cargue algo distinto de lo que Franco quiso (las dudosas tienen que salir como pregunta).
 - Deploy y prueba de Franco desde el celular.
 
-## Paso 3 — La charla sobre la conciliación
+## Paso 3 — La charla sobre la conciliación 🔵 (6/11/2026: hecho en código, falta probarlo en Fly)
+
+> Redefinido con Franco el 6/11/2026, a partir de dos casos reales: los haberes de UCEMA del 28/10 tienen que contar para noviembre, y un café cargado como `19400+1000` (19.400 con tarjeta + 1.000 de propina) que la conciliación no reconoce. Lo que decidió:
+> - **Regla de UCEMA, automática:** los Haberes UCEMA que entran desde el día 25 se cargan el primer día hábil del mes siguiente (`conciliacion.FECHA_MES_SIGUIENTE` / `fecha_contable`). El banco sigue diciendo su fecha; si los cargó a mano con esa fecha, coinciden igual.
+> - **Órdenes nuevas** (`ediciones.py`), a mano o traducidas: `#505 fecha 02/11` y `partir #511 19400 + 1000 propina`. Cada una es un lote propio (`lotes.aplicar_edicion`): se deshace con `deshacer` y no descarta la propuesta abierta. Las partes reconocidas por la conciliación **solo desde el chat** (Franco: nada automático con las cuentas `a+b`).
+> - **Gemini ve lo cargado de los últimos 60 días** (fecha, monto, categoría, comentario, número) para entender «los haberes del cema».
+> - **Modo Gemini:** entra solo cuando el parser no entiende (como antes), y además «hola gemini» / «activá gemini» lo prende para todo, con memoria de los últimos 6 ida y vuelta, hasta «chau gemini» o 30 minutos sin mensajes. Los *sí*/*no* van a lo que espera, como siempre.
+> - `scripts/probar_lenguaje.py` suma los dos casos (4 frases) para la corrida en Fly.
 
 - Con la propuesta como contexto: «el de Basualdo es un service», «¿por qué el 9 coincide?», «ese de nafta ya lo había cargado yo».
 - Órdenes nuevas, primero en el código determinístico y con tests, después en el traductor:

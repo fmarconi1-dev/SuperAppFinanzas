@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-11-04 23:15 UTC · 134 archivos · 28,594 LOC -->
+<!-- 2026-11-07 13:29 UTC · 136 archivos · 29,300 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-11-04 2441b2e fix: lenguaje natural, el signo tiene que coincidir con la categorÃ­a (Fase E, paso 2) · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-11-04 43190e9 Terminar Gemini · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -83,6 +83,7 @@ Rama `main` — ultimo commit: 2026-11-04 2441b2e fix: lenguaje natural, el sign
 | la lista de balances de la semana: quién va primero, por qué una empresa no aparece (GOOG al lado de GOOGL), cómo se lee `1 3 7` / tickers / `todas` / `ninguna`, o el aviso "puede ser para la lista de balances o para la propuesta" → `balances.py` (`elegir`, `armar`, `leer_respuesta`, `responder`) + `comandos._comando_balances` | `places\finanzas\core/` |
 | el resumen del día de los balances ("📊 Balances del …") salió raro, con `s/d` o con la palabra equivocada → `balances.resumen_del_dia` / `_reaccion` (y los precios en `core/api/balances_fuentes.py`); si **no llegó**, es del reloj: `integraciones/google-apps-script/Balances.gs` (`resumenesPendientes_`) | `places\finanzas\core/` |
 | un mensaje en lenguaje natural: qué le llegó a Gemini, por qué una traducción se descartó o pidió *sí* → `lenguaje.py` (`contexto`, `clasificar`, `entender`); cuándo se consulta → las respuestas con `entender=True` en `comandos.py` | `places\finanzas\core/` |
+| corregir por chat lo cargado (`#505 fecha 02/11`, `partir #511 19400 + 1000`) → `ediciones.py` (cada cambio es un lote propio: `lotes.aplicar_edicion`); el modo «hola gemini» y su memoria → `comandos.procesar` (`_leer_modo_gemini`, `_recordar_charla`); la fecha de los Haberes UCEMA de fin de mes → `conciliacion.fecha_contable` | `places\finanzas\core/` |
 | exportar todo a Excel → `export.py` | `places\finanzas\core/` |
 | "$ mal formateado", separador de miles, un NaN visible en pantalla → `_format.py` | `places\finanzas\helpers/` |
 | HTML que se muestra como texto crudo → `_html.render_html` | `places\finanzas\helpers/` |
@@ -150,12 +151,12 @@ Rama `main` — ultimo commit: 2026-11-04 2441b2e fix: lenguaje natural, el sign
 
 | Carpeta | Que es | Arch. | LOC | Bitacora |
 |---|---|---:|---:|---|
-| `tests/` | La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 47 | 10,187 | ok |
-| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 22 | 7,401 | ok |
+| `tests/` | La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 48 | 10,435 | ok |
+| `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 23 | 7,809 | ok |
 | `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,969 | ok |
 | `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M24 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,945 | ok |
-| `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa. | 9 | 1,863 | ok |
-| `core\api/` | API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla). | 8 | 1,730 | ok |
+| `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa. | 9 | 1,906 | ok |
+| `core\api/` | API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla). | 8 | 1,737 | ok |
 | `scripts\perf/` | Herramientas de la auditoría de rendimiento (21–26/10/2026): base sintética, medición de backend (AppTest), del navegador (Chrome por CDP), del arranque en frío, y pruebas en el runtime real. Corren en la PC de Franco, contra la app local: no tocan producción ni la base real. Resultados en `docs/perf/`. | 9 | 1,056 | ok |
 | `core\theme/` | Design system "Cosmic Slate": CSS inyectado en Streamlit, paleta semántica + template Plotly unificado, ajustes responsive y logo. | 5 | 710 | ok |
 | `core\auth/` | Autenticación compartida: usuarios con bcrypt, pantalla de login/signup y tokens de sesión firmados. (Los contextvars de usuario/workspace viven en `core/context.py`.) | 4 | 422 | ok |
@@ -189,21 +190,21 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 |---|---:|---:|---|
 | `core\db.py` | 1473 | 50 | `_migrate`, `es_tabla_faltante`, `get_db_path`, `connect` |
 | `core\context.py` | 105 | 32 | `set_current_user_id`, `get_current_user_id`, `require_current_user_id`, `set_current_workspace_id` |
+| `places\finanzas\core\comandos.py` | 1370 | 21 | `Respuesta`, `Gasto`, `EntradaInvalida`, `ahora_ar` |
 | `places\finanzas\core\transactions.py` | 265 | 21 | `_uid`, `_es_familiar`, `_asegurar_motivo`, `insert_transaction` |
-| `places\finanzas\core\comandos.py` | 1281 | 20 | `Respuesta`, `Gasto`, `EntradaInvalida`, `ahora_ar` |
 | `core\workspaces.py` | 261 | 20 | `_hash_code`, `_uid`, `get_personal_workspace_id`, `ensure_personal_workspace` |
 | `core\__init__.py` | 5 | 18 | — |
 | `places\finanzas\core\metrics.py` | 355 | 16 | `_uid`, `anios_con_datos`, `filtrar_anio`, `load_transactions` |
-| `places\finanzas\core\__init__.py` | 5 | 15 | — |
+| `places\finanzas\core\__init__.py` | 5 | 16 | — |
 | `core\api\__init__.py` | 6 | 10 | — |
 | `places\finanzas\core\ingest.py` | 381 | 9 | `ImportResult`, `_importe`, `_read_csv_rows`, `import_diario` |
-| `core\api\gemini.py` | 188 | 7 | `GeminiNoDisponible`, `_motivo`, `Traduccion`, `ClienteGemini` |
+| `core\api\gemini.py` | 195 | 7 | `GeminiNoDisponible`, `_motivo`, `Traduccion`, `ClienteGemini` |
 | `places\finanzas\core\categorizer.py` | 158 | 7 | `categoria_de`, `efective_grupo`, `grupos_efectivos`, `motivos_sin_categorizar` |
 
 ## Flujo interno
 
+- `tests/` → `places\finanzas\core/` (57)
 - `tests/` → `core/` (57)
-- `tests/` → `places\finanzas\core/` (56)
 - `tests/` → `core\api/` (23)
 - `places\finanzas\core/` → `core/` (21)
 - `places\finanzas\views/` → `places\finanzas\helpers/` (13)
@@ -219,9 +220,9 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `.mapa/mapa.json` + `MAPA.md` (70 commits)
-- `.mapa/mapa.json` + `ESTADO.md` (46 commits)
-- `ESTADO.md` + `MAPA.md` (46 commits)
+- `.mapa/mapa.json` + `MAPA.md` (71 commits)
+- `.mapa/mapa.json` + `ESTADO.md` (47 commits)
+- `ESTADO.md` + `MAPA.md` (47 commits)
 - `EN-HUMANO.md` + `ESTADO.md` (44 commits)
 - `BITACORA.md` + `ESTADO.md` (31 commits)
 - `EN-HUMANO.md` + `places/inversiones/cartera/bitacora_de_trabajo.md` (26 commits)

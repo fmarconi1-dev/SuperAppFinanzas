@@ -142,3 +142,8 @@
 - **Autor:** Claude (Opus 5.5), con Franco.
 - **Qué:** cuarta corrida en Fly: 44 BIEN · 2 DUDOSA · 0 MAL · 0 FALLA. Arreglado el control del signo, que descartaba correcciones a categorías de ingresos.
 - **Estado:** ✅ meta cumplida. Próximo: deploy, `fly secrets set LENGUAJE_NATURAL=1 -a superapp-finanzas` y prueba de Franco desde el celular.
+
+## 2026-11-06 — Fase E, paso 3: corregir lo cargado y el modo Gemini
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** a pedido de Franco (dos casos reales: los haberes de UCEMA del 28/10 que son de noviembre, y un café de 20.400 = 19.400 con tarjeta + 1.000 de propina): órdenes `#N fecha DD/MM` y `partir #N …` (`ediciones.py`, se deshacen); regla automática de fecha para Haberes UCEMA desde el 25; modo «hola gemini» / «chau gemini» con memoria de la charla; Gemini ve lo cargado de 60 días. `scripts/probar_lenguaje.py` suma 4 frases de estos casos.
+- **Estado:** 🔵 en código, sin commitear; falta la corrida en Fly. El #505 de producción (UCEMA del 28/10) se corrige con `#505 fecha 02/11` después del deploy: la regla vale para lo que entre de ahora en más.

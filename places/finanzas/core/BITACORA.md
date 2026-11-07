@@ -1,6 +1,6 @@
 # places/finanzas/core/
 
-<!-- huella: 92e3d2efbdf5 -->
+<!-- huella: 5cb6b4bb830c -->
 
 Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel.
 
@@ -27,6 +27,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 - la lista de balances de la semana: quién va primero, por qué una empresa no aparece (GOOG al lado de GOOGL), cómo se lee `1 3 7` / tickers / `todas` / `ninguna`, o el aviso "puede ser para la lista de balances o para la propuesta" → `balances.py` (`elegir`, `armar`, `leer_respuesta`, `responder`) + `comandos._comando_balances`
 - el resumen del día de los balances ("📊 Balances del …") salió raro, con `s/d` o con la palabra equivocada → `balances.resumen_del_dia` / `_reaccion` (y los precios en `core/api/balances_fuentes.py`); si **no llegó**, es del reloj: `integraciones/google-apps-script/Balances.gs` (`resumenesPendientes_`)
 - un mensaje en lenguaje natural: qué le llegó a Gemini, por qué una traducción se descartó o pidió *sí* → `lenguaje.py` (`contexto`, `clasificar`, `entender`); cuándo se consulta → las respuestas con `entender=True` en `comandos.py`
+- corregir por chat lo cargado (`#505 fecha 02/11`, `partir #511 19400 + 1000`) → `ediciones.py` (cada cambio es un lote propio: `lotes.aplicar_edicion`); el modo «hola gemini» y su memoria → `comandos.procesar` (`_leer_modo_gemini`, `_recordar_charla`); la fecha de los Haberes UCEMA de fin de mes → `conciliacion.fecha_contable`
 - exportar todo a Excel → `export.py`
 
 ## Qué hay acá
@@ -35,6 +36,9 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 
 ## Trampas
 
+- ⚠️ **Una edición traducida (`#N fecha`, `partir #N`) solo con un número que Gemini vio en LO CARGADO**, y el *sí* muestra el gasto entero (`ediciones.explicar`): «#505» solo no dice qué es, y un número equivocado movería otro gasto sin que Franco lo note. **`partir` se rechaza si el gasto ya está conciliado** (la fila del banco quedaría atada a un monto menor). **En modo Gemini, lo que ya está en la gramática va directo al parser** (`lenguaje.lo_entiende_el_parser`): Gemini no contesta siempre igual.
+- **Una edición por chat es un lote que no descarta la propuesta abierta** (`lotes.aplicar_edicion` inserta su propio lote, no usa `proponer`). Si falla, se marca descartado: si no, quedaría como "la propuesta abierta". `gasto_cuentas` entra en `lotes.TABLAS` con su clave (`transaccion_id`, ver `_CLAVES`), así `partir` actualiza la cuenta guardada y `deshacer` la devuelve.
+- **`fecha_contable` cambia la fecha del gasto, no la del banco** (`banco_filas` sigue con el 28/10). Por eso `_en_ventana` también acepta un gasto cargado a mano con la fecha contable: si no, los haberes cargados el 2/11 no coincidían con la fila del 28/10 (fuera de los 2 días de margen) y se duplicaban.
 - ⚠️ **Gemini no contesta siempre igual** (temperatura 0 y todo): la misma frase salió bien en una corrida y mal en la siguiente (la compra de dólares como ingreso). Por eso cada error que aparece en `scripts/probar_lenguaje.py` se frena con **código** en `lenguaje.py` (`_sin_ok_no_pedido`, `_solo_lo_nombrado`, `_signo_cruzado`), no con más instrucciones. El signo cruzado con la categoría se descarta en una traducción; escrito a mano sigue valiendo (puede ser una devolución).
 - ⚠️ **Gemini corrige renglones que Franco no nombró** (segunda corrida en Fly, 4/11/2026: «…y el resto como dijiste, dale» → categorías inventadas para los renglones sin categoría). `lenguaje._nombrados` decide qué renglones nombra el mensaje: el número, una palabra **propia** del renglón (que no está en otro; en el tipo de movimiento se ignoran las palabras de las categorías: «compras» no nombra a «Compra Debito», ni «auto» a «Autoservicio»; en el comercio o la persona sí cuentan), un monto de $100 o más a menos del 3%, o la fecha. Lo demás se descarta.
 - ⚠️ **Gemini agrega `ok` aunque Franco no acepte** (prueba en Fly, 4/11/2026: «el del mecánico ponelo en auto» → «4 auto, ok»). Con el *sí* a la traducción eso aplicaba la conciliación entera. `lenguaje._sin_ok_no_pedido` lo saca salvo que el mensaje traiga una palabra de `_ACEPTA` (*va* no está: «va en compras»). Pedírselo a Gemini en las instrucciones no alcanzó.
@@ -75,6 +79,7 @@ Resumen: Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, ca
 ## Estado
 
 - **Funciona:** en producción.
+- **6/11/2026 (Fase E, paso 3, sin desplegar):** `ediciones.py` (`#N fecha`, `partir #N`), regla de fecha de Haberes UCEMA en la conciliación, modo Gemini on/off con memoria, Gemini ve lo cargado de 60 días. Tests: `tests/test_ediciones.py`, `tests/test_lenguaje_natural.py`.
 - **3/11/2026 (Fase E, paso 1, sin desplegar):** `lenguaje.py` y el traductor inyectado en `procesar` (`traductor=`). Se consulta a Gemini cuando la respuesta trae `entender=True`: no se entendió un gasto, varios renglones, los saldos o un `evento:`, o el gasto quedó con una categoría nueva. El contexto lleva hoy, la gramática (`AYUDA` + correcciones), las categorías y la propuesta abierta como la ve Franco. Tests: `tests/test_lenguaje_natural.py`.
 - **3/11/2026 (arreglo, sin desplegar):** `_leer_respuesta_lote` entiende la respuesta como lista numerada, un renglón por número (`1. Compras`, `2. ok`). Tests: `tests/test_conciliacion.py` (`test_se_contesta_como_lista_numerada_renglon_por_renglon`).
 - **21/10/2026 (rendimiento, frente 4):** `grupos_efectivos` reemplaza los `iterrows` de `metrics`, `diario` y `budget`; resultados idénticos (comparados con `assert_frame_equal` exacto). `compute_kpis` −92 %, Diario −80 % (`docs/perf/FRENTE-4-QUERIES.md`).

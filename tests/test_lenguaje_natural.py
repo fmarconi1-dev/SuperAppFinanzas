@@ -10,14 +10,15 @@ mentira de `test_fotos.py`. Nombres inventados.
 from __future__ import annotations
 
 import json
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
 
 from core.api.gemini import ClienteGemini, GeminiNoDisponible, Traduccion
 from places.finanzas.core.comandos import procesar
 from places.finanzas.core.lenguaje import clasificar
-from tests.test_conciliacion import AHORA, COMPRA, _extracto, _mandar, _txns, db  # noqa: F401
+from tests.test_conciliacion import (  # noqa: F401
+    AHORA, COMPRA, _cargar, _extracto, _mandar, _q, _txns, db)
 from tests.test_fotos import gemini_falso  # noqa: F401 — el fixture del Gemini de mentira
 
 UID = 1
@@ -314,6 +315,88 @@ def test_un_renglon_que_no_existe_no_es_una_orden(db):
     assert r.resultado == "rechazado" and "Entendí" not in r.texto
     # Nada quedó esperando el sí: el próximo sí es para la propuesta, como siempre.
     assert "Me falta la categoría de: 1, 2" in _p(db, "sí").texto and _txns(db) == []
+
+
+# ---------------------------------------------------------------- modo Gemini (paso 3)
+
+def test_hola_gemini_sin_traductor_lo_dice(db):
+    assert "no está configurado" in _p(db, "hola gemini").texto
+
+
+def test_en_modo_gemini_todo_pasa_primero_por_gemini(db):
+    t = _orden("5000, compras")
+    assert "Gemini prendido" in _p(db, "Hola Gemini!", t).texto
+    r = _p(db, "5000 compras", t)                   # el parser lo cargaba: igual pregunta
+    assert t.pedidos and r.resultado == "cargado"   # Gemini dijo lo mismo: carga el parser
+
+
+def test_en_modo_gemini_lo_que_ya_esta_en_la_gramatica_va_directo(db):
+    """Gemini no contesta siempre igual: un «5000, compras» correcto no depende de él."""
+    t = TraductorFalso(Traduccion("pregunta", texto="¿Cuánto?"))
+    _p(db, "hola gemini", t)
+    assert _p(db, "5000, compras", t).resultado == "cargado" and t.pedidos == []
+    assert _p(db, "resumen", t).resultado == "consulta" and t.pedidos == []
+    _p(db, "5000, chino", t)                        # categoría nueva: ahí sí pregunta
+    assert t.pedidos
+
+
+def test_en_modo_gemini_se_corrige_lo_cargado_hablando(db):
+    """El caso de Franco del 6/11: los haberes de UCEMA del 28/10 van el 2/11."""
+    txn = _cargar(db, date(2026, 10, 28), "Haberes SBT", ingresos=404625)
+    t = _orden(f"#{txn} fecha 02/11")
+    _p(db, "activá gemini", t)
+    r = _p(db, "los haberes del 28/10 ponelos el 2/11", t)
+    # El sí ve el gasto entero, no solo «#505».
+    assert f"Entendí: cambiar #{txn} Haberes SBT +$404.625 (28/10) al 02/11." in r.texto
+    assert f"#{txn} 28/10 Haberes SBT +$404.625" in t.pedidos[-1][1]     # LO CARGADO
+    assert _p(db, "sí", t).resultado == "lote"
+    assert _q(db, "SELECT fecha FROM transacciones WHERE id = ?", txn) == [("2026-11-02",)]
+
+
+def test_gemini_se_acuerda_de_la_charla(db):
+    t = TraductorFalso(Traduccion("pregunta", texto="¿Cuál de los dos?"))
+    _p(db, "hola gemini", t)
+    _p(db, "cambiá el café", t)
+    _p(db, "el de ayer", t)
+    _, contexto = t.pedidos[-1]
+    assert "CHARLA RECIENTE" in contexto
+    assert "Franco: cambiá el café\nSecretario: 🤖 ¿Cuál de los dos?" in contexto
+
+
+def test_chau_gemini_y_se_apaga_solo(db):
+    t = _orden("5000, compras")
+    _p(db, "hola gemini", t)
+    assert "apagué Gemini" in _p(db, "chau gemini", t).texto
+    _p(db, "5000 compras", t)
+    assert t.pedidos == []                          # apagado: el parser solo
+    _p(db, "hola gemini", t)
+    _p(db, "5000 compras", t, cuando=AHORA + timedelta(minutes=31))
+    assert t.pedidos == []                          # 30 minutos sin mensajes: se apagó
+
+
+def test_una_edicion_traducida_solo_con_un_numero_que_gemini_vio(db):
+    """Un número inventado (o de hace más de 60 días) tocaría otro gasto: se descarta."""
+    viejo = _cargar(db, date(2026, 8, 1), "Salidas", pasivos=5000)
+    r = _p(db, "el gasto de agosto ponelo el 2/11", _orden(f"#{viejo} fecha 02/11"))
+    assert "Entendí" not in r.texto
+    assert _p(db, "sí").texto == "No tengo nada pendiente de confirmar."
+
+
+def test_partir_algo_conciliado_no_se_ofrece(db):
+    _mandar(db, _extracto([("20/10/2026", COMPRA.format("CAFE INVENTADO"), -20400)]))
+    _p(db, "1 salidas, ok")
+    txn = _txns(db)[0]["id"]
+    r = _p(db, "el café fueron 19.400 y 1.000 de propina",
+           _orden(f"partir #{txn} 19400 + 1000 propina"))
+    assert "ya está conciliado con el banco" in r.texto and "¿Va?" not in r.texto
+
+
+def test_en_modo_gemini_el_si_va_a_lo_que_espera(db):
+    t = _orden("ayer 5000, compras")
+    _p(db, "hola gemini", t)
+    _p(db, "ayer gasté 5 lucas en el chino", t)
+    pedidos = len(t.pedidos)
+    assert _p(db, "sí", t).resultado == "cargado" and len(t.pedidos) == pedidos
 
 
 # ---------------------------------------------------------------- clasificar

@@ -21,7 +21,7 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Callable, Optional
 
 from core.api.gemini import GeminiNoDisponible
@@ -201,20 +201,58 @@ def _signo_cruzado(conn: sqlite3.Connection, orden: str, *, hoy: date, wid: int,
     return False
 
 
+#: Lo cargado que ve Gemini para corregirlo por chat (Franco, 6/11/2026: 60 días).
+DIAS_CARGADOS = 60
+TOPE_CARGADOS = 150
+
+
+def _filas_cargadas(conn: sqlite3.Connection, wid: int, hoy: date) -> list:
+    return conn.execute(
+        "SELECT t.id, t.fecha, t.motivo, t.pasivos, t.ingresos, t.comentario, gc.cuenta "
+        "FROM transacciones t LEFT JOIN gasto_cuentas gc ON gc.transaccion_id = t.id "
+        "WHERE t.workspace_id = ? AND t.fecha >= ? ORDER BY t.fecha DESC, t.id DESC LIMIT ?",
+        (wid, (hoy - timedelta(days=DIAS_CARGADOS)).isoformat(), TOPE_CARGADOS)).fetchall()
+
+
+def _cargados(conn: sqlite3.Connection, wid: int, hoy: date) -> str:
+    """Lo cargado en los últimos `DIAS_CARGADOS` días, con su número, para `#N fecha …`."""
+    from places.finanzas.core.comandos import pesos
+
+    lineas = []
+    for f in _filas_cargadas(conn, wid, hoy):
+        monto = f["ingresos"] or f["pasivos"]
+        linea = (f"#{f['id']} {date.fromisoformat(f['fecha']):%d/%m} {f['motivo']} "
+                 f"{'+' if f['ingresos'] else ''}{pesos(monto)}")
+        if f["cuenta"]:
+            linea += f" (= {f['cuenta']})"
+        if f["comentario"]:
+            linea += f" · {f['comentario']}"
+        lineas.append(linea)
+    return "\n".join(lineas)
+
+
 def contexto(conn: sqlite3.Connection, *, user_id: int, wid: int, hoy: date,
-             ahora: datetime) -> str:
-    """Lo que Gemini necesita para traducir: hoy, la gramática, las categorías y la
-    propuesta abierta tal como la ve Franco (ADR-0012: renglones incluidos)."""
+             ahora: datetime, charla: Optional[list] = None) -> str:
+    """Lo que Gemini necesita para traducir: hoy, la gramática, las categorías, lo
+    cargado (60 días), la propuesta abierta tal como la ve Franco y, en modo Gemini,
+    la charla reciente (ADR-0012)."""
     partes = [
         f"Hoy: {_DIAS[hoy.weekday()]} {hoy:%d/%m/%Y} (Buenos Aires).",
         "GRAMÁTICA DEL BOT\n" + AYUDA + "\n" + _CORRECCIONES,
         "CATEGORÍAS EXISTENTES\n" + ", ".join(sorted(set(all_motivos(conn, user_id=user_id)))),
         "DÓNDE VA CADA COSA (así categoriza Franco)\n" + "\n".join(PISTAS),
     ]
+    if cargados := _cargados(conn, wid, hoy):
+        partes.append(f"LO CARGADO EN LOS ÚLTIMOS {DIAS_CARGADOS} DÍAS (para corregir algo, "
+                      "nombralo con su #número)\n" + cargados)
     lote = lotes.vigente(conn, workspace_id=wid, ahora=ahora)
     if lote:
         partes.append("PROPUESTA ABIERTA (lo que Franco tiene en pantalla)\n"
                       + _texto_de_propuesta(lote.propuesta, hoy))
+    if charla:
+        partes.append("CHARLA RECIENTE (lo último que hablaron, del más viejo al más nuevo)\n"
+                      + "\n".join(f"Franco: {c['franco']}\nSecretario: {c['secretario']}"
+                                  for c in charla))
     return "\n\n".join(partes)
 
 
@@ -261,7 +299,11 @@ def clasificar(orden: str, *, hoy: date, cantidad: int) -> Optional[str]:
         return "escribe"
     if cantidad and _leer_respuesta_lote(orden, cantidad):
         return "escribe"
+    from places.finanzas.core import ediciones  # diferido: ediciones usa comandos
+
     try:
+        if ediciones.parsear(orden, hoy) is not None:     # #505 fecha 02/11 · partir #511 …
+            return "escribe"
         if saldos.parsear(orden, hoy):
             return "propone"
     except EntradaInvalida:
@@ -277,6 +319,30 @@ def clasificar(orden: str, *, hoy: date, cantidad: int) -> Optional[str]:
     except EntradaInvalida:
         return None
     return "propone" if len(renglones) >= 2 else "escribe"
+
+
+def lo_entiende_el_parser(conn: sqlite3.Connection, texto: str, *, user_id: int, wid: int,
+                          hoy: date, ahora: datetime) -> bool:
+    """¿El mensaje ya está en la gramática, con categorías que existen? Sin tocar la base.
+
+    En modo Gemini, eso va directo al parser (ADR-0012 §3: si el parser entiende
+    bien, no se llama a nadie): Gemini no contesta siempre igual, y un «5000,
+    compras» correcto no tiene por qué depender de él.
+    """
+    from places.finanzas.core.comandos import resolver_categoria
+
+    lote = lotes.vigente(conn, workspace_id=wid, ahora=ahora)
+    if clasificar(texto, hoy=hoy, cantidad=_cantidad(lote.propuesta) if lote else 0) is None:
+        return False
+    motivos = all_motivos(conn, user_id=user_id)
+    for renglon in (r for r in texto.splitlines() if r.strip()):
+        try:
+            g = parsear_gasto(renglon, hoy)
+        except EntradaInvalida:
+            continue                      # no es un gasto: un comando, una corrección, …
+        if resolver_categoria(g.categoria, motivos)[0] != "exacta":
+            return False
+    return True
 
 
 def _misma_carga(orden: str, texto: str, hoy: date) -> bool:
@@ -296,32 +362,48 @@ def entender(
     texto: str,
     traductor: Any,
     *,
-    respaldo: Respuesta,
+    respaldo: "Respuesta | Callable[[], Respuesta]",
     ejecutar: Callable[[str], Respuesta],
     user_id: int,
     wid: int,
     hoy: date,
     ahora: datetime,
+    charla: Optional[list] = None,
 ) -> Respuesta:
-    """Lo que se contesta cuando el parser no entendió `texto` (`respaldo` es su respuesta).
+    """Lo que se contesta con lo que entendió Gemini.
 
+    `respaldo` es lo que contesta el parser: ya calculado (Gemini entra porque el
+    parser no entendió) o una función que lo calcula (modo Gemini: el parser
+    corre solo si Gemini no ayuda, así no carga nada antes de tiempo).
     `ejecutar(orden)` corre una orden con `procesar`, sin traductor (las
-    consultas, que no piden *sí*). Si Gemini no ayuda, vuelve `respaldo` tal cual.
+    consultas, que no piden *sí*). `charla`: lo último hablado, en modo Gemini.
     """
+    calculado = respaldo if isinstance(respaldo, Respuesta) else None
+
+    def de_siempre() -> Respuesta:
+        nonlocal calculado
+        if calculado is None:
+            calculado = respaldo()
+        return calculado
+
+    def sin_pregunta_vieja() -> None:
+        # Lo que el parser dejó pendiente («¿La creo?») ya no es la pregunta.
+        if calculado is not None and calculado.resultado == "pendiente":
+            _borrar_pendiente(conn)
+
     try:
         t = traductor.traducir(texto, contexto(conn, user_id=user_id, wid=wid, hoy=hoy,
-                                               ahora=ahora))
+                                               ahora=ahora, charla=charla))
     except GeminiNoDisponible as e:
-        return Respuesta(respaldo.texto + f"\n\n(Quise entenderlo con Gemini y no pude: {e}.)",
-                         respaldo.resultado, respaldo.transaccion_id)
+        r = de_siempre()
+        return Respuesta(r.texto + f"\n\n(Quise entenderlo con Gemini y no pude: {e}.)",
+                         r.resultado, r.transaccion_id)
 
     if t.tipo in ("pregunta", "respuesta") and t.texto:
-        # Lo que el parser dejó pendiente («¿La creo?») ya no es la pregunta.
-        if respaldo.resultado == "pendiente":
-            _borrar_pendiente(conn)
+        sin_pregunta_vieja()
         return Respuesta("🤖 " + t.texto, "consulta")
     if t.tipo != "orden" or not t.orden or _misma_carga(t.orden, texto, hoy):
-        return respaldo
+        return de_siempre()
 
     lote = lotes.vigente(conn, workspace_id=wid, ahora=ahora)
     cantidad = _cantidad(lote.propuesta) if lote else 0
@@ -330,32 +412,44 @@ def entender(
         orden = _solo_lo_nombrado(orden, texto, _texto_de_propuesta(lote.propuesta, hoy),
                                   cantidad, all_motivos(conn, user_id=user_id))
     if orden is None:
-        return respaldo
+        return de_siempre()
     clase = clasificar(orden, hoy=hoy, cantidad=cantidad)
     if clase is None:
-        return respaldo
+        return de_siempre()
     # El signo se mira solo en gastos: una corrección ("5 Haberes UCEMA, 6 …") también
     # se lee como un gasto de $5, y se descartaba (cuarta corrida en Fly, 4/11/2026).
     es_correccion = bool(cantidad) and _leer_respuesta_lote(orden, cantidad) is not None
     if not es_correccion and _signo_cruzado(conn, orden, hoy=hoy, wid=wid,
                                             motivos=all_motivos(conn, user_id=user_id)):
-        return respaldo
+        return de_siempre()
     if clase == "propone" and lote:
         # Varios gastos o saldos arman una propuesta nueva y tirarían la abierta (la
         # conciliación que Franco está revisando). Eso no se hace por una traducción.
-        if respaldo.resultado == "pendiente":
-            _borrar_pendiente(conn)
+        sin_pregunta_vieja()
         return Respuesta(f"🤖 Entendí:\n{orden}\n\nPero eso reemplazaría la propuesta que "
                          "tenés abierta. Terminala (*ok*) o descartala (*cancelar*) y "
                          "mandalo de nuevo.", "rechazado")
     if clase == "consulta":
-        if respaldo.resultado == "pendiente":
-            _borrar_pendiente(conn)
+        sin_pregunta_vieja()
         r = ejecutar(orden)
         return Respuesta(f"🤖 Entendí: *{orden}*\n\n{r.texto}", r.resultado, r.transaccion_id)
+
+    entendi = f"🤖 Entendí:\n{orden}"
+    from places.finanzas.core import ediciones  # diferido: ediciones usa comandos
+
+    if (edicion := ediciones.parsear(orden, hoy)) is not None:
+        # Solo un número que Gemini vio en LO CARGADO: uno inventado tocaría otro gasto.
+        if edicion.txn_id not in {f["id"] for f in _filas_cargadas(conn, wid, hoy)}:
+            return de_siempre()
+        try:
+            # «#505» solo no dice qué es: el *sí* tiene que ver el gasto entero.
+            entendi = f"🤖 Entendí: {ediciones.explicar(conn, edicion, wid=wid, hoy=hoy)}."
+        except EntradaInvalida as e:
+            sin_pregunta_vieja()
+            return Respuesta(f"🤖 {e} No cambié nada.", "rechazado")
 
     guardar_estado(conn, "pendiente", json.dumps({
         "tipo": "traduccion", "orden": orden, "mensaje": texto,
         "creado_en": ahora.isoformat(),
     }), ahora)
-    return Respuesta(f"🤖 Entendí:\n{orden}\n\n¿Va? Respondé *sí* o *no*.", "pendiente")
+    return Respuesta(f"{entendi}\n\n¿Va? Respondé *sí* o *no*.", "pendiente")

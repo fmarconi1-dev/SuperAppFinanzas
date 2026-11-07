@@ -314,8 +314,28 @@ def _montos_coinciden(fila: FilaBanco, c: Cargado) -> Optional[str]:
 
 
 def _en_ventana(fila: FilaBanco, c: Cargado) -> bool:
-    return fila.fecha - timedelta(days=DIAS_ANTES) <= c.fecha <= fila.fecha + timedelta(
-        days=DIAS_DESPUES)
+    # Un ingreso que cuenta para el mes siguiente (`fecha_contable`) se puede
+    # haber cargado a mano con esa fecha: también es el mismo.
+    return (fila.fecha - timedelta(days=DIAS_ANTES) <= c.fecha <= fila.fecha + timedelta(
+        days=DIAS_DESPUES)) or c.fecha == fecha_contable(c.motivo, fila.fecha) != fila.fecha
+
+
+#: Ingresos que entran a fin de mes y cuentan para el mes siguiente: desde ese
+#: día, la fecha es el primer día hábil del mes que viene (Franco, 6/11/2026:
+#: los haberes de UCEMA del 28/10 son de noviembre; así los cargaba a mano).
+#: El banco sigue diciendo su fecha; la cambia solo el gasto que se carga.
+FECHA_MES_SIGUIENTE = {"Haberes UCEMA": 25}
+
+
+def fecha_contable(motivo: Optional[str], fecha: date) -> date:
+    """La fecha con la que se carga un movimiento del banco de esa categoría."""
+    desde = FECHA_MES_SIGUIENTE.get(motivo or "")
+    if desde is None or fecha.day < desde:
+        return fecha
+    siguiente = (fecha.replace(day=1) + timedelta(days=32)).replace(day=1)
+    while siguiente.weekday() >= 5:          # sábado o domingo (los feriados no se conocen)
+        siguiente += timedelta(days=1)
+    return siguiente
 
 
 def emparejar(filas: list[FilaBanco], cargados: list[Cargado]) -> tuple[
@@ -732,6 +752,9 @@ def texto_propuesta(prop: dict, *, nuevo_ancla: bool) -> str:
                 linea += "no se carga"
             elif it["motivo"]:
                 linea += it["motivo"] + _marca(it)
+                fecha_fila = date.fromisoformat(filas[it["fila"]]["fecha"])
+                if (cuenta := fecha_contable(it["motivo"], fecha_fila)) != fecha_fila:
+                    linea += f" (cuenta para el {cuenta:%d/%m})"
             else:
                 linea += "¿categoría?"
             if it.get("empate") and not it["motivo"] and not it.get("descartada"):
@@ -966,7 +989,8 @@ def aplicar(conn: sqlite3.Connection, lote_id: int, prop: dict, *, user_id: int,
             fila = filas[it["fila"]]
             pasivos, ingresos = montos_para(fila["monto"], it["motivo"], grupos.get(it["motivo"]))
             ops.append(InsertarMovimiento(Movimiento(
-                fecha=date.fromisoformat(fila["fecha"]), motivo=it["motivo"], pasivos=pasivos,
+                fecha=fecha_contable(it["motivo"], date.fromisoformat(fila["fecha"])),
+                motivo=it["motivo"], pasivos=pasivos,
                 ingresos=ingresos, comentario=fila["comercio"]), clave=f"t{k}"))
             ops.append(Insertar("emparejamientos", {
                 "workspace_id": wid, "transaccion_id": Ref(f"t{k}"),

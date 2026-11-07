@@ -9,6 +9,19 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 6 de noviembre de 2026 — Corregir lo cargado hablando, y Gemini cuando lo llamás
+
+**Qué se hizo.**
+- **Los haberes de UCEMA cuentan para el mes que corresponde.** Si entran desde el día 25, el Secretario los carga el primer día hábil del mes siguiente (los del 28/10 → 2/11), como hacías a mano. El banco sigue diciendo 28/10; lo que cambia es en qué mes cuentan.
+- **Podés corregir lo que ya está cargado:** cambiarle la fecha a algo (*#505 fecha 02/11*) o partir un gasto (*partir #511 19400 + 1000 propina*: el café con tarjeta y la propina en efectivo). Así la conciliación encuentra los 19.400 de la tarjeta. Las dos cosas se deshacen con *deshacer*.
+- **Gemini cuando lo llamás:** «hola gemini» lo prende: le escribís como te salga («los haberes del cema ponelos el 2/11», «el café fueron 19.400 con tarjeta y 1.000 de propina») y se acuerda de lo que vienen hablando. «chau gemini» lo apaga (o se apaga solo a la media hora). Igual que antes, todo lo que cambia algo te lo muestra y espera tu *sí*.
+
+**Para qué te sirve.** Los ingresos y gastos quedan en el mes que corresponden, y lo que la conciliación no reconoce lo explicás en una frase.
+
+**Qué sigue.** Publicarlo, corregir el ingreso de UCEMA del 28/10 que ya está cargado (*#505 fecha 02/11*) y correr la prueba con Gemini de verdad para ver cómo entiende estos pedidos nuevos.
+
+---
+
 ## 3 de noviembre de 2026 (noche) — El Secretario empieza a entender cómo hablás
 
 **Qué se hizo.** Primer paso del lenguaje natural. Cuando el Secretario no entiende un mensaje («ayer gasté 5 lucas en el chino», «la ferretería ponela en compras»), le pregunta a Gemini qué quisiste decir, en el formato de siempre. Antes de hacer nada, te lo muestra: «Entendí: ayer 5000, compras. ¿Va?». Solo con tu *sí* lo carga. También puede repreguntarte si le falta un dato, o contestarte una duda sobre la conciliación que tenés abierta.

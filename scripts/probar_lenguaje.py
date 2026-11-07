@@ -152,6 +152,13 @@ CASOS: list[Caso] = [
     Caso("por qué el depósito dice haberes sbt?", "extracto", no_escribe=True),
     Caso("el 9 es salidas", "extracto", no_escribe=True),
     Caso("agregá el café de 1500", "extracto", gastos=[(0, 1500, {"Salidas"}, False)]),
+    # -- corregir lo cargado (paso 3, los casos de Franco del 6/11)
+    Caso("los haberes del cema ponelos el 2/11", orden_exacta="#{UCEMA} fecha 02/11"),
+    Caso("cambiá la fecha del sueldo de ucema al 2 de noviembre",
+         orden_exacta="#{UCEMA} fecha 02/11"),
+    Caso("el café de 20.400 fueron 19.400 con tarjeta y 1.000 de propina",
+         orden_exacta="partir #{CAFE} 19400 + 1000"),
+    Caso("partí el gasto de 20400 en 19400 y 1000", orden_exacta="partir #{CAFE} 19400 + 1000"),
 ]
 
 
@@ -194,9 +201,28 @@ def _base(carpeta: Path, escenario: str, ahora: datetime) -> Path:
                                               ahora=ahora)
         lotes.proponer(conn, workspace_id=wid, user_id=1, origen="extracto", propuesta=prop,
                        ahora=ahora)
+    else:
+        # Los dos casos de Franco del 6/11 (paso 3): corregir lo que ya está cargado.
+        insert_transaction(conn, fecha=date(2026, 10, 28), motivo="Haberes UCEMA",
+                           ingresos=404625, comentario="UNIVERSIDAD DEL C.E.M.A.", user_id=1)
+        cafe = insert_transaction(conn, fecha=date(2026, 11, 5), motivo="Salidas",
+                                  pasivos=20400, user_id=1)
+        conn.execute("INSERT INTO gasto_cuentas (transaccion_id, workspace_id, cuenta, bruto) "
+                     "VALUES (?, ?, '19400+1000', 20400)", (cafe, resolve_workspace_id(conn, 1)))
     conn.commit()
     conn.close()
     return ruta
+
+
+def _ids(conn) -> dict[str, int]:
+    """Los números de lo cargado que nombran los casos ({UCEMA}, {CAFE})."""
+    ids = {}
+    for nombre, motivo, monto in (("UCEMA", "Haberes UCEMA", 404625), ("CAFE", "Salidas", 20400)):
+        fila = conn.execute("SELECT id FROM transacciones WHERE motivo = ? AND "
+                            "(ingresos = ? OR pasivos = ?)", (motivo, monto, monto)).fetchone()
+        if fila:
+            ids[nombre] = fila[0]
+    return ids
 
 
 def _numeros_por_comercio(conn) -> dict[str, int]:
@@ -232,7 +258,8 @@ def _fecha_esperada(dias: Any, hoy: date) -> date:
 
 
 def evaluar(caso: Caso, traduccion: Any, respuesta: Any, *, hoy: date, cantidad: int,
-            numeros: dict[str, int], motivos: list[str]) -> tuple[str, str]:
+            numeros: dict[str, int], motivos: list[str],
+            ids: Optional[dict[str, int]] = None) -> tuple[str, str]:
     """(nota, detalle) de una traducción. `traduccion` es None si el parser lo resolvió solo."""
     from places.finanzas.core.comandos import (
         EntradaInvalida, _leer_respuesta_lote, normalizar, parsear_gasto, resolver_categoria)
@@ -258,6 +285,21 @@ def evaluar(caso: Caso, traduccion: Any, respuesta: Any, *, hoy: date, cantidad:
         return ("BIEN", "") if normalizar(orden) == caso.consulta else (
             "MAL" if escribe else "DUDOSA", f"esperaba «{caso.consulta}»")
     if caso.orden_exacta:
+        esperada = caso.orden_exacta.format(**(ids or {}))
+        if esperada.startswith(("#", "partir")):
+            # Una edición se compara por lo que hace (el número, la fecha, los montos), no
+            # por el texto: "partir #9 19400 tarjeta + 1000 propina" es lo mismo.
+            from places.finanzas.core import ediciones
+
+            def hace(o):
+                e = ediciones.parsear(o, hoy)
+                return e and (e.txn_id, e.tipo, e.fecha, [m for m, _ in e.partes])
+            try:
+                if hace(orden) == hace(esperada):
+                    return "BIEN", ""
+            except EntradaInvalida:
+                pass
+            return ("MAL" if escribe else "DUDOSA"), f"esperaba «{esperada}»"
         if caso.orden_exacta.startswith("fima"):
             from places.finanzas.core import saldos
             try:
@@ -380,6 +422,7 @@ def correr(traductor: Any, casos: list[Caso] = CASOS, *, pausa: float = 4.5,
                 lote = lotes.vigente(conn, workspace_id=resolve_workspace_id(conn, 1), ahora=ahora)
                 cantidad = _cantidad(lote.propuesta) if lote else 0
                 numeros = _numeros_por_comercio(conn)
+                ids = _ids(conn)
                 motivos = all_motivos(conn, user_id=1)
                 grabador = Grabador(traductor, pausa)
                 r = procesar(conn, caso.mensaje, user_id=1, ahora=ahora, traductor=grabador)
@@ -396,7 +439,7 @@ def correr(traductor: Any, casos: list[Caso] = CASOS, *, pausa: float = 4.5,
                     if not final and t and t.tipo == "orden" and not (
                             r and r.texto.startswith("🤖 Entendí: *")):
                         t_final = Traduccion("no_entiendo", texto="el bot la descartó")
-                    nota, detalle = evaluar(caso, t_final, r, hoy=hoy, cantidad=cantidad,
+                    nota, detalle = evaluar(caso, t_final, r, hoy=hoy, cantidad=cantidad, ids=ids,
                                             numeros=numeros, motivos=motivos)
                     if final and t and final != t.orden:
                         detalle = (detalle + "; " if detalle else "") + f"el bot muestra «{final}»"
