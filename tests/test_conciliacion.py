@@ -240,6 +240,81 @@ def test_la_lista_numerada_con_ok_al_final_aplica(db):
     assert r.resultado == "lote" and [t["pasivos"] for t in _txns(db)] == [1000.0]
 
 
+
+def test_un_renglon_que_no_entiende_no_tira_los_demas(db):
+    """El caso real del 11/11/2026: tres correcciones y una frase. Antes se leía como
+    cuatro gastos nuevos («No encontré monto y categoría») y no se anotaba nada."""
+    _mandar(db, _extracto([("20/10/2026", COMPRA.format("X"), -1000),
+                           ("21/10/2026", COMPRA.format("Y"), -2000),
+                           ("22/10/2026", COMPRA.format("Z"), -3000)]))
+    r = _p(db, "1. Salidas\n2. Salidas\n3. Compras\nEl 8 se resta de Haberes SBT")
+    assert r.resultado == "pendiente" and r.entender
+    assert "No entendí esto:\n  • «El 8 se resta de Haberes SBT»" in r.texto
+    assert "Lo demás ya lo anoté" in r.texto
+    assert "X $1.000 → Salidas" in r.texto and "Z $3.000 → Compras" in r.texto
+    assert "No encontré monto y categoría" not in r.texto
+    assert _txns(db) == []
+    assert _p(db, "ok").resultado == "lote"
+    assert [(t["motivo"], t["pasivos"]) for t in _txns(db)] == [
+        ("Salidas", 1000.0), ("Salidas", 2000.0), ("Compras", 3000.0)]
+
+
+def test_con_algo_sin_entender_el_ok_no_aplica(db):
+    _mandar(db, _extracto([("20/10/2026", COMPRA.format("X"), -1000),
+                           ("21/10/2026", COMPRA.format("Y"), -2000)]))
+    r = _p(db, "1 salidas, el otro no se, ok")
+    assert r.resultado == "pendiente" and "«el otro no se»" in r.texto
+    assert _txns(db) == []
+
+
+def test_un_debito_con_categoria_de_ingreso_resta_de_ese_ingreso(db):
+    """Franco, 19/11/2026: «el 8 se resta de Haberes SBT». Antes quedaba en `pasivos`:
+    el saldo daba bien, pero no bajaba los ingresos del mes ni sumaba a los gastos."""
+    from places.finanzas.core.comandos import resumen_mes
+
+    _cargar(db, date(2026, 10, 20), "Haberes SBT", ingresos=500000)
+    _mandar(db, _extracto([("21/10/2026", A_TERCEROS, -46000)]))
+    assert _p(db, "1 haberes sbt, ok").resultado == "lote"
+    fila = [t for t in _txns(db) if t["pasivos"] == 0 and t["ingresos"] < 0]
+    assert [(t["motivo"], t["ingresos"]) for t in fila] == [("Haberes SBT", -46000.0)]
+    t = totales_mes(db, user_id=UID, hoy=date(2026, 10, 31))
+    assert t.ingresos == 500000 - 46000 and t.gastos == 0
+    texto = resumen_mes(db, user_id=UID, hoy=date(2026, 10, 31))
+    assert "-$46.000 Haberes SBT" in texto and "+-" not in texto
+
+
+def test_montos_para_un_debito_en_inversiones_sigue_siendo_pasivo():
+    from places.finanzas.core.conciliacion import montos_para
+    assert montos_para(-100000, "Inversiones", "Inversion") == (1000.0, 0.0)
+    assert montos_para(-100000, "Haberes SBT", "Ingreso") == (0.0, -1000.0)
+    assert montos_para(-100000, "Compras", "Gasto Variable") == (1000.0, 0.0)
+    assert montos_para(100000, "Compras", "Gasto Variable") == (-1000.0, 0.0)
+
+
+def test_un_evento_con_numero_no_es_una_correccion(db):
+    """Con la conciliación abierta (48 h), «evento: viernes, 3 cumpleaños» es un evento."""
+    from places.finanzas.core import lotes
+    from tests.test_agenda_whatsapp import AgendaFalsa
+
+    _mandar(db, _extracto([("20/10/2026", COMPRA.format("X"), -1000),
+                           ("21/10/2026", COMPRA.format("Y"), -2000),
+                           ("22/10/2026", COMPRA.format("Z"), -3000)]))
+    antes = lotes.vigente(db, workspace_id=1, ahora=AHORA).propuesta
+    falsa = AgendaFalsa()
+    r = procesar(db, "evento: viernes, 3 cumpleaños de Ana", user_id=UID, ahora=AHORA,
+                 agenda=falsa)
+    assert r.resultado == "agendado" and falsa.llamados[0][0] == "crear_evento"
+    assert lotes.vigente(db, workspace_id=1, ahora=AHORA).propuesta == antes
+
+
+def test_n_es_categoria_es_la_categoria(db):
+    """«1 es salidas» no es elegir un candidato: es la categoría (11/11/2026)."""
+    _mandar(db, _extracto([("20/10/2026", COMPRA.format("X"), -1000)]))
+    r = _p(db, "1 es salidas, ok")
+    assert r.resultado == "lote", r.texto
+    assert [(t["motivo"], t["pasivos"]) for t in _txns(db)] == [("Salidas", 1000.0)]
+
+
 # ---------------------------------------------------------------- emparejar sin duplicar
 
 def test_un_gasto_ya_cargado_no_se_vuelve_a_cargar_y_manda_el_banco(db):

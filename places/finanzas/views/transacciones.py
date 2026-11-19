@@ -339,7 +339,7 @@ def _tabla_recientes() -> None:
         "Motivo": df["motivo"],
         "Subcategoría": df["subcategoria"],
         "Importe": [
-            fmt_ars(r["ingresos"] if r["ingresos"] > 0 else -r["pasivos"])
+            fmt_ars(r["ingresos"] if r["ingresos"] != 0 else -r["pasivos"])
             for _, r in df.iterrows()
         ],
         "Comentario": df["comentario"].fillna(""),

@@ -152,3 +152,13 @@
 - **Autor:** Claude (Opus 5.5), con Franco.
 - **Qué:** corrida de `scripts/probar_lenguaje.py` con las 4 frases nuevas: 48 BIEN · 2 DUDOSA · 0 MAL · 0 FALLA de 50.
 - **Estado:** ✅ en main (`ff68f1a`). Falta la prueba de Franco desde el celular.
+
+## 2026-11-07 (más tarde) — Prueba de Franco desde el celular y el mensaje de deshacer
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** Franco corrigió `#505 fecha 02/11`, prendió Gemini, partió el café de 20.400 con una frase («en salidas los 20.400 del 5/11 fueron 19.400 con la tarjeta y 1000 en propina en efectivo») y lo deshizo: todo funcionó. El mensaje de `deshacer` de una edición confundía; ahora dice cómo quedó cada gasto.
+- **Estado:** ✅ sin desplegar el mensaje nuevo.
+
+## 2026-11-19 — La respuesta a la conciliación que no sirvió (11/11) y el saldo en `resumen`
+- **Autor:** Claude (Opus 5.5), con Franco.
+- **Qué:** una respuesta con un renglón que no entiende ya no tira los demás (se anotan y se dice lo que faltó); «N es categoría» vale como categoría; Gemini reconoce «1.» como el renglón 1; `resumen` muestra cuánto debería haber entre caja, FIMA y efectivo. `Balances.gs`: las fallas pasajeras de Google al leer las propiedades ya no mandan mail.
+- **Estado:** ✅ tests en verde, sin commitear ni desplegar. `Balances.gs` sin pegar en Google. Franco decidió que un débito con categoría de ingreso **reste del ingreso**: hecho (ingreso negativo).

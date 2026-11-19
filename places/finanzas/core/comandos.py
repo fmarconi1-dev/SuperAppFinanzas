@@ -625,26 +625,20 @@ def _interpretar(
         r = tarjetas.responder(conn, lote, aceptar=False, cancelar=False, correcciones=(),
                                user_id=user_id, wid=wid, ahora=ahora, dolar=valor)
         return Respuesta(r.texto, r.resultado)
-    if lote and (respuesta_lote := _leer_respuesta_lote(limpio, _cantidad(lote.propuesta))):
-        if tipo_lote in ("extracto", "resumen"):
-            from places.finanzas.core import conciliacion, tarjetas  # diferido (ver arriba)
-            modulo = conciliacion if tipo_lote == "extracto" else tarjetas
-            r = modulo.responder(
-                conn, lote, aceptar=respuesta_lote.aceptar, cancelar=respuesta_lote.cancelar,
-                correcciones=respuesta_lote.correcciones, user_id=user_id, wid=wid, ahora=ahora)
-            texto = r.texto
-            if r.resultado == "lote":
-                texto += "\n\n" + _lo_que_sigue(conn, user_id, wid, ahora, cotizador)
-            return Respuesta(texto, r.resultado)
-        if tipo_lote == "saldos":
-            return _responder_saldos(conn, lote, respuesta_lote, user_id, wid, ahora)
-        if tipo_lote == "foto":
-            from places.finanzas.core import fotos  # diferido: fotos usa este módulo
-            r = fotos.responder(
-                conn, lote, aceptar=respuesta_lote.aceptar, cancelar=respuesta_lote.cancelar,
-                correcciones=respuesta_lote.correcciones, user_id=user_id, wid=wid, ahora=ahora)
-            return Respuesta(r.texto, r.resultado)
-        return _responder_lote(conn, lote, respuesta_lote, user_id, ahora, hoy)
+    if lote and (respuesta_lote := _leer_respuesta_lote(limpio, _cantidad(lote.propuesta),
+                                                        parcial=True)):
+        r = _contestar_lote(conn, lote, tipo_lote, respuesta_lote, user_id, wid, ahora, hoy,
+                            cotizador)
+        if not respuesta_lote.no_entendidas:
+            return r
+        # Lo que sí entendió ya quedó anotado en la propuesta; lo demás se dice (y,
+        # con Gemini prendido, se le pregunta: ve la propuesta ya corregida).
+        faltan = "\n".join(f"  • «{p}»" for p in respuesta_lote.no_entendidas)
+        hecho = ("Lo demás ya lo anoté." if respuesta_lote.correcciones
+                 else "Lo demás queda como te lo propuse.")
+        return Respuesta(f"⚠️ No entendí esto:\n{faltan}\n{hecho} Escribilo como "
+                         f"*N categoría* (por ejemplo *8 salidas*) y después *ok*.\n\n{r.texto}",
+                         r.resultado, r.transaccion_id, entender=True)
 
     if not limpio:
         return Respuesta("No recibí texto. Mandá *ayuda* para ver cómo cargar.", "rechazado")
@@ -685,6 +679,31 @@ def _interpretar(
         return Respuesta(f"⚠️ {e}\n\nMandá *ayuda* para ver los formatos.", "rechazado",
                          entender=True)
     return _cargar_gasto(conn, g, user_id, ahora, hoy)
+
+
+def _contestar_lote(conn: sqlite3.Connection, lote: "lotes.Lote", tipo_lote: Optional[str],
+                    respuesta_lote: "RespuestaLote", user_id: int, wid: int, ahora: datetime,
+                    hoy: date, cotizador: Optional[Any]) -> Respuesta:
+    """La respuesta a la propuesta abierta, según de qué es (extracto, resumen, saldos, …)."""
+    if tipo_lote in ("extracto", "resumen"):
+        from places.finanzas.core import conciliacion, tarjetas  # diferido (ver arriba)
+        modulo = conciliacion if tipo_lote == "extracto" else tarjetas
+        r = modulo.responder(
+            conn, lote, aceptar=respuesta_lote.aceptar, cancelar=respuesta_lote.cancelar,
+            correcciones=respuesta_lote.correcciones, user_id=user_id, wid=wid, ahora=ahora)
+        texto = r.texto
+        if r.resultado == "lote":
+            texto += "\n\n" + _lo_que_sigue(conn, user_id, wid, ahora, cotizador)
+        return Respuesta(texto, r.resultado)
+    if tipo_lote == "saldos":
+        return _responder_saldos(conn, lote, respuesta_lote, user_id, wid, ahora)
+    if tipo_lote == "foto":
+        from places.finanzas.core import fotos  # diferido: fotos usa este módulo
+        r = fotos.responder(
+            conn, lote, aceptar=respuesta_lote.aceptar, cancelar=respuesta_lote.cancelar,
+            correcciones=respuesta_lote.correcciones, user_id=user_id, wid=wid, ahora=ahora)
+        return Respuesta(r.texto, r.resultado)
+    return _responder_lote(conn, lote, respuesta_lote, user_id, ahora, hoy)
 
 
 def _ya_vino_del_banco(conn: sqlite3.Connection, g: Gasto, user_id: int) -> Optional[str]:
@@ -1012,9 +1031,12 @@ class RespuestaLote:
     cancelar: bool = False
     #: (número de renglón, texto): "no" lo saca; otra cosa es la categoría.
     correcciones: tuple[tuple[int, str], ...] = ()
+    #: Con `parcial=True`: los pedazos del mensaje que no son correcciones.
+    no_entendidas: tuple[str, ...] = ()
 
 
-def _leer_respuesta_lote(texto: str, cantidad: int) -> Optional[RespuestaLote]:
+def _leer_respuesta_lote(texto: str, cantidad: int, *,
+                         parcial: bool = False) -> Optional[RespuestaLote]:
     """¿El mensaje contesta la propuesta? None si es otra cosa (un gasto, `agenda`).
 
     Contesta si es `ok`/sí, `no`/`cancelar`, o una lista separada por comas de
@@ -1025,6 +1047,13 @@ def _leer_respuesta_lote(texto: str, cantidad: int) -> Optional[RespuestaLote]:
 
     También se contesta renglón por renglón, como lista (``1. Compras`` /
     ``2. ok``): "N ok" deja ese renglón como se propuso.
+
+    `parcial=True` (solo para la respuesta de Franco, nunca para validar lo que
+    traduce Gemini): si **alguna** parte es una corrección válida, las que no lo
+    son van a `no_entendidas` en vez de tirar el mensaje entero. Caso real del
+    11/11/2026: «1. Salidas / 2. Salidas / 3. Compras / El 8 se resta de Haberes
+    SBT» → por el último renglón se leía como cuatro gastos nuevos y no se
+    anotaba nada. Con algo sin entender, el `ok` no vale: Franco tiene que verlo.
     """
     clave = normalizar(texto).strip(" .!¡?¿")
     if clave in SI:
@@ -1039,16 +1068,26 @@ def _leer_respuesta_lote(texto: str, cantidad: int) -> Optional[RespuestaLote]:
         partes = partes[:-1]
     if not partes:
         return None
-    correcciones = []
-    for p in partes:
+    correcciones, no_entendidas, validas = [], [], 0
+    for i, p in enumerate(partes):
         m = _RE_CORRECCION.match(p)
         if not m or not 1 <= int(m.group(1)) <= cantidad:
-            return None
+            # Parcial, solo si **empieza** como respuesta: «evento: viernes, 3 cumpleaños»
+            # es un evento, no el renglón 3 (la propuesta queda abierta 48 h).
+            if not parcial or i == 0 or _RE_COMANDO_AGENDA.match(texto.strip()):
+                return None
+            no_entendidas.append(p)
+            continue
+        validas += 1
         que = " ".join(m.group(2).split())
         if normalizar(que).strip(" .!¡?¿") in SI:
             continue    # "2 ok": queda como se propuso
         correcciones.append((int(m.group(1)), que))
-    return RespuestaLote(aceptar=aceptar, correcciones=tuple(correcciones))
+    if not validas:
+        return None
+    return RespuestaLote(aceptar=aceptar and not no_entendidas,
+                         correcciones=tuple(correcciones),
+                         no_entendidas=tuple(no_entendidas))
 
 
 def _item_de_gasto(g: Gasto, existentes: list[str]) -> dict:
@@ -1268,6 +1307,22 @@ def _deshacer_lote(conn: sqlite3.Connection, lote_id: int, ahora: datetime) -> R
     except lotes.LoteNoDeshacible as e:
         return Respuesta(f"⚠️ No puedo deshacer los gastos que cargaste juntos: {e}. "
                          "No toqué nada; corregilo desde la app.", "rechazado")
+    if d.origen == "edicion":
+        # Un cambio pedido por chat (#N fecha, partir #N): se dice cómo quedó cada gasto,
+        # no «borré el que cargaste» (Franco, 7/11/2026: confundía).
+        lineas = ["↩️ Deshice el cambio:"]
+        for txn_id in d.restauradas_ids:
+            t = conn.execute("SELECT fecha, motivo, pasivos, ingresos FROM transacciones "
+                             "WHERE id = ?", (txn_id,)).fetchone()
+            if t:
+                signo = "+" if (t["ingresos"] or 0) > 0 else ""
+                lineas.append(f"  • #{txn_id} {t['motivo']} volvió a {signo}"
+                              f"{pesos(t['ingresos'] or t['pasivos'])} del "
+                              f"{date.fromisoformat(t['fecha']):%d/%m}")
+        for b in d.borradas:
+            lineas.append(f"  • borré la parte #{b['id']} de {pesos(b['ingresos'] or b['pasivos'])}"
+                          + (f" · {b['comentario']}" if b.get("comentario") else ""))
+        return Respuesta("\n".join(lineas), "deshecho")
     if not d.borradas and not d.restauradas:
         return Respuesta("↩️ Deshice lo último que confirmaste. No había cargado gastos: "
                          "solo lo que anoté del banco.", "deshecho")
@@ -1341,6 +1396,26 @@ def totales_mes(
     )
 
 
+def _linea_saldo(conn: sqlite3.Connection, user_id: int) -> str:
+    """«💰 Deberías tener $X entre caja, FIMA y efectivo» (Franco, 19/11/2026).
+
+    No es el saldo grande del Inicio (el de la app): se corrige por las tarjetas,
+    con la misma cuenta del control de saldos (`saldos.deberia_tener`).
+    """
+    d = saldos.deberia_tener(conn, user_id=user_id, wid=resolve_workspace_id(conn, user_id))
+    linea = f"\n💰 Deberías tener {pesos(d['deberia'] / 100)} entre caja, FIMA y efectivo"
+    if not d["declarado"]:
+        return linea + " (todavía no me dijiste FIMA y efectivo: es lo que dice la app)"
+    ajustes = []
+    if d["esperando"]:
+        ajustes.append(f"−{pesos(d['esperando'] / 100)} de tarjeta pagada que espera su resumen")
+    if d["tarjeta"]:
+        ajustes.append(f"+{pesos(d['tarjeta'] / 100)} de compras con tarjeta sin pagar")
+    if ajustes:
+        linea += f"\n   (la app dice {pesos(d['app'] / 100)}; " + "; ".join(ajustes) + ")"
+    return linea
+
+
 def resumen_mes(conn: sqlite3.Connection, *, user_id: int, hoy: date) -> str:
     """Respuesta al comando `resumen`: totales del mes + últimos 5 movimientos."""
     titulo = f"*📊 {hoy:%m/%Y}*"
@@ -1356,12 +1431,13 @@ def resumen_mes(conn: sqlite3.Connection, *, user_id: int, hoy: date) -> str:
     ]
     if t.sin_categorizar:
         lineas.append(f"Sin categorizar: {pesos(t.sin_categorizar)} (asignales grupo en Configuración)")
+    lineas.append(_linea_saldo(conn, user_id))
 
     ultimas = list_recent(conn, 5, user_id=user_id)
     if ultimas:
         lineas.append("\n*Últimos movimientos*")
         for t in ultimas:
-            signo = "+" if t["ingresos"] else ""
+            signo = "+" if (t["ingresos"] or 0) > 0 else ""
             monto = t["ingresos"] or t["pasivos"]
             lineas.append(
                 f"  {date.fromisoformat(t['fecha']):%d/%m} {signo}{pesos(monto)} {t['motivo']}"

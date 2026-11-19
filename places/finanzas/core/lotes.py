@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Optional
 
@@ -165,6 +165,10 @@ class Deshecho:
     borradas: list[dict]
     #: Cuántos gastos que ya existían volvieron a como estaban antes del lote.
     restauradas: int
+    #: Cuáles (para decirlo: «#511 volvió a $20.400»).
+    restauradas_ids: list = field(default_factory=list)
+    #: De dónde venía el lote ("edicion" = un cambio pedido por chat).
+    origen: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -358,7 +362,7 @@ def deshacer(conn: sqlite3.Connection, lote_id: int, *, ahora: datetime) -> Desh
     backup_db()
     conn.execute("BEGIN IMMEDIATE")
     try:
-        borradas, restauradas = [], 0
+        borradas, restauradas, restauradas_ids = [], 0, []
         for op in ops:
             tabla = _tabla(op["tabla"])
             if op["accion"] == "insert":
@@ -370,7 +374,10 @@ def deshacer(conn: sqlite3.Connection, lote_id: int, *, ahora: datetime) -> Desh
                 antes = json.loads(op["antes"])
                 conn.execute(f"UPDATE {tabla} SET {', '.join(f'{c} = ?' for c in antes)} "
                              f"WHERE {_clave(tabla)} = ?", (*antes.values(), op["fila_id"]))
-                restauradas += tabla == "transacciones"
+                if tabla == "transacciones":
+                    restauradas += 1
+                    if op["fila_id"] not in restauradas_ids:
+                        restauradas_ids.append(op["fila_id"])
         conn.execute(
             "UPDATE lotes SET estado = 'deshecho', deshecho_en = ? WHERE id = ?",
             (ahora.isoformat(), lote_id),
@@ -379,4 +386,6 @@ def deshacer(conn: sqlite3.Connection, lote_id: int, *, ahora: datetime) -> Desh
     except BaseException:
         conn.execute("ROLLBACK")
         raise
-    return Deshecho(list(reversed(borradas)), restauradas)
+    origen = conn.execute("SELECT origen FROM lotes WHERE id = ?", (lote_id,)).fetchone()
+    return Deshecho(list(reversed(borradas)), restauradas, list(reversed(restauradas_ids)),
+                    origen["origen"] if origen else "")

@@ -85,7 +85,7 @@ def _gasto(conn: sqlite3.Connection, txn_id: int, wid: int) -> dict:
 
 def _describir(g: dict, hoy: date) -> str:
     monto = g["ingresos"] or g["pasivos"]
-    signo = "+" if g["ingresos"] else ""
+    signo = "+" if (g["ingresos"] or 0) > 0 else ""
     return (f"#{g['id']} {g['motivo']} {signo}{pesos(monto)} "
             f"({_fecha_corta(date.fromisoformat(g['fecha']), hoy)})")
 

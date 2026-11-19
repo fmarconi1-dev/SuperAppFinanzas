@@ -276,10 +276,33 @@ def aplicar(conn: sqlite3.Connection, lote_id: int, prop: dict, *, user_id: int,
     lotes.aplicar_operaciones(conn, lote_id, ops, user_id=user_id, ahora=ahora)
 
 
-def control_total(conn: sqlite3.Connection, *, user_id: int, wid: int) -> Optional[str]:
-    """¿Saldo de la app = caja + FIMA + efectivo? None si todavía no hay con qué comparar."""
+def deberia_tener(conn: sqlite3.Connection, *, user_id: int, wid: int) -> dict:
+    """Lo que debería haber hoy entre caja + FIMA + efectivo, en centavos.
+
+    Es el saldo de la app corregido por las dos cosas en que la app y el banco
+    van a destiempo: los pagos de tarjeta que ya salieron de la caja pero esperan
+    su resumen para cargarse (restan), y los gastos con tarjeta ya cargados que
+    todavía no se pagaron (suman). Lo usan `control_total` y `resumen`, así no se
+    separan. {"app", "esperando", "tarjeta", "deberia", "declarado"}; `declarado`
+    dice si ya hay FIMA y efectivo declarados (si no, la app no los sabe).
+    """
     from places.finanzas.core.metrics import saldo_cuenta_corriente
 
+    app = round(saldo_cuenta_corriente(conn, user_id=user_id) * 100)
+    esperando = -int(conn.execute(
+        "SELECT COALESCE(SUM(monto), 0) FROM banco_filas WHERE workspace_id = ? "
+        "AND estado = 'esperando_resumen'", (wid,)).fetchone()[0])
+    tarjeta = round(float(conn.execute(
+        "SELECT COALESCE(SUM(t.pasivos), 0) FROM emparejamientos e JOIN transacciones t "
+        "ON t.id = e.transaccion_id WHERE e.workspace_id = ? AND e.rol = 'tarjeta'",
+        (wid,)).fetchone()[0]) * 100)
+    declarado = _ultima(conn, wid, "fima") is not None and _ultima(conn, wid, "efectivo") is not None
+    return {"app": app, "esperando": esperando, "tarjeta": tarjeta,
+            "deberia": app - esperando + tarjeta, "declarado": declarado}
+
+
+def control_total(conn: sqlite3.Connection, *, user_id: int, wid: int) -> Optional[str]:
+    """¿Saldo de la app = caja + FIMA + efectivo? None si todavía no hay con qué comparar."""
     caja = conn.execute("SELECT fecha, saldo FROM banco_filas WHERE workspace_id = ? "
                         "ORDER BY orden DESC LIMIT 1", (wid,)).fetchone()
     if caja is None:
@@ -289,16 +312,10 @@ def control_total(conn: sqlite3.Connection, *, user_id: int, wid: int) -> Option
     fima, efectivo = _ultima(conn, wid, "fima"), _ultima(conn, wid, "efectivo")
     if caja is None or fima is None or efectivo is None:
         return None
-    app = round(saldo_cuenta_corriente(conn, user_id=user_id) * 100)
+    d = deberia_tener(conn, user_id=user_id, wid=wid)
+    app, esperando, tarjeta = d["app"], d["esperando"], d["tarjeta"]
     real = caja["saldo"] + fima["monto"] + efectivo["monto"]
-    esperando = -int(conn.execute(
-        "SELECT COALESCE(SUM(monto), 0) FROM banco_filas WHERE workspace_id = ? "
-        "AND estado = 'esperando_resumen'", (wid,)).fetchone()[0])
-    tarjeta = round(float(conn.execute(
-        "SELECT COALESCE(SUM(t.pasivos), 0) FROM emparejamientos e JOIN transacciones t "
-        "ON t.id = e.transaccion_id WHERE e.workspace_id = ? AND e.rol = 'tarjeta'",
-        (wid,)).fetchone()[0]) * 100)
-    resto = app - real - esperando + tarjeta
+    resto = d["deberia"] - real
     lineas = [f"🧮 Saldo de la app {conc.pesos_c(app)} · caja "
               f"{conc.pesos_c(caja['saldo'])} ({date.fromisoformat(caja['fecha']):%d/%m}) + FIMA "
               f"{conc.pesos_c(fima['monto'])} + efectivo {conc.pesos_c(efectivo['monto'])} = "

@@ -9,6 +9,22 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 ---
 
+## 19 de noviembre de 2026 — El Secretario ya no se traba con una línea que no entiende
+
+**Qué se hizo.**
+- **Contestar la conciliación como lista ya no se rompe por una línea.** El 11/11 mandaste «1. Salidas, 2. Salidas, 3. Compras» y una frase sobre el 8. Como la frase no la entendía, el Secretario tiraba el mensaje entero y encima lo leía como cuatro gastos nuevos. Ahora anota lo que sí entendió, te dice cuál línea no entendió y te muestra cómo quedó todo. Hasta que no aclares esa línea, un *ok* no carga nada.
+- **«1 es salidas» ahora es «1 salidas».** Antes el «es» se tomaba como «es este gasto que ya cargaste» y daba error.
+- **El resumen dice cuánta plata deberías tener** sumando la caja, FIMA y el efectivo. Ya tiene en cuenta los pagos de tarjeta que salieron del banco pero esperan el resumen, y las compras con tarjeta que todavía no pagaste.
+- **Menos mails de error de Google.** Las dos fallas del 16/11 fueron de Google, que no pudo leer sus propios datos por un momento. No se perdió nada: el reloj vuelve a probar 10 minutos después. Ahora esas fallas se anotan sin mandarte un mail.
+
+**Para qué te sirve.** Podés contestar como te sale más natural sin que se pierda lo que sí estaba bien, y con *resumen* ves de un vistazo si la plata te cierra.
+
+- **«El 8 se resta de Haberes SBT» ahora hace eso:** un débito del banco que va a una categoría de ingreso le resta a ese ingreso, así el mes muestra lo que cobraste de verdad. Antes la plata cuadraba, pero los ingresos del mes quedaban inflados.
+
+**Qué sigue.** Publicar los cambios y pegar el reloj nuevo en Google.
+
+---
+
 ## 6 de noviembre de 2026 — Corregir lo cargado hablando, y Gemini cuando lo llamás
 
 **Qué se hizo.**

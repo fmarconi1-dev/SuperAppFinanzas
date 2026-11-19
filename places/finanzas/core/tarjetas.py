@@ -379,6 +379,10 @@ def responder(conn: sqlite3.Connection, lote: lotes.Lote, *, aceptar: bool, canc
             errores.append(f"{n}: no está en la propuesta")
             continue
         clave = conc._norm(que)
+        if clave.startswith("es ") and not clave.removeprefix("es ").lstrip("#").strip().isdigit():
+            # «1 es salidas» (11/11/2026) es una categoría, no elegir un candidato.
+            que = que.strip()[3:].strip()
+            clave = conc._norm(que)
         if clave in {"no", "sacar"}:
             if it["clase"] == "coincide":
                 it.update(clase="consumo", motivo=None, empate_ids=[], empate=[])

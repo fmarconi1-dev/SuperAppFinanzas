@@ -202,8 +202,15 @@ def montos_para(monto: int, motivo: str, grupo: Optional[str]) -> tuple[float, f
     Un débito es gasto. Un crédito es ingreso si la categoría es de ingreso (o
     "Inversiones", que es dual); si no, es una **devolución** de esa categoría
     (`pasivos` negativo, la convención de siempre).
+
+    Al revés, un débito en una categoría de ingreso **resta de ese ingreso**
+    (`ingresos` negativo; Franco, 19/11/2026: «el 8 se resta de Haberes SBT»).
+    En `pasivos` no restaba de los ingresos del mes ni sumaba a los gastos: el
+    saldo daba bien y el mes, mal.
     """
     if monto < 0:
+        if grupo == "Ingreso" and _norm(motivo) != "inversiones":
+            return 0.0, monto / 100
         return -monto / 100, 0.0
     if grupo == "Ingreso" or _norm(motivo) == "inversiones":
         return 0.0, monto / 100
@@ -229,7 +236,7 @@ class Cargado:
 
     @property
     def es_debito(self) -> bool:
-        return self.pasivos > 0
+        return self.pasivos > 0 or self.ingresos < 0     # un ingreso que se restó
 
     @property
     def importe(self) -> int:
@@ -238,6 +245,8 @@ class Cargado:
             return _cent(self.pasivos)
         if self.ingresos > 0:
             return _cent(self.ingresos)
+        if self.ingresos < 0:
+            return _cent(-self.ingresos)  # un débito que resta de un ingreso
         return _cent(-self.pasivos)      # una devolución cargada a mano
 
     def describir(self) -> str:
@@ -391,7 +400,7 @@ def _netos(filas: list[FilaBanco], debitos: list[int], creditos: list[int],
     grupos: dict[int, tuple[int, list[int]]] = {}
     libres_d, libres_c = list(debitos), list(creditos)
     for c in sorted(sueltos, key=lambda c: (c.fecha, c.id)):
-        if not c.es_debito:
+        if not c.es_debito or c.ingresos < 0:
             continue
         for i in libres_d:
             f = filas[i]
@@ -595,7 +604,8 @@ def proponer_extracto(
                           "desc": c.describir(), "correccion": correccion,
                           "arrastre": antes_del_ajuste(c.creado_en),
                           "efectivo_id": c.efectivo_id, "debito": c.es_debito,
-                          "devolucion_manual": c.pasivos < 0})
+                          "devolucion_manual": c.pasivos < 0,
+                          "ingreso_negativo": c.ingresos < 0})
         elif i in netos:
             c = por_id[netos[i][0]]
             items.append({**base, "clase": "coincide", "txn": c.id, "por": "neto", "grupo": i,
@@ -842,6 +852,10 @@ def responder(
             errores.append(f"{n}: ya no está en la propuesta")
             continue
         clave = _norm(que)
+        if clave.startswith("es ") and not clave.removeprefix("es ").lstrip("#").strip().isdigit():
+            # «1 es salidas» (11/11/2026) es una categoría, no elegir un candidato.
+            que = que.strip()[3:].strip()
+            clave = _norm(que)
         if clave in {"no", "interno", "sacar"}:
             if it["clase"] == "falta":
                 it["descartada"] = True
@@ -876,7 +890,8 @@ def responder(
             it.update(clase="coincide", txn=cid, por="monto", desc=opciones[cid],
                       correccion=abs(fila["monto"]) if abs(fila["monto"]) != abs(importe) else None,
                       arrastre=False, efectivo_id=None, debito=fila["monto"] < 0,
-                      devolucion_manual=t["pasivos"] < 0)
+                      devolucion_manual=t["pasivos"] < 0,
+                      ingreso_negativo=t["ingresos"] < 0)
             # Si estaba en "sobran", ya no sobra: es este.
             items[:] = [x for x in items if not (x["clase"] == "sobra" and x["txn"] == cid)]
             continue
@@ -974,6 +989,8 @@ def aplicar(conn: sqlite3.Connection, lote_id: int, prop: dict, *, user_id: int,
                 valor = it["correccion"] / 100
                 if it.get("devolucion_manual"):
                     columna, valor = "pasivos", -valor
+                elif it.get("ingreso_negativo"):
+                    columna, valor = "ingresos", -valor
                 ops.append(Actualizar("transacciones", it["txn"], {columna: valor}))
             if it["arrastre"]:
                 ops.append(InsertarMovimiento(Movimiento(

@@ -33,11 +33,28 @@ const HORA_RESUMEN_PRE = "18:30";
 // 21:00 o 22:00 hora argentina del día anterior.
 const HORA_RESUMEN_POST = "09:30";
 
-/** El disparador: cada 10 minutos. Cada parte por separado, para que un error no tape a las otras. */
+/**
+ * El disparador: cada 10 minutos. Cada parte por separado, para que un error no tape a las otras.
+ *
+ * Leer las propiedades también va en un try (16/11/2026: dos mails de "Agente -
+ * Briefings" con "a server error occurred while reading from storage" y "a
+ * server error occurred. Please wait a bit and try again"). Son fallas de
+ * Google, pasajeras: no se pierde nada, porque una propiedad se marca recién con
+ * el `ok: true` de la SuperApp y la corrida de 10 minutos después reintenta.
+ * Una propiedad que **falta** (SUPERAPP_URL / SUPERAPP_TOKEN) sí corta la
+ * corrida: eso no se arregla solo y tiene que llegar el mail.
+ */
 function relojDeBalances() {
-  const props = PropertiesService.getScriptProperties();
-  const base = requerirPropiedad_(props, "SUPERAPP_URL").replace(/\/+$/, "");
-  const token = requerirPropiedad_(props, "SUPERAPP_TOKEN");
+  let base, token;
+  try {
+    const props = PropertiesService.getScriptProperties();
+    base = requerirPropiedad_(props, "SUPERAPP_URL").replace(/\/+$/, "");
+    token = requerirPropiedad_(props, "SUPERAPP_TOKEN");
+  } catch (err) {
+    if (!esFallaPasajeraDeGoogle_(err)) throw err;
+    console.error("Google no dejó leer las propiedades; reintento en la próxima corrida: " + err);
+    return;
+  }
   [balancesPendientes_, resumenesPendientes_].forEach(function (paso) {
     try {
       paso(base, token);
@@ -46,6 +63,12 @@ function relojDeBalances() {
       console.error(err && err.stack ? err.stack : err);
     }
   });
+}
+
+/** ¿Es uno de los "server error" de Google que se arreglan solos? (no un error nuestro) */
+function esFallaPasajeraDeGoogle_(err) {
+  const texto = String(err && err.message ? err.message : err);
+  return /server error|error code INTERNAL|try again|Service invoked too many times|timed out/i.test(texto);
 }
 
 /** Deja un único disparador de `relojDeBalances` cada 10 minutos. */

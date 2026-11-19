@@ -1,6 +1,6 @@
 # tests/
 
-<!-- huella: 00f107c73bc1 -->
+<!-- huella: ea38022d14d9 -->
 
 Resumen: La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde.
 
@@ -65,6 +65,8 @@ Resumen: La suite completa (862 tests al 20/10/2026, Fase D completa en código)
 - **16/10/2026:** 515 passed, 0 skipped (con las cuentas en el monto); antes, 493 (Fase B, pasos 1–2: cola de salida y `/api/briefing`).
 - **15/10/2026:** 468 passed, 0 skipped (Fase A: +109 tests de WhatsApp, API y contenedor).
 - **Antes:** 359 passed, 0 skipped en local (14/10/2026, tras retirar Inversiones — se fueron ~550 tests de cartera y market_data); en CI salen skipped los oráculos de los CSV.
+
+- **19/11/2026:** `test_conciliacion.py` suma el mensaje real del 11/11 (tres correcciones y una frase), el `ok` que no aplica con algo sin entender y «1 es salidas»; `test_lenguaje_natural.py`, «1.» / «2)» nombran el renglón; `test_saldos.py`, el «💰 Deberías tener» del `resumen` y que descuenta el pago de tarjeta que espera su resumen. Y un débito con categoría de ingreso que resta de ese ingreso (`montos_para`, totales y `resumen`). 1124 → 1135 en verde.
 
 ## Proximo paso
 

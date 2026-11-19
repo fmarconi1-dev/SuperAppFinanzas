@@ -260,6 +260,10 @@ CATEGORIAS_FRANCO = ["Auto", "Compras", "Haberes Fundación", "Haberes SBT", "Ha
     ("el 4 compras", {4}),                                   # "4" no es un monto de $4
     ("lo del 30/10 es haberes sbt", {6, 7}),                 # por la fecha
     ("el de 1.350.000 es haberes sbt", {7}),
+    # Como lista numerada (11/11/2026): «1.» nombra al 1; «2.500» no es el 2.
+    ("1. Salidas\n2. Salidas\n3. Compras\nEl 8 se resta de Haberes SBT", {1, 2, 3, 8}),
+    ("2) salidas", {2}),
+    ("gasté 2.500 en eso", set()),
 ])
 def test_que_renglones_nombra_el_mensaje(mensaje, renglones):
     from places.finanzas.core.lenguaje import _nombrados

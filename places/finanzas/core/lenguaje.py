@@ -51,7 +51,9 @@ _DIAS = ("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domin
 _CORRECCIONES = (
     "Correcciones a una propuesta abierta (por número de renglón, separadas por coma): "
     "N categoría · N no (no se carga) · N es ID (es ese gasto ya cargado) · "
-    "N efectivo / N tarjeta (para lo que sobra) · ok (acepta) · cancelar (descarta)."
+    "N efectivo / N tarjeta (para lo que sobra) · ok (acepta) · cancelar (descarta). "
+    "Un débito con una categoría de ingreso resta de ese ingreso: «el 8 se resta de "
+    "Haberes SBT» es «8 Haberes SBT»."
 )
 
 #: Dónde pone Franco lo que Gemini no puede adivinar (Franco, 4/11/2026, después
@@ -119,7 +121,9 @@ def _nombrados(texto: str, texto_propuesta: str, categorias: list[str]) -> set[i
     renglones = _renglones(texto_propuesta)
     mensaje = normalizar(texto)
     palabras_msj = {w for w in re.findall(r"[a-z]+", mensaje) if len(w) >= 4}
-    numeros_msj = {int(n) for n in re.findall(r"(?<![\d.,/])(\d{1,3})(?![\d.,/])", mensaje)}
+    # «1. Salidas» o «2) compras» también nombran al renglón (11/11/2026); «2.500» no.
+    numeros_msj = {int(n) for n in re.findall(r"(?<![\d.,/])(\d{1,3})(?![\d,/]|[.]\d)",
+                                              mensaje)}
     # Un monto de menos de $100 es un número de renglón ("el 4"), no un monto.
     montos_msj = [v for c, u in _RE_MONTO_MENSAJE.findall(mensaje)
                   if (v := _monto(c, u)) and v >= 100]
@@ -222,7 +226,7 @@ def _cargados(conn: sqlite3.Connection, wid: int, hoy: date) -> str:
     for f in _filas_cargadas(conn, wid, hoy):
         monto = f["ingresos"] or f["pasivos"]
         linea = (f"#{f['id']} {date.fromisoformat(f['fecha']):%d/%m} {f['motivo']} "
-                 f"{'+' if f['ingresos'] else ''}{pesos(monto)}")
+                 f"{'+' if (f['ingresos'] or 0) > 0 else ''}{pesos(monto)}")
         if f["cuenta"]:
             linea += f" (= {f['cuenta']})"
         if f["comentario"]:

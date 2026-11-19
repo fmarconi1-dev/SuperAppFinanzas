@@ -30,8 +30,20 @@ def test_cambiar_la_fecha_y_deshacer(db):
     r = _p(db, f"#{txn} fecha 02/11")
     assert r.resultado == "lote" and "ahora es del 02/11" in r.texto
     assert _q(db, "SELECT fecha FROM transacciones WHERE id = ?", txn) == [("2026-11-02",)]
-    assert _p(db, "deshacer").resultado == "deshecho"
+    r = _p(db, "deshacer")
+    assert r.resultado == "deshecho"
+    assert r.texto == f"↩️ Deshice el cambio:\n  • #{txn} Salidas volvió a $5.000 del 28/10"
     assert _q(db, "SELECT fecha FROM transacciones WHERE id = ?", txn) == [("2026-10-28",)]
+
+
+def test_deshacer_una_particion_dice_como_quedo(db):
+    """Franco, 7/11/2026: «Borré el que cargaste: #515 $1.000» confundía."""
+    txn = _cargar(db, date(2026, 11, 5), "Salidas", pasivos=20400)
+    _p(db, f"partir #{txn} 19400 tarjeta + 1000 propina")
+    parte = _id(db, "Salidas", 1000)
+    r = _p(db, "deshacer")
+    assert r.texto == (f"↩️ Deshice el cambio:\n  • #{txn} Salidas volvió a $20.400 del 05/11\n"
+                       f"  • borré la parte #{parte} de $1.000 · propina")
 
 
 def test_la_misma_fecha_o_un_numero_que_no_existe_no_cambian_nada(db):
