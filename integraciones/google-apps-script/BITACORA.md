@@ -67,7 +67,7 @@ Resumen: Puente Google ↔ SuperApp en Apps Script: reenvía el briefing de Gmai
 
 - **21/10/2026 (noche) — `Balances.gs`:** el resumen lleva la cuenta por empresa (`RESUMEN_PRE` / `RESUMEN_POST`, en JSON), así sale una pre-apertura agendada para hoy después de las 18:30. Las propiedades viejas `ULTIMO_RESUMEN_*` quedan sin uso (se pueden borrar). Simulado con QuickJS.
 
-- **19/11/2026 — `Balances.gs`:** el 16/11 llegaron dos mails de falla de `relojDeBalances` («server error … reading from storage. Error code INTERNAL» y «server error … try again», esta de 8 minutos). Son de Google y no se perdió nada (la propiedad se marca recién con el `ok: true`). Leer las propiedades quedaba fuera del try: ahora va adentro y una falla pasajera (`esFallaPasajeraDeGoogle_`) se anota y espera la corrida siguiente; una propiedad que falta sigue cortando. Una corrida que Google mata por tiempo (más de 6 min) no se puede atajar desde el código. **Sin probar con QuickJS** (no hay intérprete de JS en esta máquina) y **sin pegar en Google**.
+- **19/11/2026 — `Balances.gs`:** el 16/11 llegaron dos mails de falla de `relojDeBalances` («server error … reading from storage. Error code INTERNAL» y «server error … try again», esta de 8 minutos). Son de Google y no se perdió nada (la propiedad se marca recién con el `ok: true`). Leer las propiedades quedaba fuera del try: ahora va adentro y una falla pasajera (`esFallaPasajeraDeGoogle_`) se anota y espera la corrida siguiente; una propiedad que falta sigue cortando. Una corrida que Google mata por tiempo (más de 6 min) no se puede atajar desde el código. **Sin probar con QuickJS** (no hay intérprete de JS en esta máquina). **Pegado en Google por Franco el 19/11/2026.**
 
 ## Proximo paso
 

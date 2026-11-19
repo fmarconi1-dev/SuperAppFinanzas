@@ -2,13 +2,13 @@
 
 <!-- GENERADO por indexar.py. No editar: los cambios se pierden. -->
 <!-- La prosa vive en las BITACORA.md de cada carpeta. -->
-<!-- 2026-11-19 19:05 UTC · 136 archivos · 29,555 LOC -->
+<!-- 2026-11-19 19:06 UTC · 136 archivos · 29,555 LOC -->
 
 ## Como usar este archivo
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-11-19 e0b884b fix: respuesta parcial a la propuesta, saldo en resumen y reloj de balances · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-11-19 833ca46 docs: bitÃ¡cora de views (ingreso negativo en la tabla de Transacciones) · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -220,7 +220,7 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 
 Segun el historial de git. Si vas a cambiar uno, mira el otro.
 
-- `.mapa/mapa.json` + `MAPA.md` (72 commits)
+- `.mapa/mapa.json` + `MAPA.md` (73 commits)
 - `.mapa/mapa.json` + `ESTADO.md` (48 commits)
 - `ESTADO.md` + `MAPA.md` (48 commits)
 - `EN-HUMANO.md` + `ESTADO.md` (44 commits)

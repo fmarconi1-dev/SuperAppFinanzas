@@ -161,4 +161,4 @@
 ## 2026-11-19 — La respuesta a la conciliación que no sirvió (11/11) y el saldo en `resumen`
 - **Autor:** Claude (Opus 5.5), con Franco.
 - **Qué:** una respuesta con un renglón que no entiende ya no tira los demás (se anotan y se dice lo que faltó); «N es categoría» vale como categoría; Gemini reconoce «1.» como el renglón 1; `resumen` muestra cuánto debería haber entre caja, FIMA y efectivo. `Balances.gs`: las fallas pasajeras de Google al leer las propiedades ya no mandan mail.
-- **Estado:** ✅ tests en verde, sin commitear ni desplegar. `Balances.gs` sin pegar en Google. Franco decidió que un débito con categoría de ingreso **reste del ingreso**: hecho (ingreso negativo).
+- **Estado:** ✅ tests en verde, en `main` (`e0b884b`). `Balances.gs` pegado en Google por Franco el 19/11. Franco decidió que un débito con categoría de ingreso **reste del ingreso**: hecho (ingreso negativo).

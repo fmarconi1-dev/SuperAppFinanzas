@@ -21,7 +21,7 @@ Este archivo cuenta, **en lenguaje llano y sin tecnicismos**, qué se fue hacien
 
 - **«El 8 se resta de Haberes SBT» ahora hace eso:** un débito del banco que va a una categoría de ingreso le resta a ese ingreso, así el mes muestra lo que cobraste de verdad. Antes la plata cuadraba, pero los ingresos del mes quedaban inflados.
 
-**Qué sigue.** Publicar los cambios y pegar el reloj nuevo en Google.
+**Qué sigue.** Publicar los cambios (el reloj nuevo ya está en Google).
 
 ---
 
