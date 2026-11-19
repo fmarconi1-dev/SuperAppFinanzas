@@ -8,7 +8,7 @@
 
 Es el unico archivo del proyecto que hace falta leer para empezar. Para ubicar algo concreto: `python3 .mapa/buscar.py "<termino>"` devuelve archivo y linea sin abrir nada. Recien despues abrir los archivos que salgan, y solo esos.
 
-Rama `main` — ultimo commit: 2026-11-07 f1d5e4b docs: Fase E, paso 3 probado en Fly (48 BIEN Â· 2 DUDOSA Â· 0 MAL) · **hay cambios sin commitear**
+Rama `main` — ultimo commit: 2026-11-19 e0b884b fix: respuesta parcial a la propuesta, saldo en resumen y reloj de balances · **hay cambios sin commitear**
 
 ## Donde buscar que
 
@@ -153,7 +153,7 @@ Rama `main` — ultimo commit: 2026-11-07 f1d5e4b docs: Fase E, paso 3 probado e
 |---|---|---:|---:|---|
 | `tests/` | La suite completa (862 tests al 20/10/2026, Fase D completa en código) en carpeta plana: unidad + regresión + oráculos contra los CSV de Franco. Es el gate del repo: nada se cierra sin verde. | 48 | 10,563 | ok |
 | `places\finanzas\core/` | Lógica de negocio de Finanzas, pura y sin Streamlit: transacciones, categorización, KPIs, presupuesto, libro diario, import de CSV y export a Excel. | 23 | 7,936 | ok |
-| `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,969 | **vencida** |
+| `places\finanzas\views/` | Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`. | 7 | 1,969 | ok |
 | `core/` | Núcleo compartido: SQLite (schema + migraciones M1–M24 + reparaciones únicas + backups), workspaces del grupo familiar (D2) y su UI. Auth, theme y la API HTTP (`api/`, Fase A) viven en subcarpetas propias. | 5 | 1,945 | ok |
 | `scripts/` | Operación y mantenimiento: backups remotos (PowerShell + verificación), reset de contraseñas y el indexador del mapa. | 9 | 1,906 | ok |
 | `core\api/` | API HTTP stdlib de la SuperApp (Fase A, ADR-0008): servidor con el webhook de WhatsApp firmado por Meta, dedupe y cola de trabajo, más el canal de Meta (único módulo que le habla). | 8 | 1,737 | ok |
@@ -212,8 +212,8 @@ Ordenados por cuantos otros archivos dependen de ellos. Tocar uno de arriba tien
 - `places\finanzas\views/` → `core/` (11)
 - `places\finanzas\core/` → `core\api/` (8)
 - `scripts\perf/` → `core/` (8)
-- `./` → `core/` (5)
 - `./` → `core\api/` (5)
+- `./` → `core/` (5)
 - `scripts/` → `places\finanzas\core/` (5)
 
 ## Se tocan juntos
@@ -263,7 +263,3 @@ Segun el historial de git. Si vas a cambiar uno, mira el otro.
 - `SIGNUP_CODE` — `core\auth\login.py`
 - `SUPERAPP_API_TOKEN` — `core\api\servidor.py`
 - `SUPERAPP_DEFAULT_WORKSPACE` — `core\api\whatsapp_meta.py`
-
-## Frescura
-
-- Bitacoras vencidas: `places\finanzas\views/`

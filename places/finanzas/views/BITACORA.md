@@ -1,6 +1,6 @@
 # places/finanzas/views/
 
-<!-- huella: 52961b75d2c7 -->
+<!-- huella: 0dab45b4c277 -->
 
 Resumen: Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica de negocio vive en `../core/`.
 
@@ -17,6 +17,7 @@ Resumen: Las 5 pestañas de Finanzas + onboarding, en Streamlit puro; la lógica
 - **El bug del 4/8/2026**: el form de transacciones se bifurca en modo rápido/detallado y las dos ramas caen al mismo guardado; una variable definida en una sola rama tumba la app **al enviar** (así murió `firma_val`). `tests/test_transacciones_formulario.py` caza la forma del problema por AST: si agregás una variable a un modo, definila **antes** del `if`.
 - El modo rápido es el que se usa desde el celular: probá ahí.
 - Desde el 22/9/2026 `tests/test_smoke_pantallas.py` **abre** las 5 pestañas con `AppTest` y datos sintéticos: una pestaña que tire excepción al renderizar ya no llega a producción. No reemplaza probar un formulario enviándolo. Desde el 21/10/2026 corre solo la pestaña abierta, así que el test abre **cada una** (`test_cada_pestana_de_finanzas_abre`).
+- **Un ingreso puede ser negativo** (19/11/2026): un débito del banco con categoría de ingreso se carga con `ingresos` negativo (resta de ese ingreso; ver `conciliacion.montos_para`). La columna Importe de `transacciones.py` mira `ingresos != 0`, no `> 0`: si no, ese movimiento salía en $0.
 - **Código que corre sin los contextvars del script** (21/10/2026, frente 1 de rendimiento): el generador del Excel de `configuracion.py` (`_generador_excel`, lo corre Streamlit en otro hilo al tocar "Descargar") y el fragmento `_grafico_caja` de `dashboard.py` (se rerunnea solo, sin pasar por `app.py`). Los dos reciben el usuario y el workspace y los ponen ellos mismos. Un fragmento nuevo que lea la base tiene que hacer lo mismo: si no, en un espacio familiar lee el personal.
 - **Dashboard y Diario cachean por versión de la base** (21/10/2026, frente 3): `_datos_base`, `_calculos_del_periodo` y `_caja` en `dashboard.py`, `_libro` en `diario.py`, con `core.db.version_datos()` en la clave. **Todo lo que cambie el resultado va en la clave como escalar** (fechas del período, días, `hoy`, ventanas); nunca un DataFrame (lento de hashear). Dentro de una función cacheada se ponen el usuario y el workspace en el contexto: en una corrida que no pasa por `app.py` (fragmento) no están.
 - **No volver a armar el Excel (ni nada caro) en el cuerpo de `render()`**: corre en cada click de la pestaña. Lo caro y a pedido va en un callable o detrás de un botón.
